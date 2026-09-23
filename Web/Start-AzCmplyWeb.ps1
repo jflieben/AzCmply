@@ -50,7 +50,8 @@ try {
             $response.Headers['Cross-Origin-Opener-Policy'] = 'same-origin-allow-popups'
             $response.Headers['Content-Security-Policy'] = "frame-ancestors 'self'"
             $response.Headers['Cache-Control'] = 'no-cache'
-            if (-not $path.StartsWith($root + [System.IO.Path]::DirectorySeparatorChar) -or -not [System.IO.File]::Exists($path) -or $context.Request.HttpMethod -notin 'GET', 'HEAD') {
+            $hidden = @($relative -split '/' | Where-Object { $_.StartsWith('.') }).Count -gt 0
+            if ($hidden -or -not $path.StartsWith($root + [System.IO.Path]::DirectorySeparatorChar) -or -not [System.IO.File]::Exists($path) -or $context.Request.HttpMethod -notin 'GET', 'HEAD') {
                 $response.StatusCode = 404
             } else {
                 $bytes = [System.IO.File]::ReadAllBytes($path)

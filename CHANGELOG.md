@@ -15,3 +15,6 @@
 - Analysis: controls whose ids sort equal once padded (for example NIST CSF `DE.AE-2` and `DE.AE-02`) no longer come
   out in a different order per run.
 - Self-test fixture: database server configurations are written in a fixed order.
+- AzCmply web: after an upload, browsers kept running the previous scripts for up to a week, because the host lets them
+  cache scripts that long. The page now loads each upload fresh (a build id in `index.html`), and the site includes an
+  `.htaccess` for Apache and LiteSpeed hosts with the security headers and revalidation on every visit.

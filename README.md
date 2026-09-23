@@ -60,8 +60,11 @@ To assess a tenant you are a guest in, enter that tenant's id or domain under **
 The page is static: serve the folder `Web/site` from any web server.
 
 - On your own computer: `.\Web\Start-AzCmplyWeb.ps1` serves it at `http://localhost:8400/` and opens it.
-- Azure Static Web Apps: deploy `Web/site`; `staticwebapp.config.json` sets the security headers.
+- Apache or LiteSpeed (most shared hosting): upload the folder including the hidden `.htaccess`, which sets the security headers and makes browsers check for new files on every visit.
+- Azure Static Web Apps: deploy `Web/site`; `staticwebapp.config.json` does the same there.
 - Any other static host (GitHub Pages, a storage account website, IIS): works as is. The page sets its Content Security Policy itself; add `frame-ancestors 'self'` as a header if the host allows headers.
+
+Run `.\Web\Convert-AzCmplyToWeb.ps1` before every upload, also after changing only the page. It stamps a build id into `index.html`; browsers that visited before then fetch the new files, even when the host lets them cache scripts for days.
 
 Set the redirect URI of your app registration to the address of the page, and put the client id of your multi-tenant app in `Web/site/js/config.js` if you want it to be the default for your users.
 

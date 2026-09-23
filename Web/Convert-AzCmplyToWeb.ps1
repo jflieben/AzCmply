@@ -7,6 +7,8 @@
     and the report (Report\New-AzureSecurityReport.ps1) to JavaScript modules that run on the runtime in site\js\runtime,
     copies the framework catalog, extracts the collection maps of the ingestion, and bundles a synthetic demo ingestion.
     Output goes to site\generated and is never edited by hand: change the PowerShell and run this again.
+    It also stamps a build id (the version plus a hash of every file the page loads) into site\index.html, so browsers
+    load an upload fresh; run it after any change under site as well.
 
     The output is idempotent: the same source always gives byte identical files, so a diff of site\generated shows exactly
     what a source change did. Anything the converter does not support stops the run with the file and line.
@@ -183,12 +185,39 @@ try {
     foreach ($path in (Get-OrdinalSorted -Items (@($scriptSources.FullName) + @($assetSources.FullName) + $ingestSource + $fixtureSource) -Key { Get-RelativePath $_ })) {
         $sourceHashes[(Get-RelativePath $path)] = Get-Sha256 ([System.Text.Encoding]::UTF8.GetBytes(([System.IO.File]::ReadAllText($path) -replace "`r`n", "`n")))
     }
+    #build id: the version plus a hash of every file the page loads (hand-written and generated). index.html loads its
+    #scripts with it (js/boot.js?v=<build>), so each upload is fetched fresh however long the host lets browsers cache
+    $pageFiles = [System.Collections.Generic.List[object]]::new()
+    foreach ($file in (Get-ChildItem -Path $site -Recurse -File)) {
+        $relative = [System.IO.Path]::GetRelativePath($site, $file.FullName).Replace('\', '/')
+        if ($relative -like 'generated/*' -or $relative -in 'index.html', '.htaccess', 'staticwebapp.config.json') { continue }
+        $pageFiles.Add([pscustomobject]@{ Relative = $relative; Path = $file.FullName })
+    }
+    foreach ($file in (Get-ChildItem -Path $output -Recurse -File)) {
+        $relative = [System.IO.Path]::GetRelativePath($output, $file.FullName).Replace('\', '/')
+        if ($relative -eq 'manifest.json') { continue }
+        $pageFiles.Add([pscustomobject]@{ Relative = "generated/$relative"; Path = $file.FullName })
+    }
+    $pageFiles = Get-OrdinalSorted -Items $pageFiles.ToArray() -Key { $_.Relative }
+    $buildInput = [System.Text.StringBuilder]::new()
+    foreach ($file in $pageFiles) { [void]$buildInput.Append($file.Relative).Append("`n").Append(([System.IO.File]::ReadAllText($file.Path) -replace "`r`n", "`n")).Append("`n") }
+    $build = "$version-$((Get-Sha256 ([System.Text.Encoding]::UTF8.GetBytes($buildInput.ToString()))).Substring(0, 10))"
+
     $manifest = [ordered]@{
         generatorVersion = $generatorVersion
         version          = $version
+        build            = $build
         sources          = $sourceHashes
+        files            = @($pageFiles.Relative)
     }
     Set-OutputFile -Root $output -Relative 'manifest.json' -Text (($manifest | ConvertTo-Json -Depth 5) + "`n")
+
+    #index.html references the entry script and stylesheet with the build id
+    $indexPath = Join-Path $site 'index.html'
+    $indexText = [System.IO.File]::ReadAllText($indexPath)
+    $stampPattern = '(?<=["''](?:js/boot\.js|css/app\.css))(?:\?v=[^"'']*)?(?=["''])'
+    if ([regex]::Matches($indexText, $stampPattern).Count -ne 2) { throw 'site/index.html must load js/boot.js and css/app.css (each once) for the build id to be stamped' }
+    $stampedIndex = [regex]::Replace($indexText, $stampPattern, "?v=$build")
 
     #endregion
 
@@ -203,6 +232,7 @@ try {
             if (-not $newFiles.ContainsKey($key)) { "removed   $key"; continue }
             if ((Get-Sha256 ([System.IO.File]::ReadAllBytes($newFiles[$key]))) -ne (Get-Sha256 ([System.IO.File]::ReadAllBytes($oldFiles[$key])))) { "changed   $key" }
         })
+    if ($stampedIndex -ne $indexText) { $changed += "changed   ../index.html (build id $build)" }
 
     if ($Check) {
         if ($changed.Count) {
@@ -217,8 +247,9 @@ try {
     if (Test-Path $target) { Remove-Item -Path $target -Recurse -Force }
     $null = New-Item -ItemType Directory -Force -Path $target
     Copy-Item -Path (Join-Path $output '*') -Destination $target -Recurse -Force
+    if ($stampedIndex -ne $indexText) { [System.IO.File]::WriteAllText($indexPath, $stampedIndex, $utf8) }
     if ($changed.Count) { $changed | ForEach-Object { Write-Host "  $_" } } else { Write-Host '  no changes' }
-    Write-Host "Generated $($modules.Count) scripts for AzCmply $version in $target"
+    Write-Host "Generated $($modules.Count) scripts for AzCmply $version (build $build) in $target"
 
     #endregion
 } finally {

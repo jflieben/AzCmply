@@ -50,7 +50,10 @@ where tests, analysis, comparison and report are written.
 - `Web\Convert-AzCmplyToWeb.ps1` converts `Analyze\lib`, `Analyze\tests`, `Invoke-AzureAnalyze.ps1`,
   `Compare-AzureAnalysis.ps1` and `Report\New-AzureSecurityReport.ps1` to JavaScript in `Web\site\generated`, copies the
   framework catalog, extracts the ingestion's collection maps (`ingest-plan.js`) and bundles the demo fixture. It is
-  idempotent. Run it after every change to those files, the collection maps or the fixture, and commit its output.
+  idempotent. Run it after every change to those files, the collection maps, the fixture or anything in `Web\site`, and
+  commit its output: it also stamps the build id (version plus a hash of every file the page loads) into
+  `Web\site\index.html`, which `js\boot.js` uses to fetch a new upload past the browser cache (the jsolve.nl host caches
+  scripts for a week).
   Never edit `Web\site\generated` by hand. `-Check` fails when the output is stale (CI runs it).
 - `Web\generator\Test-WebParity.ps1` must pass after regenerating: language conformance, analysis of both fixtures
   (results.json, tests.csv, findings.csv), comparison and report byte for byte. Add `-Thorough` after test changes.

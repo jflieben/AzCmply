@@ -686,7 +686,12 @@ async function start() {
         }
     });
 
-    call('info').then(info => { $('#version').textContent = `v${info.version}`; });
+    call('info').then(info => {
+        $('#version').textContent = `v${info.version}`;
+        const boot = document.querySelector('script[src*="js/boot.js"]');
+        const build = boot ? new URL(boot.src).searchParams.get('v') : null;
+        if (build) { $('#version').title = `Build ${build}`; }
+    });
     renderHistory();
 
     let redirect = null;
