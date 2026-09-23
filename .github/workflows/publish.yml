@@ -1,0 +1,68 @@
+name: Publish to PowerShell Gallery
+
+# Publishes AzCmply to the PowerShell Gallery on every push to main, but only
+# when the VERSION file holds a version that is not already published. Pushes to
+# any other branch never publish. The VERSION file is the single source of truth:
+# bump it to release, leave it alone to skip.
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  publish:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read version
+        id: version
+        shell: pwsh
+        run: |
+          $version = (Get-Content 'VERSION' -Raw).Trim()
+          if ($version -notmatch '^\d+\.\d+\.\d+$') {
+            throw "VERSION file must hold a three-part version (X.Y.Z), found '$version'."
+          }
+          Write-Host "VERSION file: $version"
+          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Check whether this version is already published
+        id: gate
+        shell: pwsh
+        run: |
+          $version = "${{ steps.version.outputs.version }}"
+          $published = @()
+          try {
+            $published = Find-Module -Name AzCmply -Repository PSGallery -AllVersions -ErrorAction Stop |
+              ForEach-Object { $_.Version }
+            Write-Host "Published versions: $($published -join ', ')"
+          } catch {
+            Write-Host "No published versions found (first publish?): $($_.Exception.Message)"
+          }
+
+          if ($published -contains $version) {
+            Write-Host "Version $version is already on the gallery; skipping publish."
+            "publish=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          } else {
+            Write-Host "Version $version is new; will build and publish."
+            "publish=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          }
+
+      - name: Build and self-test the module
+        if: steps.gate.outputs.publish == 'true'
+        shell: pwsh
+        run: |
+          # The build validates the manifest and runs the packaged suite against a
+          # fixture (no Azure access needed), so a broken build never reaches the gallery.
+          $result = .\Build-AzCmplyModule.ps1 -ModuleVersion "${{ steps.version.outputs.version }}"
+          if (-not $result.Validated) { throw "Module build did not validate." }
+
+      - name: Publish to PowerShell Gallery
+        if: steps.gate.outputs.publish == 'true'
+        shell: pwsh
+        env:
+          PSGALL: ${{ secrets.PSGALL }}
+        run: |
+          if (-not $env:PSGALL) { throw "The PSGALL secret (PowerShell Gallery API key) is not set." }
+          Publish-Module -Path "PSModule\AzCmply" -NuGetApiKey $env:PSGALL -Verbose
+          Write-Host "Published AzCmply ${{ steps.version.outputs.version }} to the PowerShell Gallery."
