@@ -1,0 +1,26 @@
+name: Web parity
+
+# Verifies that Web/site/generated matches the PowerShell source and that the generated analysis, comparison and report
+# give the same output as PowerShell. Checks only; it deploys and publishes nothing.
+on:
+  push:
+  pull_request:
+
+jobs:
+  parity:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Generated files are up to date
+        shell: pwsh
+        run: ./Web/Convert-AzCmplyToWeb.ps1 -Check
+
+      - name: PowerShell and web give the same results
+        shell: pwsh
+        run: ./Web/generator/Test-WebParity.ps1 -Node (Get-Command node).Source

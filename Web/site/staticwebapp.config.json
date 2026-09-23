@@ -1,0 +1,27 @@
+{
+  "globalHeaders": {
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "no-referrer",
+    "Cross-Origin-Opener-Policy": "same-origin-allow-popups",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
+    "Cache-Control": "no-cache"
+  },
+  "routes": [
+    {
+      "route": "/report-frame.html",
+      "headers": {
+        "Content-Security-Policy": "default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; frame-ancestors 'self'"
+      }
+    },
+    {
+      "route": "/*",
+      "headers": {
+        "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://login.microsoftonline.com https://management.azure.com https://graph.microsoft.com https://login.microsoftonline.us https://management.usgovcloudapi.net https://graph.microsoft.us https://login.chinacloudapi.cn https://management.chinacloudapi.cn https://microsoftgraph.chinacloudapi.cn; worker-src 'self'; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'self'"
+      }
+    }
+  ],
+  "mimeTypes": {
+    ".js": "text/javascript",
+    ".json": "application/json"
+  }
+}

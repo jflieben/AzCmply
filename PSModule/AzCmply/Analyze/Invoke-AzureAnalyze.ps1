@@ -80,9 +80,11 @@ function ConvertTo-StableValue {
 }
 
 function Get-NaturalKey {
-    #sort key that orders '9.3.10' after '9.3.9' and 'NS-10' after 'NS-9'
+    #sort key that orders '9.3.10' after '9.3.9' and 'NS-10' after 'NS-9'. The value itself follows as a tie breaker:
+    #catalogs contain ids like 'DE.AE-2' and 'DE.AE-02' that are equal once padded, and their order must not depend on
+    #hashtable enumeration
     param([string]$Value)
-    return [regex]::Replace($Value, '\d+', { param($m) $m.Value.PadLeft(6, '0') })
+    return [regex]::Replace($Value, '\d+', { param($m) $m.Value.PadLeft(6, '0') }) + ' ' + $Value
 }
 
 function Write-TextFile {

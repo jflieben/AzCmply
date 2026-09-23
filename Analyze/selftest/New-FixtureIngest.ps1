@@ -290,7 +290,8 @@ Add-Record 'Microsoft.Sql/managedInstances' 'mifixture' @{ properties = @{ minim
 } | Out-Null
 
 #open source databases, Cosmos DB, Redis
-$config = { param([hashtable]$Values) @($Values.GetEnumerator() | ForEach-Object { @{ name = $_.Key; properties = @{ value = $_.Value } } }) }
+#sorted by name: hashtable order differs per process, and the fixture must be the same on every run
+$config = { param([hashtable]$Values) @($Values.GetEnumerator() | Sort-Object Key | ForEach-Object { @{ name = $_.Key; properties = @{ value = $_.Value } } }) }
 Add-Record 'Microsoft.DBforPostgreSQL/flexibleServers' 'pgfixture' @{ properties = @{ network = @{ publicNetworkAccess = (Pick 'Disabled' 'Enabled') }; authConfig = @{ activeDirectoryAuth = (Pick 'Enabled' 'Disabled'); passwordAuth = (Pick 'Disabled' 'Enabled') } } } -Children @{
     configurations = (& $config $(if ($G) { @{ require_secure_transport = 'on'; ssl_min_protocol_version = 'TLSv1.2'; log_connections = 'on'; log_disconnections = 'on'; log_checkpoints = 'on'; shared_preload_libraries = 'pg_stat_statements,pgaudit'; 'pgaudit.log' = 'ddl,role' } } else { @{ require_secure_transport = 'off'; ssl_min_protocol_version = 'TLSv1'; log_connections = 'off'; log_disconnections = 'off'; log_checkpoints = 'off'; shared_preload_libraries = 'pg_stat_statements'; 'pgaudit.log' = 'none' } }))
     administrators = (Pick @(@{ name = 'admin' }) @()); advancedThreatProtectionSettings = @(@{ properties = @{ state = (Pick 'Enabled' 'Disabled') } })

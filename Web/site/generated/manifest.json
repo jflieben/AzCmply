@@ -1,0 +1,31 @@
+{
+  "generatorVersion": 1,
+  "version": "0.9.1",
+  "sources": {
+    "Analyze/Compare-AzureAnalysis.ps1": "b394ac3493bdd63655b5c08de6235347af650ab579b0eceb4263aebc3985c6b1",
+    "Analyze/Invoke-AzureAnalyze.ps1": "2691f5c15198ef072f137467df9891a1c238576b0e152a0ebe90e3dcde4aed77",
+    "Analyze/catalog/frameworks.json": "c03349d7e12c738cf48387f42cbca24dc12ab854039edac364eac63cb2af9e9e",
+    "Analyze/lib/AnalyzeCore.ps1": "915a8e8545ddf0fafcbc5a645e5fec2f1ea800fa26be651a30fde3ae6b7ebf28",
+    "Analyze/selftest/New-FixtureIngest.ps1": "0f4b86ed797bdaa1a6c66a3a959fb8bd2b8afba6ae45785a9d8e8c517dac37d8",
+    "Analyze/tests/01-IdentityAccess.ps1": "96d18817d839f49ad7bc3d5999ed96475f88003a157e91050742c19ffb0322b2",
+    "Analyze/tests/02-Governance.ps1": "9fef145c5de17d7323fc62b16144eb6e8f2c2590a57e3e3c065a5b02a871401b",
+    "Analyze/tests/03-DefenderForCloud.ps1": "73946035d5db7dc86a674a87a8c1fbede42b0dd8f64dbbf16a545523d486c003",
+    "Analyze/tests/04-LoggingMonitoring.ps1": "42ce0cf89f535ac4c376a6ceee23bf59c8600d4b63f9d85c09de8f0e233e58fc",
+    "Analyze/tests/05-Network.ps1": "51d8f0bca0ec8fb07451cf3e3b9d03553443199a41a8f272aa5ce048e2cb920c",
+    "Analyze/tests/06-Storage.ps1": "e69d409e0036d7744e04c2574c24c91a3575085ffb145d528c9104bfadb3e260",
+    "Analyze/tests/07-KeyVault.ps1": "dfd20d13b636793ef69bfbd6d8a59425fd5ee384425c7c4b962f6d00d818874a",
+    "Analyze/tests/08-Databases.ps1": "ff8e8b749252424229d039096bf96b9eac46de9547ece8302cb3a149a31071a0",
+    "Analyze/tests/09-AppService.ps1": "a26a1c189363ce50128074d5856094ccb186b4041b2d3ccc30b1f43a8122a1a9",
+    "Analyze/tests/10-Compute.ps1": "7adeed97e7ed27ca38571b321712738e8964bcd9227265d6d57d290cff9aa5cd",
+    "Analyze/tests/11-Containers.ps1": "654dad44e673bb73cb06eaef3f9f3884ce490631282d78a9dfcd26191611c90f",
+    "Analyze/tests/12-Integration.ps1": "99c2e19e59f02ccbb4f5b77bdb78f68414155379919f74b8b22c92b0b3893378",
+    "Analyze/tests/13-AI.ps1": "d7aee3d8c1c8b951d4ad2ed6078c7962feb8a6b7da2765ab466226b4a84c8601",
+    "Analyze/tests/14-Backup.ps1": "2e1cffd3817a2423f38a4e406e9c10e95ce3dfd1b5c90f4cf9b10cfdf50c7d58",
+    "Analyze/tests/15-Secrets.ps1": "fd35203e64a74f854a82ca2852c6d0872e602612a5d8f94ab70a0e1add034e83",
+    "Analyze/tests/16-DataAnalytics.ps1": "fdf6b3909b5ecb9127e29017c197a3bbd4a5a2832741c63e7db3f2b7a569bfa5",
+    "Analyze/tests/17-PaaSGeneric.ps1": "7f7d6fc5918127ba652c86e748efcacbc39baa21802ab441883a507405d696df",
+    "Analyze/tests/18-DefenderFindings.ps1": "f81e3c45e0fbbbffea9680f57f10593d7c39dbfef6e406760e9dbcfebd8c2201",
+    "Ingest/Invoke-AzureIngest.ps1": "279e64889533fb46e5dfa1b34348d4af1661706063ee3dba79ccb6f677be1c7b",
+    "Report/New-AzureSecurityReport.ps1": "9355aa6d8724f1b123b6479bfbd2acb74652cb6461ef605a0b2b7a008bf9d02f"
+  }
+}

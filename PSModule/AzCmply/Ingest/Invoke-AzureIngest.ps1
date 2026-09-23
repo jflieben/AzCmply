@@ -113,6 +113,32 @@ $cloudEndpoints = @{
 }[$Environment]
 
 #region collection maps
+#Data only: Web/Convert-AzCmplyToWeb.ps1 extracts this region for the browser ingestion, so keep it free of logic.
+
+#api versions of the calls that are not made per resource type
+$coreApiVersions = [ordered]@{
+    subscription       = '2022-12-01'
+    providers          = '2021-04-01'
+    resourceGroups     = '2021-04-01'
+    resources          = '2021-04-01'
+    diagnosticSettings = '2021-05-01-preview'
+    resourceGraph      = '2022-10-01'
+    activityLog        = '2015-04-01'
+}
+$resourceListExpand = 'createdTime,changedTime,provisioningState'
+
+#Microsoft Graph properties read per kind of object, and the tenant wide directory role exports (file name, path)
+$graphSelect = [ordered]@{
+    member = 'id,displayName,userPrincipalName,userType,accountEnabled,onPremisesSyncEnabled,appId,servicePrincipalType,appOwnerOrganizationId'
+    user   = 'id,displayName,userPrincipalName,mail,userType,accountEnabled,creationType,externalUserState,onPremisesSyncEnabled,onPremisesSamAccountName,createdDateTime,lastPasswordChangeDateTime'
+    owner  = 'id,displayName,userPrincipalName,appId'
+    api    = 'id,appId,displayName,appRoles,oauth2PermissionScopes'
+}
+$graphDirectoryExports = @(
+    ,@('directoryRoleDefinitions', '/v1.0/roleManagement/directory/roleDefinitions')
+    ,@('directoryRoleAssignments', '/v1.0/roleManagement/directory/roleAssignments?$expand=principal')
+    ,@('directoryRoleEligibilitySchedules', '/v1.0/roleManagement/directory/roleEligibilitySchedules?$expand=principal')
+)
 
 #subscription scoped endpoints: output folder, file name, path below /subscriptions/{id}/, api version, method
 $subscriptionEndpoints = @(
@@ -319,7 +345,7 @@ $resourceGraphTables = @(
 #region shared helpers
 #These also run in the parallel workers and read these variables from the caller's scope:
 #$cloudEndpoints, $RequestFailures, $CompactJson, $apiVersions, $childResourceMap, $resourceExpandMap, $textContentMap, $diagnosticSettingsChildTypes,
-#$resourceGroupEndpoints and a Get-AccessToken function.
+#$resourceGroupEndpoints, $coreApiVersions and a Get-AccessToken function.
 
 function Write-Log {
     param([string]$Message, [switch]$Warning)
@@ -710,9 +736,9 @@ function Export-ResourceDetail {
 
     if ($null -ne $record.resource) {
         if ($Item.Type.Split('/').Count -eq 2 -or $diagnosticSettingsChildTypes -contains $typeKey) {
-            $diagnostics = Invoke-AzPaged -Uri "$($Item.Id)/providers/Microsoft.Insights/diagnosticSettings?api-version=2021-05-01-preview" -Context $Item.Id -ExpectedStatus 400, 404, 405, 409 -MaxTransientRetries 1
+            $diagnostics = Invoke-AzPaged -Uri "$($Item.Id)/providers/Microsoft.Insights/diagnosticSettings?api-version=$($coreApiVersions.diagnosticSettings)" -Context $Item.Id -ExpectedStatus 400, 404, 405, 409 -MaxTransientRetries 1
             if (Test-Success $diagnostics) { $record.diagnosticSettings = $diagnostics.Items }
-            else { $failures.Add([ordered]@{ path = "$($Item.Id)/providers/Microsoft.Insights/diagnosticSettings"; apiVersion = '2021-05-01-preview'; statusCode = $diagnostics.StatusCode; errorCode = $diagnostics.ErrorCode }) }
+            else { $failures.Add([ordered]@{ path = "$($Item.Id)/providers/Microsoft.Insights/diagnosticSettings"; apiVersion = $coreApiVersions.diagnosticSettings; statusCode = $diagnostics.StatusCode; errorCode = $diagnostics.ErrorCode }) }
         }
         $cache = @{}
         foreach ($entry in $childResourceMap[$typeKey]) {
@@ -919,7 +945,7 @@ function Export-ResourceGraphTable {
         $handle.Writer.WriteStartArray()
         while ($true) {
             $body = [ordered]@{ subscriptions = @($SubscriptionId); query = $Table; options = $options } | ConvertTo-Json -Depth 5 -Compress
-            $response = Invoke-AzRest -Uri '/providers/Microsoft.ResourceGraph/resources?api-version=2022-10-01' -Method POST -Body $body -Context "resourceGraph/$Table" -ExpectedStatus 400
+            $response = Invoke-AzRest -Uri "/providers/Microsoft.ResourceGraph/resources?api-version=$($coreApiVersions.resourceGraph)" -Method POST -Body $body -Context "resourceGraph/$Table" -ExpectedStatus 400
             if (-not (Test-Success $response)) {
                 $status = [ordered]@{ status = if ($count -gt 0) { 'partial' } else { 'unavailable' }; statusCode = $response.StatusCode; errorCode = $response.ErrorCode; message = $response.ErrorMessage }
                 break
@@ -1044,7 +1070,7 @@ function Export-EntraData {
 
     #groups: transitive members and owners; service principal members and owners are enriched below as well
     Write-Log "Graph: $($groupIds.Count) groups"
-    $memberSelect = '$select=id,displayName,userPrincipalName,userType,accountEnabled,onPremisesSyncEnabled,appId,servicePrincipalType,appOwnerOrganizationId'
+    $memberSelect = "`$select=$($graphSelect.member)"
     $groupRequests = [ordered]@{}
     foreach ($id in $groupIds) {
         $groupRequests["members|$id"] = "/groups/$id/transitiveMembers?$memberSelect&`$top=999"
@@ -1098,7 +1124,7 @@ function Export-EntraData {
 
     #users: security relevant properties, sign-in activity when permitted
     Write-Log "Graph: $($userIds.Count) users"
-    $userSelect = 'id,displayName,userPrincipalName,mail,userType,accountEnabled,creationType,externalUserState,onPremisesSyncEnabled,onPremisesSamAccountName,createdDateTime,lastPasswordChangeDateTime'
+    $userSelect = $graphSelect.user
     $userIdList = @($userIds)
     $signInActivity = $false
     if ($userIdList.Count -gt 0) {
@@ -1124,7 +1150,7 @@ function Export-EntraData {
     foreach ($id in $servicePrincipalIds) {
         $spRequests["appRoleAssignments|$id"] = "/servicePrincipals/$id/appRoleAssignments"
         $spRequests["oauth2PermissionGrants|$id"] = "/servicePrincipals/$id/oauth2PermissionGrants"
-        $spRequests["owners|$id"] = "/servicePrincipals/$id/owners?`$select=id,displayName,userPrincipalName,appId"
+        $spRequests["owners|$id"] = "/servicePrincipals/$id/owners?`$select=$($graphSelect.owner)"
         $servicePrincipal = $objectsById[$id]
         $appId = Get-JsonProperty -Element $servicePrincipal -Name 'appId'
         if ((Get-JsonProperty -Element $servicePrincipal -Name 'servicePrincipalType') -eq 'Application' -and (Get-JsonProperty -Element $servicePrincipal -Name 'appOwnerOrganizationId') -eq $tenant -and $appId) {
@@ -1137,7 +1163,7 @@ function Export-EntraData {
         $application = $spResults["application|$id"].Single
         $applicationObjectId = Get-JsonProperty -Element $application -Name 'id'
         if ($applicationObjectId) {
-            $appRequests["owners|$id"] = "/applications/$applicationObjectId/owners?`$select=id,displayName,userPrincipalName,appId"
+            $appRequests["owners|$id"] = "/applications/$applicationObjectId/owners?`$select=$($graphSelect.owner)"
             $appRequests["federatedIdentityCredentials|$id"] = "/applications/$applicationObjectId/federatedIdentityCredentials"
         }
     }
@@ -1166,7 +1192,7 @@ function Export-EntraData {
 
     #APIs the service principals hold permissions on, to translate app role ids into names
     $apiRequests = [ordered]@{}
-    foreach ($apiId in $apiIds) { $apiRequests[$apiId] = "/servicePrincipals/$apiId`?`$select=id,appId,displayName,appRoles,oauth2PermissionScopes" }
+    foreach ($apiId in $apiIds) { $apiRequests[$apiId] = "/servicePrincipals/$apiId`?`$select=$($graphSelect.api)" }
     $apis = [System.Collections.Generic.List[System.Text.Json.JsonElement]]::new()
     if ($apiRequests.Count) {
         foreach ($result in (Invoke-GraphBatch -Requests $apiRequests).Values) { if ($null -ne $result.Single) { $apis.Add($result.Single) } }
@@ -1175,9 +1201,10 @@ function Export-EntraData {
     $sections.apiServicePrincipals = [ordered]@{ status = 'ok'; count = $apis.Count }
 
     #directory roles: tenant wide, relevant because e.g. Global Administrators can elevate to User Access Administrator on all subscriptions
-    $sections.directoryRoleDefinitions = Export-Endpoint -Uri '/v1.0/roleManagement/directory/roleDefinitions' -Resource Graph -Path (Join-Path $Folder 'directoryRoleDefinitions.json')
-    $sections.directoryRoleAssignments = Export-Endpoint -Uri '/v1.0/roleManagement/directory/roleAssignments?$expand=principal' -Resource Graph -Path (Join-Path $Folder 'directoryRoleAssignments.json')
-    $sections.directoryRoleEligibilitySchedules = Export-Endpoint -Uri '/v1.0/roleManagement/directory/roleEligibilitySchedules?$expand=principal' -Resource Graph -Path (Join-Path $Folder 'directoryRoleEligibilitySchedules.json')
+    foreach ($export in $graphDirectoryExports) {
+        $name, $uri = $export
+        $sections[$name] = Export-Endpoint -Uri $uri -Resource Graph -Path (Join-Path $Folder "$name.json")
+    }
     return $sections
 }
 
@@ -1217,7 +1244,7 @@ try {
     if (-not $TenantId) { $TenantId = $armClaims.tid }
     $caller = [ordered]@{ tenantId = $armClaims.tid; objectId = $armClaims.oid; appId = $armClaims.appid; identityType = $armClaims.idtyp }
 
-    $subscriptionResponse = Invoke-AzRest -Uri "/subscriptions/$SubscriptionId`?api-version=2022-12-01" -Context 'subscription'
+    $subscriptionResponse = Invoke-AzRest -Uri "/subscriptions/$SubscriptionId`?api-version=$($coreApiVersions.subscription)" -Context 'subscription'
     if (-not (Test-Success $subscriptionResponse)) {
         throw "Cannot read subscription $SubscriptionId ($($subscriptionResponse.StatusCode) $($subscriptionResponse.ErrorCode)): $($subscriptionResponse.ErrorMessage)"
     }
@@ -1226,7 +1253,7 @@ try {
     Write-Log "Subscription: $(Get-JsonProperty -Element $subscriptionInfo -Name 'displayName') ($(Get-JsonProperty -Element $subscriptionInfo -Name 'state'))"
 
     #providers give the api versions for every resource type: latest two stable plus latest preview as fallbacks
-    $providers = Invoke-AzPaged -Uri "/subscriptions/$SubscriptionId/providers?api-version=2021-04-01" -Context 'providers'
+    $providers = Invoke-AzPaged -Uri "/subscriptions/$SubscriptionId/providers?api-version=$($coreApiVersions.providers)" -Context 'providers'
     if (-not (Test-Success $providers)) { throw "Cannot list resource providers ($($providers.StatusCode) $($providers.ErrorCode))" }
     Write-JsonFile -Path (Join-Path $runFolder 'subscription/providers.json') -Value $providers.Items
     $apiVersions = @{}
@@ -1247,8 +1274,8 @@ try {
         $sections["$folder/$name"] = Export-Endpoint -Uri "/subscriptions/$SubscriptionId/$path$($separator)api-version=$apiVersion" -Method ($method ?? 'GET') -Path (Join-Path $runFolder "$folder/$name.json") -PrincipalTarget $principalIds
     }
 
-    $resourceGroups = Invoke-AzPaged -Uri "/subscriptions/$SubscriptionId/resourcegroups?api-version=2021-04-01" -Context 'resourceGroups'
-    $resources = Invoke-AzPaged -Uri "/subscriptions/$SubscriptionId/resources?`$expand=createdTime,changedTime,provisioningState&api-version=2021-04-01" -Context 'resources'
+    $resourceGroups = Invoke-AzPaged -Uri "/subscriptions/$SubscriptionId/resourcegroups?api-version=$($coreApiVersions.resourceGroups)" -Context 'resourceGroups'
+    $resources = Invoke-AzPaged -Uri "/subscriptions/$SubscriptionId/resources?`$expand=$resourceListExpand&api-version=$($coreApiVersions.resources)" -Context 'resources'
     if (-not (Test-Success $resourceGroups) -or -not (Test-Success $resources)) { throw 'Cannot list resource groups or resources' }
     Write-JsonFile -Path (Join-Path $runFolder 'subscription/resourceGroups.json') -Value $resourceGroups.Items
     Write-JsonFile -Path (Join-Path $runFolder 'subscription/resources.json') -Value $resources.Items
@@ -1297,6 +1324,7 @@ try {
             $apiVersions = $using:apiVersions
             $childResourceMap = $using:childResourceMap
             $resourceExpandMap = $using:resourceExpandMap
+            $coreApiVersions = $using:coreApiVersions
             $diagnosticSettingsChildTypes = $using:diagnosticSettingsChildTypes
             $resourceGroupEndpoints = $using:resourceGroupEndpoints
             $textContentMap = $using:textContentMap
@@ -1341,7 +1369,7 @@ try {
             for ($day = 0; $day -lt $ActivityLogDays; $day++) {
                 $windowStart = $windowEnd.AddDays(-1)
                 $filter = "eventTimestamp ge '$($windowStart.ToString('o'))' and eventTimestamp le '$($windowEnd.ToString('o'))'"
-                $result = Invoke-AzPaged -Uri "/subscriptions/$SubscriptionId/providers/Microsoft.Insights/eventtypes/management/values?api-version=2015-04-01&`$filter=$([uri]::EscapeDataString($filter))" -Context 'activityLog' -Writer $handle.Writer -SeenIds $seenEventIds -IdProperty 'eventDataId'
+                $result = Invoke-AzPaged -Uri "/subscriptions/$SubscriptionId/providers/Microsoft.Insights/eventtypes/management/values?api-version=$($coreApiVersions.activityLog)&`$filter=$([uri]::EscapeDataString($filter))" -Context 'activityLog' -Writer $handle.Writer -SeenIds $seenEventIds -IdProperty 'eventDataId'
                 if (-not (Test-Success $result) -or -not $result.Complete) { $failedDays++ }
                 $eventCount += $result.Count
                 $duplicateCount += $result.Duplicates
