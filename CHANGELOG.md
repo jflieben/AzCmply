@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.9.2
+
+### Changed
+- Analysis: "Required data was not collected" now says why per section: the HTTP status and error code, skipped
+  collection, or a resource provider that is not registered
+- AzCmply web: sections that could not be collected are listed on the page with their status and a likely cause
+
+### Fixed
+- AzCmply web: Google Analytics was blocked by the Content Security Policy. The converter now adds the hash of each
+  inline script to the policy; 
+- The parity pipeline failed because `.gitignore` excluded all HTML, including the page itself :D
+
 ## 0.9.1
 
 ### Added
@@ -18,3 +30,7 @@
 - AzCmply web: after an upload, browsers kept running the previous scripts for up to a week, because the host lets them
   cache scripts that long. The page now loads each upload fresh (a build id in `index.html`), and the site includes an
   `.htaccess` for Apache and LiteSpeed hosts with the security headers and revalidation on every visit.
+- AzCmply web: Google Analytics was blocked by the Content Security Policy. The converter now adds the hash of each
+  inline script to the policy; Analytics gets only the page address without query string, and does not run on the
+  return from sign-in.
+- The parity pipeline failed because `.gitignore` excluded all HTML, including the page itself.

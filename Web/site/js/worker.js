@@ -92,7 +92,7 @@ const handlers = {
                 log: text => post({ type: 'log', text }),
                 progress: p => post({ type: 'progress', ...p })
             });
-            return { kind: 'ingest', folder: result.folder, resources: result.resources, failedRequests: result.failedRequests };
+            return { kind: 'ingest', folder: result.folder, resources: result.resources, failedRequests: result.failedRequests, issues: result.issues };
         } finally { abort = null; }
     },
     cancel: () => { abort?.abort(); return true; },

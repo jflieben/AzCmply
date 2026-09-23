@@ -44,3 +44,4 @@ for (const file of ingestFiles(vfs, result.root)) {
     fs.writeFileSync(target, file.text);
 }
 console.log(`Done in ${Math.round((Date.now() - started) / 1000)} s: ${result.resources} resources, ${result.failedRequests} failed requests`);
+for (const issue of result.issues) { console.log(`Not collected: ${issue.section} (${issue.status}): ${issue.detail}`); }

@@ -47,6 +47,40 @@ function Test-IngestSection {
     return [System.IO.File]::Exists((Join-Path $script:Ingest.Root "$Name.json"))
 }
 
+function Get-IngestSectionProblem {
+    #why a section was not collected, from the ingestion itself: 'defender/pricings (HTTP 404 NotFound; resource provider
+    #Microsoft.Security is NotRegistered)'. The provider state comes from subscription/providers, never from a guess.
+    param([Parameter(Mandatory = $true)][string]$Name)
+    $manifest = $script:Ingest.Manifest
+    $section = $manifest.sections.$Name
+    if ($null -eq $section) {
+        if ($Name -like 'identity/*') {
+            if ($manifest.parameters.skipGraph) { return "$Name (Entra ID collection was skipped)" }
+            if ($manifest.sections.identity.status -eq 'failed') { return "$Name (Entra ID collection failed: $($manifest.sections.identity.message))" }
+        }
+        if ($Name -like 'resourceGraph/*' -and $manifest.parameters.skipResourceGraph) { return "$Name (Resource Graph collection was skipped)" }
+        if ($Name -like 'activityLog/*' -and $manifest.parameters.activityLogDays -eq 0) { return "$Name (activity log collection was skipped)" }
+        return "$Name (not in the ingestion)"
+    }
+    $parts = [System.Collections.Generic.List[string]]::new()
+    if ($null -ne $section.statusCode) {
+        $parts.Add($(if ([int]$section.statusCode -eq 0) { 'network error' } else { "HTTP $($section.statusCode)$(if ($section.errorCode) { " $($section.errorCode)" })" }))
+    } else {
+        $parts.Add([string]$section.status)
+    }
+    #the failed call names the resource provider; its registration state explains a 404 or 409 on an unused service
+    $pattern = '(^|[\\/])' + (@($Name -split '/' | ForEach-Object { [regex]::Escape($_) }) -join '[\\/]') + '\.json$'
+    $failure = @(Get-IngestData 'failures') | Where-Object { $_ -and [string]$_.context -match $pattern } | Select-Object -First 1
+    if ($failure -and [string]$failure.uri -match '(?i)/providers/(?<namespace>[^/?]+)/') {
+        $namespace = $Matches.namespace
+        $provider = @(Get-IngestData 'subscription/providers') | Where-Object { $_ -and $_.namespace -eq $namespace } | Select-Object -First 1
+        if ($provider -and $provider.registrationState -and $provider.registrationState -ne 'Registered') {
+            $parts.Add("resource provider $($provider.namespace) is $($provider.registrationState)")
+        }
+    }
+    return "$Name ($($parts -join '; '))"
+}
+
 function Get-AzResourceRecords {
     #resource files (id, type, resource, diagnosticSettings, children, textContent, failures) of the given types
     param([string[]]$Type)

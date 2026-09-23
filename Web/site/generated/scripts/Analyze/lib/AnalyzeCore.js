@@ -66,1070 +66,1167 @@ export default R.script("/app/Analyze/lib/AnalyzeCore.ps1", { params: [], adv: 0
         return;
     });
     R.ln = F + 50;
+    R.def(S, "Get-IngestSectionProblem", { params: [{ n: "Name", t: "string", pos: null, mand: 1 }], adv: 1, h: "4afa48520ecb5e2c" }, (S, O) => {
+        R.ln = F + 54;
+        S["manifest"] = R.m((R.ss(S)["script:ingest"] ?? null), "Manifest");
+        R.ln = F + 55;
+        S["section"] = R.m(R.m((S["manifest"] ?? null), "sections"), R.str((S["name"] ?? null)));
+        R.ln = F + 56;
+        if (R.t(R.eq(null, (S["section"] ?? null)))) {
+            R.ln = F + 57;
+            if (R.t(R.like((S["name"] ?? null), "identity/*"))) {
+                R.ln = F + 58;
+                if (R.t(R.m(R.m((S["manifest"] ?? null), "parameters"), "skipGraph"))) {
+                    R.ln = F + 58;
+                    R.e(O, ("" + R.str((S["name"] ?? null)) + " (Entra ID collection was skipped)"));
+                    return;
+                }
+                R.ln = F + 59;
+                if (R.t(R.eq(R.m(R.m(R.m((S["manifest"] ?? null), "sections"), "identity"), "status"), "failed"))) {
+                    R.ln = F + 59;
+                    R.e(O, ("" + R.str((S["name"] ?? null)) + " (Entra ID collection failed: " + R.str(R.u(R.pi(R.m(R.m(R.m((S["manifest"] ?? null), "sections"), "identity"), "message")))) + ")"));
+                    return;
+                }
+            }
+            R.ln = F + 61;
+            if ((R.t(R.like((S["name"] ?? null), "resourceGraph/*")) && R.t(R.m(R.m((S["manifest"] ?? null), "parameters"), "skipResourceGraph")))) {
+                R.ln = F + 61;
+                R.e(O, ("" + R.str((S["name"] ?? null)) + " (Resource Graph collection was skipped)"));
+                return;
+            }
+            R.ln = F + 62;
+            if ((R.t(R.like((S["name"] ?? null), "activityLog/*")) && R.t(R.eq(R.m(R.m((S["manifest"] ?? null), "parameters"), "activityLogDays"), 0)))) {
+                R.ln = F + 62;
+                R.e(O, ("" + R.str((S["name"] ?? null)) + " (activity log collection was skipped)"));
+                return;
+            }
+            R.ln = F + 63;
+            R.e(O, ("" + R.str((S["name"] ?? null)) + " (not in the ingestion)"));
+            return;
+        }
+        R.ln = F + 65;
+        S["parts"] = R.sc("System.Collections.Generic.List[string]", "new", []);
+        R.ln = F + 66;
+        if (R.t(R.ne(null, R.m((S["section"] ?? null), "statusCode")))) {
+            R.ln = F + 67;
+            R.e(O, R.im((S["parts"] ?? null), "Add", [(() => {
+                const v1 = [];
+                R.ln = F + 67;
+                if (R.t(R.eq(R.c("int", R.m((S["section"] ?? null), "statusCode")), 0))) {
+                    R.ln = F + 67;
+                    R.e(v1, "network error");
+                } else {
+                    R.ln = F + 67;
+                    R.e(v1, ("HTTP " + R.str(R.u(R.pi(R.m((S["section"] ?? null), "statusCode")))) + R.str((() => {
+                        const v2 = [];
+                        R.ln = F + 67;
+                        if (R.t(R.m((S["section"] ?? null), "errorCode"))) {
+                            R.ln = F + 67;
+                            R.e(v2, (" " + R.str(R.u(R.pi(R.m((S["section"] ?? null), "errorCode"))))));
+                        }
+                        return R.u(v2);
+                    })())));
+                }
+                return R.u(v1);
+            })()]));
+        } else {
+            R.ln = F + 69;
+            R.e(O, R.im((S["parts"] ?? null), "Add", [R.c("string", R.m((S["section"] ?? null), "status"))]));
+        }
+        R.ln = F + 72;
+        S["pattern"] = R.add(R.add("(^|[\\\\/])", (R.join(R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " [regex]::Escape($_) " }, (S, O) => {
+            R.ln = F + 72;
+            R.e(O, R.sc("regex", "Escape", [(S["_"] ?? null)]));
+        })], R.pi(R.split((S["name"] ?? null), "/"))), "[\\\\/]"))), "\\.json$");
+        R.ln = F + 73;
+        S["failure"] = R.u(R.cmd(S, "Select-Object", [R.np("First"), 1], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and [string]$_.context -match $pattern " }, (S, O) => {
+            R.ln = F + 73;
+            R.e(O, (R.t((S["_"] ?? null)) && R.t(R.match(S, R.c("string", R.m((S["_"] ?? null), "context")), (S["pattern"] ?? null)))));
+        })], R.pi(R.cmd(S, "Get-IngestData", ["failures"], null)))));
+        R.ln = F + 74;
+        if ((R.t((S["failure"] ?? null)) && R.t(R.match(S, R.c("string", R.m((S["failure"] ?? null), "uri")), "(?i)/providers/(?<namespace>[^/?]+)/")))) {
+            R.ln = F + 75;
+            S["namespace"] = R.m((S["matches"] ?? null), "namespace");
+            R.ln = F + 76;
+            S["provider"] = R.u(R.cmd(S, "Select-Object", [R.np("First"), 1], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.namespace -eq $namespace " }, (S, O) => {
+                R.ln = F + 76;
+                R.e(O, (R.t((S["_"] ?? null)) && R.t(R.eq(R.m((S["_"] ?? null), "namespace"), (S["namespace"] ?? null)))));
+            })], R.pi(R.cmd(S, "Get-IngestData", ["subscription/providers"], null)))));
+            R.ln = F + 77;
+            if (((R.t((S["provider"] ?? null)) && R.t(R.m((S["provider"] ?? null), "registrationState"))) && R.t(R.ne(R.m((S["provider"] ?? null), "registrationState"), "Registered")))) {
+                R.ln = F + 78;
+                R.e(O, R.im((S["parts"] ?? null), "Add", [("resource provider " + R.str(R.u(R.pi(R.m((S["provider"] ?? null), "namespace")))) + " is " + R.str(R.u(R.pi(R.m((S["provider"] ?? null), "registrationState")))))]));
+            }
+        }
+        R.ln = F + 81;
+        R.e(O, ("" + R.str((S["name"] ?? null)) + " (" + R.str(R.u(R.pi(R.join((S["parts"] ?? null), "; ")))) + ")"));
+        return;
+    });
+    R.ln = F + 84;
     R.def(S, "Get-AzResourceRecords", { params: [{ n: "Type", t: "string[]", pos: null }], adv: 0, h: "a6ac78103e5a56ab" }, (S, O) => {
-        R.ln = F + 53;
+        R.ln = F + 87;
         S["typeset"] = R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " $_.ToLowerInvariant() " }, (S, O) => {
-            R.ln = F + 53;
+            R.ln = F + 87;
             R.e(O, R.im((S["_"] ?? null), "ToLowerInvariant", []));
         })], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 53;
+            R.ln = F + 87;
             R.e(O, (S["_"] ?? null));
         })], R.pi((S["type"] ?? null))));
-        R.ln = F + 54;
+        R.ln = F + 88;
         S["records"] = R.sc("System.Collections.Generic.List[object]", "new", []);
-        R.ln = F + 55;
-        for (const it1 of R.fi(R.m((R.ss(S)["script:ingest"] ?? null), "Index"))) {
-            S["entry"] = it1;
-            R.ln = F + 56;
+        R.ln = F + 89;
+        for (const it3 of R.fi(R.m((R.ss(S)["script:ingest"] ?? null), "Index"))) {
+            S["entry"] = it3;
+            R.ln = F + 90;
             if (((R.t(R.eq(R.m((S["entry"] ?? null), "type"), "resourceGroup")) || R.t(R.ne(R.m((S["entry"] ?? null), "status"), "ok"))) || !R.t(R.m((S["entry"] ?? null), "file")))) {
                 continue;
             }
-            R.ln = F + 57;
+            R.ln = F + 91;
             if ((R.t(R.m((S["typeset"] ?? null), "Count")) && R.t(R.nin(R.im(R.m((S["entry"] ?? null), "type"), "ToLowerInvariant", []), (S["typeset"] ?? null))))) {
                 continue;
             }
-            R.ln = F + 58;
+            R.ln = F + 92;
             S["key"] = R.im(R.m((S["entry"] ?? null), "id"), "ToLowerInvariant", []);
-            R.ln = F + 59;
+            R.ln = F + 93;
             if (!R.t(R.im(R.m((R.ss(S)["script:ingest"] ?? null), "Records"), "ContainsKey", [(S["key"] ?? null)]))) {
-                R.ln = F + 60;
+                R.ln = F + 94;
                 R.si(R.m((R.ss(S)["script:ingest"] ?? null), "Records"), (S["key"] ?? null), R.u(R.cmd(S, "Read-IngestJson", [R.np("Path"), R.u(R.cmd(S, "Join-Path", [R.m((R.ss(S)["script:ingest"] ?? null), "Root"), R.m((S["entry"] ?? null), "file")], null))], null)));
             }
-            R.ln = F + 62;
+            R.ln = F + 96;
             if (R.t(R.ne(null, R.i(R.m((R.ss(S)["script:ingest"] ?? null), "Records"), (S["key"] ?? null))))) {
-                R.ln = F + 62;
+                R.ln = F + 96;
                 R.e(O, R.im((S["records"] ?? null), "Add", [R.i(R.m((R.ss(S)["script:ingest"] ?? null), "Records"), (S["key"] ?? null))]));
             }
         }
-        R.ln = F + 64;
+        R.ln = F + 98;
         R.e(O, (S["records"] ?? null));
         return;
     });
-    R.ln = F + 67;
+    R.ln = F + 101;
     R.def(S, "Get-AzResourceRecord", { params: [{ n: "Id", t: "string", pos: null, mand: 1 }], adv: 1, h: "7e124521702930ec" }, (S, O) => {
-        R.ln = F + 70;
+        R.ln = F + 104;
         S["key"] = R.im((S["id"] ?? null), "ToLowerInvariant", []);
-        R.ln = F + 71;
+        R.ln = F + 105;
         if (R.t(R.im(R.m((R.ss(S)["script:ingest"] ?? null), "Records"), "ContainsKey", [(S["key"] ?? null)]))) {
-            R.ln = F + 71;
+            R.ln = F + 105;
             R.e(O, R.i(R.m((R.ss(S)["script:ingest"] ?? null), "Records"), (S["key"] ?? null)));
             return;
         }
-        R.ln = F + 72;
+        R.ln = F + 106;
         S["entry"] = R.u(R.cmd(S, "Select-Object", [R.np("First"), 1], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.id -and $_.id.ToLowerInvariant() -eq $key -and $_.file " }, (S, O) => {
-            R.ln = F + 72;
+            R.ln = F + 106;
             R.e(O, ((R.t(R.m((S["_"] ?? null), "id")) && R.t(R.eq(R.im(R.m((S["_"] ?? null), "id"), "ToLowerInvariant", []), (S["key"] ?? null)))) && R.t(R.m((S["_"] ?? null), "file"))));
         })], R.pi(R.m((R.ss(S)["script:ingest"] ?? null), "Index")))));
-        R.ln = F + 73;
+        R.ln = F + 107;
         if (!R.t((S["entry"] ?? null))) {
-            R.ln = F + 73;
+            R.ln = F + 107;
             R.e(O, null);
             return;
         }
-        R.ln = F + 74;
+        R.ln = F + 108;
         R.si(R.m((R.ss(S)["script:ingest"] ?? null), "Records"), (S["key"] ?? null), R.u(R.cmd(S, "Read-IngestJson", [R.np("Path"), R.u(R.cmd(S, "Join-Path", [R.m((R.ss(S)["script:ingest"] ?? null), "Root"), R.m((S["entry"] ?? null), "file")], null))], null)));
-        R.ln = F + 75;
+        R.ln = F + 109;
         R.e(O, R.i(R.m((R.ss(S)["script:ingest"] ?? null), "Records"), (S["key"] ?? null)));
         return;
     });
-    R.ln = F + 78;
+    R.ln = F + 112;
     R.def(S, "Get-FailedResourceIds", { params: [{ n: "Type", t: "string[]", pos: null }], adv: 0, h: "5afc653582c51c9e" }, (S, O) => {
-        R.ln = F + 81;
+        R.ln = F + 115;
         S["typeset"] = R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " $_.ToLowerInvariant() " }, (S, O) => {
-            R.ln = F + 81;
+            R.ln = F + 115;
             R.e(O, R.im((S["_"] ?? null), "ToLowerInvariant", []));
         })], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 81;
+            R.ln = F + 115;
             R.e(O, (S["_"] ?? null));
         })], R.pi((S["type"] ?? null))));
-        R.ln = F + 82;
+        R.ln = F + 116;
         R.e(O, R.cmd(S, "ForEach-Object", ["id"], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.type -ne 'resourceGroup' -and $_.status -ne 'ok' -and ($typeSet.Count -eq 0 -or $_.type.ToLowerInvariant() -in $typeSet) " }, (S, O) => {
-            R.ln = F + 82;
+            R.ln = F + 116;
             R.e(O, ((R.t(R.ne(R.m((S["_"] ?? null), "type"), "resourceGroup")) && R.t(R.ne(R.m((S["_"] ?? null), "status"), "ok"))) && (R.t(R.eq(R.m((S["typeset"] ?? null), "Count"), 0)) || R.t(R.in(R.im(R.m((S["_"] ?? null), "type"), "ToLowerInvariant", []), (S["typeset"] ?? null))))));
         })], R.pi(R.m((R.ss(S)["script:ingest"] ?? null), "Index")))));
         return;
     });
-    R.ln = F + 85;
+    R.ln = F + 119;
     R.def(S, "Get-ResourceGroupRecords", { params: [], adv: 0, h: "15aaf53ddc31632b" }, (S, O) => {
-        R.ln = F + 87;
+        R.ln = F + 121;
         S["records"] = R.sc("System.Collections.Generic.List[object]", "new", []);
-        R.ln = F + 88;
-        for (const it2 of R.fi(R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.type -eq 'resourceGroup' -and $_.file " }, (S, O) => {
-            R.ln = F + 88;
+        R.ln = F + 122;
+        for (const it4 of R.fi(R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.type -eq 'resourceGroup' -and $_.file " }, (S, O) => {
+            R.ln = F + 122;
             R.e(O, (R.t(R.eq(R.m((S["_"] ?? null), "type"), "resourceGroup")) && R.t(R.m((S["_"] ?? null), "file"))));
         })], R.pi(R.m((R.ss(S)["script:ingest"] ?? null), "Index")))))) {
-            S["entry"] = it2;
-            R.ln = F + 89;
+            S["entry"] = it4;
+            R.ln = F + 123;
             S["record"] = R.u(R.cmd(S, "Read-IngestJson", [R.np("Path"), R.u(R.cmd(S, "Join-Path", [R.m((R.ss(S)["script:ingest"] ?? null), "Root"), R.m((S["entry"] ?? null), "file")], null))], null));
-            R.ln = F + 90;
+            R.ln = F + 124;
             if (R.t(R.ne(null, (S["record"] ?? null)))) {
-                R.ln = F + 90;
+                R.ln = F + 124;
                 R.e(O, R.im((S["records"] ?? null), "Add", [(S["record"] ?? null)]));
             }
         }
-        R.ln = F + 92;
+        R.ln = F + 126;
         R.e(O, (S["records"] ?? null));
         return;
     });
-    R.ln = F + 99;
+    R.ln = F + 133;
     R.def(S, "Get-Prop", { params: [{ n: "Object", t: null, pos: null }, { n: "Path", t: "string", pos: null, mand: 1 }], adv: 1, h: "8c987e6d60c78208" }, (S, O) => {
-        R.ln = F + 102;
-        for (const it3 of R.fi(R.im((S["path"] ?? null), "Split", ["."]))) {
-            S["segment"] = it3;
-            R.ln = F + 103;
+        R.ln = F + 136;
+        for (const it5 of R.fi(R.im((S["path"] ?? null), "Split", ["."]))) {
+            S["segment"] = it5;
+            R.ln = F + 137;
             if (R.t(R.eq(null, (S["object"] ?? null)))) {
-                R.ln = F + 103;
+                R.ln = F + 137;
                 R.e(O, null);
                 return;
             }
-            R.ln = F + 104;
+            R.ln = F + 138;
             S["object"] = R.m((S["object"] ?? null), R.str((S["segment"] ?? null)));
         }
-        R.ln = F + 106;
+        R.ln = F + 140;
         R.e(O, (S["object"] ?? null));
         return;
     });
-    R.ln = F + 109;
+    R.ln = F + 143;
     R.def(S, "Get-Child", { params: [{ n: "Record", t: null, pos: null, mand: 1 }, { n: "Path", t: "string", pos: null, mand: 1 }], adv: 1, h: "ea18518099c8b1f2" }, (S, O) => {
-        R.ln = F + 113;
+        R.ln = F + 147;
         if (R.t(R.eq(null, R.m((S["record"] ?? null), "children")))) {
-            R.ln = F + 113;
+            R.ln = F + 147;
             R.e(O, null);
             return;
         }
-        R.ln = F + 114;
+        R.ln = F + 148;
         R.e(O, R.m(R.m((S["record"] ?? null), "children"), R.str((S["path"] ?? null))));
         return;
     });
-    R.ln = F + 117;
+    R.ln = F + 151;
     R.def(S, "Test-ChildCollected", { params: [{ n: "Record", t: null, pos: null, mand: 1 }, { n: "Path", t: "string", pos: null, mand: 1 }], adv: 1, h: "98a3e61e61608a09" }, (S, O) => {
-        R.ln = F + 120;
+        R.ln = F + 154;
         if (R.t(R.eq(null, R.m((S["record"] ?? null), "children")))) {
-            R.ln = F + 120;
+            R.ln = F + 154;
             R.e(O, false);
             return;
         }
-        R.ln = F + 121;
+        R.ln = F + 155;
         if (R.t(R.ncont(R.m(R.m(R.m(R.m((S["record"] ?? null), "children"), "PSObject"), "Properties"), "Name"), (S["path"] ?? null)))) {
-            R.ln = F + 121;
+            R.ln = F + 155;
             R.e(O, false);
             return;
         }
-        R.ln = F + 122;
+        R.ln = F + 156;
         R.e(O, (R.ne(null, R.m(R.m((S["record"] ?? null), "children"), R.str((S["path"] ?? null))))));
         return;
     });
-    R.ln = F + 125;
+    R.ln = F + 159;
     R.def(S, "Get-ChildFailure", { params: [{ n: "Record", t: null, pos: null, mand: 1 }, { n: "Path", t: "string", pos: null, mand: 1 }], adv: 1, h: "ab300b92356c193e" }, (S, O) => {
-        R.ln = F + 128;
+        R.ln = F + 162;
         S["failure"] = R.u(R.cmd(S, "Select-Object", [R.np("First"), 1], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.path -and $_.path.ToLowerInvariant().EndsWith(\"/$($Path.ToLowerInvariant())\") " }, (S, O) => {
-            R.ln = F + 128;
+            R.ln = F + 162;
             R.e(O, (R.t(R.m((S["_"] ?? null), "path")) && R.t(R.im(R.im(R.m((S["_"] ?? null), "path"), "ToLowerInvariant", []), "EndsWith", [("/" + R.str(R.u(R.pi(R.im((S["path"] ?? null), "ToLowerInvariant", [])))))]))));
         })], R.pi(R.a(R.m((S["record"] ?? null), "failures"))))));
-        R.ln = F + 129;
+        R.ln = F + 163;
         if (R.t((S["failure"] ?? null))) {
-            R.ln = F + 129;
+            R.ln = F + 163;
             R.e(O, R.c("int", R.m((S["failure"] ?? null), "statusCode")));
             return;
         }
-        R.ln = F + 130;
+        R.ln = F + 164;
         R.e(O, null);
         return;
     });
-    R.ln = F + 133;
+    R.ln = F + 167;
     R.def(S, "ConvertTo-UtcDate", { params: [{ n: "Value", t: null, pos: null }], adv: 0, h: "6630ee0a3d7e3a46" }, (S, O) => {
-        R.ln = F + 136;
+        R.ln = F + 170;
         if ((R.t(R.eq(null, (S["value"] ?? null))) || (R.t(R.is((S["value"] ?? null), R.ty("string"))) && !R.t((S["value"] ?? null))))) {
-            R.ln = F + 136;
+            R.ln = F + 170;
             R.e(O, null);
             return;
         }
-        R.ln = F + 137;
+        R.ln = F + 171;
         if (R.t(R.is((S["value"] ?? null), R.ty("datetime")))) {
-            R.ln = F + 137;
+            R.ln = F + 171;
             R.e(O, R.im((S["value"] ?? null), "ToUniversalTime", []));
             return;
         }
-        R.ln = F + 138;
+        R.ln = F + 172;
         if (((R.t(R.is((S["value"] ?? null), R.ty("long"))) || R.t(R.is((S["value"] ?? null), R.ty("int")))) || R.t(R.is((S["value"] ?? null), R.ty("double"))))) {
-            R.ln = F + 138;
+            R.ln = F + 172;
             R.e(O, R.m(R.sc("DateTimeOffset", "FromUnixTimeSeconds", [R.c("long", (S["value"] ?? null))]), "UtcDateTime"));
             return;
         }
-        R.ln = F + 139;
+        R.ln = F + 173;
         R.e(O, R.m(R.sc("DateTimeOffset", "Parse", [R.c("string", (S["value"] ?? null)), R.st("System.Globalization.CultureInfo", "InvariantCulture")]), "UtcDateTime"));
         return;
     });
-    R.ln = F + 142;
+    R.ln = F + 176;
     R.def(S, "Format-UtcDate", { params: [{ n: "Value", t: null, pos: null }], adv: 0, h: "0480a2b6932897ec" }, (S, O) => {
-        R.ln = F + 144;
-        S["date"] = R.u(R.cmd(S, "ConvertTo-UtcDate", [(S["value"] ?? null)], null));
-        R.ln = F + 145;
-        if (R.t(R.eq(null, (S["date"] ?? null)))) {
-            R.ln = F + 145;
-            R.e(O, null);
-            return;
-        }
-        R.ln = F + 146;
-        R.e(O, R.im((S["date"] ?? null), "ToString", ["yyyy-MM-ddTHH:mm:ssZ", R.st("System.Globalization.CultureInfo", "InvariantCulture")]));
-        return;
-    });
-    R.ln = F + 149;
-    R.def(S, "Get-AgeInDays", { params: [{ n: "Value", t: null, pos: null }], adv: 0, h: "b0b9edfdf67bf12c" }, (S, O) => {
-        R.ln = F + 152;
-        S["date"] = R.u(R.cmd(S, "ConvertTo-UtcDate", [(S["value"] ?? null)], null));
-        R.ln = F + 153;
-        if (R.t(R.eq(null, (S["date"] ?? null)))) {
-            R.ln = F + 153;
-            R.e(O, null);
-            return;
-        }
-        R.ln = F + 154;
-        R.e(O, R.c("int", R.sc("math", "Floor", [R.m((R.sub(R.m((R.ss(S)["script:ingest"] ?? null), "ReferenceTime"), (S["date"] ?? null))), "TotalDays")])));
-        return;
-    });
-    R.ln = F + 157;
-    R.def(S, "ConvertFrom-IsoDuration", { params: [{ n: "Duration", t: "string", pos: null }], adv: 0, h: "2d8ed0329b1915f1" }, (S, O) => {
-        R.ln = F + 160;
-        if (!R.t((S["duration"] ?? null))) {
-            R.ln = F + 160;
-            R.e(O, null);
-            return;
-        }
-        R.ln = F + 161;
-        R.e(O, R.sc("System.Xml.XmlConvert", "ToTimeSpan", [(S["duration"] ?? null)]));
-        return;
-    });
-    R.ln = F + 164;
-    R.def(S, "Get-ResourceName", { params: [{ n: "Id", t: "string", pos: null }], adv: 0, h: "d8e229a3f955113c" }, (S, O) => {
-        R.ln = F + 164;
-        R.e(O, R.i((R.split(R.im((S["id"] ?? null), "TrimEnd", ["/"]), "/")), -1));
-        return;
-    });
-    R.ln = F + 166;
-    R.def(S, "Get-ResourceGroupName", { params: [{ n: "Id", t: "string", pos: null }], adv: 0, h: "4ba8c1365087a9cf" }, (S, O) => {
-        R.ln = F + 168;
-        if (R.t(R.match(S, (S["id"] ?? null), "/resourceGroups/([^/]+)"))) {
-            R.ln = F + 168;
-            R.e(O, R.i((S["matches"] ?? null), 1));
-            return;
-        }
-        R.ln = F + 169;
-        R.e(O, null);
-        return;
-    });
-    R.ln = F + 172;
-    R.def(S, "Test-VersionAtLeast", { params: [{ n: "Value", t: null, pos: null }, { n: "Minimum", t: "string", pos: null, def: S => "1.2" }], adv: 0, h: "99b5dc9b3f1f666b" }, (S, O) => {
-        R.ln = F + 175;
-        if (!R.t((S["value"] ?? null))) {
-            R.ln = F + 175;
-            R.e(O, false);
-            return;
-        }
-        R.ln = F + 176;
-        S["normalized"] = R.rep(R.rep((R.c("string", (S["value"] ?? null))), [R.v("(?i)^tls\\s*v?"), R.v("")]), [R.v("_"), R.v(".")]);
-        R.ln = F + 177;
-        if (R.t(R.match(S, (S["normalized"] ?? null), "^(\\d)(\\d)$"))) {
-            R.ln = F + 177;
-            S["normalized"] = ("" + R.str(R.u(R.pi(R.i((S["matches"] ?? null), 1)))) + "." + R.str(R.u(R.pi(R.i((S["matches"] ?? null), 2)))));
-        }
         R.ln = F + 178;
-        S["parsed"] = null;
+        S["date"] = R.u(R.cmd(S, "ConvertTo-UtcDate", [(S["value"] ?? null)], null));
         R.ln = F + 179;
-        if (!R.t(R.sc("version", "TryParse", [(S["normalized"] ?? null), R.ref(() => (S["parsed"] ?? null), x => { S["parsed"] = x; })]))) {
+        if (R.t(R.eq(null, (S["date"] ?? null)))) {
             R.ln = F + 179;
-            R.e(O, false);
+            R.e(O, null);
             return;
         }
         R.ln = F + 180;
+        R.e(O, R.im((S["date"] ?? null), "ToString", ["yyyy-MM-ddTHH:mm:ssZ", R.st("System.Globalization.CultureInfo", "InvariantCulture")]));
+        return;
+    });
+    R.ln = F + 183;
+    R.def(S, "Get-AgeInDays", { params: [{ n: "Value", t: null, pos: null }], adv: 0, h: "b0b9edfdf67bf12c" }, (S, O) => {
+        R.ln = F + 186;
+        S["date"] = R.u(R.cmd(S, "ConvertTo-UtcDate", [(S["value"] ?? null)], null));
+        R.ln = F + 187;
+        if (R.t(R.eq(null, (S["date"] ?? null)))) {
+            R.ln = F + 187;
+            R.e(O, null);
+            return;
+        }
+        R.ln = F + 188;
+        R.e(O, R.c("int", R.sc("math", "Floor", [R.m((R.sub(R.m((R.ss(S)["script:ingest"] ?? null), "ReferenceTime"), (S["date"] ?? null))), "TotalDays")])));
+        return;
+    });
+    R.ln = F + 191;
+    R.def(S, "ConvertFrom-IsoDuration", { params: [{ n: "Duration", t: "string", pos: null }], adv: 0, h: "2d8ed0329b1915f1" }, (S, O) => {
+        R.ln = F + 194;
+        if (!R.t((S["duration"] ?? null))) {
+            R.ln = F + 194;
+            R.e(O, null);
+            return;
+        }
+        R.ln = F + 195;
+        R.e(O, R.sc("System.Xml.XmlConvert", "ToTimeSpan", [(S["duration"] ?? null)]));
+        return;
+    });
+    R.ln = F + 198;
+    R.def(S, "Get-ResourceName", { params: [{ n: "Id", t: "string", pos: null }], adv: 0, h: "d8e229a3f955113c" }, (S, O) => {
+        R.ln = F + 198;
+        R.e(O, R.i((R.split(R.im((S["id"] ?? null), "TrimEnd", ["/"]), "/")), -1));
+        return;
+    });
+    R.ln = F + 200;
+    R.def(S, "Get-ResourceGroupName", { params: [{ n: "Id", t: "string", pos: null }], adv: 0, h: "4ba8c1365087a9cf" }, (S, O) => {
+        R.ln = F + 202;
+        if (R.t(R.match(S, (S["id"] ?? null), "/resourceGroups/([^/]+)"))) {
+            R.ln = F + 202;
+            R.e(O, R.i((S["matches"] ?? null), 1));
+            return;
+        }
+        R.ln = F + 203;
+        R.e(O, null);
+        return;
+    });
+    R.ln = F + 206;
+    R.def(S, "Test-VersionAtLeast", { params: [{ n: "Value", t: null, pos: null }, { n: "Minimum", t: "string", pos: null, def: S => "1.2" }], adv: 0, h: "99b5dc9b3f1f666b" }, (S, O) => {
+        R.ln = F + 209;
+        if (!R.t((S["value"] ?? null))) {
+            R.ln = F + 209;
+            R.e(O, false);
+            return;
+        }
+        R.ln = F + 210;
+        S["normalized"] = R.rep(R.rep((R.c("string", (S["value"] ?? null))), [R.v("(?i)^tls\\s*v?"), R.v("")]), [R.v("_"), R.v(".")]);
+        R.ln = F + 211;
+        if (R.t(R.match(S, (S["normalized"] ?? null), "^(\\d)(\\d)$"))) {
+            R.ln = F + 211;
+            S["normalized"] = ("" + R.str(R.u(R.pi(R.i((S["matches"] ?? null), 1)))) + "." + R.str(R.u(R.pi(R.i((S["matches"] ?? null), 2)))));
+        }
+        R.ln = F + 212;
+        S["parsed"] = null;
+        R.ln = F + 213;
+        if (!R.t(R.sc("version", "TryParse", [(S["normalized"] ?? null), R.ref(() => (S["parsed"] ?? null), x => { S["parsed"] = x; })]))) {
+            R.ln = F + 213;
+            R.e(O, false);
+            return;
+        }
+        R.ln = F + 214;
         R.e(O, (R.ge((S["parsed"] ?? null), R.c("version", (S["minimum"] ?? null)))));
         return;
     });
-    R.ln = F + 187;
+    R.ln = F + 221;
     R.def(S, "New-Result", { params: [{ n: "Status", t: "string", pos: null, mand: 1, vs: ["Pass", "Fail", "Unknown", "NotApplicable"] }, { n: "Detail", t: "string", pos: null }, { n: "Evidence", t: "System.Collections.IDictionary", pos: null }], adv: 1, h: "a45c350c9222292e" }, (S, O) => {
-        R.ln = F + 193;
+        R.ln = F + 227;
         R.e(O, R.pso(["Status", (S["status"] ?? null), "Detail", (S["detail"] ?? null), "Evidence", (S["evidence"] ?? null)]));
         return;
     });
-    R.ln = F + 195;
+    R.ln = F + 229;
     R.def(S, "New-Pass", { params: [{ n: "Detail", t: "string", pos: null }, { n: "Evidence", t: "System.Collections.IDictionary", pos: null }], adv: 0, h: "2fb86c7259ab2ca4" }, (S, O) => {
-        R.ln = F + 195;
+        R.ln = F + 229;
         R.pa(O, R.cmd(S, "New-Result", [R.np("Status"), "Pass", R.np("Detail"), (S["detail"] ?? null), R.np("Evidence"), (S["evidence"] ?? null)], null));
     });
-    R.ln = F + 196;
+    R.ln = F + 230;
     R.def(S, "New-Fail", { params: [{ n: "Detail", t: "string", pos: null }, { n: "Evidence", t: "System.Collections.IDictionary", pos: null }], adv: 0, h: "b034eb2125148102" }, (S, O) => {
-        R.ln = F + 196;
+        R.ln = F + 230;
         R.pa(O, R.cmd(S, "New-Result", [R.np("Status"), "Fail", R.np("Detail"), (S["detail"] ?? null), R.np("Evidence"), (S["evidence"] ?? null)], null));
     });
-    R.ln = F + 197;
+    R.ln = F + 231;
     R.def(S, "New-Unknown", { params: [{ n: "Detail", t: "string", pos: null }, { n: "Evidence", t: "System.Collections.IDictionary", pos: null }], adv: 0, h: "19384dcc98d75e3f" }, (S, O) => {
-        R.ln = F + 197;
+        R.ln = F + 231;
         R.pa(O, R.cmd(S, "New-Result", [R.np("Status"), "Unknown", R.np("Detail"), (S["detail"] ?? null), R.np("Evidence"), (S["evidence"] ?? null)], null));
     });
-    R.ln = F + 198;
+    R.ln = F + 232;
     R.def(S, "New-NotApplicable", { params: [{ n: "Detail", t: "string", pos: null }, { n: "Evidence", t: "System.Collections.IDictionary", pos: null }], adv: 0, h: "9ca67836a62e5ff6" }, (S, O) => {
-        R.ln = F + 198;
+        R.ln = F + 232;
         R.pa(O, R.cmd(S, "New-Result", [R.np("Status"), "NotApplicable", R.np("Detail"), (S["detail"] ?? null), R.np("Evidence"), (S["evidence"] ?? null)], null));
     });
-    R.ln = F + 200;
+    R.ln = F + 234;
     R.def(S, "New-Finding", { params: [{ n: "Record", t: null, pos: null }, { n: "ResourceId", t: "string", pos: null }, { n: "ResourceType", t: "string", pos: null }, { n: "ResourceName", t: "string", pos: null }, { n: "Result", t: null, pos: null, mand: 1 }], adv: 1, h: "358686d800295b68" }, (S, O) => {
-        R.ln = F + 209;
+        R.ln = F + 243;
         if (R.t((S["record"] ?? null))) {
-            R.ln = F + 210;
+            R.ln = F + 244;
             if (!R.t((S["resourceid"] ?? null))) {
-                R.ln = F + 210;
+                R.ln = F + 244;
                 S["resourceid"] = R.c("string", R.m((S["record"] ?? null), "id"));
             }
-            R.ln = F + 211;
+            R.ln = F + 245;
             if (!R.t((S["resourcetype"] ?? null))) {
-                R.ln = F + 211;
+                R.ln = F + 245;
                 S["resourcetype"] = R.c("string", R.m((S["record"] ?? null), "type"));
             }
         }
-        R.ln = F + 213;
+        R.ln = F + 247;
         if (!R.t((S["resourcename"] ?? null))) {
-            R.ln = F + 213;
+            R.ln = F + 247;
             S["resourcename"] = R.c("string", R.u(R.cmd(S, "Get-ResourceName", [(S["resourceid"] ?? null)], null)));
         }
-        R.ln = F + 214;
+        R.ln = F + 248;
         R.e(O, R.pso(["ResourceId", (S["resourceid"] ?? null), "ResourceName", (S["resourcename"] ?? null), "ResourceType", (S["resourcetype"] ?? null), "ResourceGroup", R.u(R.cmd(S, "Get-ResourceGroupName", [(S["resourceid"] ?? null)], null)), "Status", R.m((S["result"] ?? null), "Status"), "Detail", R.m((S["result"] ?? null), "Detail"), "Evidence", R.m((S["result"] ?? null), "Evidence")]));
         return;
     });
-    R.ln = F + 225;
+    R.ln = F + 259;
     R.def(S, "Get-SubscriptionScope", { params: [], adv: 0, h: "484e7887204f998b" }, (S, O) => {
-        R.ln = F + 225;
+        R.ln = F + 259;
         R.e(O, ("/subscriptions/" + R.str(R.u(R.pi(R.m((R.ss(S)["script:ingest"] ?? null), "SubscriptionId"))))));
         return;
     });
-    R.ln = F + 231;
+    R.ln = F + 265;
     R.ss(S)["script:tests"] = R.sc("System.Collections.Generic.List[object]", "new", []);
-    R.ln = F + 232;
+    R.ln = F + 266;
     R.ss(S)["script:catalog"] = null;
-    R.ln = F + 233;
+    R.ln = F + 267;
     R.ss(S)["script:severityweights"] = R.ht(["Critical", 8, "High", 4, "Medium", 2, "Low", 1, "Informational", 0], true);
-    R.ln = F + 235;
+    R.ln = F + 269;
     R.def(S, "Add-AzTest", { params: [{ n: "Definition", t: "hashtable", pos: null, mand: 1 }], adv: 1, h: "e66745c93401f952" }, (S, O) => {
-        R.ln = F + 238;
-        for (const it4 of R.fi([R.v("Id"), R.v("Title"), R.v("Category"), R.v("Service"), R.v("Severity"), R.v("Description"), R.v("Rationale"), R.v("Remediation"), R.v("Frameworks")])) {
-            S["field"] = it4;
-            R.ln = F + 239;
+        R.ln = F + 272;
+        for (const it6 of R.fi([R.v("Id"), R.v("Title"), R.v("Category"), R.v("Service"), R.v("Severity"), R.v("Description"), R.v("Rationale"), R.v("Remediation"), R.v("Frameworks")])) {
+            S["field"] = it6;
+            R.ln = F + 273;
             if (!R.t(R.i((S["definition"] ?? null), (S["field"] ?? null)))) {
-                R.ln = F + 239;
+                R.ln = F + 273;
                 throw R.th(("Test " + R.str(R.u(R.pi(R.m((S["definition"] ?? null), "Id")))) + ": missing " + R.str((S["field"] ?? null))));
             }
         }
-        R.ln = F + 241;
+        R.ln = F + 275;
         if (R.t(R.nmatch(S, R.m((S["definition"] ?? null), "Id"), "^AZ-[A-Z]+-\\d{3}$"))) {
-            R.ln = F + 241;
+            R.ln = F + 275;
             throw R.th(("Test id " + R.str(R.u(R.pi(R.m((S["definition"] ?? null), "Id")))) + " does not match AZ-<AREA>-<NNN>"));
         }
-        R.ln = F + 242;
+        R.ln = F + 276;
         if (R.t(R.u(R.cmd(S, "Where-Object", ["Id", R.np("eq"), R.m((S["definition"] ?? null), "Id")], R.pi((R.ss(S)["script:tests"] ?? null)))))) {
-            R.ln = F + 242;
+            R.ln = F + 276;
             throw R.th(("Duplicate test id " + R.str(R.u(R.pi(R.m((S["definition"] ?? null), "Id"))))));
         }
-        R.ln = F + 243;
+        R.ln = F + 277;
         if (!R.t(R.im((R.ss(S)["script:severityweights"] ?? null), "Contains", [R.m((S["definition"] ?? null), "Severity")]))) {
-            R.ln = F + 243;
+            R.ln = F + 277;
             throw R.th(("Test " + R.str(R.u(R.pi(R.m((S["definition"] ?? null), "Id")))) + ": invalid severity " + R.str(R.u(R.pi(R.m((S["definition"] ?? null), "Severity"))))));
         }
-        R.ln = F + 244;
+        R.ln = F + 278;
         if (!(R.t(R.m((S["definition"] ?? null), "Evaluate")) || R.t(R.m((S["definition"] ?? null), "Run")))) {
-            R.ln = F + 244;
+            R.ln = F + 278;
             throw R.th(("Test " + R.str(R.u(R.pi(R.m((S["definition"] ?? null), "Id")))) + ": needs Evaluate (per resource) or Run"));
         }
-        R.ln = F + 245;
+        R.ln = F + 279;
         if ((R.t(R.m((S["definition"] ?? null), "Evaluate")) && !R.t(R.m((S["definition"] ?? null), "ResourceTypes")))) {
-            R.ln = F + 245;
+            R.ln = F + 279;
             throw R.th(("Test " + R.str(R.u(R.pi(R.m((S["definition"] ?? null), "Id")))) + ": Evaluate requires ResourceTypes"));
         }
-        R.ln = F + 246;
-        for (const it5 of R.fi(R.m(R.m((S["definition"] ?? null), "Frameworks"), "Keys"))) {
-            S["framework"] = it5;
-            R.ln = F + 247;
+        R.ln = F + 280;
+        for (const it7 of R.fi(R.m(R.m((S["definition"] ?? null), "Frameworks"), "Keys"))) {
+            S["framework"] = it7;
+            R.ln = F + 281;
             if ((!R.t(R.im((R.ss(S)["script:catalog"] ?? null), "Contains", [(S["framework"] ?? null)])) || !R.t(R.m(R.i((R.ss(S)["script:catalog"] ?? null), (S["framework"] ?? null)), "controls")))) {
-                R.ln = F + 247;
+                R.ln = F + 281;
                 throw R.th(("Test " + R.str(R.u(R.pi(R.m((S["definition"] ?? null), "Id")))) + ": unknown or derived framework " + R.str((S["framework"] ?? null))));
             }
-            R.ln = F + 248;
-            for (const it6 of R.fi(R.a(R.i(R.m((S["definition"] ?? null), "Frameworks"), (S["framework"] ?? null))))) {
-                S["control"] = it6;
-                R.ln = F + 249;
+            R.ln = F + 282;
+            for (const it8 of R.fi(R.a(R.i(R.m((S["definition"] ?? null), "Frameworks"), (S["framework"] ?? null))))) {
+                S["control"] = it8;
+                R.ln = F + 283;
                 if (!R.t(R.im(R.m(R.i((R.ss(S)["script:catalog"] ?? null), (S["framework"] ?? null)), "controls"), "Contains", [(S["control"] ?? null)]))) {
-                    R.ln = F + 249;
+                    R.ln = F + 283;
                     throw R.th(("Test " + R.str(R.u(R.pi(R.m((S["definition"] ?? null), "Id")))) + ": " + R.str((S["framework"] ?? null)) + " control '" + R.str((S["control"] ?? null)) + "' not in catalog"));
                 }
             }
         }
-        R.ln = F + 252;
+        R.ln = F + 286;
         if (!R.t(R.m(R.m((S["definition"] ?? null), "Frameworks"), "MCSB"))) {
-            R.ln = F + 252;
+            R.ln = F + 286;
             throw R.th(("Test " + R.str(R.u(R.pi(R.m((S["definition"] ?? null), "Id")))) + ": at least one MCSB control is required"));
         }
-        R.ln = F + 253;
+        R.ln = F + 287;
         if (!R.t(R.m((S["definition"] ?? null), "Version"))) {
-            R.ln = F + 253;
+            R.ln = F + 287;
             R.sm((S["definition"] ?? null), "Version", 1);
         }
-        R.ln = F + 254;
+        R.ln = F + 288;
         R.e(O, R.im((R.ss(S)["script:tests"] ?? null), "Add", [R.c("pscustomobject", (S["definition"] ?? null))]));
     });
-    R.ln = F + 261;
+    R.ln = F + 295;
     R.ss(S)["script:builtinroles"] = R.ht(["8e3af657-a8ff-443c-a75c-2fe8c4bcb635", "Owner", "b24988ac-6180-42a0-ab88-20f7382dd24c", "Contributor", "18d7d88d-d35e-4fb5-a5c3-7773c20a72d9", "User Access Administrator", "f58310d9-a9f6-439a-9e8d-f62e7b41a168", "Role Based Access Control Administrator", "acdd72a7-3385-48ef-bd42-f606fba81ae7", "Reader"], false);
-    R.ln = F + 269;
+    R.ln = F + 303;
     R.ss(S)["script:privilegedroleids"] = R.a([R.v("8e3af657-a8ff-443c-a75c-2fe8c4bcb635"), R.v("b24988ac-6180-42a0-ab88-20f7382dd24c"), R.v("18d7d88d-d35e-4fb5-a5c3-7773c20a72d9"), R.v("f58310d9-a9f6-439a-9e8d-f62e7b41a168")]);
-    R.ln = F + 271;
+    R.ln = F + 305;
     R.def(S, "Get-RoleDefinitionGuid", { params: [{ n: "RoleDefinitionId", t: "string", pos: null }], adv: 0, h: "3eb82d2bb2921ada" }, (S, O) => {
-        R.ln = F + 271;
+        R.ln = F + 305;
         R.e(O, R.im(R.i((R.split((S["roledefinitionid"] ?? null), "/")), -1), "ToLowerInvariant", []));
         return;
     });
-    R.ln = F + 273;
+    R.ln = F + 307;
     R.def(S, "Get-RoleDefinitionMap", { params: [], adv: 0, h: "51c3ed291fe80d0d" }, (S, O) => {
-        R.ln = F + 275;
+        R.ln = F + 309;
         if (!R.t(R.im(R.m((R.ss(S)["script:ingest"] ?? null), "Cache"), "ContainsKey", ["#roleMap"]))) {
-            R.ln = F + 276;
+            R.ln = F + 310;
             S["map"] = R.ht([], false);
-            R.ln = F + 277;
-            for (const it7 of R.fi(R.cmd(S, "Get-IngestData", ["rbac/roleDefinitions"], null))) {
-                S["definition"] = it7;
-                R.ln = F + 277;
+            R.ln = F + 311;
+            for (const it9 of R.fi(R.cmd(S, "Get-IngestData", ["rbac/roleDefinitions"], null))) {
+                S["definition"] = it9;
+                R.ln = F + 311;
                 if (R.t((S["definition"] ?? null))) {
-                    R.ln = F + 277;
+                    R.ln = F + 311;
                     R.si((S["map"] ?? null), R.im(R.m((S["definition"] ?? null), "name"), "ToLowerInvariant", []), (S["definition"] ?? null));
                 }
             }
-            R.ln = F + 278;
+            R.ln = F + 312;
             R.si(R.m((R.ss(S)["script:ingest"] ?? null), "Cache"), "#roleMap", (S["map"] ?? null));
         }
-        R.ln = F + 280;
+        R.ln = F + 314;
         R.e(O, R.i(R.m((R.ss(S)["script:ingest"] ?? null), "Cache"), "#roleMap"));
         return;
     });
-    R.ln = F + 283;
+    R.ln = F + 317;
     R.def(S, "Get-RoleName", { params: [{ n: "RoleDefinitionId", t: "string", pos: null }], adv: 0, h: "a100e61e6a885abf" }, (S, O) => {
-        R.ln = F + 285;
+        R.ln = F + 319;
         S["guid"] = R.u(R.cmd(S, "Get-RoleDefinitionGuid", [(S["roledefinitionid"] ?? null)], null));
-        R.ln = F + 286;
+        R.ln = F + 320;
         S["definition"] = R.i(R.u(R.cmd(S, "Get-RoleDefinitionMap", [], null)), (S["guid"] ?? null));
-        R.ln = F + 287;
+        R.ln = F + 321;
         if (R.t((S["definition"] ?? null))) {
-            R.ln = F + 287;
+            R.ln = F + 321;
             R.e(O, R.m(R.m((S["definition"] ?? null), "properties"), "roleName"));
             return;
         }
-        R.ln = F + 288;
+        R.ln = F + 322;
         if (R.t(R.im((R.ss(S)["script:builtinroles"] ?? null), "ContainsKey", [(S["guid"] ?? null)]))) {
-            R.ln = F + 288;
+            R.ln = F + 322;
             R.e(O, R.i((R.ss(S)["script:builtinroles"] ?? null), (S["guid"] ?? null)));
             return;
         }
-        R.ln = F + 289;
+        R.ln = F + 323;
         R.e(O, (S["guid"] ?? null));
         return;
     });
-    R.ln = F + 292;
+    R.ln = F + 326;
     R.def(S, "Test-RoleCanWrite", { params: [{ n: "RoleDefinitionId", t: "string", pos: null }], adv: 0, h: "7992972914c262ec" }, (S, O) => {
-        R.ln = F + 295;
+        R.ln = F + 329;
         S["guid"] = R.u(R.cmd(S, "Get-RoleDefinitionGuid", [(S["roledefinitionid"] ?? null)], null));
-        R.ln = F + 296;
+        R.ln = F + 330;
         if (R.t(R.in((S["guid"] ?? null), (R.ss(S)["script:privilegedroleids"] ?? null)))) {
-            R.ln = F + 296;
+            R.ln = F + 330;
             R.e(O, true);
             return;
         }
-        R.ln = F + 297;
+        R.ln = F + 331;
         S["definition"] = R.i(R.u(R.cmd(S, "Get-RoleDefinitionMap", [], null)), (S["guid"] ?? null));
-        R.ln = F + 298;
+        R.ln = F + 332;
         if (!R.t((S["definition"] ?? null))) {
-            R.ln = F + 298;
+            R.ln = F + 332;
             R.e(O, true);
             return;
         }
-        R.ln = F + 299;
-        for (const it8 of R.fi(R.a(R.m(R.m((S["definition"] ?? null), "properties"), "permissions")))) {
-            S["permission"] = it8;
-            R.ln = F + 300;
-            for (const it9 of R.fi(R.a(R.m((S["permission"] ?? null), "actions")))) {
-                S["action"] = it9;
-                R.ln = F + 300;
+        R.ln = F + 333;
+        for (const it10 of R.fi(R.a(R.m(R.m((S["definition"] ?? null), "properties"), "permissions")))) {
+            S["permission"] = it10;
+            R.ln = F + 334;
+            for (const it11 of R.fi(R.a(R.m((S["permission"] ?? null), "actions")))) {
+                S["action"] = it11;
+                R.ln = F + 334;
                 if (((R.t((S["action"] ?? null)) && R.t(R.nmatch(S, (S["action"] ?? null), "/read$"))) && R.t(R.ne((S["action"] ?? null), "*/read")))) {
-                    R.ln = F + 300;
+                    R.ln = F + 334;
                     R.e(O, true);
                     return;
                 }
             }
         }
-        R.ln = F + 302;
+        R.ln = F + 336;
         R.e(O, false);
         return;
     });
-    R.ln = F + 305;
+    R.ln = F + 339;
     R.def(S, "Test-RolePrivileged", { params: [{ n: "RoleDefinitionId", t: "string", pos: null }], adv: 0, h: "37b440a23d65cd21" }, (S, O) => {
-        R.ln = F + 308;
+        R.ln = F + 342;
         S["guid"] = R.u(R.cmd(S, "Get-RoleDefinitionGuid", [(S["roledefinitionid"] ?? null)], null));
-        R.ln = F + 309;
+        R.ln = F + 343;
         if (R.t(R.in((S["guid"] ?? null), (R.ss(S)["script:privilegedroleids"] ?? null)))) {
-            R.ln = F + 309;
+            R.ln = F + 343;
             R.e(O, true);
             return;
         }
-        R.ln = F + 310;
+        R.ln = F + 344;
         S["definition"] = R.i(R.u(R.cmd(S, "Get-RoleDefinitionMap", [], null)), (S["guid"] ?? null));
-        R.ln = F + 311;
+        R.ln = F + 345;
         if ((!R.t((S["definition"] ?? null)) || R.t(R.ne(R.m(R.m((S["definition"] ?? null), "properties"), "type"), "CustomRole")))) {
-            R.ln = F + 311;
+            R.ln = F + 345;
             R.e(O, false);
             return;
         }
-        R.ln = F + 312;
-        for (const it10 of R.fi(R.a(R.m(R.m((S["definition"] ?? null), "properties"), "permissions")))) {
-            S["permission"] = it10;
-            R.ln = F + 313;
-            for (const it11 of R.fi(R.a(R.m((S["permission"] ?? null), "actions")))) {
-                S["action"] = it11;
-                R.ln = F + 314;
+        R.ln = F + 346;
+        for (const it12 of R.fi(R.a(R.m(R.m((S["definition"] ?? null), "properties"), "permissions")))) {
+            S["permission"] = it12;
+            R.ln = F + 347;
+            for (const it13 of R.fi(R.a(R.m((S["permission"] ?? null), "actions")))) {
+                S["action"] = it13;
+                R.ln = F + 348;
                 if (R.t(R.in((S["action"] ?? null), [R.v("*"), R.v("Microsoft.Authorization/*"), R.v("Microsoft.Authorization/roleAssignments/write"), R.v("Microsoft.Authorization/*/write")]))) {
-                    R.ln = F + 314;
+                    R.ln = F + 348;
                     R.e(O, true);
                     return;
                 }
             }
         }
-        R.ln = F + 317;
+        R.ln = F + 351;
         R.e(O, false);
         return;
     });
-    R.ln = F + 320;
+    R.ln = F + 354;
     R.def(S, "Get-ScopeLevel", { params: [{ n: "Scope", t: "string", pos: null }], adv: 0, h: "78b1bb1baafe07f3" }, (S, O) => {
-        R.ln = F + 323;
+        R.ln = F + 357;
         if (R.t(R.eq((S["scope"] ?? null), "/"))) {
-            R.ln = F + 323;
+            R.ln = F + 357;
             R.e(O, "root");
             return;
         }
-        R.ln = F + 324;
+        R.ln = F + 358;
         if (R.t(R.match(S, (S["scope"] ?? null), "^/providers/Microsoft\\.Management/managementGroups/"))) {
-            R.ln = F + 324;
+            R.ln = F + 358;
             R.e(O, "managementGroup");
             return;
         }
-        R.ln = F + 325;
+        R.ln = F + 359;
         if (R.t(R.match(S, (S["scope"] ?? null), "^/subscriptions/[^/]+$"))) {
-            R.ln = F + 325;
+            R.ln = F + 359;
             R.e(O, "subscription");
             return;
         }
-        R.ln = F + 326;
+        R.ln = F + 360;
         if (R.t(R.match(S, (S["scope"] ?? null), "^/subscriptions/[^/]+/resourceGroups/[^/]+$"))) {
-            R.ln = F + 326;
+            R.ln = F + 360;
             R.e(O, "resourceGroup");
             return;
         }
-        R.ln = F + 327;
+        R.ln = F + 361;
         R.e(O, "resource");
         return;
     });
-    R.ln = F + 330;
+    R.ln = F + 364;
     R.def(S, "Get-PrincipalMap", { params: [], adv: 0, h: "93cda5cd40bcb700" }, (S, O) => {
-        R.ln = F + 332;
+        R.ln = F + 366;
         if (!R.t(R.im(R.m((R.ss(S)["script:ingest"] ?? null), "Cache"), "ContainsKey", ["#principals"]))) {
-            R.ln = F + 333;
+            R.ln = F + 367;
             S["map"] = R.ht([], false);
-            R.ln = F + 334;
-            for (const it12 of R.fi(R.cmd(S, "Get-IngestData", ["identity/directoryObjects"], null))) {
-                S["object"] = it12;
-                R.ln = F + 334;
+            R.ln = F + 368;
+            for (const it14 of R.fi(R.cmd(S, "Get-IngestData", ["identity/directoryObjects"], null))) {
+                S["object"] = it14;
+                R.ln = F + 368;
                 if (R.t((S["object"] ?? null))) {
-                    R.ln = F + 334;
+                    R.ln = F + 368;
                     R.si((S["map"] ?? null), R.im(R.m((S["object"] ?? null), "id"), "ToLowerInvariant", []), (S["object"] ?? null));
                 }
             }
-            R.ln = F + 335;
-            for (const it13 of R.fi(R.cmd(S, "Get-IngestData", ["identity/users"], null))) {
-                S["user"] = it13;
-                R.ln = F + 335;
+            R.ln = F + 369;
+            for (const it15 of R.fi(R.cmd(S, "Get-IngestData", ["identity/users"], null))) {
+                S["user"] = it15;
+                R.ln = F + 369;
                 if (R.t((S["user"] ?? null))) {
-                    R.ln = F + 335;
+                    R.ln = F + 369;
                     R.si((S["map"] ?? null), R.im(R.m((S["user"] ?? null), "id"), "ToLowerInvariant", []), (S["user"] ?? null));
                 }
             }
-            R.ln = F + 336;
+            R.ln = F + 370;
             R.si(R.m((R.ss(S)["script:ingest"] ?? null), "Cache"), "#principals", (S["map"] ?? null));
         }
-        R.ln = F + 338;
+        R.ln = F + 372;
         R.e(O, R.i(R.m((R.ss(S)["script:ingest"] ?? null), "Cache"), "#principals"));
         return;
     });
-    R.ln = F + 341;
+    R.ln = F + 375;
     R.def(S, "Get-Principal", { params: [{ n: "Id", t: "string", pos: null }], adv: 0, h: "edffc69792d6b5a4" }, (S, O) => {
-        R.ln = F + 341;
+        R.ln = F + 375;
         if (!R.t((S["id"] ?? null))) {
-            R.ln = F + 341;
+            R.ln = F + 375;
             R.e(O, null);
             return;
         }
-        R.ln = F + 341;
+        R.ln = F + 375;
         R.e(O, R.i(R.u(R.cmd(S, "Get-PrincipalMap", [], null)), R.im((S["id"] ?? null), "ToLowerInvariant", [])));
         return;
     });
-    R.ln = F + 343;
+    R.ln = F + 377;
     R.def(S, "Get-PrincipalLabel", { params: [{ n: "Id", t: "string", pos: null }], adv: 0, h: "fa6d50851dd9434a" }, (S, O) => {
-        R.ln = F + 345;
+        R.ln = F + 379;
         S["principal"] = R.u(R.cmd(S, "Get-Principal", [(S["id"] ?? null)], null));
-        R.ln = F + 346;
+        R.ln = F + 380;
         if (!R.t((S["principal"] ?? null))) {
-            R.ln = F + 346;
+            R.ln = F + 380;
             R.e(O, (S["id"] ?? null));
             return;
         }
-        R.ln = F + 347;
+        R.ln = F + 381;
         if (R.t(R.m((S["principal"] ?? null), "userPrincipalName"))) {
-            R.ln = F + 347;
+            R.ln = F + 381;
             R.e(O, ("" + R.str(R.u(R.pi(R.m((S["principal"] ?? null), "displayName")))) + " (" + R.str(R.u(R.pi(R.m((S["principal"] ?? null), "userPrincipalName")))) + ")"));
             return;
         }
-        R.ln = F + 348;
+        R.ln = F + 382;
         R.e(O, ("" + R.str(R.u(R.pi(R.m((S["principal"] ?? null), "displayName")))) + " (" + R.str((S["id"] ?? null)) + ")"));
         return;
     });
-    R.ln = F + 351;
+    R.ln = F + 385;
     R.def(S, "Get-GroupMap", { params: [], adv: 0, h: "ebde86906c33b03a" }, (S, O) => {
-        R.ln = F + 353;
+        R.ln = F + 387;
         if (!R.t(R.im(R.m((R.ss(S)["script:ingest"] ?? null), "Cache"), "ContainsKey", ["#groups"]))) {
-            R.ln = F + 354;
+            R.ln = F + 388;
             S["map"] = R.ht([], false);
-            R.ln = F + 355;
-            for (const it14 of R.fi(R.cmd(S, "Get-IngestData", ["identity/groups"], null))) {
-                S["group"] = it14;
-                R.ln = F + 355;
+            R.ln = F + 389;
+            for (const it16 of R.fi(R.cmd(S, "Get-IngestData", ["identity/groups"], null))) {
+                S["group"] = it16;
+                R.ln = F + 389;
                 if (R.t((S["group"] ?? null))) {
-                    R.ln = F + 355;
+                    R.ln = F + 389;
                     R.si((S["map"] ?? null), R.im(R.m((S["group"] ?? null), "id"), "ToLowerInvariant", []), (S["group"] ?? null));
                 }
             }
-            R.ln = F + 356;
+            R.ln = F + 390;
             R.si(R.m((R.ss(S)["script:ingest"] ?? null), "Cache"), "#groups", (S["map"] ?? null));
         }
-        R.ln = F + 358;
+        R.ln = F + 392;
         R.e(O, R.i(R.m((R.ss(S)["script:ingest"] ?? null), "Cache"), "#groups"));
         return;
     });
-    R.ln = F + 361;
+    R.ln = F + 395;
     R.def(S, "Get-GroupMembers", { params: [{ n: "GroupId", t: "string", pos: null }], adv: 0, h: "aa6235eb0cedc641" }, (S, O) => {
-        R.ln = F + 364;
+        R.ln = F + 398;
         S["group"] = R.i(R.u(R.cmd(S, "Get-GroupMap", [], null)), R.im((S["groupid"] ?? null), "ToLowerInvariant", []));
-        R.ln = F + 365;
+        R.ln = F + 399;
         if (!R.t((S["group"] ?? null))) {
-            R.ln = F + 365;
+            R.ln = F + 399;
             return;
         }
-        R.ln = F + 366;
+        R.ln = F + 400;
         R.e(O, R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 366;
+            R.ln = F + 400;
             R.e(O, (S["_"] ?? null));
         })], R.pi(R.m((S["group"] ?? null), "transitiveMembers"))));
         return;
     });
-    R.ln = F + 369;
+    R.ln = F + 403;
     R.def(S, "Test-GroupMembersComplete", { params: [{ n: "GroupId", t: "string", pos: null }], adv: 0, h: "20de209c6e514931" }, (S, O) => {
-        R.ln = F + 373;
+        R.ln = F + 407;
         if (!R.t((S["groupid"] ?? null))) {
-            R.ln = F + 373;
+            R.ln = F + 407;
             R.e(O, false);
             return;
         }
-        R.ln = F + 374;
+        R.ln = F + 408;
         S["group"] = R.i(R.u(R.cmd(S, "Get-GroupMap", [], null)), R.im((S["groupid"] ?? null), "ToLowerInvariant", []));
-        R.ln = F + 375;
+        R.ln = F + 409;
         if (!R.t((S["group"] ?? null))) {
-            R.ln = F + 375;
+            R.ln = F + 409;
             R.e(O, false);
             return;
         }
-        R.ln = F + 376;
+        R.ln = F + 410;
         R.e(O, (R.eq(null, R.m((S["group"] ?? null), "transitiveMembersError"))));
         return;
     });
-    R.ln = F + 379;
+    R.ln = F + 413;
     R.def(S, "Test-GuestUser", { params: [{ n: "User", t: null, pos: null }], adv: 0, h: "4a963227c1ad17ca" }, (S, O) => {
-        R.ln = F + 381;
+        R.ln = F + 415;
         R.e(O, ((R.t(R.eq(R.m((S["user"] ?? null), "userType"), "Guest")) || R.t(R.match(S, (R.c("string", R.m((S["user"] ?? null), "userPrincipalName"))), "#EXT#")))));
         return;
     });
-    R.ln = F + 384;
+    R.ln = F + 418;
     R.def(S, "Get-AssignmentUsers", { params: [{ n: "Assignment", t: null, pos: null, mand: 1 }], adv: 1, h: "347b2d80d036e7f8" }, (S, O) => {
-        R.ln = F + 387;
+        R.ln = F + 421;
         S["principalid"] = R.m(R.m((S["assignment"] ?? null), "properties"), "principalId");
-        R.ln = F + 388;
+        R.ln = F + 422;
         if (R.t(R.eq(R.m(R.m((S["assignment"] ?? null), "properties"), "principalType"), "User"))) {
-            R.ln = F + 389;
+            R.ln = F + 423;
             S["user"] = R.u(R.cmd(S, "Get-Principal", [(S["principalid"] ?? null)], null));
-            R.ln = F + 390;
+            R.ln = F + 424;
             if (R.t((S["user"] ?? null))) {
-                R.ln = F + 390;
+                R.ln = F + 424;
                 R.e(O, (S["user"] ?? null));
                 return;
             }
-            R.ln = F + 391;
+            R.ln = F + 425;
             return;
         }
-        R.ln = F + 393;
+        R.ln = F + 427;
         if (R.t(R.eq(R.m(R.m((S["assignment"] ?? null), "properties"), "principalType"), "Group"))) {
-            R.ln = F + 394;
+            R.ln = F + 428;
             R.e(O, R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: "\n                $detail = Get-Principal $_.id\n                if ($detail) { $detail } else { $_ }\n            " }, (S, O) => {
-                R.ln = F + 395;
+                R.ln = F + 429;
                 S["detail"] = R.u(R.cmd(S, "Get-Principal", [R.m((S["_"] ?? null), "id")], null));
-                R.ln = F + 396;
+                R.ln = F + 430;
                 if (R.t((S["detail"] ?? null))) {
-                    R.ln = F + 396;
+                    R.ln = F + 430;
                     R.e(O, (S["detail"] ?? null));
                 } else {
-                    R.ln = F + 396;
+                    R.ln = F + 430;
                     R.e(O, (S["_"] ?? null));
                 }
             })], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.'@odata.type' -eq '#microsoft.graph.user' " }, (S, O) => {
-                R.ln = F + 394;
+                R.ln = F + 428;
                 R.e(O, R.eq(R.m((S["_"] ?? null), "@odata.type"), "#microsoft.graph.user"));
             })], R.cmd(S, "Get-GroupMembers", [(S["principalid"] ?? null)], null))));
             return;
         }
-        R.ln = F + 399;
+        R.ln = F + 433;
         return;
     });
-    R.ln = F + 402;
+    R.ln = F + 436;
     R.def(S, "Test-AssignmentUsersResolved", { params: [{ n: "Assignment", t: null, pos: null, mand: 1 }], adv: 1, h: "4a4ae613c19436bf" }, (S, O) => {
-        R.ln = F + 406;
+        R.ln = F + 440;
         S["principalid"] = R.m(R.m((S["assignment"] ?? null), "properties"), "principalId");
-        R.ln = F + 407;
-        const had18 = Object.prototype.hasOwnProperty.call(S, '_'), prev17 = S['_'];
+        R.ln = F + 441;
+        const had20 = Object.prototype.hasOwnProperty.call(S, '_'), prev19 = S['_'];
         try {
-            for (const sw15 of R.pi(R.m(R.m((S["assignment"] ?? null), "properties"), "principalType"))) {
-                S['_'] = sw15;
-                let hit16 = false;
-                if (R.t(R.eq(sw15, "User", false))) {
-                    hit16 = true;
-                    R.ln = F + 408;
+            for (const sw17 of R.pi(R.m(R.m((S["assignment"] ?? null), "properties"), "principalType"))) {
+                S['_'] = sw17;
+                let hit18 = false;
+                if (R.t(R.eq(sw17, "User", false))) {
+                    hit18 = true;
+                    R.ln = F + 442;
                     R.e(O, R.c("bool", R.u(R.cmd(S, "Get-Principal", [(S["principalid"] ?? null)], null))));
                     return;
                 }
-                if (R.t(R.eq(sw15, "Group", false))) {
-                    hit16 = true;
-                    R.ln = F + 409;
+                if (R.t(R.eq(sw17, "Group", false))) {
+                    hit18 = true;
+                    R.ln = F + 443;
                     R.e(O, R.u(R.cmd(S, "Test-GroupMembersComplete", [(S["principalid"] ?? null)], null)));
                     return;
                 }
             }
-        } finally { if (had18) { S['_'] = prev17; } else { delete S['_']; } }
-        R.ln = F + 411;
+        } finally { if (had20) { S['_'] = prev19; } else { delete S['_']; } }
+        R.ln = F + 445;
         R.e(O, true);
         return;
     });
-    R.ln = F + 414;
+    R.ln = F + 448;
     R.def(S, "Get-ActiveRoleAssignments", { params: [], adv: 0, h: "d89e45aa812b6165" }, (S, O) => {
-        R.ln = F + 416;
+        R.ln = F + 450;
         R.e(O, R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 416;
+            R.ln = F + 450;
             R.e(O, (S["_"] ?? null));
         })], R.cmd(S, "Get-IngestData", ["rbac/roleAssignments"], null)));
         return;
     });
-    R.ln = F + 419;
+    R.ln = F + 453;
     R.def(S, "Get-PrincipalAccessMap", { params: [], adv: 0, h: "776b6f8c7baa4613" }, (S, O) => {
-        R.ln = F + 421;
+        R.ln = F + 455;
         if (!R.t(R.im(R.m((R.ss(S)["script:ingest"] ?? null), "Cache"), "ContainsKey", ["#access"]))) {
-            R.ln = F + 422;
+            R.ln = F + 456;
             S["map"] = R.ht([], false);
-            R.ln = F + 423;
-            for (const it19 of R.fi(R.u(R.cmd(S, "Get-ActiveRoleAssignments", [], null)))) {
-                S["assignment"] = it19;
-                R.ln = F + 424;
+            R.ln = F + 457;
+            for (const it21 of R.fi(R.u(R.cmd(S, "Get-ActiveRoleAssignments", [], null)))) {
+                S["assignment"] = it21;
+                R.ln = F + 458;
                 S["ids"] = R.a(R.m(R.m((S["assignment"] ?? null), "properties"), "principalId"));
-                R.ln = F + 425;
+                R.ln = F + 459;
                 if (R.t(R.eq(R.m(R.m((S["assignment"] ?? null), "properties"), "principalType"), "Group"))) {
-                    R.ln = F + 425;
+                    R.ln = F + 459;
                     S["ids"] = R.add(S["ids"] ?? null, R.cmd(S, "ForEach-Object", ["id"], R.cmd(S, "Get-GroupMembers", [R.m(R.m((S["assignment"] ?? null), "properties"), "principalId")], null)));
                 }
-                R.ln = F + 426;
-                for (const it20 of R.fi((S["ids"] ?? null))) {
-                    S["id"] = it20;
-                    R.ln = F + 427;
+                R.ln = F + 460;
+                for (const it22 of R.fi((S["ids"] ?? null))) {
+                    S["id"] = it22;
+                    R.ln = F + 461;
                     if (!R.t((S["id"] ?? null))) {
                         continue;
                     }
-                    R.ln = F + 428;
+                    R.ln = F + 462;
                     S["key"] = R.im((S["id"] ?? null), "ToLowerInvariant", []);
-                    R.ln = F + 429;
+                    R.ln = F + 463;
                     if (!R.t(R.im((S["map"] ?? null), "ContainsKey", [(S["key"] ?? null)]))) {
-                        R.ln = F + 429;
+                        R.ln = F + 463;
                         R.si((S["map"] ?? null), (S["key"] ?? null), R.sc("System.Collections.Generic.List[object]", "new", []));
                     }
-                    R.ln = F + 430;
+                    R.ln = F + 464;
                     R.e(O, R.im(R.i((S["map"] ?? null), (S["key"] ?? null)), "Add", [(S["assignment"] ?? null)]));
                 }
             }
-            R.ln = F + 433;
+            R.ln = F + 467;
             R.si(R.m((R.ss(S)["script:ingest"] ?? null), "Cache"), "#access", (S["map"] ?? null));
         }
-        R.ln = F + 435;
+        R.ln = F + 469;
         R.e(O, R.i(R.m((R.ss(S)["script:ingest"] ?? null), "Cache"), "#access"));
         return;
     });
-    R.ln = F + 438;
+    R.ln = F + 472;
     R.def(S, "New-SubscriptionFinding", { params: [{ n: "Result", t: null, pos: null, mand: 1 }], adv: 1, h: "26f1a22e28d230be" }, (S, O) => {
-        R.ln = F + 440;
+        R.ln = F + 474;
         R.pa(O, R.cmd(S, "New-Finding", [R.np("ResourceId"), R.u(R.cmd(S, "Get-SubscriptionScope", [], null)), R.np("ResourceType"), "Microsoft.Resources/subscriptions", R.np("ResourceName"), R.m(R.m(R.m((R.ss(S)["script:ingest"] ?? null), "Manifest"), "subscription"), "displayName"), R.np("Result"), (S["result"] ?? null)], null));
         return;
     });
-    R.ln = F + 443;
+    R.ln = F + 477;
     R.def(S, "New-TenantFinding", { params: [{ n: "Result", t: null, pos: null, mand: 1 }, { n: "Suffix", t: "string", pos: null }], adv: 1, h: "0a369e6787669274" }, (S, O) => {
-        R.ln = F + 445;
+        R.ln = F + 479;
         S["id"] = ("/tenants/" + R.str(R.u(R.pi(R.m(R.m(R.m((R.ss(S)["script:ingest"] ?? null), "Manifest"), "subscription"), "tenantId")))) + R.str((S["suffix"] ?? null)));
-        R.ln = F + 446;
+        R.ln = F + 480;
         R.pa(O, R.cmd(S, "New-Finding", [R.np("ResourceId"), (S["id"] ?? null), R.np("ResourceType"), "Microsoft.Entra/tenants", R.np("Result"), (S["result"] ?? null)], null));
         return;
     });
-    R.ln = F + 449;
+    R.ln = F + 483;
     R.def(S, "Get-LockMap", { params: [], adv: 0, h: "d77e1d3c8fcce061" }, (S, O) => {
-        R.ln = F + 451;
+        R.ln = F + 485;
         if (!R.t(R.im(R.m((R.ss(S)["script:ingest"] ?? null), "Cache"), "ContainsKey", ["#locks"]))) {
-            R.ln = F + 452;
+            R.ln = F + 486;
             S["map"] = R.ht([], false);
-            R.ln = F + 453;
-            for (const it21 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                R.ln = F + 453;
+            R.ln = F + 487;
+            for (const it23 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+                R.ln = F + 487;
                 R.e(O, (S["_"] ?? null));
             })], R.cmd(S, "Get-IngestData", ["subscription/locks"], null)))) {
-                S["lock"] = it21;
-                R.ln = F + 454;
+                S["lock"] = it23;
+                R.ln = F + 488;
                 S["scope"] = R.im((R.rep(R.m((S["lock"] ?? null), "id"), [R.v("(?i)/providers/Microsoft\\.Authorization/locks/[^/]+$"), R.v("")])), "ToLowerInvariant", []);
-                R.ln = F + 455;
+                R.ln = F + 489;
                 if (!R.t(R.i((S["map"] ?? null), (S["scope"] ?? null)))) {
-                    R.ln = F + 455;
+                    R.ln = F + 489;
                     R.si((S["map"] ?? null), (S["scope"] ?? null), R.sc("System.Collections.Generic.List[object]", "new", []));
                 }
-                R.ln = F + 456;
+                R.ln = F + 490;
                 R.e(O, R.im(R.i((S["map"] ?? null), (S["scope"] ?? null)), "Add", [(S["lock"] ?? null)]));
             }
-            R.ln = F + 458;
+            R.ln = F + 492;
             R.si(R.m((R.ss(S)["script:ingest"] ?? null), "Cache"), "#locks", (S["map"] ?? null));
         }
-        R.ln = F + 460;
+        R.ln = F + 494;
         R.e(O, R.i(R.m((R.ss(S)["script:ingest"] ?? null), "Cache"), "#locks"));
         return;
     });
-    R.ln = F + 463;
+    R.ln = F + 497;
     R.def(S, "Get-EffectiveLocks", { params: [{ n: "ResourceId", t: "string", pos: null, mand: 1 }], adv: 1, h: "80dba589d46065d6" }, (S, O) => {
-        R.ln = F + 466;
+        R.ln = F + 500;
         S["map"] = R.u(R.cmd(S, "Get-LockMap", [], null));
-        R.ln = F + 467;
+        R.ln = F + 501;
         S["found"] = R.sc("System.Collections.Generic.List[object]", "new", []);
-        R.ln = F + 468;
+        R.ln = F + 502;
         S["scope"] = R.im((S["resourceid"] ?? null), "ToLowerInvariant", []);
-        R.ln = F + 469;
+        R.ln = F + 503;
         while (R.t((S["scope"] ?? null))) {
-            R.ln = F + 470;
+            R.ln = F + 504;
             if (R.t(R.im((S["map"] ?? null), "ContainsKey", [(S["scope"] ?? null)]))) {
-                R.ln = F + 470;
+                R.ln = F + 504;
                 R.e(O, R.im((S["found"] ?? null), "AddRange", [R.i((S["map"] ?? null), (S["scope"] ?? null))]));
             }
-            R.ln = F + 471;
+            R.ln = F + 505;
             S["parent"] = R.im((S["scope"] ?? null), "Substring", [0, R.sc("math", "Max", [0, R.im((S["scope"] ?? null), "LastIndexOf", ["/"])])]);
-            R.ln = F + 472;
+            R.ln = F + 506;
             if (R.t(R.eq((S["parent"] ?? null), (S["scope"] ?? null)))) {
                 break;
             }
-            R.ln = F + 473;
+            R.ln = F + 507;
             S["scope"] = (S["parent"] ?? null);
         }
-        R.ln = F + 475;
+        R.ln = F + 509;
         R.e(O, (S["found"] ?? null));
         return;
     });
-    R.ln = F + 478;
+    R.ln = F + 512;
     R.def(S, "Test-DiagnosticLogsEnabled", { params: [{ n: "Settings", t: null, pos: null }, { n: "RequiredCategories", t: "string[]", pos: null }], adv: 0, h: "8d8d72468637a9a3" }, (S, O) => {
-        R.ln = F + 481;
-        for (const it22 of R.fi(R.a((S["settings"] ?? null)))) {
-            S["setting"] = it22;
-            R.ln = F + 482;
+        R.ln = F + 515;
+        for (const it24 of R.fi(R.a((S["settings"] ?? null)))) {
+            S["setting"] = it24;
+            R.ln = F + 516;
             if (!R.t((S["setting"] ?? null))) {
                 continue;
             }
-            R.ln = F + 483;
+            R.ln = F + 517;
             S["properties"] = R.m((S["setting"] ?? null), "properties");
-            R.ln = F + 484;
+            R.ln = F + 518;
             if (!(((R.t(R.m((S["properties"] ?? null), "workspaceId")) || R.t(R.m((S["properties"] ?? null), "storageAccountId"))) || R.t(R.m((S["properties"] ?? null), "eventHubAuthorizationRuleId"))) || R.t(R.m((S["properties"] ?? null), "marketplacePartnerId")))) {
                 continue;
             }
-            R.ln = F + 485;
+            R.ln = F + 519;
             S["enabled"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.enabled " }, (S, O) => {
-                R.ln = F + 485;
+                R.ln = F + 519;
                 R.e(O, R.m((S["_"] ?? null), "enabled"));
             })], R.pi(R.m((S["properties"] ?? null), "logs")));
-            R.ln = F + 486;
+            R.ln = F + 520;
             if (!R.t((S["enabled"] ?? null))) {
                 continue;
             }
-            R.ln = F + 487;
+            R.ln = F + 521;
             if (!R.t((S["requiredcategories"] ?? null))) {
-                R.ln = F + 487;
+                R.ln = F + 521;
                 R.e(O, true);
                 return;
             }
-            R.ln = F + 488;
+            R.ln = F + 522;
             if (R.t(R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.categoryGroup -in 'allLogs', 'audit' " }, (S, O) => {
-                R.ln = F + 488;
+                R.ln = F + 522;
                 R.e(O, R.in(R.m((S["_"] ?? null), "categoryGroup"), [R.v("allLogs"), R.v("audit")]));
             })], R.pi((S["enabled"] ?? null)))))) {
-                R.ln = F + 488;
+                R.ln = F + 522;
                 R.e(O, true);
                 return;
             }
-            R.ln = F + 489;
+            R.ln = F + 523;
             S["categories"] = R.cmd(S, "ForEach-Object", ["category"], R.pi((S["enabled"] ?? null)));
-            R.ln = F + 490;
+            R.ln = F + 524;
             if (!R.t(R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -notin $categories " }, (S, O) => {
-                R.ln = F + 490;
+                R.ln = F + 524;
                 R.e(O, R.nin((S["_"] ?? null), (S["categories"] ?? null)));
             })], R.pi((S["requiredcategories"] ?? null)))))) {
-                R.ln = F + 490;
+                R.ln = F + 524;
                 R.e(O, true);
                 return;
             }
         }
-        R.ln = F + 492;
+        R.ln = F + 526;
         R.e(O, false);
         return;
     });
-    R.ln = F + 495;
+    R.ln = F + 529;
     R.def(S, "Test-InternetSource", { params: [{ n: "Prefix", t: "string", pos: null }], adv: 0, h: "ee6efba1e13553d9" }, (S, O) => {
-        R.ln = F + 497;
+        R.ln = F + 531;
         R.e(O, (R.in((S["prefix"] ?? null), [R.v("*"), R.v("Internet"), R.v("0.0.0.0/0"), R.v("::/0"), R.v("Any"), R.v("0.0.0.0")])));
         return;
     });
-    R.ln = F + 500;
+    R.ln = F + 534;
     R.def(S, "Test-PortInRange", { params: [{ n: "Range", t: "string", pos: null }, { n: "Port", t: "int", pos: null }], adv: 0, h: "349688d11c9c3375" }, (S, O) => {
-        R.ln = F + 503;
+        R.ln = F + 537;
         if (!R.t((S["range"] ?? null))) {
-            R.ln = F + 503;
+            R.ln = F + 537;
             R.e(O, false);
             return;
         }
-        R.ln = F + 504;
+        R.ln = F + 538;
         if (R.t(R.eq((S["range"] ?? null), "*"))) {
-            R.ln = F + 504;
+            R.ln = F + 538;
             R.e(O, true);
             return;
         }
-        R.ln = F + 505;
+        R.ln = F + 539;
         if (R.t(R.match(S, (S["range"] ?? null), "^(\\d+)-(\\d+)$"))) {
-            R.ln = F + 505;
+            R.ln = F + 539;
             R.e(O, ((R.t(R.ge((S["port"] ?? null), R.c("int", R.i((S["matches"] ?? null), 1)))) && R.t(R.le((S["port"] ?? null), R.c("int", R.i((S["matches"] ?? null), 2)))))));
             return;
         }
-        R.ln = F + 506;
+        R.ln = F + 540;
         if (R.t(R.match(S, (S["range"] ?? null), "^\\d+$"))) {
-            R.ln = F + 506;
+            R.ln = F + 540;
             R.e(O, (R.eq(R.c("int", (S["range"] ?? null)), (S["port"] ?? null))));
             return;
         }
-        R.ln = F + 507;
+        R.ln = F + 541;
         R.e(O, false);
         return;
     });
-    R.ln = F + 510;
+    R.ln = F + 544;
     R.def(S, "Get-NsgInternetExposure", { params: [{ n: "Nsg", t: null, pos: null, mand: 1 }, { n: "Port", t: "int", pos: null, mand: 1 }, { n: "Protocol", t: "string", pos: null, vs: ["Tcp", "Udp"], def: S => "Tcp" }], adv: 1, h: "aecf4e63c873e1bf" }, (S, O) => {
-        R.ln = F + 513;
+        R.ln = F + 547;
         S["rules"] = R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.properties.direction -eq 'Inbound' " }, (S, O) => {
-            R.ln = F + 513;
+            R.ln = F + 547;
             R.e(O, (R.t((S["_"] ?? null)) && R.t(R.eq(R.m(R.m((S["_"] ?? null), "properties"), "direction"), "Inbound"))));
         })], R.pi(R.add(R.a(R.m(R.m((S["nsg"] ?? null), "properties"), "securityRules")), R.a(R.m(R.m((S["nsg"] ?? null), "properties"), "defaultSecurityRules"))))));
-        R.ln = F + 514;
-        for (const it23 of R.fi(R.u(R.cmd(S, "Sort-Object", [R.sb({ params: [], adv: 0, text: " [int]$_.properties.priority " }, (S, O) => {
-            R.ln = F + 514;
+        R.ln = F + 548;
+        for (const it25 of R.fi(R.u(R.cmd(S, "Sort-Object", [R.sb({ params: [], adv: 0, text: " [int]$_.properties.priority " }, (S, O) => {
+            R.ln = F + 548;
             R.e(O, R.c("int", R.m(R.m((S["_"] ?? null), "properties"), "priority")));
         })], R.pi((S["rules"] ?? null)))))) {
-            S["rule"] = it23;
-            R.ln = F + 515;
+            S["rule"] = it25;
+            R.ln = F + 549;
             S["p"] = R.m((S["rule"] ?? null), "properties");
-            R.ln = F + 516;
+            R.ln = F + 550;
             if (R.t(R.nin(R.m((S["p"] ?? null), "protocol"), [R.v("*"), R.v((S["protocol"] ?? null))]))) {
                 continue;
             }
-            R.ln = F + 517;
+            R.ln = F + 551;
             S["sources"] = R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                R.ln = F + 517;
+                R.ln = F + 551;
                 R.e(O, (S["_"] ?? null));
             })], R.pi(R.add(R.a(R.m((S["p"] ?? null), "sourceAddressPrefix")), R.a(R.m((S["p"] ?? null), "sourceAddressPrefixes"))))));
-            R.ln = F + 518;
+            R.ln = F + 552;
             if (!R.t(R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " Test-InternetSource $_ " }, (S, O) => {
-                R.ln = F + 518;
+                R.ln = F + 552;
                 R.pa(O, R.cmd(S, "Test-InternetSource", [(S["_"] ?? null)], null));
             })], R.pi((S["sources"] ?? null)))))) {
                 continue;
             }
-            R.ln = F + 519;
+            R.ln = F + 553;
             S["ranges"] = R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                R.ln = F + 519;
+                R.ln = F + 553;
                 R.e(O, (S["_"] ?? null));
             })], R.pi(R.add(R.a(R.m((S["p"] ?? null), "destinationPortRange")), R.a(R.m((S["p"] ?? null), "destinationPortRanges"))))));
-            R.ln = F + 520;
+            R.ln = F + 554;
             if (!R.t(R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " Test-PortInRange -Range $_ -Port $Port " }, (S, O) => {
-                R.ln = F + 520;
+                R.ln = F + 554;
                 R.pa(O, R.cmd(S, "Test-PortInRange", [R.np("Range"), (S["_"] ?? null), R.np("Port"), (S["port"] ?? null)], null));
             })], R.pi((S["ranges"] ?? null)))))) {
                 continue;
             }
-            R.ln = F + 521;
+            R.ln = F + 555;
             if (R.t(R.eq(R.m((S["p"] ?? null), "access"), "Allow"))) {
-                R.ln = F + 521;
+                R.ln = F + 555;
                 R.e(O, (S["rule"] ?? null));
                 return;
             }
-            R.ln = F + 522;
+            R.ln = F + 556;
             R.e(O, null);
             return;
         }
-        R.ln = F + 524;
+        R.ln = F + 558;
         R.e(O, null);
         return;
     });
-    R.ln = F + 527;
+    R.ln = F + 561;
     R.def(S, "Get-PolicyAssignments", { params: [], adv: 0, h: "ac78f07edabdde4a" }, (S, O) => {
-        R.ln = F + 527;
+        R.ln = F + 561;
         R.e(O, R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 527;
+            R.ln = F + 561;
             R.e(O, (S["_"] ?? null));
         })], R.cmd(S, "Get-IngestData", ["policy/policyAssignments"], null)));
         return;
     });
-    R.ln = F + 529;
+    R.ln = F + 563;
     R.def(S, "Get-SecretPatterns", { params: [], adv: 0, h: "8401aef9c5c692b7" }, (S, O) => {
-        R.ln = F + 531;
+        R.ln = F + 565;
         R.e(O, R.ht(["Storage account key", "(?i)AccountKey\\s*=\\s*[A-Za-z0-9+/]{40,}={0,2}", "Shared access key", "(?i)SharedAccessKey\\s*=\\s*[A-Za-z0-9+/]{20,}={0,2}", "SAS token signature", "(?i)[?&]sig=[A-Za-z0-9%+/]{30,}", "Entra client secret", "[A-Za-z0-9_~.\\-]{3}\\dQ~[A-Za-z0-9_~.\\-]{31,34}", "Private key", "-----BEGIN (?:RSA |EC |OPENSSH |DSA |ENCRYPTED )?PRIVATE KEY-----", "GitHub token", "\\b(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{36}\\b", "AWS access key", "\\bAKIA[0-9A-Z]{16}\\b", "Plain text SecureString", "(?i)ConvertTo-SecureString\\s+(?:-String\\s+)?[\"'][^\"'$]{4,}[\"']\\s+-AsPlainText", "Hardcoded password assignment", "(?i)\\b(?:password|passwd|pwd|clientsecret|client_secret|apikey|api_key)\\b\\s*[:=]\\s*[\"'][^\"'$\\s{}]{8,}[\"']"], true));
         return;
     });
-    R.ln = F + 544;
+    R.ln = F + 578;
     R.def(S, "Find-Secrets", { params: [{ n: "Text", t: "string", pos: null }], adv: 0, h: "95d5e5a16405d510" }, (S, O) => {
-        R.ln = F + 547;
+        R.ln = F + 581;
         S["found"] = R.sc("System.Collections.Generic.List[string]", "new", []);
-        R.ln = F + 548;
+        R.ln = F + 582;
         if (!R.t((S["text"] ?? null))) {
-            R.ln = F + 548;
+            R.ln = F + 582;
             return;
         }
-        R.ln = F + 549;
+        R.ln = F + 583;
         S["patterns"] = R.u(R.cmd(S, "Get-SecretPatterns", [], null));
-        R.ln = F + 550;
-        for (const it24 of R.fi(R.m((S["patterns"] ?? null), "Keys"))) {
-            S["name"] = it24;
-            R.ln = F + 550;
+        R.ln = F + 584;
+        for (const it26 of R.fi(R.m((S["patterns"] ?? null), "Keys"))) {
+            S["name"] = it26;
+            R.ln = F + 584;
             if (R.t(R.match(S, (S["text"] ?? null), R.i((S["patterns"] ?? null), (S["name"] ?? null))))) {
-                R.ln = F + 550;
+                R.ln = F + 584;
                 R.e(O, R.im((S["found"] ?? null), "Add", [(S["name"] ?? null)]));
             }
         }
-        R.ln = F + 551;
+        R.ln = F + 585;
         R.e(O, (S["found"] ?? null));
         return;
     });

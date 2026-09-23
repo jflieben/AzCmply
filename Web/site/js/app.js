@@ -217,6 +217,8 @@ function startProgress(title, phases, cancellable) {
     phaseOrder = phases;
     $('#progress-title').textContent = title;
     $('#log').textContent = '';
+    showIssues([], 0);
+    document.querySelector('.log-view').open = false;
     $('#cancel').hidden = !cancellable;
     $('#phases').replaceChildren(...phases.map(key => element('li', { class: 'phase', 'data-phase': key },
         element('span', { class: 'icon', 'aria-hidden': 'true' }),
@@ -258,6 +260,15 @@ function onProgress({ phase, done, total }) { setPhase(phase, done >= total ? 'd
 function failActivePhase() {
     const active = document.querySelector('.phase.active') ?? document.querySelector('.phase:not(.done)');
     if (active) { active.classList.remove('active'); active.classList.add('failed'); }
+}
+
+//data the collection could not read, with the reason, so an admin can act on it; the log shows every failed request
+function showIssues(issues, failedRequests) {
+    const box = $('#issues');
+    box.hidden = !issues.length;
+    $('#issue-list').replaceChildren(...issues.map(issue => element('li', {},
+        element('code', { text: issue.section }), `${issue.status === 'partial' ? ' (partly read)' : ''}: ${issue.detail}`)));
+    if (failedRequests) { document.querySelector('.log-view').open = true; }
 }
 
 function appendLog(text) {
@@ -511,6 +522,7 @@ async function runAssessment() {
     try {
         const ingest = await call('ingest', { subscriptionId, options });
         appendLog(`Collected ${ingest.resources} resources; ${ingest.failedRequests} requests failed (listed in failures.json of the ingestion)`);
+        showIssues(ingest.issues ?? [], ingest.failedRequests);
         $('#cancel').hidden = true;
         await analyzeFolder(ingest.folder, 'browser', true);
         $('#progress-title').textContent = 'Done';

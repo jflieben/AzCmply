@@ -83,7 +83,42 @@ export async function runIngest(options) {
         const category = statusCode === 0 ? 'network' : [401, 403].includes(statusCode) ? 'accessDenied' : statusCode === 404 ? 'notFound'
             : statusCode === 429 ? 'throttled' : statusCode >= 500 ? 'serverError' : statusCode >= 400 ? 'badRequest' : 'other';
         if (message && message.length > 2000) { message = message.slice(0, 2000); }
-        failures.push({ time: isoNow(), category, statusCode, errorCode: errorCode ?? null, message: message ?? null, method, uri, context: context ?? null });
+        const failure = { time: isoNow(), category, statusCode, errorCode: errorCode ?? null, message: message ?? null, method, uri, context: context ?? null };
+        failures.push(failure);
+        logFailure(failure);
+    }
+
+    //resource provider namespace (lowercase) -> registration state, from the providers call
+    const registration = {};
+
+    //what a failed call means, from its status and the registration of the resource provider it went to
+    function failureHint(failure) {
+        const namespace = /\/providers\/([^/?]+)\//i.exec(failure.uri ?? '')?.[1];
+        const state = namespace ? registration[namespace.toLowerCase()] : null;
+        if (state && state !== 'Registered') { return `resource provider ${namespace} is ${state} on this subscription`; }
+        const code = failure.statusCode;
+        if (code === 0) { return 'the call did not reach Azure (network error)'; }
+        if (code === 401) { return 'the sign-in was not accepted for this call'; }
+        if (code === 403) { return 'access denied: the account cannot read this, or a policy blocks it'; }
+        if (code === 404) { return 'not found on this subscription'; }
+        if (code === 429) { return 'throttled by Azure'; }
+        if (code >= 500) { return 'an error on the Azure side'; }
+        return null;
+    }
+
+    function describeFailure(failure) {
+        const code = failure.statusCode === 0 ? 'network error' : `HTTP ${failure.statusCode}${failure.errorCode ? ` ${failure.errorCode}` : ''}`;
+        const hint = failureHint(failure);
+        const message = failure.message ? ` Azure: ${String(failure.message).split(/\r?\n/)[0].slice(0, 300)}` : '';
+        return `${code}${hint ? `, ${hint}` : ''}.${message}`;
+    }
+
+    //every unexpected failure in the log, up to a limit; failures.json of the ingestion has all of them
+    const LOGGED_FAILURES = 40;
+    function logFailure(failure) {
+        if (failures.length > LOGGED_FAILURES) { return; }
+        log(`Could not read ${failure.context ?? failure.uri}: ${describeFailure(failure)}`);
+        if (failures.length === LOGGED_FAILURES) { log('More requests failed; the ingestion zip lists all of them in failures.json.'); }
     }
 
     //Get-JsonProperty: one property, matched exactly first and then case-insensitively
@@ -571,6 +606,7 @@ export async function runIngest(options) {
         const descending = (a, b) => a < b ? 1 : a > b ? -1 : 0;
         for (const provider of providers.items) {
             const namespace = prop(provider, 'namespace');
+            if (namespace) { registration[String(namespace).toLowerCase()] = prop(provider, 'registrationState'); }
             for (const resourceType of (prop(provider, 'resourceTypes') ?? [])) {
                 const versions = (prop(resourceType, 'apiVersions') ?? []).map(String);
                 const stable = versions.filter(v => !/preview|alpha|beta/i.test(v)).sort(descending).slice(0, 2);
@@ -704,7 +740,18 @@ export async function runIngest(options) {
         });
     }
     if (runStatus !== 'completed') { throw new Error(`Ingestion failed: ${fatalError}`); }
-    return { root, folder, resources: counts.resources, failedRequests: failures.length };
+    //data sections that could not be read (fully): the tests that need them report Unknown
+    const issues = [];
+    for (const [name, section] of Object.entries(sections)) {
+        if (!['failed', 'partial'].includes(section.status)) { continue; }
+        const failure = failures.find(f => f.context === `${name}.json`);
+        issues.push({
+            section: name,
+            status: section.status,
+            detail: failure ? describeFailure(failure) : (section.message ?? (section.statusCode !== undefined ? `HTTP ${section.statusCode}` : section.status))
+        });
+    }
+    return { root, folder, resources: counts.resources, failedRequests: failures.length, issues };
 
     //#endregion
 }

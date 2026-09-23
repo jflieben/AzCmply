@@ -16,7 +16,7 @@
     {
       "route": "/*",
       "headers": {
-        "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://login.microsoftonline.com https://management.azure.com https://graph.microsoft.com https://login.microsoftonline.us https://management.usgovcloudapi.net https://graph.microsoft.us https://login.chinacloudapi.cn https://management.chinacloudapi.cn https://microsoftgraph.chinacloudapi.cn; worker-src 'self'; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'self'"
+        "Content-Security-Policy": "default-src 'self'; script-src 'self' https://www.googletagmanager.com 'sha256-DvkLc5mJnDWMZJk8Qv0G58wmBQYkFN2L9usbdTnt9/A='; style-src 'self'; img-src 'self' data: https://*.google-analytics.com https://*.googletagmanager.com; connect-src 'self' https://login.microsoftonline.com https://management.azure.com https://graph.microsoft.com https://login.microsoftonline.us https://management.usgovcloudapi.net https://graph.microsoft.us https://login.chinacloudapi.cn https://management.chinacloudapi.cn https://microsoftgraph.chinacloudapi.cn https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com; worker-src 'self'; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'self'"
       }
     }
   ],

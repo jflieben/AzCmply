@@ -68,6 +68,8 @@ Run `.\Web\Convert-AzCmplyToWeb.ps1` before every upload, also after changing on
 
 Set the redirect URI of your app registration to the address of the page, and put the client id of your multi-tenant app in `Web/site/js/config.js` if you want it to be the default for your users.
 
+`index.html` contains the Google Analytics tag of azcmply.jsolve.nl. Remove that snippet when you host the page yourself, then run the converter, which updates the script hashes in the policy.
+
 ## PowerShell module
 
 ```powershell

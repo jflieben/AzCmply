@@ -1,12 +1,12 @@
 {
   "generatorVersion": 1,
   "version": "0.9.1",
-  "build": "0.9.1-43c0a3667e",
+  "build": "0.9.1-95f69c5765",
   "sources": {
     "Analyze/Compare-AzureAnalysis.ps1": "b394ac3493bdd63655b5c08de6235347af650ab579b0eceb4263aebc3985c6b1",
-    "Analyze/Invoke-AzureAnalyze.ps1": "2691f5c15198ef072f137467df9891a1c238576b0e152a0ebe90e3dcde4aed77",
+    "Analyze/Invoke-AzureAnalyze.ps1": "097f3ca543ae78b7a2a3a89eb3823fcbbee00575c9a9cf8a27144d89d422d78d",
     "Analyze/catalog/frameworks.json": "c03349d7e12c738cf48387f42cbca24dc12ab854039edac364eac63cb2af9e9e",
-    "Analyze/lib/AnalyzeCore.ps1": "915a8e8545ddf0fafcbc5a645e5fec2f1ea800fa26be651a30fde3ae6b7ebf28",
+    "Analyze/lib/AnalyzeCore.ps1": "f6eb964fc74b08b9c459febf777cccc5abadcb75f4a1d3e04192ba5f6fa1e396",
     "Analyze/selftest/New-FixtureIngest.ps1": "0f4b86ed797bdaa1a6c66a3a959fb8bd2b8afba6ae45785a9d8e8c517dac37d8",
     "Analyze/tests/01-IdentityAccess.ps1": "96d18817d839f49ad7bc3d5999ed96475f88003a157e91050742c19ffb0322b2",
     "Analyze/tests/02-Governance.ps1": "9fef145c5de17d7323fc62b16144eb6e8f2c2590a57e3e3c065a5b02a871401b",

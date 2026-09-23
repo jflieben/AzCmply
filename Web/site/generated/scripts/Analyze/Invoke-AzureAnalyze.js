@@ -192,7 +192,10 @@ export default R.script("/app/Analyze/Invoke-AzureAnalyze.ps1", { params: [{ n: 
                     R.ln = F + 134;
                     S["status"] = "Unknown";
                     R.ln = F + 135;
-                    S["statusreason"] = ("Required data was not collected: " + R.str(R.u(R.pi(R.join((S["missing"] ?? null), ", ")))));
+                    S["statusreason"] = ("Required data was not collected: " + R.str(R.u(R.pi(R.join(R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " Get-IngestSectionProblem $_ " }, (S, O) => {
+                        R.ln = F + 135;
+                        R.pa(O, R.cmd(S, "Get-IngestSectionProblem", [(S["_"] ?? null)], null));
+                    })], R.pi((S["missing"] ?? null))), ", ")))));
                 } else if (R.t(R.m((S["test"] ?? null), "Evaluate"))) {
                     R.ln = F + 137;
                     for (const it6 of R.fi(R.u(R.cmd(S, "Get-AzResourceRecords", [R.np("Type"), R.m((S["test"] ?? null), "ResourceTypes")], null)))) {

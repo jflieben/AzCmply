@@ -116,6 +116,7 @@ await screenshot(`history-${width}.png`);
 await evaluate(`(async () => { const store = await import('./js/store.js'); await store.clearAnalyses(); })()`);
 
 console.log(`summary: ${summary}`);
+console.log(`google analytics loaded: ${await evaluate('!!window.google_tag_manager')}`);
 console.log(`history trends: ${trends}`);
 if (banner) { console.log(`banner: ${banner}`); }
 console.log(checks.join('\n'));

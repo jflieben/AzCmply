@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Convert-AzCmplyToWeb.ps1 adds the hash of every inline script to script-src here, in .htaccess and in staticwebapp.config.json -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.googletagmanager.com 'sha256-DvkLc5mJnDWMZJk8Qv0G58wmBQYkFN2L9usbdTnt9/A='; style-src 'self'; img-src 'self' data: https://*.google-analytics.com https://*.googletagmanager.com; connect-src 'self' https://login.microsoftonline.com https://management.azure.com https://graph.microsoft.com https://login.microsoftonline.us https://management.usgovcloudapi.net https://graph.microsoft.us https://login.chinacloudapi.cn https://management.chinacloudapi.cn https://microsoftgraph.chinacloudapi.cn https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com; worker-src 'self'; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="description" content="AzCmply: security assessment of an Azure subscription against MCSB, CIS, WAF and ALZ, run entirely in your browser.">
+<title>AzCmply</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 1l6 2.5v4c0 3.5-2.6 6.3-6 7.5-3.4-1.2-6-4-6-7.5v-4z' fill='%23256abf'/%3E%3C/svg%3E">
+<!-- ?v= is the build id Convert-AzCmplyToWeb.ps1 stamps here, so an upload always loads its own files -->
+<link rel="stylesheet" href="css/app.css?v=0.9.1-95f69c5765">
+<script type="module" src="js/boot.js?v=0.9.1-95f69c5765"></script>
+<!-- Google Analytics (GDPR Compliant) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-20PYJ8S2G7"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  // not on the return from Microsoft sign-in: that URL carries the authorization code, which must not reach Google
+  if (!/[?&](code|error|admin_consent)=/.test(location.search)) {
+    gtag('js', new Date());
+    gtag('config', 'G-20PYJ8S2G7', { 'page_location': location.origin + location.pathname, 'anonymize_ip': true, 'storage': 'none', 'client_storage': 'none' });
+  }
+  gtag('consent', 'default', { 'ad_storage': 'denied', 'ad_user_data': 'denied', 'ad_personalization': 'denied', 'analytics_storage': 'denied' });
+</script>
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="./" aria-label="AzCmply home">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1l6 2.5v4c0 3.5-2.6 6.3-6 7.5-3.4-1.2-6-4-6-7.5v-4z"/></svg>
+      <span>AzCmply</span><span class="ver" id="version"></span>
+    </a>
+    <nav class="nav" aria-label="Sections">
+      <a href="#assess">Assess</a>
+      <a href="#history">History</a>
+      <a id="docs-link" href="https://github.com/jflieben/AzCmply#readme" target="_blank" rel="noopener noreferrer">Setup and docs</a>
+    </nav>
+    <div class="topbar-right">
+      <span class="account" id="account" hidden></span>
+      <button type="button" class="btn ghost small" id="sign-out" hidden>Sign out</button>
+      <button type="button" class="btn ghost small" id="theme" aria-label="Theme">Theme: automatic</button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section class="hero" id="assess">
+    <h1>Azure security assessment, in your browser</h1>
+    <p class="lead">Checks a subscription against the Microsoft cloud security benchmark, CIS Microsoft Azure Foundations, the Well-Architected Framework and Azure landing zone policies, with the same tests as the AzCmply PowerShell module. Read only. The data goes from the Microsoft APIs to this page and nowhere else.</p>
+    <div class="banner" id="banner" role="status" hidden></div>
+  </section>
+
+  <section class="card" id="connect" aria-labelledby="h-connect">
+    <h2 id="h-connect"><span class="step">1</span>Assess a subscription</h2>
+
+    <div id="signed-out">
+      <p>Sign in with an account that has <b>Reader</b> on the subscription. For the Entra ID checks the account also needs a directory role that can read the directory, such as <b>Global Reader</b>.</p>
+      <div class="row">
+        <button type="button" class="btn primary" id="sign-in">Sign in with Microsoft</button>
+        <button type="button" class="btn" id="demo">Try it with demo data</button>
+      </div>
+      <p class="note" id="app-note"></p>
+      <p class="note">The demo needs no sign-in: a synthetic subscription in which every resource is deliberately misconfigured.</p>
+      <details class="settings" id="app-settings">
+        <summary>App registration and tenant</summary>
+        <div class="fields">
+          <label class="field"><span>Application (client) id</span><input type="text" id="set-client" spellcheck="false" autocomplete="off" placeholder="00000000-0000-0000-0000-000000000000"></label>
+          <label class="field"><span>Tenant</span><input type="text" id="set-tenant" spellcheck="false" autocomplete="off" placeholder="organizations, a tenant id or a domain"></label>
+          <label class="field"><span>Cloud</span>
+            <select id="set-cloud">
+              <option value="AzureCloud">Azure (global)</option>
+              <option value="AzureUSGovernment">Azure US Government</option>
+              <option value="AzureChinaCloud">Azure operated by 21Vianet</option>
+            </select>
+          </label>
+        </div>
+        <p class="note">Redirect URI to register as a <b>single-page application</b> platform: <code id="redirect-uri"></code></p>
+        <div class="row">
+          <button type="button" class="btn" id="save-settings">Save</button>
+          <button type="button" class="btn ghost" id="reset-settings">Use the JSolve app</button>
+          <a class="btn ghost" id="consent-link" href="#" target="_blank" rel="noopener noreferrer">Admin consent for this app</a>
+        </div>
+      </details>
+    </div>
+
+    <div id="signed-in" hidden>
+      <label class="field"><span>Subscription</span>
+        <select id="subscription"><option value="">Loading subscriptions...</option></select>
+      </label>
+      <div class="fields three">
+        <label class="field"><span>Activity log</span>
+          <select id="opt-days">
+            <option value="0">Skip</option>
+            <option value="7">7 days</option>
+            <option value="30" selected>30 days</option>
+            <option value="90">90 days (PowerShell default)</option>
+          </select>
+        </label>
+        <label class="check"><input type="checkbox" id="opt-graph" checked><span>Entra ID enrichment</span></label>
+        <label class="check"><input type="checkbox" id="opt-rg" checked><span>Resource Graph tables</span></label>
+      </div>
+      <label class="field"><span>Organization on the report cover (optional)</span><input type="text" id="opt-org" autocomplete="organization"></label>
+      <div class="row">
+        <button type="button" class="btn primary" id="run">Run assessment</button>
+      </div>
+      <p class="note">A subscription with a few hundred resources takes a few minutes. Keep this tab open while it runs.</p>
+    </div>
+  </section>
+
+  <section class="card" id="progress" aria-labelledby="h-progress" hidden>
+    <div class="card-head">
+      <h2 id="h-progress"><span class="step">2</span><span id="progress-title">Collecting</span></h2>
+      <button type="button" class="btn ghost small" id="cancel">Cancel</button>
+    </div>
+    <ol class="phases" id="phases"></ol>
+    <div class="issues" id="issues" role="status" hidden>
+      <h3>Data that could not be collected</h3>
+      <p class="note">The tests that need it report Unknown, with this reason in the report. Everything else was assessed.</p>
+      <ul id="issue-list"></ul>
+    </div>
+    <details class="log-view">
+      <summary>Log</summary>
+      <pre id="log" aria-live="off"></pre>
+    </details>
+  </section>
+
+  <section class="card" id="result" aria-labelledby="h-result" hidden>
+    <div class="card-head">
+      <h2 id="h-result"><span class="step">3</span>Result</h2>
+      <div class="row tight" id="downloads"></div>
+    </div>
+    <div class="summary" id="summary"></div>
+    <div class="open-report">
+      <button type="button" class="preview" id="preview" aria-describedby="preview-hint" disabled></button>
+      <div class="open-report-text">
+        <h3>The report</h3>
+        <p id="preview-hint">Executive summary, priorities, results per security domain and framework, and every test with its remediation and the result per resource. Opens full screen; print it or save it as PDF from there.</p>
+        <button type="button" class="btn primary" id="view-report" disabled>Preparing the report...</button>
+      </div>
+    </div>
+    <details class="settings">
+      <summary>Report settings</summary>
+      <div class="fields three">
+        <label class="field"><span>Title</span><input type="text" id="rep-title" placeholder="Azure security assessment"></label>
+        <label class="field"><span>Organization</span><input type="text" id="rep-org"></label>
+        <label class="field"><span>Compare with</span><select id="rep-baseline"></select></label>
+      </div>
+      <div class="row"><button type="button" class="btn" id="rep-refresh">Update report</button></div>
+    </details>
+  </section>
+
+  <section class="card" id="history" aria-labelledby="h-history">
+    <div class="card-head">
+      <h2 id="h-history">History in this browser</h2>
+      <div class="row tight">
+        <button type="button" class="btn small" id="history-export">Export</button>
+        <button type="button" class="btn ghost small" id="history-clear">Clear</button>
+      </div>
+    </div>
+    <p class="note">Only the analysis results (results.json) are kept, in this browser. They give every report its trend and the changes since the previous run. The trend column shows the posture score of the subscription up to each run. Exported history opens in the PowerShell module: <code>New-AzCmplyReport -HistoryPath</code>.</p>
+    <div class="scroll"><table class="history">
+      <thead><tr><th>Data collected</th><th>Subscription</th><th class="num">Score</th><th>Trend</th><th class="num">Failing tests</th><th class="num">Tests</th><th>Source</th><th><span class="visually-hidden">Actions</span></th></tr></thead>
+      <tbody id="history-rows"><tr><td colspan="8" class="empty">No analyses yet.</td></tr></tbody>
+    </table></div>
+  </section>
+</main>
+
+<div class="viewer" id="viewer" role="dialog" aria-modal="true" aria-labelledby="viewer-title" hidden>
+  <div class="viewer-bar">
+    <span id="viewer-title">Report</span>
+    <div class="row tight">
+      <button type="button" class="btn small" id="viewer-download">Download (.html)</button>
+      <button type="button" class="btn small" id="viewer-close">Close</button>
+    </div>
+  </div>
+  <iframe id="report-frame" title="Report" sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox allow-modals" src="report-frame.html"></iframe>
+</div>
+
+<footer class="foot">
+  <p>Everything runs in this browser: it signs in with your account, reads the subscription through Microsoft's own APIs and keeps the results here. No server of ours sees your data. Visits are counted with Google Analytics in privacy mode, without cookies and without anything the page reads from Azure.</p>
+  <p>AzCmply by Jos Lieben / <a href="https://www.jsolve.nl" target="_blank" rel="noopener noreferrer">JSolve B.V.</a> Free for non-commercial use; <a href="https://jsolve.nl/commercial-use.html" target="_blank" rel="noopener noreferrer">commercial use requires a license</a>.</p>
+</footer>
+</body>
+</html>

@@ -68,9 +68,14 @@ where tests, analysis, comparison and report are written.
   there). The collection logic itself is mirrored by hand in `Web\site\js\ingest.js`: a change to how the PowerShell
   ingestion collects needs the same change there, verified with `Web\generator\Test-WebIngestParity.ps1` against the
   test subscription in `Ingest\creds.local`.
-- Security of the page: no third party scripts, styles or fonts; the Content Security Policy in `index.html` and
-  `staticwebapp.config.json` stays strict; reports render only in the sandboxed `report-frame.html`; tokens stay in the
-  tab (memory and sessionStorage); set text with `textContent`, never `innerHTML` with data.
+- Security of the page: no third party scripts, styles or fonts except Google Analytics in `index.html`; the Content
+  Security Policy in `index.html`, `.htaccess` and `staticwebapp.config.json` stays strict (the converter stamps the
+  hash of each inline script into `script-src`; no `'unsafe-inline'`); Analytics never gets a query string or fragment
+  and does not run on the sign-in return, whose URL holds the authorization code; reports render only in the
+  sandboxed `report-frame.html`; tokens stay in the tab (memory and sessionStorage); set text with `textContent`,
+  never `innerHTML` with data.
+- Sections that could not be collected show on the page with their HTTP status and a hint (`js\ingest.js`), and in the
+  Unknown reasons of the analysis (`Get-IngestSectionProblem` in `Analyze\lib\AnalyzeCore.ps1`).
 - `Web\generator\page-check.mjs` runs the demo in headless Chrome (serve the site with `Web\Start-AzCmplyWeb.ps1`),
   checks that the report opens full screen only on request and that the history renders its trend column, and reports
   console errors and CSP violations. Run it at 1280 and 390 pixels wide after page changes.

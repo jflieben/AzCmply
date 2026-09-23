@@ -1,2 +1,4 @@
+# generated reports describe real weaknesses; the web page's own HTML is source
 *.html
+!Web/site/*.html
 *.local

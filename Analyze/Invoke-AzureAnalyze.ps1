@@ -132,7 +132,7 @@ try {
             $missing = @($test.Requires | Where-Object { $_ -and -not (Test-IngestSection $_) })
             if ($missing.Count) {
                 $status = 'Unknown'
-                $statusReason = "Required data was not collected: $($missing -join ', ')"
+                $statusReason = "Required data was not collected: $(@($missing | ForEach-Object { Get-IngestSectionProblem $_ }) -join ', ')"
             } elseif ($test.Evaluate) {
                 foreach ($record in (Get-AzResourceRecords -Type $test.ResourceTypes)) {
                     if ($test.Filter -and -not (& $test.Filter $record $test)) { continue }

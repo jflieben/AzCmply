@@ -217,7 +217,25 @@ try {
     $indexText = [System.IO.File]::ReadAllText($indexPath)
     $stampPattern = '(?<=["''](?:js/boot\.js|css/app\.css))(?:\?v=[^"'']*)?(?=["''])'
     if ([regex]::Matches($indexText, $stampPattern).Count -ne 2) { throw 'site/index.html must load js/boot.js and css/app.css (each once) for the build id to be stamped' }
-    $stampedIndex = [regex]::Replace($indexText, $stampPattern, "?v=$build")
+    $stampedIndex = [regex]::Replace($indexText, $stampPattern, "?v=$build") -replace "`r`n", "`n"
+
+    #Content Security Policy: the inline scripts of index.html (the analytics snippet) may run by their hash only, so an
+    #edited snippet keeps working after regenerating and nothing else inline can run. The hashes go into every copy of the
+    #page's policy: the meta tag, .htaccess and staticwebapp.config.json.
+    $inlineHashes = @([regex]::Matches($stampedIndex, '<script(?![^>]*\ssrc=)[^>]*>([\s\S]*?)</script>') | ForEach-Object {
+            "'sha256-$([Convert]::ToBase64String([System.Security.Cryptography.SHA256]::HashData([System.Text.Encoding]::UTF8.GetBytes($_.Groups[1].Value))))'"
+        })
+    $scriptSource = "script-src 'self' https://www.googletagmanager.com$(@($inlineHashes | ForEach-Object { " $_" }) -join '')"
+    $policyFiles = [ordered]@{}
+    foreach ($name in 'index.html', '.htaccess', 'staticwebapp.config.json') {
+        $path = Join-Path $site $name
+        $current = [System.IO.File]::ReadAllText($path)
+        $text = if ($name -eq 'index.html') { $stampedIndex } else { $current -replace "`r`n", "`n" }
+        $pattern = "script-src 'self' https://www\.googletagmanager\.com(?: 'sha256-[A-Za-z0-9+/=]+')*"
+        if ([regex]::Matches($text, $pattern).Count -ne 1) { throw "site/$name must contain the page's policy with `"script-src 'self' https://www.googletagmanager.com`" exactly once" }
+        $updated = [regex]::Replace($text, $pattern, { param($m) $scriptSource })
+        $policyFiles[$name] = [pscustomobject]@{ Path = $path; Current = $current; Updated = $updated }
+    }
 
     #endregion
 
@@ -232,7 +250,9 @@ try {
             if (-not $newFiles.ContainsKey($key)) { "removed   $key"; continue }
             if ((Get-Sha256 ([System.IO.File]::ReadAllBytes($newFiles[$key]))) -ne (Get-Sha256 ([System.IO.File]::ReadAllBytes($oldFiles[$key])))) { "changed   $key" }
         })
-    if ($stampedIndex -ne $indexText) { $changed += "changed   ../index.html (build id $build)" }
+    foreach ($entry in $policyFiles.GetEnumerator()) {
+        if ($entry.Value.Updated -ne $entry.Value.Current) { $changed += "changed   ../$($entry.Key) (build id $build, $($inlineHashes.Count) inline script hash(es))" }
+    }
 
     if ($Check) {
         if ($changed.Count) {
@@ -247,7 +267,7 @@ try {
     if (Test-Path $target) { Remove-Item -Path $target -Recurse -Force }
     $null = New-Item -ItemType Directory -Force -Path $target
     Copy-Item -Path (Join-Path $output '*') -Destination $target -Recurse -Force
-    if ($stampedIndex -ne $indexText) { [System.IO.File]::WriteAllText($indexPath, $stampedIndex, $utf8) }
+    foreach ($entry in $policyFiles.Values) { if ($entry.Updated -ne $entry.Current) { [System.IO.File]::WriteAllText($entry.Path, $entry.Updated, $utf8) } }
     if ($changed.Count) { $changed | ForEach-Object { Write-Host "  $_" } } else { Write-Host '  no changes' }
     Write-Host "Generated $($modules.Count) scripts for AzCmply $version (build $build) in $target"
 
