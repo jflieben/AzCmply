@@ -1,7 +1,7 @@
 {
   "generatorVersion": 1,
-  "version": "0.9.1",
-  "build": "0.9.1-95f69c5765",
+  "version": "0.9.3",
+  "build": "0.9.3-d1d0cc994f",
   "sources": {
     "Analyze/Compare-AzureAnalysis.ps1": "b394ac3493bdd63655b5c08de6235347af650ab579b0eceb4263aebc3985c6b1",
     "Analyze/Invoke-AzureAnalyze.ps1": "097f3ca543ae78b7a2a3a89eb3823fcbbee00575c9a9cf8a27144d89d422d78d",
@@ -26,8 +26,8 @@
     "Analyze/tests/16-DataAnalytics.ps1": "fdf6b3909b5ecb9127e29017c197a3bbd4a5a2832741c63e7db3f2b7a569bfa5",
     "Analyze/tests/17-PaaSGeneric.ps1": "7f7d6fc5918127ba652c86e748efcacbc39baa21802ab441883a507405d696df",
     "Analyze/tests/18-DefenderFindings.ps1": "f81e3c45e0fbbbffea9680f57f10593d7c39dbfef6e406760e9dbcfebd8c2201",
-    "Ingest/Invoke-AzureIngest.ps1": "279e64889533fb46e5dfa1b34348d4af1661706063ee3dba79ccb6f677be1c7b",
-    "Report/New-AzureSecurityReport.ps1": "9355aa6d8724f1b123b6479bfbd2acb74652cb6461ef605a0b2b7a008bf9d02f"
+    "Ingest/Invoke-AzureIngest.ps1": "ca24a82b0ffcd6f0a7377b79ad3fd2b0f20a74a00d93c41d42888a4906dfd69c",
+    "Report/New-AzureSecurityReport.ps1": "02d3fed30d0315db73e37eb4bfabd4509536c219596957e03f5bf316b8a0b986"
   },
   "files": [
     "css/app.css",
@@ -57,6 +57,8 @@
     "generated/scripts/Analyze/tests/17-PaaSGeneric.js",
     "generated/scripts/Analyze/tests/18-DefenderFindings.js",
     "generated/scripts/Report/New-AzureSecurityReport.js",
+    "img/jsolve-logo-200.png",
+    "img/jsolve-mark.png",
     "js/app.js",
     "js/auth.js",
     "js/boot.js",

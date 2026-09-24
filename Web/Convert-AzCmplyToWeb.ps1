@@ -200,7 +200,11 @@ try {
     }
     $pageFiles = Get-OrdinalSorted -Items $pageFiles.ToArray() -Key { $_.Relative }
     $buildInput = [System.Text.StringBuilder]::new()
-    foreach ($file in $pageFiles) { [void]$buildInput.Append($file.Relative).Append("`n").Append(([System.IO.File]::ReadAllText($file.Path) -replace "`r`n", "`n")).Append("`n") }
+    foreach ($file in $pageFiles) {
+        #text with LF line endings, images by their bytes
+        $content = if ($file.Relative -match '\.(png|jpe?g|gif|webp|ico)$') { Get-Sha256 ([System.IO.File]::ReadAllBytes($file.Path)) } else { [System.IO.File]::ReadAllText($file.Path) -replace "`r`n", "`n" }
+        [void]$buildInput.Append($file.Relative).Append("`n").Append($content).Append("`n")
+    }
     $build = "$version-$((Get-Sha256 ([System.Text.Encoding]::UTF8.GetBytes($buildInput.ToString()))).Substring(0, 10))"
 
     $manifest = [ordered]@{

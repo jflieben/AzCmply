@@ -2,3 +2,4 @@
 # the site is stamped and hashed by Web/Convert-AzCmplyToWeb.ps1 (build id, inline script hashes in the policy), so its
 # files keep LF line endings in every checkout; -Check compares them byte for byte
 Web/site/** text eol=lf
+Web/site/**/*.png binary

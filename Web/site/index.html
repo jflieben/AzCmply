@@ -7,11 +7,16 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.googletagmanager.com 'sha256-DvkLc5mJnDWMZJk8Qv0G58wmBQYkFN2L9usbdTnt9/A='; style-src 'self'; img-src 'self' data: https://*.google-analytics.com https://*.googletagmanager.com; connect-src 'self' https://login.microsoftonline.com https://management.azure.com https://graph.microsoft.com https://login.microsoftonline.us https://management.usgovcloudapi.net https://graph.microsoft.us https://login.chinacloudapi.cn https://management.chinacloudapi.cn https://microsoftgraph.chinacloudapi.cn https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com; worker-src 'self'; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="description" content="AzCmply: security assessment of an Azure subscription against MCSB, CIS, WAF and ALZ, run entirely in your browser.">
+<!-- link previews (LinkedIn, Teams); the image needs an absolute address -->
+<meta property="og:title" content="AzCmply: Azure security assessment in your browser">
+<meta property="og:description" content="Checks an Azure subscription against MCSB, CIS, the Well-Architected Framework and Azure landing zone policies. Read only; the data stays in your browser. By JSolve B.V.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://azcmply.jsolve.nl/img/jsolve-logo-200.png">
 <title>AzCmply</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 1l6 2.5v4c0 3.5-2.6 6.3-6 7.5-3.4-1.2-6-4-6-7.5v-4z' fill='%23256abf'/%3E%3C/svg%3E">
 <!-- ?v= is the build id Convert-AzCmplyToWeb.ps1 stamps here, so an upload always loads its own files -->
-<link rel="stylesheet" href="css/app.css?v=0.9.1-95f69c5765">
-<script type="module" src="js/boot.js?v=0.9.1-95f69c5765"></script>
+<link rel="stylesheet" href="css/app.css?v=0.9.3-d1d0cc994f">
+<script type="module" src="js/boot.js?v=0.9.3-d1d0cc994f"></script>
 <!-- Google Analytics (GDPR Compliant) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-20PYJ8S2G7"></script>
 <script>
@@ -48,7 +53,7 @@
 <main>
   <section class="hero" id="assess">
     <h1>Azure security assessment, in your browser</h1>
-    <p class="lead">Checks a subscription against the Microsoft cloud security benchmark, CIS Microsoft Azure Foundations, the Well-Architected Framework and Azure landing zone policies, with the same tests as the AzCmply PowerShell module. Read only. The data goes from the Microsoft APIs to this page and nowhere else.</p>
+    <p class="lead">Checks a subscription against the Microsoft cloud security benchmark, CIS Microsoft Azure Foundations, the Well-Architected Framework and Azure landing zone policies, with the same tests as the <a href="https://www.powershellgallery.com/packages/AzCmply" target="_blank" rel="noopener noreferrer">AzCmply PowerShell module</a>. Read only. The data goes from the Microsoft APIs to this page and nowhere else.</p>
     <div class="banner" id="banner" role="status" hidden></div>
   </section>
 
@@ -114,6 +119,7 @@
       <h2 id="h-progress"><span class="step">2</span><span id="progress-title">Collecting</span></h2>
       <button type="button" class="btn ghost small" id="cancel">Cancel</button>
     </div>
+    <p class="keep-open" id="keep-open" hidden><b>Keep this tab open until the assessment is done.</b> The collected data exists only in this tab: closing or reloading it ends the run. Working in other tabs is fine; on a phone or tablet, keep the browser in front.</p>
     <ol class="phases" id="phases"></ol>
     <div class="issues" id="issues" role="status" hidden>
       <h3>Data that could not be collected</h3>
@@ -159,7 +165,7 @@
         <button type="button" class="btn ghost small" id="history-clear">Clear</button>
       </div>
     </div>
-    <p class="note">Only the analysis results (results.json) are kept, in this browser. They give every report its trend and the changes since the previous run. The trend column shows the posture score of the subscription up to each run. Exported history opens in the PowerShell module: <code>New-AzCmplyReport -HistoryPath</code>.</p>
+    <p class="note">Only the analysis results (results.json) are kept, in this browser. They give every report its trend and the changes since the previous run. The trend column shows the posture score of the subscription up to each run. Exported history opens in the <a href="https://www.powershellgallery.com/packages/AzCmply" target="_blank" rel="noopener noreferrer">PowerShell module</a>: <code>New-AzCmplyReport -HistoryPath</code>.</p>
     <div class="scroll"><table class="history">
       <thead><tr><th>Data collected</th><th>Subscription</th><th class="num">Score</th><th>Trend</th><th class="num">Failing tests</th><th class="num">Tests</th><th>Source</th><th><span class="visually-hidden">Actions</span></th></tr></thead>
       <tbody id="history-rows"><tr><td colspan="8" class="empty">No analyses yet.</td></tr></tbody>
@@ -180,7 +186,10 @@
 
 <footer class="foot">
   <p>Everything runs in this browser: it signs in with your account, reads the subscription through Microsoft's own APIs and keeps the results here. No server of ours sees your data. Visits are counted with Google Analytics in privacy mode, without cookies and without anything the page reads from Azure.</p>
-  <p>AzCmply by Jos Lieben / <a href="https://www.jsolve.nl" target="_blank" rel="noopener noreferrer">JSolve B.V.</a> Free for non-commercial use; <a href="https://jsolve.nl/commercial-use.html" target="_blank" rel="noopener noreferrer">commercial use requires a license</a>.</p>
+  <div class="maker">
+    <img src="img/jsolve-mark.png" alt="" width="41" height="28">
+    <p>AzCmply by Jos Lieben / <a href="https://www.jsolve.nl" target="_blank" rel="noopener noreferrer">JSolve B.V.</a> Free for non-commercial use; <a href="https://jsolve.nl/commercial-use.html" target="_blank" rel="noopener noreferrer">commercial use requires a license</a>.</p>
+  </div>
 </footer>
 </body>
 </html>

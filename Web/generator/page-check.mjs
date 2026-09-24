@@ -1,5 +1,6 @@
 //Smoke test of the web page in a real browser, over the Chrome DevTools protocol: runs the demo (#demo), checks that the
-//report opens full screen only when asked, renders the history trend column, and reports console errors and CSP violations.
+//report opens full screen only when asked, renders the history trend column, reports a lost run, and reports console
+//errors and CSP violations.
 //  node page-check.mjs <chrome or edge executable> <page url> <screenshot folder> [width]
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
@@ -63,6 +64,7 @@ const checks = [];
 const check = (name, ok) => { checks.push(`${ok ? 'PASS' : 'FAIL'}  ${name}`); return ok; };
 check('the demo analysis completes and the report is ready', /^Done\|true\|true/.test(state ?? ''));
 check('the report is not shown until asked for', await evaluate(`document.querySelector('#viewer').hidden`));
+check('the keep-this-tab-open note is not shown for the demo', await evaluate(`document.querySelector('#keep-open').hidden`));
 const buildExpression = `new URL(document.querySelector('script[src*="js/boot.js"]').src).searchParams.get('v')`;
 check('the page runs the stamped build', await evaluate(`localStorage.getItem('azcmply.build') === ${buildExpression} && !!${buildExpression}`));
 const summary = await evaluate(`[...document.querySelectorAll('#summary .kpi')].map(k => k.innerText.replace(/\\n/g, ' ')).join(' | ')`);
@@ -103,11 +105,14 @@ await evaluate(`(async () => {
         await store.saveAnalysis(run(sub, name, day, score), 'test');
     }
 })()`);
-//a browser that last ran another build refetches the page's files and records the new build
+//a browser that last ran another build refetches the page's files and records the new build; a run marker left by a
+//run the tab lost is reported once
 await evaluate(`localStorage.setItem('azcmply.build', 'older-build')`);
+await evaluate(`sessionStorage.setItem('azcmply.run', JSON.stringify({ subscription: 'Production', startedAt: '2026-09-16T08:00:00Z' }))`);
 await send('Page.navigate', { url: url.replace(/#.*$/, '') + '?history#history' });
 await sleep(3000);
 check('a new build is refetched past the browser cache', await evaluate(`localStorage.getItem('azcmply.build') === ${buildExpression} && document.querySelector('#version').textContent.startsWith('v')`));
+check('a run the tab lost is reported', await evaluate(`/Production.*did not finish/.test(document.querySelector('#banner').innerText) && !sessionStorage.getItem('azcmply.run')`));
 const trends = await evaluate(`[...document.querySelectorAll('#history-rows tr')].map(r => (r.querySelector('.trend')?.className ?? 'none') + ' ' + (r.querySelector('.trend')?.innerText ?? '').trim()).join(' | ')`);
 check('history shows up and down trends per subscription', /trend up.*\+21\.5/.test(trends) && /trend down.*-8\.3/.test(trends) && /none/.test(trends));
 await evaluate(`document.querySelector('#history').scrollIntoView({ behavior: 'instant' })`);

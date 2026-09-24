@@ -9,6 +9,7 @@ import { formatDate } from './runtime/convert.js';
 
 const GUID = /[0-9a-fA-F]{8}-(?:[0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}/g;
 const PRINCIPAL_PROPERTY = /"(?:principalId|principalIds|objectId|sid|adminGroupObjectIDs)"\s*:\s*(\[[^\]]*\]|"[^"]*")/gi;
+const DENIED = /"code"\s*:\s*"(AccessDenied|AuthorizationFailed|LinkedAuthorizationFailed|Forbidden)"/i;
 
 function sleep(ms, signal) {
     return new Promise((resolve, reject) => {
@@ -102,6 +103,7 @@ export async function runIngest(options) {
         if (code === 403) { return 'access denied: the account cannot read this, or a policy blocks it'; }
         if (code === 404) { return 'not found on this subscription'; }
         if (code === 429) { return 'throttled by Azure'; }
+        if (code >= 500 && /AccessDenied|AuthorizationFailed|Forbidden/i.test(failure.message ?? '')) { return 'access denied: the account cannot read this, or a policy blocks it'; }
         if (code >= 500) { return 'an error on the Azure side'; }
         return null;
     }
@@ -159,7 +161,8 @@ export async function runIngest(options) {
                 if (e?.name === 'AbortError') { throw e; }
                 content = e?.message ?? String(e);
             }
-            const transient = statusCode === 0 || statusCode === 408 || statusCode >= 500;
+            //a server error that denies access is final (Resource Graph backed endpoints answer 502 with AccessDenied details)
+            const transient = (statusCode === 0 || statusCode === 408 || statusCode >= 500) && !DENIED.test(content ?? '');
             if ((statusCode === 429 && attempt <= 6) || (transient && attempt <= maxTransientRetries)) {
                 let delay = Math.pow(2, attempt);
                 const seconds = parseInt(retryAfter ?? '', 10);

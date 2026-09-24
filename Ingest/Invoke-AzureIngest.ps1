@@ -524,8 +524,10 @@ function Invoke-AzRest {
         } catch {
             $content = $_.Exception.Message
         }
-        #throttling is always retried, timeouts and server errors up to -MaxTransientRetries times
-        $transient = $statusCode -in 0, 408 -or $statusCode -ge 500
+        #throttling is always retried, timeouts and server errors up to -MaxTransientRetries times. A server error that
+        #denies access is final (Resource Graph backed endpoints such as Microsoft.Security/apiCollections answer 502
+        #with AccessDenied details)
+        $transient = ($statusCode -in 0, 408 -or $statusCode -ge 500) -and [string]$content -notmatch '"code"\s*:\s*"(AccessDenied|AuthorizationFailed|LinkedAuthorizationFailed|Forbidden)"'
         if (($statusCode -eq 429 -and $attempt -le 6) -or ($transient -and $attempt -le $MaxTransientRetries)) {
             $delay = [math]::Pow(2, $attempt)
             $seconds = 0

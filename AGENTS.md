@@ -76,7 +76,15 @@ where tests, analysis, comparison and report are written.
   never `innerHTML` with data.
 - Sections that could not be collected show on the page with their HTTP status and a hint (`js\ingest.js`), and in the
   Unknown reasons of the analysis (`Get-IngestSectionProblem` in `Analyze\lib\AnalyzeCore.ps1`).
+- A running assessment is guarded in `js\app.js` (`guardRun`/`releaseRun`): keep-open note, beforeunload prompt, Web
+  Lock, screen wake lock and a sessionStorage marker that reports a lost run. Every exit of a run calls `releaseRun`.
 - `Web\generator\page-check.mjs` runs the demo in headless Chrome (serve the site with `Web\Start-AzCmplyWeb.ps1`),
   checks that the report opens full screen only on request and that the history renders its trend column, and reports
   console errors and CSP violations. Run it at 1280 and 390 pixels wide after page changes.
 - The page exports (ingestion zip, results.json, CSVs, report, history) but does not open existing data.
+- The page (`Web\site\css\app.css`) and the report (CSS in `Report\New-AzureSecurityReport.ps1`) share the look of
+  M365Permissions (`C:\Git\M365PermissionsFrontEndDev\frontend\src\styles.css`): keep their color tokens in step.
+  `#00acd7` is for fills and borders; text, lines and white-on-accent use `--accent-strong` (`#007ea3`) for contrast.
+- The JSolve B.V. mark sits in the footers only, never on the report cover: `Web\site\img\jsolve-mark.png` for the page,
+  `$jsolveMark` (a data URI) in the report, which must stay one self-contained file. Images under `Web\site` are
+  binary in `.gitattributes`; the build id hashes them by their bytes.

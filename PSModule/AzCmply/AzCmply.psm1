@@ -369,7 +369,7 @@ Set-Alias -Name 'New-AzureSecurityReport' -Value 'New-AzCmplyReport'
 
 Export-ModuleMember -Function 'Invoke-AzCmplyIngest', 'Invoke-AzCmplyAnalysis', 'Compare-AzCmplyAnalysis', 'New-AzCmplyReport', 'Invoke-AzCmplySelfTest', 'Invoke-AzCmplyAssessment' -Alias 'Invoke-AzureIngest', 'Invoke-AzureAnalyze', 'Compare-AzureAnalysis', 'New-AzureSecurityReport'
 
-$script:ModuleVersion = '0.9.1'
+$script:ModuleVersion = '0.9.3'
 Write-Host ''
 Write-Host "  AzCmply $script:ModuleVersion" -ForegroundColor Cyan -NoNewline
 Write-Host '  security posture assessment of an Azure subscription (read only)'

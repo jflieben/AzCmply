@@ -210,7 +210,7 @@ let busy = false;
 
 function setBusy(value) {
     busy = value;
-    for (const id of ['#run', '#demo', '#sign-in']) { const el = $(id); if (el) { el.disabled = value; } }
+    for (const id of ['#run', '#demo', '#sign-in', '#sign-out']) { const el = $(id); if (el) { el.disabled = value; } }
 }
 
 function startProgress(title, phases, cancellable) {
@@ -474,6 +474,64 @@ async function renderReport() {
 
 //#endregion
 
+//#region keeping a run alive
+
+//The collected data exists only in this tab. While an assessment runs the page shows a note, asks before the tab is
+//closed or reloaded, holds a Web Lock (Chrome and Edge do not freeze or discard a background tab that holds one),
+//keeps the screen awake while the tab is visible, and leaves a marker in sessionStorage that reports a run the browser
+//cut off (a discarded tab reloads with its sessionStorage).
+const RUN_KEY = 'azcmply.run';
+const PAGE_TITLE = document.title;
+let guarding = false;
+let wakeLock = null;
+let releaseLock = null;
+
+function confirmLeave(event) { event.preventDefault(); event.returnValue = ''; }
+
+async function keepScreenAwake() {
+    if (!guarding || wakeLock || document.visibilityState !== 'visible' || !navigator.wakeLock) { return; }
+    try {
+        wakeLock = await navigator.wakeLock.request('screen');
+        wakeLock.addEventListener('release', () => { wakeLock = null; });
+    } catch { wakeLock = null; }
+}
+
+function guardRun(subscription) {
+    guarding = true;
+    $('#keep-open').hidden = false;
+    document.title = `Running: ${PAGE_TITLE}`;
+    window.addEventListener('beforeunload', confirmLeave);
+    try { sessionStorage.setItem(RUN_KEY, JSON.stringify({ subscription, startedAt: new Date().toISOString() })); } catch { /* no marker, no report after a discard */ }
+    navigator.locks?.request('azcmply-run', () => new Promise(resolve => { releaseLock = resolve; })).catch(() => { });
+    keepScreenAwake();
+}
+
+function releaseRun() {
+    guarding = false;
+    $('#keep-open').hidden = true;
+    document.title = PAGE_TITLE;
+    window.removeEventListener('beforeunload', confirmLeave);
+    try { sessionStorage.removeItem(RUN_KEY); } catch { }
+    releaseLock?.();
+    releaseLock = null;
+    wakeLock?.release().catch(() => { });
+    wakeLock = null;
+}
+
+//a run whose marker survived was cut off: the tab was reloaded or discarded while it ran
+function reportInterruptedRun() {
+    let run = null;
+    try { run = JSON.parse(sessionStorage.getItem(RUN_KEY) ?? 'null'); sessionStorage.removeItem(RUN_KEY); } catch { }
+    if (!run) { return; }
+    showBanner('error', [`The assessment of ${run.subscription} that started ${formatDate(run.startedAt)} did not finish: the tab was reloaded, or the browser unloaded it.`,
+        'Run it again and keep this tab open until it is done.']);
+}
+
+//the browser releases the screen wake lock when the tab is hidden; take it again when the tab is back
+document.addEventListener('visibilitychange', keepScreenAwake);
+
+//#endregion
+
 //#region running
 
 async function analyzeFolder(folder, source, save) {
@@ -518,6 +576,7 @@ async function runAssessment() {
     phases.push('analysis', 'report');
     setBusy(true);
     startProgress('Collecting and analysing', phases, true);
+    guardRun($('#subscription').selectedOptions[0]?.textContent || subscriptionId);
     setPhase('subscription', 'active');
     try {
         const ingest = await call('ingest', { subscriptionId, options });
@@ -531,6 +590,7 @@ async function runAssessment() {
         $('#progress-title').textContent = e.cancelled ? 'Cancelled' : 'Stopped';
         if (!e.cancelled) { showBanner('error', ['The assessment stopped.', e.message]); }
     } finally {
+        releaseRun();
         setBusy(false);
         $('#cancel').hidden = true;
     }
@@ -716,6 +776,7 @@ async function start() {
     }
     auth.restore();
     renderAccount();
+    reportInterruptedRun();
     //a link to the page with #demo opens the demo straight away
     if (location.hash === '#demo') { runDemo(); }
 }

@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.9.3
+
+### Changed
+- AzCmply web: while an assessment runs, the page asks to keep the tab open, asks before the tab is closed or
+  reloaded, and holds a Web Lock so Chrome and Edge do not freeze or discard it in the background. A run the tab lost
+  is reported after the reload.
+- AzCmply web and the HTML report follow the look of M365Permissions: slate neutrals, white cards, cyan accent.
+- AzCmply web: "AzCmply PowerShell module" links to the PowerShell Gallery.
+- The JSolve B.V. mark in the footer of the page and the report, and a link preview image for the page.
+
+### Fixed
+- Ingestion: a server error that denies access is no longer retried (Microsoft.Security/apiCollections answers 502
+  with AccessDenied details, which stalled the collection for over a minute).
+
 ## 0.9.2
 
 ### Changed

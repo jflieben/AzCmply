@@ -17,7 +17,7 @@ The web page exports what it collects and analyses (the ingestion as a zip, resu
 
 ## AzCmply web
 
-Open [the page](https://azcmply.jsolve.nl/), sign in, pick a subscription and run. Collection, analysis and the report all run in the browser; the data goes from the Microsoft APIs to the page and nowhere else. The page keeps the results of every run (not the collected data) in the browser, which gives each report its trend until you clear your browser cache; the history list shows the posture score trend per subscription. **Try it with demo data**, next to the sign-in button, shows a report without signing in.
+Open [the page](https://azcmply.jsolve.nl/), sign in, pick a subscription and run. Collection, analysis and the report all run in the browser; the data goes from the Microsoft APIs to the page and nowhere else. The page keeps the results of every run (not the collected data) in the browser, which gives each report its trend until you clear your browser cache; the history list shows the posture score trend per subscription. **Try it with demo data**, next to the sign-in button, shows a report without signing in. Keep the tab open while an assessment runs: the collected data exists only in that tab. Other tabs are fine meanwhile.
 
 ### Who can sign in
 
@@ -94,6 +94,9 @@ The browser runs the analyzer, the comparison and the report generated from the 
 `Test-WebParity.ps1 -Thorough` adds the degraded ingestions of the self-test; `Test-WebIngestParity.ps1` compares the web ingestion with the PowerShell ingestion on a live subscription. Both need node 20 or later.
 
 ## License
+
+<a href="https://www.jsolve.nl"><img src="Web/site/img/jsolve-mark.png" alt="JSolve B.V." height="28" align="left"></a> AzCmply is made by [JSolve B.V.](https://www.jsolve.nl)
+<br clear="left">
 
 See https://jsolve.nl/commercial-use.html for provisions on commercial use of this tool.
 

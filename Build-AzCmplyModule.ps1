@@ -316,7 +316,7 @@ New-ModuleManifest -Path (Join-Path $moduleRoot "$moduleName.psd1") `
     -Author 'Jos Lieben / JSolve B.V.' `
     -CompanyName 'JSolve B.V.' `
     -Copyright "(c) Jos Lieben / JSolve B.V. Free for non-commercial use; commercial use requires a license or written permission: https://jsolve.nl/commercial-use.html" `
-    -Description 'Security posture assessment for an Azure subscription: read-only collection, an offline test suite mapped to MCSB v2, CIS Azure Foundations, WAF and Azure landing zone controls, and a self-contained HTML report.' `
+    -Description 'Security posture assessment for an Azure subscription: read-only collection, an offline test suite mapped to MCSB v2, CIS Azure Foundations, WAF and Azure landing zone controls, and a self-contained HTML report. For a quick web based version, check out https://azcmply.jsolve.nl' `
     -PowerShellVersion '7.2' `
     -FunctionsToExport $exportedFunctions `
     -CmdletsToExport @() `
