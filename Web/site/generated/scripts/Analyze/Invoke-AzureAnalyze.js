@@ -332,344 +332,381 @@ export default R.script("/app/Analyze/Invoke-AzureAnalyze.ps1", { params: [{ n: 
             R.ln = F + 191;
             S["derived"] = R.ht([], false);
             R.ln = F + 192;
-            for (const it13 of R.fi(R.a(R.m(R.m((S["test"] ?? null), "Frameworks"), "MCSB")))) {
-                S["control"] = it13;
+            for (const it13 of R.fi(R.cmd(S, "Sort-Object", [], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $script:Catalog[$_].kind -eq 'crosswalk' " }, (S, O) => {
+                R.ln = F + 192;
+                R.e(O, R.eq(R.m(R.i((R.ss(S)["script:catalog"] ?? null), (S["_"] ?? null)), "kind"), "crosswalk"));
+            })], R.pi(R.m(R.m((S["test"] ?? null), "Frameworks"), "Keys")))))) {
+                S["framework"] = it13;
                 R.ln = F + 193;
-                for (const it14 of R.fi(R.im(R.m(R.i(R.m(R.m((R.ss(S)["script:catalog"] ?? null), "MCSB"), "controls"), (S["control"] ?? null)), "mappings"), "GetEnumerator", []))) {
-                    S["mapping"] = it14;
+                R.si((S["derived"] ?? null), (S["framework"] ?? null), R.ht([], false));
+                R.ln = F + 194;
+                for (const it14 of R.fi(R.a(R.i(R.m((S["test"] ?? null), "Frameworks"), (S["framework"] ?? null))))) {
+                    S["id"] = it14;
                     R.ln = F + 194;
+                    R.si(R.i((S["derived"] ?? null), (S["framework"] ?? null)), (S["id"] ?? null), R.sc("System.Collections.Generic.HashSet[string]", "new", []));
+                }
+            }
+            R.ln = F + 196;
+            for (const it15 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+                R.ln = F + 196;
+                R.e(O, (S["_"] ?? null));
+            })], R.pi(R.m(R.m((S["test"] ?? null), "Frameworks"), "MCSB"))))) {
+                S["control"] = it15;
+                R.ln = F + 197;
+                for (const it16 of R.fi(R.im(R.m(R.i(R.m(R.m((R.ss(S)["script:catalog"] ?? null), "MCSB"), "controls"), (S["control"] ?? null)), "mappings"), "GetEnumerator", []))) {
+                    S["mapping"] = it16;
+                    R.ln = F + 198;
                     if (!R.t(R.im((S["derived"] ?? null), "ContainsKey", [R.m((S["mapping"] ?? null), "Key")]))) {
-                        R.ln = F + 194;
+                        R.ln = F + 198;
                         R.si((S["derived"] ?? null), R.m((S["mapping"] ?? null), "Key"), R.ht([], false));
                     }
-                    R.ln = F + 195;
-                    for (const it15 of R.fi(R.a(R.m((S["mapping"] ?? null), "Value")))) {
-                        S["id"] = it15;
-                        R.ln = F + 196;
+                    R.ln = F + 199;
+                    for (const it17 of R.fi(R.a(R.m((S["mapping"] ?? null), "Value")))) {
+                        S["id"] = it17;
+                        R.ln = F + 200;
                         if (!R.t((S["id"] ?? null))) {
                             continue;
                         }
-                        R.ln = F + 197;
+                        R.ln = F + 201;
                         if (!R.t(R.im(R.i((S["derived"] ?? null), R.m((S["mapping"] ?? null), "Key")), "ContainsKey", [(S["id"] ?? null)]))) {
-                            R.ln = F + 197;
+                            R.ln = F + 201;
                             R.si(R.i((S["derived"] ?? null), R.m((S["mapping"] ?? null), "Key")), (S["id"] ?? null), R.sc("System.Collections.Generic.HashSet[string]", "new", []));
                         }
-                        R.ln = F + 198;
+                        R.ln = F + 202;
                         R.im(R.i(R.i((S["derived"] ?? null), R.m((S["mapping"] ?? null), "Key")), (S["id"] ?? null)), "Add", [(S["control"] ?? null)]);
                     }
                 }
             }
-            R.ln = F + 202;
+            R.ln = F + 206;
             S["derivedtags"] = R.ht([], true);
-            R.ln = F + 203;
-            for (const it16 of R.fi(R.u(R.cmd(S, "Sort-Object", [], R.pi(R.m((S["derived"] ?? null), "Keys")))))) {
-                S["key"] = it16;
-                R.ln = F + 204;
+            R.ln = F + 207;
+            for (const it18 of R.fi(R.u(R.cmd(S, "Sort-Object", [], R.pi(R.m((S["derived"] ?? null), "Keys")))))) {
+                S["key"] = it18;
+                R.ln = F + 208;
                 R.si((S["derivedtags"] ?? null), (S["key"] ?? null), R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: "\n                    [ordered]@{ id = $_; version = $script:Catalog[$key].version; via = @($derived[$key][$_] | Sort-Object { Get-NaturalKey $_ }) }\n                " }, (S, O) => {
-                    R.ln = F + 205;
+                    R.ln = F + 209;
                     R.e(O, R.ht(["id", (S["_"] ?? null), "version", R.m(R.i((R.ss(S)["script:catalog"] ?? null), (S["key"] ?? null)), "version"), "via", R.cmd(S, "Sort-Object", [R.sb({ params: [], adv: 0, text: " Get-NaturalKey $_ " }, (S, O) => {
-                        R.ln = F + 205;
+                        R.ln = F + 209;
                         R.pa(O, R.cmd(S, "Get-NaturalKey", [(S["_"] ?? null)], null));
                     })], R.pi(R.i(R.i((S["derived"] ?? null), (S["key"] ?? null)), (S["_"] ?? null))))], true));
                 })], R.cmd(S, "Sort-Object", [R.sb({ params: [], adv: 0, text: " Get-NaturalKey $_ " }, (S, O) => {
-                    R.ln = F + 204;
+                    R.ln = F + 208;
                     R.pa(O, R.cmd(S, "Get-NaturalKey", [(S["_"] ?? null)], null));
                 })], R.pi(R.m(R.i((S["derived"] ?? null), (S["key"] ?? null)), "Keys")))));
             }
-            R.ln = F + 208;
+            R.ln = F + 212;
             R.sm((S["frameworktags"] ?? null), "derived", (S["derivedtags"] ?? null));
-            R.ln = F + 210;
+            R.ln = F + 214;
             R.e(O, R.im((S["testresults"] ?? null), "Add", [R.ht(["id", R.m((S["test"] ?? null), "Id"), "version", R.m((S["test"] ?? null), "Version"), "title", R.m((S["test"] ?? null), "Title"), "category", R.m((S["test"] ?? null), "Category"), "service", R.m((S["test"] ?? null), "Service"), "severity", R.m((S["test"] ?? null), "Severity"), "description", R.m((S["test"] ?? null), "Description"), "rationale", R.m((S["test"] ?? null), "Rationale"), "remediation", R.m((S["test"] ?? null), "Remediation"), "references", R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                R.ln = F + 220;
+                R.ln = F + 224;
                 R.e(O, (S["_"] ?? null));
             })], R.pi(R.m((S["test"] ?? null), "References"))), "frameworks", (S["frameworktags"] ?? null), "defenderRecommendations", (() => {
-                const v17 = [];
-                R.ln = F + 222;
+                const v19 = [];
+                R.ln = F + 226;
                 if (R.t(R.m((S["test"] ?? null), "Defender"))) {
-                    R.ln = F + 222;
-                    R.pa(v17, R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " [ordered]@{ id = $_.Key; name = $_.Value } " }, (S, O) => {
-                        R.ln = F + 222;
+                    R.ln = F + 226;
+                    R.pa(v19, R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " [ordered]@{ id = $_.Key; name = $_.Value } " }, (S, O) => {
+                        R.ln = F + 226;
                         R.e(O, R.ht(["id", R.m((S["_"] ?? null), "Key"), "name", R.m((S["_"] ?? null), "Value")], true));
                     })], R.cmd(S, "Sort-Object", ["Key"], R.pi(R.im(R.m((S["test"] ?? null), "Defender"), "GetEnumerator", [])))));
                 }
-                return v17;
+                return v19;
             })(), "azurePolicies", (() => {
-                const v18 = [];
-                R.ln = F + 223;
+                const v20 = [];
+                R.ln = F + 227;
                 if (R.t(R.m((S["test"] ?? null), "Policy"))) {
-                    R.ln = F + 223;
-                    R.pa(v18, R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " [ordered]@{ id = $_.Key; name = $_.Value } " }, (S, O) => {
-                        R.ln = F + 223;
+                    R.ln = F + 227;
+                    R.pa(v20, R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " [ordered]@{ id = $_.Key; name = $_.Value } " }, (S, O) => {
+                        R.ln = F + 227;
                         R.e(O, R.ht(["id", R.m((S["_"] ?? null), "Key"), "name", R.m((S["_"] ?? null), "Value")], true));
                     })], R.cmd(S, "Sort-Object", ["Key"], R.pi(R.im(R.m((S["test"] ?? null), "Policy"), "GetEnumerator", [])))));
                 }
-                return v18;
+                return v20;
             })(), "status", (S["status"] ?? null), "statusReason", (S["statusreason"] ?? null), "counts", (S["counts"] ?? null), "findings", (S["sortedfindings"] ?? null)], true)]));
         }
-        R.ln = F + 235;
+        R.ln = F + 239;
         S["summarytests"] = R.ht(["Pass", 0, "Fail", 0, "Unknown", 0, "NotApplicable", 0, "Error", 0], true);
-        R.ln = F + 236;
+        R.ln = F + 240;
         S["summaryfindings"] = R.ht(["Pass", 0, "Fail", 0, "Unknown", 0, "NotApplicable", 0], true);
-        R.ln = F + 237;
+        R.ln = F + 241;
         S["byseverity"] = R.ht([], true);
-        R.ln = F + 238;
-        for (const it19 of R.fi(R.m((R.ss(S)["script:severityweights"] ?? null), "Keys"))) {
-            S["severity"] = it19;
-            R.ln = F + 238;
+        R.ln = F + 242;
+        for (const it21 of R.fi(R.m((R.ss(S)["script:severityweights"] ?? null), "Keys"))) {
+            S["severity"] = it21;
+            R.ln = F + 242;
             R.si((S["byseverity"] ?? null), (S["severity"] ?? null), R.ht(["Pass", 0, "Fail", 0, "Unknown", 0, "NotApplicable", 0, "Error", 0], true));
         }
-        R.ln = F + 239;
+        R.ln = F + 243;
         S["weighttotal"] = 0;
-        R.ln = F + 240;
+        R.ln = F + 244;
         S["weightscore"] = 0;
-        R.ln = F + 241;
-        for (const it20 of R.fi((S["testresults"] ?? null))) {
-            S["result"] = it20;
-            R.ln = F + 242;
-            R.inci((S["summarytests"] ?? null), R.m((S["result"] ?? null), "status"), 1, true);
-            R.ln = F + 243;
-            R.inci(R.i((S["byseverity"] ?? null), R.m((S["result"] ?? null), "severity")), R.m((S["result"] ?? null), "status"), 1, true);
-            R.ln = F + 244;
-            for (const it21 of R.fi(R.m(R.m((S["result"] ?? null), "counts"), "Keys"))) {
-                S["key"] = it21;
-                R.ln = F + 244;
-                (((o22, k23) => R.si(o22, k23, R.add(R.i(o22, k23), R.i(R.m((S["result"] ?? null), "counts"), (S["key"] ?? null)))))((S["summaryfindings"] ?? null), (S["key"] ?? null)));
-            }
-            R.ln = F + 245;
-            S["evaluated"] = R.add(R.m(R.m((S["result"] ?? null), "counts"), "Pass"), R.m(R.m((S["result"] ?? null), "counts"), "Fail"));
+        R.ln = F + 245;
+        for (const it22 of R.fi((S["testresults"] ?? null))) {
+            S["result"] = it22;
             R.ln = F + 246;
-            S["weight"] = R.i((R.ss(S)["script:severityweights"] ?? null), R.m((S["result"] ?? null), "severity"));
+            R.inci((S["summarytests"] ?? null), R.m((S["result"] ?? null), "status"), 1, true);
             R.ln = F + 247;
-            if ((R.t(R.gt((S["evaluated"] ?? null), 0)) && R.t(R.gt((S["weight"] ?? null), 0)))) {
+            R.inci(R.i((S["byseverity"] ?? null), R.m((S["result"] ?? null), "severity")), R.m((S["result"] ?? null), "status"), 1, true);
+            R.ln = F + 248;
+            for (const it23 of R.fi(R.m(R.m((S["result"] ?? null), "counts"), "Keys"))) {
+                S["key"] = it23;
                 R.ln = F + 248;
+                (((o24, k25) => R.si(o24, k25, R.add(R.i(o24, k25), R.i(R.m((S["result"] ?? null), "counts"), (S["key"] ?? null)))))((S["summaryfindings"] ?? null), (S["key"] ?? null)));
+            }
+            R.ln = F + 249;
+            S["evaluated"] = R.add(R.m(R.m((S["result"] ?? null), "counts"), "Pass"), R.m(R.m((S["result"] ?? null), "counts"), "Fail"));
+            R.ln = F + 250;
+            S["weight"] = R.i((R.ss(S)["script:severityweights"] ?? null), R.m((S["result"] ?? null), "severity"));
+            R.ln = F + 251;
+            if ((R.t(R.gt((S["evaluated"] ?? null), 0)) && R.t(R.gt((S["weight"] ?? null), 0)))) {
+                R.ln = F + 252;
                 S["weighttotal"] = R.add(S["weighttotal"] ?? null, (S["weight"] ?? null));
-                R.ln = F + 249;
+                R.ln = F + 253;
                 S["weightscore"] = R.add(S["weightscore"] ?? null, R.mul((S["weight"] ?? null), (R.div(R.m(R.m((S["result"] ?? null), "counts"), "Pass"), (S["evaluated"] ?? null)))));
             }
         }
-        R.ln = F + 252;
-        const v24 = [];
-        R.ln = F + 252;
+        R.ln = F + 256;
+        const v26 = [];
+        R.ln = F + 256;
         if (R.t(R.gt((S["weighttotal"] ?? null), 0))) {
-            R.ln = F + 252;
-            R.e(v24, R.sc("math", "Round", [R.div(R.mul(100, (S["weightscore"] ?? null)), (S["weighttotal"] ?? null)), 1]));
-        } else {
-            R.ln = F + 252;
-            R.e(v24, null);
-        }
-        S["score"] = R.u(v24);
-        R.ln = F + 254;
-        S["rollups"] = R.ht([], true);
-        R.ln = F + 255;
-        for (const it25 of R.fi((S["testresults"] ?? null))) {
-            S["result"] = it25;
             R.ln = F + 256;
+            R.e(v26, R.sc("math", "Round", [R.div(R.mul(100, (S["weightscore"] ?? null)), (S["weighttotal"] ?? null)), 1]));
+        } else {
+            R.ln = F + 256;
+            R.e(v26, null);
+        }
+        S["score"] = R.u(v26);
+        R.ln = F + 258;
+        S["rollups"] = R.ht([], true);
+        R.ln = F + 259;
+        for (const it27 of R.fi((S["testresults"] ?? null))) {
+            S["result"] = it27;
+            R.ln = F + 260;
             S["entries"] = R.sc("System.Collections.Generic.List[object]", "new", []);
-            R.ln = F + 257;
-            for (const it26 of R.fi([R.v("MCSB"), R.v("CIS"), R.v("WAF"), R.v("ALZ")])) {
-                S["framework"] = it26;
-                R.ln = F + 257;
-                for (const it27 of R.fi(R.a(R.i(R.m((S["result"] ?? null), "frameworks"), (S["framework"] ?? null))))) {
-                    S["tag"] = it27;
-                    R.ln = F + 257;
+            R.ln = F + 261;
+            for (const it28 of R.fi([R.v("MCSB"), R.v("CIS"), R.v("WAF"), R.v("ALZ")])) {
+                S["framework"] = it28;
+                R.ln = F + 261;
+                for (const it29 of R.fi(R.a(R.i(R.m((S["result"] ?? null), "frameworks"), (S["framework"] ?? null))))) {
+                    S["tag"] = it29;
+                    R.ln = F + 261;
                     if (R.t((S["tag"] ?? null))) {
-                        R.ln = F + 257;
+                        R.ln = F + 261;
                         R.e(O, R.im((S["entries"] ?? null), "Add", [R.a([R.v((S["framework"] ?? null)), R.v(R.m((S["tag"] ?? null), "id")), R.v(R.m((S["tag"] ?? null), "title")), R.v(null)])]));
                     }
                 }
             }
-            R.ln = F + 258;
-            for (const it28 of R.fi(R.m(R.m(R.m((S["result"] ?? null), "frameworks"), "derived"), "Keys"))) {
-                S["derivedframework"] = it28;
-                R.ln = F + 258;
-                for (const it29 of R.fi(R.i(R.m(R.m((S["result"] ?? null), "frameworks"), "derived"), (S["derivedframework"] ?? null)))) {
-                    S["tag"] = it29;
-                    R.ln = F + 258;
+            R.ln = F + 262;
+            for (const it30 of R.fi(R.m(R.m(R.m((S["result"] ?? null), "frameworks"), "derived"), "Keys"))) {
+                S["derivedframework"] = it30;
+                R.ln = F + 262;
+                for (const it31 of R.fi(R.i(R.m(R.m((S["result"] ?? null), "frameworks"), "derived"), (S["derivedframework"] ?? null)))) {
+                    S["tag"] = it31;
+                    R.ln = F + 262;
                     R.e(O, R.im((S["entries"] ?? null), "Add", [R.a([R.v((S["derivedframework"] ?? null)), R.v(R.m((S["tag"] ?? null), "id")), R.v(null), R.v(R.m((S["tag"] ?? null), "via"))])]));
                 }
             }
-            R.ln = F + 259;
-            for (const it30 of R.fi((S["entries"] ?? null))) {
-                S["entry"] = it30;
-                R.ln = F + 260;
-                (((m31) => { S["framework"] = m31[0]; S["id"] = m31[1]; S["title"] = m31[2]; S["via"] = m31[3]; })(R.mi((S["entry"] ?? null), 4)));
-                R.ln = F + 261;
+            R.ln = F + 263;
+            for (const it32 of R.fi((S["entries"] ?? null))) {
+                S["entry"] = it32;
+                R.ln = F + 264;
+                (((m33) => { S["framework"] = m33[0]; S["id"] = m33[1]; S["title"] = m33[2]; S["via"] = m33[3]; })(R.mi((S["entry"] ?? null), 4)));
+                R.ln = F + 265;
                 if (!R.t(R.im((S["rollups"] ?? null), "Contains", [(S["framework"] ?? null)]))) {
-                    R.ln = F + 261;
+                    R.ln = F + 265;
                     R.si((S["rollups"] ?? null), (S["framework"] ?? null), R.ht([], false));
                 }
-                R.ln = F + 262;
+                R.ln = F + 266;
                 if (!R.t(R.im(R.i((S["rollups"] ?? null), (S["framework"] ?? null)), "ContainsKey", [(S["id"] ?? null)]))) {
-                    R.ln = F + 262;
+                    R.ln = F + 266;
                     R.si(R.i((S["rollups"] ?? null), (S["framework"] ?? null)), (S["id"] ?? null), R.ht(["title", (S["title"] ?? null), "status", "NotApplicable", "tests", R.sc("System.Collections.Generic.List[string]", "new", []), "via", R.sc("System.Collections.Generic.HashSet[string]", "new", [])], true));
                 }
-                R.ln = F + 263;
+                R.ln = F + 267;
                 R.e(O, R.im(R.m(R.i(R.i((S["rollups"] ?? null), (S["framework"] ?? null)), (S["id"] ?? null)), "tests"), "Add", [R.m((S["result"] ?? null), "id")]));
-                R.ln = F + 264;
-                for (const it32 of R.fi(R.a((S["via"] ?? null)))) {
-                    S["mcsb"] = it32;
-                    R.ln = F + 264;
+                R.ln = F + 268;
+                for (const it34 of R.fi(R.a((S["via"] ?? null)))) {
+                    S["mcsb"] = it34;
+                    R.ln = F + 268;
                     if (R.t((S["mcsb"] ?? null))) {
-                        R.ln = F + 264;
+                        R.ln = F + 268;
                         R.im(R.m(R.i(R.i((S["rollups"] ?? null), (S["framework"] ?? null)), (S["id"] ?? null)), "via"), "Add", [(S["mcsb"] ?? null)]);
                     }
                 }
-                R.ln = F + 265;
+                R.ln = F + 269;
                 R.sm(R.i(R.i((S["rollups"] ?? null), (S["framework"] ?? null)), (S["id"] ?? null)), "status", R.u(R.cmd(S, "Get-WorstStatus", [R.a([R.v(R.m(R.i(R.i((S["rollups"] ?? null), (S["framework"] ?? null)), (S["id"] ?? null)), "status")), R.v(R.m((S["result"] ?? null), "status"))])], null)));
             }
         }
-        R.ln = F + 270;
-        for (const it33 of R.fi([R.v("MCSB"), R.v("CIS"), R.v("WAF"), R.v("ALZ")])) {
-            S["framework"] = it33;
-            R.ln = F + 271;
+        R.ln = F + 274;
+        S["crosswalks"] = R.cmd(S, "Sort-Object", [], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $script:Catalog[$_].kind -eq 'crosswalk' " }, (S, O) => {
+            R.ln = F + 274;
+            R.e(O, R.eq(R.m(R.i((R.ss(S)["script:catalog"] ?? null), (S["_"] ?? null)), "kind"), "crosswalk"));
+        })], R.pi(R.m((R.ss(S)["script:catalog"] ?? null), "Keys"))));
+        R.ln = F + 275;
+        for (const it35 of R.fi(R.add(R.a([R.v("MCSB"), R.v("CIS"), R.v("WAF"), R.v("ALZ")]), (S["crosswalks"] ?? null)))) {
+            S["framework"] = it35;
+            R.ln = F + 276;
             if (!R.t(R.im((S["rollups"] ?? null), "Contains", [(S["framework"] ?? null)]))) {
-                R.ln = F + 271;
+                R.ln = F + 276;
                 R.si((S["rollups"] ?? null), (S["framework"] ?? null), R.ht([], false));
             }
-            R.ln = F + 272;
-            for (const it34 of R.fi(R.m(R.m(R.i((R.ss(S)["script:catalog"] ?? null), (S["framework"] ?? null)), "controls"), "Keys"))) {
-                S["id"] = it34;
-                R.ln = F + 273;
+            R.ln = F + 277;
+            for (const it36 of R.fi(R.m(R.m(R.i((R.ss(S)["script:catalog"] ?? null), (S["framework"] ?? null)), "controls"), "Keys"))) {
+                S["id"] = it36;
+                R.ln = F + 278;
                 if (!R.t(R.im(R.i((S["rollups"] ?? null), (S["framework"] ?? null)), "ContainsKey", [(S["id"] ?? null)]))) {
-                    R.ln = F + 274;
+                    R.ln = F + 279;
                     R.si(R.i((S["rollups"] ?? null), (S["framework"] ?? null)), (S["id"] ?? null), R.ht(["title", R.m(R.i(R.m(R.i((R.ss(S)["script:catalog"] ?? null), (S["framework"] ?? null)), "controls"), (S["id"] ?? null)), "title"), "status", "NotAssessed", "tests", R.sc("System.Collections.Generic.List[string]", "new", []), "via", null], true));
                 }
             }
         }
-        R.ln = F + 278;
+        R.ln = F + 283;
         S["frameworkrollups"] = R.ht([], true);
-        R.ln = F + 279;
-        for (const it35 of R.fi(R.u(R.cmd(S, "Sort-Object", [[R.v(R.sb({ params: [], adv: 0, text: " @('MCSB', 'CIS', 'WAF', 'ALZ').IndexOf($_) -lt 0 " }, (S, O) => {
-            R.ln = F + 279;
+        R.ln = F + 284;
+        for (const it37 of R.fi(R.u(R.cmd(S, "Sort-Object", [[R.v(R.sb({ params: [], adv: 0, text: " @('MCSB', 'CIS', 'WAF', 'ALZ').IndexOf($_) -lt 0 " }, (S, O) => {
+            R.ln = F + 284;
             R.e(O, R.lt(R.im(R.a([R.v("MCSB"), R.v("CIS"), R.v("WAF"), R.v("ALZ")]), "IndexOf", [(S["_"] ?? null)]), 0));
         })), R.v(R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 279;
+            R.ln = F + 284;
             R.e(O, (S["_"] ?? null));
         }))]], R.pi(R.m((S["rollups"] ?? null), "Keys")))))) {
-            S["framework"] = it35;
-            R.ln = F + 280;
+            S["framework"] = it37;
+            R.ln = F + 285;
             S["controls"] = R.ht([], true);
-            R.ln = F + 281;
-            for (const it36 of R.fi(R.u(R.cmd(S, "Sort-Object", [R.sb({ params: [], adv: 0, text: " Get-NaturalKey $_ " }, (S, O) => {
-                R.ln = F + 281;
+            R.ln = F + 286;
+            for (const it38 of R.fi(R.u(R.cmd(S, "Sort-Object", [R.sb({ params: [], adv: 0, text: " Get-NaturalKey $_ " }, (S, O) => {
+                R.ln = F + 286;
                 R.pa(O, R.cmd(S, "Get-NaturalKey", [(S["_"] ?? null)], null));
             })], R.pi(R.m(R.i((S["rollups"] ?? null), (S["framework"] ?? null)), "Keys")))))) {
-                S["id"] = it36;
-                R.ln = F + 282;
+                S["id"] = it38;
+                R.ln = F + 287;
                 S["item"] = R.i(R.i((S["rollups"] ?? null), (S["framework"] ?? null)), (S["id"] ?? null));
-                R.ln = F + 283;
-                R.si((S["controls"] ?? null), (S["id"] ?? null), R.ht(["title", R.m((S["item"] ?? null), "title"), "status", R.m((S["item"] ?? null), "status"), "tests", R.cmd(S, "Sort-Object", [R.sb({ params: [], adv: 0, text: " Get-NaturalKey $_ " }, (S, O) => {
-                    R.ln = F + 283;
+                R.ln = F + 288;
+                const v39 = [];
+                R.ln = F + 288;
+                if ((R.t(R.im((R.ss(S)["script:catalog"] ?? null), "Contains", [(S["framework"] ?? null)])) && R.t(R.m(R.i((R.ss(S)["script:catalog"] ?? null), (S["framework"] ?? null)), "controls")))) {
+                    R.ln = F + 288;
+                    R.e(v39, R.i(R.m(R.i((R.ss(S)["script:catalog"] ?? null), (S["framework"] ?? null)), "controls"), (S["id"] ?? null)));
+                } else {
+                    R.ln = F + 288;
+                    R.e(v39, null);
+                }
+                S["catalogcontrol"] = R.u(v39);
+                R.ln = F + 289;
+                const v40 = [];
+                R.ln = F + 289;
+                if (R.t(R.m((S["item"] ?? null), "title"))) {
+                    R.ln = F + 289;
+                    R.e(v40, R.m((S["item"] ?? null), "title"));
+                } else if (R.t(R.m((S["catalogcontrol"] ?? null), "title"))) {
+                    R.ln = F + 289;
+                    R.e(v40, R.m((S["catalogcontrol"] ?? null), "title"));
+                } else {
+                    R.ln = F + 289;
+                    R.e(v40, null);
+                }
+                S["title"] = R.u(v40);
+                R.ln = F + 290;
+                R.si((S["controls"] ?? null), (S["id"] ?? null), R.ht(["title", (S["title"] ?? null), "status", R.m((S["item"] ?? null), "status"), "tests", R.cmd(S, "Sort-Object", [R.sb({ params: [], adv: 0, text: " Get-NaturalKey $_ " }, (S, O) => {
+                    R.ln = F + 290;
                     R.pa(O, R.cmd(S, "Get-NaturalKey", [(S["_"] ?? null)], null));
                 })], R.pi(R.m((S["item"] ?? null), "tests")))], true));
-                R.ln = F + 284;
+                R.ln = F + 291;
                 if (!R.t(R.m(R.i((S["controls"] ?? null), (S["id"] ?? null)), "title"))) {
-                    R.ln = F + 284;
+                    R.ln = F + 291;
                     R.e(O, R.im(R.i((S["controls"] ?? null), (S["id"] ?? null)), "Remove", ["title"]));
                 }
-                R.ln = F + 285;
-                const v37 = [];
-                R.ln = F + 285;
-                if ((R.t(R.im((R.ss(S)["script:catalog"] ?? null), "Contains", [(S["framework"] ?? null)])) && R.t(R.m(R.i((R.ss(S)["script:catalog"] ?? null), (S["framework"] ?? null)), "controls")))) {
-                    R.ln = F + 285;
-                    R.e(v37, R.i(R.m(R.i((R.ss(S)["script:catalog"] ?? null), (S["framework"] ?? null)), "controls"), (S["id"] ?? null)));
-                } else {
-                    R.ln = F + 285;
-                    R.e(v37, null);
-                }
-                S["catalogcontrol"] = R.u(v37);
-                R.ln = F + 286;
+                R.ln = F + 292;
                 if (R.t(R.eq(R.m((S["catalogcontrol"] ?? null), "assessment"), "Manual"))) {
-                    R.ln = F + 286;
+                    R.ln = F + 292;
                     R.sm(R.i((S["controls"] ?? null), (S["id"] ?? null)), "assessment", "Manual");
                 }
-                R.ln = F + 287;
+                R.ln = F + 293;
                 if (R.t(R.m((S["catalogcontrol"] ?? null), "url"))) {
-                    R.ln = F + 287;
+                    R.ln = F + 293;
                     R.sm(R.i((S["controls"] ?? null), (S["id"] ?? null)), "url", R.m((S["catalogcontrol"] ?? null), "url"));
                 }
-                R.ln = F + 288;
+                R.ln = F + 294;
                 if ((R.t(R.m((S["item"] ?? null), "via")) && R.t(R.m(R.m((S["item"] ?? null), "via"), "Count")))) {
-                    R.ln = F + 288;
+                    R.ln = F + 294;
                     R.sm(R.i((S["controls"] ?? null), (S["id"] ?? null)), "via", R.cmd(S, "Sort-Object", [R.sb({ params: [], adv: 0, text: " Get-NaturalKey $_ " }, (S, O) => {
-                        R.ln = F + 288;
+                        R.ln = F + 294;
                         R.pa(O, R.cmd(S, "Get-NaturalKey", [(S["_"] ?? null)], null));
                     })], R.pi(R.m((S["item"] ?? null), "via"))));
                 }
             }
-            R.ln = F + 291;
+            R.ln = F + 297;
             S["meta"] = R.i((R.ss(S)["script:catalog"] ?? null), (S["framework"] ?? null));
-            R.ln = F + 292;
+            R.ln = F + 298;
             S["assessed"] = R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.status -ne 'NotAssessed' " }, (S, O) => {
-                R.ln = F + 292;
+                R.ln = F + 298;
                 R.e(O, R.ne(R.m((S["_"] ?? null), "status"), "NotAssessed"));
             })], R.pi(R.m((S["controls"] ?? null), "Values"))), "Count");
-            R.ln = F + 293;
+            R.ln = F + 299;
             S["rollup"] = R.ht(["name", (S["framework"] ?? null)], true);
-            R.ln = F + 294;
+            R.ln = F + 300;
             if (R.t((S["meta"] ?? null))) {
-                R.ln = F + 294;
-                for (const it38 of R.fi(R.m((S["meta"] ?? null), "Keys"))) {
-                    S["key"] = it38;
-                    R.ln = F + 294;
+                R.ln = F + 300;
+                for (const it41 of R.fi(R.m((S["meta"] ?? null), "Keys"))) {
+                    S["key"] = it41;
+                    R.ln = F + 300;
                     if (R.t(R.ne((S["key"] ?? null), "controls"))) {
-                        R.ln = F + 294;
+                        R.ln = F + 300;
                         R.si((S["rollup"] ?? null), (S["key"] ?? null), R.i((S["meta"] ?? null), (S["key"] ?? null)));
                     }
                 }
             }
-            R.ln = F + 295;
+            R.ln = F + 301;
             R.sm((S["rollup"] ?? null), "coverage", R.ht(["controls", R.m((S["controls"] ?? null), "Count"), "assessed", (S["assessed"] ?? null), "notAssessed", R.sub(R.m((S["controls"] ?? null), "Count"), (S["assessed"] ?? null))], true));
-            R.ln = F + 296;
+            R.ln = F + 302;
             R.sm((S["rollup"] ?? null), "controls", (S["controls"] ?? null));
-            R.ln = F + 297;
+            R.ln = F + 303;
             R.si((S["frameworkrollups"] ?? null), (S["framework"] ?? null), (S["rollup"] ?? null));
         }
-        R.ln = F + 304;
+        R.ln = F + 310;
         S["results"] = R.ht(["schemaVersion", (S["schemaversion"] ?? null), "analyzer", R.ht(["version", (S["analyzerversion"] ?? null), "tests", R.m((S["testresults"] ?? null), "Count")], true), "ingest", R.ht(["folder", (S["foldername"] ?? null), "subscriptionId", R.m(R.m((S["manifest"] ?? null), "subscription"), "id"), "subscriptionName", R.m(R.m((S["manifest"] ?? null), "subscription"), "displayName"), "tenantId", R.m(R.m((S["manifest"] ?? null), "subscription"), "tenantId"), "startedAt", R.u(R.cmd(S, "Format-UtcDate", [R.m((S["manifest"] ?? null), "startedAt")], null)), "ingestVersion", R.m((S["manifest"] ?? null), "scriptVersion"), "status", R.m((S["manifest"] ?? null), "status")], true), "analyzedAt", R.im(R.st("DateTime", "UtcNow"), "ToString", ["yyyy-MM-ddTHH:mm:ssZ"]), "summary", R.ht(["postureScore", (S["score"] ?? null), "scoreMethod", "Severity weighted pass rate of evaluated findings per test (Critical 8, High 4, Medium 2, Low 1, Informational 0)", "tests", (S["summarytests"] ?? null), "findings", (S["summaryfindings"] ?? null), "bySeverity", (S["byseverity"] ?? null)], true), "frameworks", (S["frameworkrollups"] ?? null), "tests", (S["testresults"] ?? null)], true);
-        R.ln = F + 328;
+        R.ln = F + 334;
         S["resultfolder"] = R.u(R.cmd(S, "Join-Path", [(S["outputpath"] ?? null), (S["foldername"] ?? null)], null));
-        R.ln = F + 329;
+        R.ln = F + 335;
         R.cmd(S, "New-Item", [R.np("ItemType"), "Directory", R.np("Force"), R.np("Path"), (S["resultfolder"] ?? null)], null);
-        R.ln = F + 330;
+        R.ln = F + 336;
         R.pa(O, R.cmd(S, "Write-TextFile", [R.np("Path"), R.u(R.cmd(S, "Join-Path", [(S["resultfolder"] ?? null), "results.json"], null)), R.np("Content"), (R.add(R.u(R.cmd(S, "ConvertTo-Json", [R.np("Depth"), 50], R.pi((S["results"] ?? null)))), "\n"))], null));
-        R.ln = F + 332;
+        R.ln = F + 338;
         S["testrows"] = R.u(R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: "\n        [pscustomobject]@{ testId = $_.id; version = $_.version; title = $_.title; category = $_.category; service = $_.service; severity = $_.severity; status = $_.status; pass = $_.counts.Pass; fail = $_.counts.Fail; unknown = $_.counts.Unknown; notApplicable = $_.counts.NotApplicable; mcsb = (@($_.frameworks.MCSB | ForEach-Object id) -join ' '); cis = (@($_.frameworks.CIS | ForEach-Object id) -join ' '); statusReason = $_.statusReason }\n    " }, (S, O) => {
-            R.ln = F + 333;
+            R.ln = F + 339;
             R.e(O, R.pso(["testId", R.m((S["_"] ?? null), "id"), "version", R.m((S["_"] ?? null), "version"), "title", R.m((S["_"] ?? null), "title"), "category", R.m((S["_"] ?? null), "category"), "service", R.m((S["_"] ?? null), "service"), "severity", R.m((S["_"] ?? null), "severity"), "status", R.m((S["_"] ?? null), "status"), "pass", R.m(R.m((S["_"] ?? null), "counts"), "Pass"), "fail", R.m(R.m((S["_"] ?? null), "counts"), "Fail"), "unknown", R.m(R.m((S["_"] ?? null), "counts"), "Unknown"), "notApplicable", R.m(R.m((S["_"] ?? null), "counts"), "NotApplicable"), "mcsb", (R.join(R.cmd(S, "ForEach-Object", ["id"], R.pi(R.m(R.m((S["_"] ?? null), "frameworks"), "MCSB"))), " ")), "cis", (R.join(R.cmd(S, "ForEach-Object", ["id"], R.pi(R.m(R.m((S["_"] ?? null), "frameworks"), "CIS"))), " ")), "statusReason", R.m((S["_"] ?? null), "statusReason")]));
         })], R.pi((S["testresults"] ?? null))));
-        R.ln = F + 335;
+        R.ln = F + 341;
         R.pa(O, R.cmd(S, "Write-TextFile", [R.np("Path"), R.u(R.cmd(S, "Join-Path", [(S["resultfolder"] ?? null), "tests.csv"], null)), R.np("Content"), (R.join(R.u(R.cmd(S, "ConvertTo-Csv", [R.np("NoTypeInformation"), R.np("UseQuotes"), "AsNeeded"], R.pi((S["testrows"] ?? null)))), "\n"))], null));
-        R.ln = F + 336;
-        const v39 = [];
-        R.ln = F + 336;
-        for (const it40 of R.fi((S["testresults"] ?? null))) {
-            S["result"] = it40;
-            R.ln = F + 337;
-            for (const it41 of R.fi(R.m((S["result"] ?? null), "findings"))) {
-                S["finding"] = it41;
-                R.ln = F + 338;
-                R.e(v39, R.pso(["testId", R.m((S["result"] ?? null), "id"), "severity", R.m((S["result"] ?? null), "severity"), "status", R.m((S["finding"] ?? null), "status"), "resourceId", R.m((S["finding"] ?? null), "resourceId"), "resourceName", R.m((S["finding"] ?? null), "resourceName"), "resourceType", R.m((S["finding"] ?? null), "resourceType"), "resourceGroup", R.m((S["finding"] ?? null), "resourceGroup"), "detail", R.m((S["finding"] ?? null), "detail")]));
+        R.ln = F + 342;
+        const v42 = [];
+        R.ln = F + 342;
+        for (const it43 of R.fi((S["testresults"] ?? null))) {
+            S["result"] = it43;
+            R.ln = F + 343;
+            for (const it44 of R.fi(R.m((S["result"] ?? null), "findings"))) {
+                S["finding"] = it44;
+                R.ln = F + 344;
+                R.e(v42, R.pso(["testId", R.m((S["result"] ?? null), "id"), "severity", R.m((S["result"] ?? null), "severity"), "status", R.m((S["finding"] ?? null), "status"), "resourceId", R.m((S["finding"] ?? null), "resourceId"), "resourceName", R.m((S["finding"] ?? null), "resourceName"), "resourceType", R.m((S["finding"] ?? null), "resourceType"), "resourceGroup", R.m((S["finding"] ?? null), "resourceGroup"), "detail", R.m((S["finding"] ?? null), "detail")]));
             }
         }
-        S["findingrows"] = R.u(v39);
-        R.ln = F + 341;
+        S["findingrows"] = R.u(v42);
+        R.ln = F + 347;
         R.pa(O, R.cmd(S, "Write-TextFile", [R.np("Path"), R.u(R.cmd(S, "Join-Path", [(S["resultfolder"] ?? null), "findings.csv"], null)), R.np("Content"), (R.join(R.u(R.cmd(S, "ConvertTo-Csv", [R.np("NoTypeInformation"), R.np("UseQuotes"), "AsNeeded"], R.pi(R.a((S["findingrows"] ?? null))))), "\n"))], null));
-        R.ln = F + 343;
+        R.ln = F + 349;
         S["line"] = R.join(R.u(R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " \"$($_.Key)=$($_.Value)\" " }, (S, O) => {
-            R.ln = F + 343;
+            R.ln = F + 349;
             R.e(O, ("" + R.str(R.u(R.pi(R.m((S["_"] ?? null), "Key")))) + "=" + R.str(R.u(R.pi(R.m((S["_"] ?? null), "Value"))))));
         })], R.pi(R.im((S["summarytests"] ?? null), "GetEnumerator", [])))), ", ");
-        R.ln = F + 344;
+        R.ln = F + 350;
         R.pa(O, R.cmd(S, "Write-Log", [("Tests: " + R.str((S["line"] ?? null)) + ". Posture score: " + R.str((S["score"] ?? null)))], null));
-        R.ln = F + 345;
+        R.ln = F + 351;
         R.pa(O, R.cmd(S, "Write-Log", [("Output: " + R.str((S["resultfolder"] ?? null)))], null));
-        R.ln = F + 346;
+        R.ln = F + 352;
         R.e(O, R.pso(["Path", (S["resultfolder"] ?? null), "Tests", R.m((S["testresults"] ?? null), "Count"), "Failed", R.m((S["summarytests"] ?? null), "Fail"), "Errors", R.m((S["summarytests"] ?? null), "Error"), "PostureScore", (S["score"] ?? null)]));
     } finally {
-        R.ln = F + 350;
+        R.ln = F + 356;
         if ((R.t((S["temporaryfolder"] ?? null)) && R.t(R.u(R.cmd(S, "Test-Path", [(S["temporaryfolder"] ?? null)], null))))) {
-            R.ln = F + 350;
+            R.ln = F + 356;
             R.pa(O, R.cmd(S, "Remove-Item", [R.np("Path"), (S["temporaryfolder"] ?? null), R.np("Recurse"), R.np("Force")], null));
         }
     }

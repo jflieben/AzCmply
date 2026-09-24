@@ -187,9 +187,13 @@ try {
                     $tag
                 })
         }
-        #derived: framework > control id > the MCSB controls it comes from
+        #derived: framework > control id > the MCSB controls it comes from; crosswalk tags set on the test itself have none
         $derived = @{}
-        foreach ($control in @($test.Frameworks.MCSB)) {
+        foreach ($framework in @($test.Frameworks.Keys | Where-Object { $script:Catalog[$_].kind -eq 'crosswalk' } | Sort-Object)) {
+            $derived[$framework] = @{}
+            foreach ($id in @($test.Frameworks[$framework])) { $derived[$framework][$id] = [System.Collections.Generic.HashSet[string]]::new() }
+        }
+        foreach ($control in @($test.Frameworks.MCSB | Where-Object { $_ })) {
             foreach ($mapping in $script:Catalog.MCSB.controls[$control].mappings.GetEnumerator()) {
                 if (-not $derived.ContainsKey($mapping.Key)) { $derived[$mapping.Key] = @{} }
                 foreach ($id in @($mapping.Value)) {
@@ -267,7 +271,8 @@ try {
     }
     #catalog controls without any test are listed as NotAssessed so coverage gaps are visible;
     #without this a framework would report every control it happens to cover as its whole scope
-    foreach ($framework in 'MCSB', 'CIS', 'WAF', 'ALZ') {
+    $crosswalks = @($script:Catalog.Keys | Where-Object { $script:Catalog[$_].kind -eq 'crosswalk' } | Sort-Object)
+    foreach ($framework in @('MCSB', 'CIS', 'WAF', 'ALZ') + $crosswalks) {
         if (-not $rollups.Contains($framework)) { $rollups[$framework] = @{} }
         foreach ($id in $script:Catalog[$framework].controls.Keys) {
             if (-not $rollups[$framework].ContainsKey($id)) {
@@ -280,9 +285,10 @@ try {
         $controls = [ordered]@{}
         foreach ($id in ($rollups[$framework].Keys | Sort-Object { Get-NaturalKey $_ })) {
             $item = $rollups[$framework][$id]
-            $controls[$id] = [ordered]@{ title = $item.title; status = $item.status; tests = @($item.tests | Sort-Object { Get-NaturalKey $_ }) }
-            if (-not $controls[$id].title) { $controls[$id].Remove('title') }
             $catalogControl = if ($script:Catalog.Contains($framework) -and $script:Catalog[$framework].controls) { $script:Catalog[$framework].controls[$id] } else { $null }
+            $title = if ($item.title) { $item.title } elseif ($catalogControl.title) { $catalogControl.title } else { $null }
+            $controls[$id] = [ordered]@{ title = $title; status = $item.status; tests = @($item.tests | Sort-Object { Get-NaturalKey $_ }) }
+            if (-not $controls[$id].title) { $controls[$id].Remove('title') }
             if ($catalogControl.assessment -eq 'Manual') { $controls[$id].assessment = 'Manual' }
             if ($catalogControl.url) { $controls[$id].url = $catalogControl.url }
             if ($item.via -and $item.via.Count) { $controls[$id].via = @($item.via | Sort-Object { Get-NaturalKey $_ }) }

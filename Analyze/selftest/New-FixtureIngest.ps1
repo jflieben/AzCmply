@@ -145,8 +145,9 @@ $users = @(
 Save 'identity/users' $users
 $groups = @(@{ '@odata.type' = '#microsoft.graph.group'; id = $ids.G1; displayName = 'owners-1' }, @{ '@odata.type' = '#microsoft.graph.group'; id = $ids.G2; displayName = 'owners-2' }, @{ '@odata.type' = '#microsoft.graph.group'; id = $ids.G3; displayName = 'readers' })
 $servicePrincipals = @(
-    @{ '@odata.type' = '#microsoft.graph.servicePrincipal'; id = $ids.SpApp; displayName = 'fixture-app'; appId = '31000000-0000-0000-0000-000000000001'; servicePrincipalType = 'Application'; passwordCredentials = @(); keyCredentials = @() }
-    @{ '@odata.type' = '#microsoft.graph.servicePrincipal'; id = $ids.SpMi; displayName = 'fixture-mi'; appId = '31000000-0000-0000-0000-000000000002'; servicePrincipalType = 'ManagedIdentity'; passwordCredentials = @(); keyCredentials = @() }
+    #the application is registered in this tenant when Good, by another organization when Bad (AZ-IAM-025)
+    @{ '@odata.type' = '#microsoft.graph.servicePrincipal'; id = $ids.SpApp; displayName = 'fixture-app'; appId = '31000000-0000-0000-0000-000000000001'; servicePrincipalType = 'Application'; appOwnerOrganizationId = (Pick $tenant '90000000-0000-0000-0000-0000000000bb'); passwordCredentials = @(); keyCredentials = @() }
+    @{ '@odata.type' = '#microsoft.graph.servicePrincipal'; id = $ids.SpMi; displayName = 'fixture-mi'; appId = '31000000-0000-0000-0000-000000000002'; servicePrincipalType = 'ManagedIdentity'; appOwnerOrganizationId = 'f8cdef31-a31e-4b4a-93e4-5f571e91255a'; passwordCredentials = @(); keyCredentials = @() }
 )
 Save 'identity/directoryObjects' (@($users) + $groups + $servicePrincipals)
 $member = { param($Id) $u = $users | Where-Object { $_.id -eq $Id }; @{ '@odata.type' = '#microsoft.graph.user'; id = $Id; displayName = $u.displayName; userPrincipalName = $u.userPrincipalName } }
@@ -181,6 +182,14 @@ Save 'identity/directoryRoleAssignments' $(if ($G) {
         @(@{ id = 'dra1'; principalId = $ids.Synced; roleDefinitionId = $ga; principal = (& $principalOf $ids.Synced) }, @{ id = 'dra2'; principalId = $ids.SpApp; roleDefinitionId = $pra; principal = $servicePrincipals[0] })
     })
 Save 'identity/directoryRoleEligibilitySchedules' @()
+#Conditional Access: MFA for Azure management for all users when Good; only report-only or for one group when Bad
+$caPolicy = { param([string]$Name, [string]$State, [hashtable]$Users) @{ id = "ca-$Name"; displayName = $Name; state = $State; conditions = @{ users = $Users; applications = @{ includeApplications = @('797f4846-ba00-4fd7-ba43-dac1f8f63013'); excludeApplications = @() }; clientAppTypes = @('all') }; grantControls = @{ operator = 'OR'; builtInControls = @('mfa') } } }
+Save 'identity/conditionalAccessPolicies' $(if ($G) {
+        @(& $caPolicy 'Require MFA for Azure management' 'enabled' @{ includeUsers = @('All'); excludeUsers = @($ids.U2) })
+    } else {
+        @((& $caPolicy 'Require MFA for Azure management' 'enabledForReportingButNotEnforced' @{ includeUsers = @('All') }), (& $caPolicy 'MFA for admins' 'enabled' @{ includeUsers = @(); includeGroups = @($ids.G1) }))
+    })
+Save 'identity/securityDefaults' @{ id = '00000000-0000-0000-0000-000000000005'; isEnabled = $false }
 Save 'subscription/lighthouseRegistrationAssignments' @(@{ id = "$subScope/providers/Microsoft.ManagedServices/registrationAssignments/la1"; properties = @{ registrationDefinition = @{ properties = @{ managedByTenantName = 'Partner'; managedByTenantId = '80000000-0000-0000-0000-000000000001'; registrationDefinitionName = 'Managed services'; authorizations = @(@{ principalId = 'p'; principalIdDisplayName = 'Partner admins'; roleDefinitionId = (Pick $roles.Reader $roles.Contributor) }); eligibleAuthorizations = @(@{ principalId = 'p'; principalIdDisplayName = 'Partner admins'; roleDefinitionId = $roles.Contributor }) } } } })
 
 #endregion
@@ -197,7 +206,7 @@ Save 'subscription/locks' (Pick @(
 Save 'subscription/blueprintAssignments' (Pick @() @(@{ id = "$subScope/providers/Microsoft.Blueprint/blueprintAssignments/bp1"; name = 'bp1'; properties = @{ blueprintId = '/providers/Microsoft.Blueprint/blueprints/legacy' } }))
 Save 'subscription/deployments' @(@{ id = "$subScope/providers/Microsoft.Resources/deployments/dep1"; name = 'dep1'; properties = @{ timestamp = (Iso -1); parameters = (Pick @{ vmName = @{ type = 'String'; value = 'vm1' } } @{ adminPassword = @{ type = 'String'; value = 'Sup3rS3cretValue!' } }); outputs = @{} } })
 $categories = Pick @('Administrative', 'Alert', 'Policy', 'Security') @('Administrative')
-Save 'subscription/diagnosticSettings' @(@{ name = 'activity'; properties = @{ workspaceId = '/la'; logs = @($categories | ForEach-Object { @{ category = $_; enabled = $true } }) } })
+Save 'subscription/diagnosticSettings' @(@{ name = 'activity'; properties = @{ workspaceId = (ResId 'Microsoft.OperationalInsights/workspaces' 'lafixture'); logs = @($categories | ForEach-Object { @{ category = $_; enabled = $true } }) } })
 
 $planNames = 'CloudPosture', 'VirtualMachines', 'Containers', 'StorageAccounts', 'AppServices', 'CosmosDbs', 'OpenSourceRelationalDatabases', 'SqlServers', 'SqlServerVirtualMachines', 'KeyVaults', 'Arm', 'Api', 'AI'
 Save 'defender/pricings' @(foreach ($plan in $planNames) {
@@ -282,8 +291,11 @@ function New-SqlServer {
 }
 New-SqlServer 'sqlfixture' $false
 if (-not $G) { New-SqlServer 'sqlfixture2' $true }
-Add-Record 'Microsoft.Sql/servers/databases' 'sqlfixture/appdb' @{ kind = 'v12.0,user'; properties = @{} } -Id "$(ResId 'Microsoft.Sql/servers' 'sqlfixture')/databases/appdb" -Children @{ transparentDataEncryption = @(@{ properties = @{ state = (Pick 'Enabled' 'Disabled') } }) } | Out-Null
-Add-Record 'Microsoft.Sql/managedInstances' 'mifixture' @{ properties = @{ minimalTlsVersion = (Pick '1.2' '1.0'); publicDataEndpointEnabled = (-not $G) } } -Children @{
+Add-Record 'Microsoft.Sql/servers/databases' 'sqlfixture/appdb' @{ kind = 'v12.0,user'; properties = @{ currentBackupStorageRedundancy = (Pick 'Geo' 'Local'); zoneRedundant = $G } } -Id "$(ResId 'Microsoft.Sql/servers' 'sqlfixture')/databases/appdb" -Children @{
+    transparentDataEncryption       = @(@{ properties = @{ state = (Pick 'Enabled' 'Disabled') } })
+    backupLongTermRetentionPolicies = @(@{ name = 'default'; properties = @{ weeklyRetention = (Pick 'P12W' 'PT0S'); monthlyRetention = (Pick 'P12M' 'PT0S'); yearlyRetention = (Pick 'P5Y' 'PT0S'); weekOfYear = 1 } })
+} | Out-Null
+Add-Record 'Microsoft.Sql/managedInstances' 'mifixture' @{ properties = @{ minimalTlsVersion = (Pick '1.2' '1.0'); publicDataEndpointEnabled = (-not $G); currentBackupStorageRedundancy = (Pick 'GeoZone' 'Local'); zoneRedundant = $G } } -Children @{
     administrators = (Pick @(@{ properties = @{ login = 'mi-admins' } }) @()); azureADOnlyAuthentications = @(@{ properties = @{ azureADOnlyAuthentication = $G } })
     encryptionProtector = @(@{ properties = @{ serverKeyType = (Pick 'AzureKeyVault' 'ServiceManaged') } }); sqlVulnerabilityAssessments = @(@{ properties = @{ state = (Pick 'Enabled' 'Disabled') } })
     vulnerabilityAssessments = @(); advancedThreatProtectionSettings = @(@{ properties = @{ state = (Pick 'Enabled' 'Disabled') } })
@@ -292,17 +304,20 @@ Add-Record 'Microsoft.Sql/managedInstances' 'mifixture' @{ properties = @{ minim
 #open source databases, Cosmos DB, Redis
 #sorted by name: hashtable order differs per process, and the fixture must be the same on every run
 $config = { param([hashtable]$Values) @($Values.GetEnumerator() | Sort-Object Key | ForEach-Object { @{ name = $_.Key; properties = @{ value = $_.Value } } }) }
-Add-Record 'Microsoft.DBforPostgreSQL/flexibleServers' 'pgfixture' @{ properties = @{ network = @{ publicNetworkAccess = (Pick 'Disabled' 'Enabled') }; authConfig = @{ activeDirectoryAuth = (Pick 'Enabled' 'Disabled'); passwordAuth = (Pick 'Disabled' 'Enabled') } } } -Children @{
+$flexibleBackup = @{ geoRedundantBackup = (Pick 'Enabled' 'Disabled'); backupRetentionDays = 14 }
+$flexibleHa = @{ mode = (Pick 'ZoneRedundant' 'Disabled') }
+$fixtureZones = Pick @('1', '2', '3') @()
+Add-Record 'Microsoft.DBforPostgreSQL/flexibleServers' 'pgfixture' @{ properties = @{ network = @{ publicNetworkAccess = (Pick 'Disabled' 'Enabled') }; backup = $flexibleBackup; highAvailability = $flexibleHa; authConfig = @{ activeDirectoryAuth = (Pick 'Enabled' 'Disabled'); passwordAuth = (Pick 'Disabled' 'Enabled') } } } -Children @{
     configurations = (& $config $(if ($G) { @{ require_secure_transport = 'on'; ssl_min_protocol_version = 'TLSv1.2'; log_connections = 'on'; log_disconnections = 'on'; log_checkpoints = 'on'; shared_preload_libraries = 'pg_stat_statements,pgaudit'; 'pgaudit.log' = 'ddl,role' } } else { @{ require_secure_transport = 'off'; ssl_min_protocol_version = 'TLSv1'; log_connections = 'off'; log_disconnections = 'off'; log_checkpoints = 'off'; shared_preload_libraries = 'pg_stat_statements'; 'pgaudit.log' = 'none' } }))
     administrators = (Pick @(@{ name = 'admin' }) @()); advancedThreatProtectionSettings = @(@{ properties = @{ state = (Pick 'Enabled' 'Disabled') } })
     firewallRules = (Pick @() @(@{ name = 'AllowAll'; properties = @{ startIpAddress = '0.0.0.0'; endIpAddress = '255.255.255.255' } }))
 } | Out-Null
-Add-Record 'Microsoft.DBforMySQL/flexibleServers' 'myfixture' @{ properties = @{ network = @{ publicNetworkAccess = (Pick 'Disabled' 'Enabled') } } } -Children @{
+Add-Record 'Microsoft.DBforMySQL/flexibleServers' 'myfixture' @{ properties = @{ network = @{ publicNetworkAccess = (Pick 'Disabled' 'Enabled') }; backup = $flexibleBackup; highAvailability = $flexibleHa } } -Children @{
     configurations = (& $config $(if ($G) { @{ require_secure_transport = 'ON'; tls_version = 'TLSv1.2,TLSv1.3'; audit_log_enabled = 'ON'; audit_log_events = 'CONNECTION,DDL'; aad_auth_only = 'ON' } } else { @{ require_secure_transport = 'OFF'; tls_version = 'TLSv1,TLSv1.1,TLSv1.2'; audit_log_enabled = 'OFF'; audit_log_events = 'DDL'; aad_auth_only = 'OFF' } }))
     administrators = (Pick @(@{ name = 'ActiveDirectory' }) @()); firewallRules = @()
 } | Out-Null
 if (-not $G) { Add-Record 'Microsoft.DBforPostgreSQL/servers' 'pgsingle' @{ properties = @{ publicNetworkAccess = 'Enabled' } } -Children @{ firewallRules = @() } | Out-Null }
-Add-Record 'Microsoft.DocumentDB/databaseAccounts' 'cosfixture' @{ properties = @{ disableLocalAuth = $G; publicNetworkAccess = (Pick 'Disabled' 'Enabled'); disableKeyBasedMetadataWriteAccess = $G; minimalTlsVersion = (Pick 'Tls12' 'Tls'); ipRules = @(); isVirtualNetworkFilterEnabled = $false } } -Children @{ 'providers/Microsoft.Security/advancedThreatProtectionSettings/current' = @{ properties = @{ isEnabled = $G } } } | Out-Null
+Add-Record 'Microsoft.DocumentDB/databaseAccounts' 'cosfixture' @{ properties = @{ disableLocalAuth = $G; backupPolicy = @{ type = 'Periodic'; periodicModeProperties = @{ backupStorageRedundancy = (Pick 'Geo' 'Local') } }; locations = @(@{ locationName = 'West Europe'; isZoneRedundant = $G }); publicNetworkAccess = (Pick 'Disabled' 'Enabled'); disableKeyBasedMetadataWriteAccess = $G; minimalTlsVersion = (Pick 'Tls12' 'Tls'); ipRules = @(); isVirtualNetworkFilterEnabled = $false } } -Children @{ 'providers/Microsoft.Security/advancedThreatProtectionSettings/current' = @{ properties = @{ isEnabled = $G } } } | Out-Null
 Add-Record 'Microsoft.Cache/Redis' 'redisfixture' @{ properties = @{ enableNonSslPort = (-not $G); disableAccessKeyAuthentication = $G; minimumTlsVersion = (Pick '1.2' '1.0'); publicNetworkAccess = (Pick 'Disabled' 'Enabled') } } -Children @{ firewallRules = (Pick @() @(@{ name = 'all'; properties = @{ startIP = '0.0.0.0'; endIP = '255.255.255.255' } })) } | Out-Null
 
 #App Service
@@ -335,7 +350,7 @@ Add-Record 'Microsoft.Compute/virtualMachines' 'vmfixture' @{ identity = (Pick @
         securityProfile = $security; osProfile = @{ linuxConfiguration = $linux }; networkProfile = @{ networkInterfaces = @(@{ id = $nicId }) }; userData = $userData
     }
 } -Children @{ extensions = (Pick $goodExtensions $badExtensions); instanceView = @{} } | Out-Null
-Add-Record 'Microsoft.Compute/virtualMachineScaleSets' 'vmssfixture' @{ properties = @{ virtualMachineProfile = @{ storageProfile = @{ osDisk = @{ osType = 'Linux' } }; securityProfile = $security; osProfile = @{ linuxConfiguration = $linux }; userData = $userData; extensionProfile = @{ extensions = (Pick $goodExtensions $badExtensions) } } } } -Children @{ extensions = @() } | Out-Null
+Add-Record 'Microsoft.Compute/virtualMachineScaleSets' 'vmssfixture' @{ zones = $fixtureZones; properties = @{ virtualMachineProfile = @{ storageProfile = @{ osDisk = @{ osType = 'Linux' } }; securityProfile = $security; osProfile = @{ linuxConfiguration = $linux }; userData = $userData; extensionProfile = @{ extensions = (Pick $goodExtensions $badExtensions) } } } } -Children @{ extensions = @() } | Out-Null
 Add-Record 'Microsoft.HybridCompute/machines' 'arcfixture' @{ properties = @{ osType = 'linux' } } -Children @{ extensions = (Pick $goodExtensions $badExtensions) } | Out-Null
 Add-Record 'Microsoft.Compute/disks' 'diskfixture' @{ properties = @{ diskState = (Pick 'Attached' 'Unattached'); networkAccessPolicy = (Pick 'DenyAll' 'AllowAll'); publicNetworkAccess = (Pick 'Disabled' 'Enabled') } } | Out-Null
 Add-Record 'Microsoft.Compute/snapshots' 'snapfixture' @{ properties = @{ diskState = (Pick 'Reserved' 'ActiveSAS'); networkAccessPolicy = (Pick 'DenyAll' 'AllowAll'); publicNetworkAccess = (Pick 'Disabled' 'Enabled') } } | Out-Null
@@ -363,7 +378,7 @@ Add-Record 'Microsoft.Network/virtualNetworks' 'vnetfixture' @{ properties = @{
 Add-Record 'Microsoft.Network/networkInterfaces' 'nicfixture' @{ properties = @{ enableIPForwarding = (-not $G); networkSecurityGroup = @{ id = $nsgId }; ipConfigurations = @(@{ properties = @{ subnet = @{ id = "$vnetId/subnets/app" }; publicIPAddress = (Pick $null @{ id = (ResId 'Microsoft.Network/publicIPAddresses' 'pip-nic') }) } }); virtualMachine = @{ id = $vmId } } } | Out-Null
 Add-Record 'Microsoft.Network/publicIPAddresses' 'pipfixture' @{ properties = @{ ipAddress = '198.51.100.1'; ipConfiguration = (Pick @{ id = "$(ResId 'Microsoft.Network/applicationGateways' 'agwfixture')/frontendIPConfigurations/fe" } $null) } } | Out-Null
 if ($G) { Add-Record 'Microsoft.Network/bastionHosts' 'bastionfixture' @{ properties = @{} } | Out-Null }
-Add-Record 'Microsoft.Network/applicationGateways' 'agwfixture' @{ properties = @{ sku = @{ tier = (Pick 'WAF_v2' 'Standard_v2') }; firewallPolicy = (Pick @{ id = '/waf' } $null); sslPolicy = @{ policyType = 'Predefined'; policyName = (Pick 'AppGwSslPolicy20220101' 'AppGwSslPolicy20150501') }; enableHttp2 = $G } } | Out-Null
+Add-Record 'Microsoft.Network/applicationGateways' 'agwfixture' @{ zones = $fixtureZones; properties = @{ sku = @{ tier = (Pick 'WAF_v2' 'Standard_v2') }; firewallPolicy = (Pick @{ id = '/waf' } $null); sslPolicy = @{ policyType = 'Predefined'; policyName = (Pick 'AppGwSslPolicy20220101' 'AppGwSslPolicy20150501') }; enableHttp2 = $G } } | Out-Null
 Add-Record 'Microsoft.Network/ApplicationGatewayWebApplicationFirewallPolicies' 'wafagw' @{ properties = @{ policySettings = @{ state = 'Enabled'; mode = (Pick 'Prevention' 'Detection'); requestBodyCheck = $G }; managedRules = @{ managedRuleSets = (Pick @(@{ ruleSetType = 'OWASP' }, @{ ruleSetType = 'Microsoft_BotManagerRuleSet' }) @(@{ ruleSetType = 'OWASP' })) } } } | Out-Null
 Add-Record 'Microsoft.Network/frontdoorWebApplicationFirewallPolicies' 'waffd' @{ properties = @{ policySettings = @{ enabledState = (Pick 'Enabled' 'Disabled'); mode = (Pick 'Prevention' 'Detection'); requestBodyCheck = (Pick 'Enabled' 'Disabled') }; managedRules = @{ managedRuleSets = (Pick @(@{ ruleSetType = 'Microsoft_DefaultRuleSet' }, @{ ruleSetType = 'Microsoft_BotManagerRuleSet' }) @(@{ ruleSetType = 'Microsoft_DefaultRuleSet' })) } } } | Out-Null
 Add-Record 'Microsoft.Cdn/profiles' 'afdfixture' @{ sku = @{ name = 'Premium_AzureFrontDoor' }; properties = @{} } -Children @{ securityPolicies = (Pick @(@{ name = 'waf'; properties = @{ parameters = @{ type = 'WebApplicationFirewall' } } }) @()); afdEndpoints = @(@{ properties = @{ hostName = 'fixture.azurefd.net' } }) } | Out-Null
@@ -395,7 +410,9 @@ Save 'defender/assessments' @(foreach ($key in $assessmentKeys) { @{ id = "$vmId
 
 #monitoring
 if ($G) { Add-Record 'Microsoft.Insights/components' 'appifixture' @{ properties = @{ DisableLocalAuth = $true; publicNetworkAccessForIngestion = 'Disabled'; publicNetworkAccessForQuery = 'Disabled' } } | Out-Null }
-Add-Record 'Microsoft.OperationalInsights/workspaces' 'lafixture' @{ properties = @{ retentionInDays = (Pick 90 30); features = @{ disableLocalAuth = $G }; publicNetworkAccessForIngestion = (Pick 'Disabled' 'Enabled'); publicNetworkAccessForQuery = (Pick 'Disabled' 'Enabled') } } | Out-Null
+Add-Record 'Microsoft.OperationalInsights/workspaces' 'lafixture' @{ properties = @{ retentionInDays = (Pick 365 30); features = @{ disableLocalAuth = $G }; publicNetworkAccessForIngestion = (Pick 'Disabled' 'Enabled'); publicNetworkAccessForQuery = (Pick 'Disabled' 'Enabled') } } -Children @{
+    tables = @(@{ name = 'AzureActivity'; properties = @{ retentionInDays = (Pick 365 30); totalRetentionInDays = (Pick 730 30) } })
+} | Out-Null
 if ($G) {
     $alertOps = @('Microsoft.Authorization/policyAssignments/write', 'Microsoft.Authorization/policyAssignments/delete', 'Microsoft.Network/networkSecurityGroups/write', 'Microsoft.Network/networkSecurityGroups/delete', 'Microsoft.Security/securitySolutions/write', 'Microsoft.Security/securitySolutions/delete', 'Microsoft.Sql/servers/firewallRules/write', 'Microsoft.Sql/servers/firewallRules/delete', 'Microsoft.Network/publicIPAddresses/write', 'Microsoft.Network/publicIPAddresses/delete')
     $n = 0
@@ -412,6 +429,7 @@ Add-Record 'Microsoft.ContainerService/managedClusters' 'aksfixture' @{ identity
         disableLocalAccounts = $G; aadProfile = (Pick @{ managed = $true; enableAzureRBAC = $true } $null); apiServerAccessProfile = @{ enablePrivateCluster = $G; disableRunCommand = $G }
         addonProfiles = @{ azurepolicy = @{ enabled = $G } }; autoUpgradeProfile = @{ upgradeChannel = (Pick 'stable' 'none'); nodeOSUpgradeChannel = (Pick 'NodeImage' 'None') }
         networkProfile = @{ networkPlugin = 'azure'; networkPolicy = (Pick 'cilium' 'none') }; securityProfile = @{ azureKeyVaultKms = @{ enabled = $G } }; servicePrincipalProfile = (Pick $null @{ clientId = 'abc' })
+        agentPoolProfiles = @(@{ name = 'system'; mode = 'System'; availabilityZones = $fixtureZones })
     }
 } | Out-Null
 Add-Record 'Microsoft.ContainerRegistry/registries' 'acrfixture' @{ sku = @{ name = 'Premium' }; properties = @{ adminUserEnabled = (-not $G); anonymousPullEnabled = (-not $G); publicNetworkAccess = (Pick 'Disabled' 'Enabled'); networkRuleSet = @{ defaultAction = (Pick 'Deny' 'Allow') }; policies = @{ azureADAuthenticationAsArmPolicy = @{ status = (Pick 'disabled' 'enabled') } } } } -Children @{ tokens = (Pick @() @(@{ name = 'ci'; properties = @{ status = 'enabled' } })) } | Out-Null
@@ -453,14 +471,27 @@ Add-Record 'Microsoft.RecoveryServices/vaults' 'rsvfixture' @{ properties = @{
         restoreSettings = @{ crossSubscriptionRestoreSettings = @{ crossSubscriptionRestoreState = (Pick 'Disabled' 'Enabled') } }; monitoringSettings = @{ azureMonitorAlertSettings = @{ alertsForAllJobFailures = (Pick 'Enabled' 'Disabled') } }
     }
 } -Children @{
-    'backupconfig/vaultconfig' = @{ properties = @{ softDeleteFeatureState = (Pick 'AlwaysON' 'Disabled') } }; 'backupstorageconfig/vaultstorageconfig' = @{ properties = @{ storageModelType = (Pick 'GeoRedundant' 'LocallyRedundant') } }
+    'backupconfig/vaultconfig' = @{ properties = @{ softDeleteFeatureState = (Pick 'AlwaysON' 'Disabled') } }; 'backupstorageconfig/vaultstorageconfig' = @{ properties = @{ storageModelType = (Pick 'GeoRedundant' 'LocallyRedundant'); crossRegionRestoreFlag = $G } }
     backupResourceGuardProxies = (Pick @(@{ properties = @{ resourceGuardResourceId = '/guard' } }) @()); backupProtectedItems = (Pick @(@{ properties = @{ sourceResourceId = $vmId; virtualMachineId = $vmId } }) @())
+    #the machine replicated to another region, with a recent test failover, when Good
+    replicationProtectedItems  = (Pick @(@{ name = 'vmfixture-replica'; properties = @{ friendlyName = 'vmfixture'; protectionState = 'Protected'; replicationHealth = 'Normal'; lastSuccessfulTestFailoverTime = (Iso -30); providerSpecificDetails = @{ instanceType = 'A2A'; fabricObjectId = $vmId } } }) @())
 } | Out-Null
+if (-not $G) {
+    #geo-redundant without cross region restore, protecting a file share whose restore was never tested
+    Add-Record 'Microsoft.RecoveryServices/vaults' 'rsvgrsfixture' @{ properties = @{
+            securitySettings = @{ softDeleteSettings = @{ softDeleteState = 'Disabled' }; immutabilitySettings = @{ state = 'Disabled' } }; publicNetworkAccess = 'Enabled'
+            restoreSettings = @{ crossSubscriptionRestoreSettings = @{ crossSubscriptionRestoreState = 'Enabled' } }; monitoringSettings = @{ azureMonitorAlertSettings = @{ alertsForAllJobFailures = 'Disabled' } }
+        }
+    } -Children @{
+        'backupconfig/vaultconfig' = @{ properties = @{ softDeleteFeatureState = 'Disabled' } }; 'backupstorageconfig/vaultstorageconfig' = @{ properties = @{ storageModelType = 'GeoRedundant'; crossRegionRestoreFlag = $false } }
+        backupResourceGuardProxies = @(); backupProtectedItems = @(@{ properties = @{ sourceResourceId = "$(ResId 'Microsoft.Storage/storageAccounts' 'stfixture')/fileServices/default/shares/share1"; workloadType = 'AzureFileShare' } }); replicationProtectedItems = @()
+    } | Out-Null
+}
 Add-Record 'Microsoft.DataProtection/backupVaults' 'bvfixture' @{ properties = @{
         securitySettings = @{ softDeleteSettings = @{ state = (Pick 'AlwaysOn' 'Off') }; immutabilitySettings = @{ state = (Pick 'Unlocked' 'Disabled') } }; storageSettings = @(@{ type = (Pick 'GeoRedundant' 'LocallyRedundant'); datastoreType = 'VaultStore' })
-        featureSettings = @{ crossSubscriptionRestoreSettings = @{ state = (Pick 'Disabled' 'Enabled') } }; monitoringSettings = @{ azureMonitorAlertSettings = @{ alertsForAllJobFailures = (Pick 'Enabled' 'Disabled') } }
+        featureSettings = @{ crossSubscriptionRestoreSettings = @{ state = (Pick 'Disabled' 'Enabled') }; crossRegionRestoreSettings = @{ state = (Pick 'Enabled' 'Disabled') } }; monitoringSettings = @{ azureMonitorAlertSettings = @{ alertsForAllJobFailures = (Pick 'Enabled' 'Disabled') } }
     }
-} -Children @{ backupResourceGuardProxies = (Pick @(@{ properties = @{ resourceGuardResourceId = '/guard' } }) @()) } | Out-Null
+} -Children @{ backupResourceGuardProxies = (Pick @(@{ properties = @{ resourceGuardResourceId = '/guard' } }) @()); backupInstances = @() } | Out-Null
 
 #data and analytics
 $databricksProperties = {
@@ -489,6 +520,13 @@ Save 'resourceGraph/policyresources' @(
 Save 'resourceGraph/advisorresources' (Pick @() @(
         @{ id = "$rgId/providers/Microsoft.Advisor/recommendations/rec1"; type = 'microsoft.advisor/recommendations'; properties = @{ category = 'Security'; impact = 'High'; impactedField = 'Microsoft.Storage/storageAccounts'; impactedValue = 'stfixture'; shortDescription = @{ problem = 'Secure transfer to storage accounts should be enabled'; solution = 'Enable secure transfer' } } }
     ))
+#activity log: a restore from the backup vault when Good, only unrelated operations when Bad (AZ-BCK-010)
+$activity = { param([string]$Operation, [string]$ResourceId, [int]$Days) @{ eventDataId = "ev-$Days"; operationName = @{ value = $Operation }; resourceId = $ResourceId; eventTimestamp = (Iso $Days); status = @{ value = 'Succeeded' }; category = @{ value = 'Administrative' } } }
+$rsvId = ResId 'Microsoft.RecoveryServices/vaults' 'rsvfixture'
+Save 'activityLog/activityLog' @(
+    (& $activity 'Microsoft.Storage/storageAccounts/write' (ResId 'Microsoft.Storage/storageAccounts' 'stfixture') -5)
+    $(if ($G) { & $activity 'Microsoft.RecoveryServices/vaults/backupFabrics/protectionContainers/protectedItems/recoveryPoints/restore/action' "$rsvId/backupFabrics/Azure/protectionContainers/iaasvmcontainerv2;rg-fixture;vmfixture/protectedItems/vm;iaasvmcontainerv2;rg-fixture;vmfixture/recoveryPoints/1" -20 })
+)
 Save 'subscription/resources' $resourceList
 $index.Add([ordered]@{ id = $rgId; type = 'resourceGroup'; file = 'resourceGroups/rg-fixture.json'; status = 'ok' })
 Save 'resourceGroups/rg-fixture' @{ id = $rgId; deployments = @(); deploymentStacks = @(); lighthouseRegistrationAssignments = @() }
@@ -496,5 +534,6 @@ Save 'index' $index
 Save 'manifest' ([ordered]@{
         schemaVersion = 1; scriptVersion = 'fixture'; status = 'completed'; startedAt = $reference.ToString('yyyy-MM-ddTHH:mm:ssZ')
         subscription = @{ id = $sub; displayName = "Fixture ($Mode)"; tenantId = $tenant; state = 'Enabled' }
+        parameters = @{ activityLogDays = 90 }
         sections = @{ 'identity/users' = @{ status = 'ok'; signInActivity = $true } }
     })

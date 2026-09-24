@@ -142,3 +142,298 @@ Add-AzTest @{
         New-Fail 'No Azure Monitor alerts for job failures' $evidence
     }
 }
+
+#user databases of SQL servers; master and dedicated SQL pools (data warehouses) have their own backup model
+function Test-UserDatabase {
+    param($Record)
+    return ($Record.type -ne 'Microsoft.Sql/servers/databases' -or ($Record.resource.name -ne 'master' -and [string]$Record.resource.kind -notmatch '(?i)system|datawarehouse'))
+}
+
+Add-AzTest @{
+    Id            = 'AZ-BCK-007'
+    Title         = 'Database backups are stored geo-redundantly'
+    Category      = 'Backup and recovery'
+    Service       = 'Databases'
+    Severity      = 'Medium'
+    Description   = 'Checks the backup storage redundancy of Azure SQL databases and managed instances, geo-redundant backup on PostgreSQL and MySQL flexible servers, and the backup policy of Cosmos DB accounts.'
+    Rationale     = 'Point-in-time restore depends on the backups the database service makes itself. Kept only in the primary region, they are lost together with the database in a regional outage or disaster.'
+    Remediation   = 'Use geo-redundant (or geo-zone-redundant) backup storage on SQL databases and managed instances, enable geo-redundant backup on PostgreSQL and MySQL flexible servers (only possible when the server is created), and use geo-redundant periodic backup or a second region for Cosmos DB.'
+    References    = @('https://learn.microsoft.com/azure/azure-sql/database/automated-backups-overview', 'https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-backup-restore', 'https://learn.microsoft.com/azure/cosmos-db/periodic-backup-storage-redundancy')
+    Frameworks    = @{ MCSB = 'BR-1' }
+    ResourceTypes = @('Microsoft.Sql/servers/databases', 'Microsoft.Sql/managedInstances', 'Microsoft.DBforPostgreSQL/flexibleServers', 'Microsoft.DBforMySQL/flexibleServers', 'Microsoft.DocumentDB/databaseAccounts')
+    Filter        = { param($Record) Test-UserDatabase $Record }
+    Evaluate      = {
+        param($Record)
+        $p = $Record.resource.properties
+        if ($Record.type -eq 'Microsoft.DocumentDB/databaseAccounts') {
+            $regions = @($p.locations | Where-Object { $_ } | ForEach-Object { $_.locationName })
+            $evidence = [ordered]@{ backupPolicy = $p.backupPolicy.type; backupStorageRedundancy = $p.backupPolicy.periodicModeProperties.backupStorageRedundancy; regions = $regions }
+            if (-not $p.backupPolicy.type) { return New-Unknown 'Backup policy could not be read' $evidence }
+            if ($p.backupPolicy.type -eq 'Continuous') {
+                if ($regions.Count -gt 1) { return New-Pass "Continuous backup in $($regions.Count) regions" $evidence }
+                return New-Fail "Continuous backup kept in $($regions -join ', ') only" $evidence
+            }
+            $redundancy = $p.backupPolicy.periodicModeProperties.backupStorageRedundancy
+            if (-not $redundancy) { return New-Unknown 'Periodic backup storage redundancy could not be read' $evidence }
+            if ($redundancy -eq 'Geo') { return New-Pass 'Periodic backup on geo-redundant storage' $evidence }
+            return New-Fail "Periodic backup on $redundancy storage" $evidence
+        }
+        if ($Record.type -in 'Microsoft.DBforPostgreSQL/flexibleServers', 'Microsoft.DBforMySQL/flexibleServers') {
+            $evidence = [ordered]@{ geoRedundantBackup = $p.backup.geoRedundantBackup; backupRetentionDays = $p.backup.backupRetentionDays }
+            if (-not $p.backup.geoRedundantBackup) { return New-Unknown 'Backup settings could not be read' $evidence }
+            if ($p.backup.geoRedundantBackup -eq 'Enabled') { return New-Pass 'Geo-redundant backup enabled' $evidence }
+            return New-Fail "Geo-redundant backup $($p.backup.geoRedundantBackup)" $evidence
+        }
+        $redundancy = if ($p.currentBackupStorageRedundancy) { $p.currentBackupStorageRedundancy } else { $p.requestedBackupStorageRedundancy }
+        $evidence = [ordered]@{ backupStorageRedundancy = $redundancy }
+        if (-not $redundancy) { return New-Unknown 'Backup storage redundancy could not be read' $evidence }
+        if ($redundancy -in 'Geo', 'GeoZone') { return New-Pass "$redundancy backup storage" $evidence }
+        New-Fail "$redundancy backup storage" $evidence
+    }
+}
+
+Add-AzTest @{
+    Id            = 'AZ-BCK-008'
+    Title         = 'Azure SQL databases have long-term backup retention'
+    Category      = 'Backup and recovery'
+    Service       = 'Azure SQL'
+    Severity      = 'Low'
+    Description   = 'Checks the long-term retention policy (weekly, monthly or yearly full backups) of Azure SQL databases.'
+    Rationale     = 'Point-in-time restore covers at most 35 days. Recovering from corruption or an attack found later, or meeting a retention obligation, needs backups kept for months or years.'
+    Remediation   = 'Configure long-term retention on the database (SQL server > Backups > Retention policies) with the weekly, monthly and yearly retention your recovery and retention requirements ask for.'
+    References    = @('https://learn.microsoft.com/azure/azure-sql/database/long-term-retention-overview')
+    Frameworks    = @{ MCSB = 'BR-1' }
+    Policy        = @{ 'd38fc420-0735-4ef3-ac11-c806f651a570' = 'Long-term geo-redundant backup should be enabled for Azure SQL Databases' }
+    ResourceTypes = @('Microsoft.Sql/servers/databases')
+    Filter        = { param($Record) Test-UserDatabase $Record }
+    Evaluate      = {
+        param($Record)
+        if (-not (Test-ChildCollected $Record 'backupLongTermRetentionPolicies')) { return New-Unknown 'The long-term retention policy could not be read' }
+        $policy = @(Get-Child $Record 'backupLongTermRetentionPolicies' | Where-Object { $_ }) | Select-Object -First 1
+        $p = $policy.properties
+        $evidence = [ordered]@{ weeklyRetention = $p.weeklyRetention; monthlyRetention = $p.monthlyRetention; yearlyRetention = $p.yearlyRetention }
+        $kept = @(foreach ($pair in @(@('weekly', $p.weeklyRetention), @('monthly', $p.monthlyRetention), @('yearly', $p.yearlyRetention))) {
+                if ($pair[1] -and $pair[1] -notmatch '^PT?0+[SDWMY]$') { "$($pair[0]) $($pair[1])" }
+            })
+        if ($kept) { return New-Pass "Long-term retention: $($kept -join ', ')" $evidence }
+        New-Fail 'No long-term retention configured' $evidence
+    }
+}
+
+Add-AzTest @{
+    Id            = 'AZ-BCK-009'
+    Title         = 'Geo-redundant backup vaults allow cross region restore'
+    Category      = 'Backup and recovery'
+    Service       = 'Azure Backup'
+    Severity      = 'Low'
+    Description   = 'Checks that Recovery Services vaults and Backup vaults with geo-redundant storage have cross region restore enabled.'
+    Rationale     = 'Geo-redundant backups can only be restored in the paired region at will when cross region restore is enabled; otherwise a restore after a regional disaster waits until Microsoft declares a failover of the region.'
+    Remediation   = 'Enable cross region restore on the vault (Properties > Backup configuration). It cannot be disabled again once enabled.'
+    References    = @('https://learn.microsoft.com/azure/backup/backup-create-recovery-services-vault#set-cross-region-restore')
+    Frameworks    = @{ MCSB = 'BR-1' }
+    ResourceTypes = $backupVaultTypes
+    Evaluate      = {
+        param($Record)
+        $p = $Record.resource.properties
+        if ($Record.type -eq $rsvType) {
+            $config = if (Test-ChildCollected $Record 'backupstorageconfig/vaultstorageconfig') { (Get-Child $Record 'backupstorageconfig/vaultstorageconfig').properties } else { $null }
+            $redundancy = if ($p.redundancySettings.standardTierStorageRedundancy) { $p.redundancySettings.standardTierStorageRedundancy } elseif ($config.storageModelType) { $config.storageModelType } else { $config.storageType }
+            $enabled = if ($p.redundancySettings.crossRegionRestore) { $p.redundancySettings.crossRegionRestore -eq 'Enabled' } elseif ($config -and $null -ne $config.crossRegionRestoreFlag) { [bool]$config.crossRegionRestoreFlag } else { $null }
+        } else {
+            $redundancy = (@($p.storageSettings) | Select-Object -First 1).type
+            #a Backup vault only reports the setting once it has been changed; absent means disabled
+            $enabled = $p.featureSettings.crossRegionRestoreSettings.state -eq 'Enabled'
+        }
+        $evidence = [ordered]@{ storageRedundancy = $redundancy; crossRegionRestore = $enabled }
+        if (-not $redundancy) { return New-Unknown 'Storage redundancy could not be read' $evidence }
+        if ($redundancy -ne 'GeoRedundant') { return New-NotApplicable "$redundancy storage (see AZ-BCK-004)" $evidence }
+        if ($null -eq $enabled) { return New-Unknown 'The cross region restore setting could not be read' $evidence }
+        if ($enabled) { return New-Pass 'Cross region restore enabled' $evidence }
+        New-Fail 'Cross region restore disabled' $evidence
+    }
+}
+
+#activity log operations that restore from a backup or fail over a replicated item
+$recoveryOperations = '(?i)^(Microsoft\.RecoveryServices/vaults/backupFabrics/protectionContainers/protectedItems/recoveryPoints/(restore|provisionInstantItemRecovery)/action|Microsoft\.DataProtection/backupVaults/backupInstances/restore/action|Microsoft\.RecoveryServices/vaults/replicationFabrics/replicationProtectionContainers/replicationProtectedItems/(testFailover|plannedFailover|unplannedFailover)/action)$'
+
+function Get-RecoveryEvents {
+    #vault id (lowercase) -> the most recent restore or failover the activity log records for it
+    if (-not $script:Ingest.Cache.ContainsKey('#recoveryEvents')) {
+        $map = @{}
+        foreach ($entry in @(Get-IngestData 'activityLog/activityLog' | Where-Object { $_ })) {
+            $operation = [string]$entry.operationName.value
+            if ($operation -notmatch $recoveryOperations -or [string]$entry.status.value -eq 'Failed') { continue }
+            if ([string]$entry.resourceId -notmatch '(?i)^(/subscriptions/[^/]+/resourceGroups/[^/]+/providers/Microsoft\.(RecoveryServices/vaults|DataProtection/backupVaults)/[^/]+)/') { continue }
+            $vault = $Matches[1].ToLowerInvariant()
+            $age = Get-AgeInDays $entry.eventTimestamp
+            if ($null -eq $age) { continue }
+            if (-not $map.ContainsKey($vault) -or $age -lt $map[$vault].Age) {
+                $map[$vault] = [pscustomobject]@{ Age = $age; Time = Format-UtcDate $entry.eventTimestamp; Operation = ($operation -split '/')[-2] }
+            }
+        }
+        $script:Ingest.Cache['#recoveryEvents'] = $map
+    }
+    return $script:Ingest.Cache['#recoveryEvents']
+}
+
+function Get-ActivityLogDays {
+    $name = 'activityLog/activityLog'
+    $section = $script:Ingest.Manifest.sections.$name
+    if ($section.days) { return [int]$section.days }
+    if ($script:Ingest.Manifest.parameters.activityLogDays) { return [int]$script:Ingest.Manifest.parameters.activityLogDays }
+    return $null
+}
+
+Add-AzTest @{
+    Id            = 'AZ-BCK-010'
+    Title         = 'Backup restores and disaster recovery failovers are tested'
+    Category      = 'Backup and recovery'
+    Service       = 'Azure Backup'
+    Severity      = 'Informational'
+    Description   = 'For every Recovery Services vault and Backup vault that protects something, looks for a restore or failover in the collected activity log, and for a Site Recovery test failover in the last year.'
+    Rationale     = 'A backup that has never been restored is an assumption, not a recovery capability. Regular restore tests and disaster recovery drills show that the data, the procedure and the recovery time hold up. The activity log reaches back 90 days at most, so a test done earlier in the year is not visible here.'
+    Remediation   = 'Restore a representative item from each vault to an isolated location on a schedule (at least yearly), run Site Recovery test failovers into an isolated network, and keep the results as evidence.'
+    References    = @('https://learn.microsoft.com/azure/backup/backup-azure-arm-restore-vms', 'https://learn.microsoft.com/azure/site-recovery/azure-to-azure-tutorial-dr-drill')
+    Frameworks    = @{ MCSB = 'BR-4' }
+    Requires      = @('activityLog/activityLog')
+    ResourceTypes = $backupVaultTypes
+    Evaluate      = {
+        param($Record)
+        $isRecoveryServices = $Record.type -eq $rsvType
+        $paths = if ($isRecoveryServices) { @('backupProtectedItems', 'replicationProtectedItems') } else { @('backupInstances') }
+        $missing = @($paths | Where-Object { -not (Test-ChildCollected $Record $_) })
+        if ($missing) { return New-Unknown "The protected items could not be read ($($missing -join ', '))" }
+        $protected = @(foreach ($path in $paths) { Get-Child $Record $path | Where-Object { $_ } })
+        if (-not $protected) { return New-NotApplicable 'The vault protects nothing' }
+        $days = Get-ActivityLogDays
+        $recovery = (Get-RecoveryEvents)[$Record.id.ToLowerInvariant()]
+        $drill = @(if ($isRecoveryServices) {
+                Get-Child $Record 'replicationProtectedItems' | Where-Object { $_ -and $_.properties.lastSuccessfulTestFailoverTime } | ForEach-Object {
+                    [pscustomobject]@{ Name = [string]$_.properties.friendlyName; Age = Get-AgeInDays $_.properties.lastSuccessfulTestFailoverTime; Time = Format-UtcDate $_.properties.lastSuccessfulTestFailoverTime }
+                }
+            }) | Where-Object { $_.Age -le 365 } | Sort-Object Age, Name | Select-Object -First 1
+        $evidence = [ordered]@{
+            protectedItems             = $protected.Count
+            activityLogDays            = $days
+            lastRestoreOrFailover      = $(if ($recovery) { "$($recovery.Operation) $($recovery.Time)" } else { $null })
+            lastSuccessfulTestFailover = $(if ($drill) { "$($drill.Name) $($drill.Time)" } else { $null })
+        }
+        if ($recovery) { return New-Pass "$($recovery.Operation) started $($recovery.Time)" $evidence }
+        if ($drill) { return New-Pass "Test failover of $($drill.Name) on $($drill.Time)" $evidence }
+        $window = if ($days) { "the $days days of activity log collected" } else { 'the activity log collected' }
+        New-Fail "No restore or failover in $window, and no Site Recovery test failover in the last year" $evidence
+    }
+}
+
+function Get-ReplicatedMachines {
+    #Azure VM id (lowercase) -> Site Recovery replicated item, and whether every vault's replicated items could be read
+    if (-not $script:Ingest.Cache.ContainsKey('#replicated')) {
+        $machines = @{}
+        $complete = -not @(Get-FailedResourceIds -Type $rsvType).Count
+        foreach ($vault in (Get-AzResourceRecords -Type $rsvType)) {
+            if (-not (Test-ChildCollected $vault 'replicationProtectedItems')) { $complete = $false; continue }
+            foreach ($item in @(Get-Child $vault 'replicationProtectedItems' | Where-Object { $_ })) {
+                $source = [string]$item.properties.providerSpecificDetails.fabricObjectId
+                if ($source -match '(?i)/providers/Microsoft\.Compute/virtualMachines/[^/]+$' -and -not $machines.ContainsKey($source.ToLowerInvariant())) {
+                    $machines[$source.ToLowerInvariant()] = [pscustomobject]@{ Vault = [string]$vault.resource.name; Item = $item }
+                }
+            }
+        }
+        $script:Ingest.Cache['#replicated'] = [pscustomobject]@{ Machines = $machines; Complete = $complete }
+    }
+    return $script:Ingest.Cache['#replicated']
+}
+
+Add-AzTest @{
+    Id            = 'AZ-BCK-011'
+    Title         = 'Virtual machines are replicated for disaster recovery'
+    Category      = 'Backup and recovery'
+    Service       = 'Azure Site Recovery'
+    Severity      = 'Informational'
+    Description   = 'Checks whether each virtual machine is replicated to another region with Azure Site Recovery by a Recovery Services vault in this subscription.'
+    Rationale     = 'Backups restore data, but bringing a critical workload back in another region within its recovery time objective needs a replica that is ready to fail over. Not every machine needs one; the ones behind critical or important functions do.'
+    Remediation   = 'Enable Site Recovery replication for the machines behind critical or important functions, choose a target region and network, and run test failovers regularly.'
+    References    = @('https://learn.microsoft.com/azure/site-recovery/azure-to-azure-tutorial-enable-replication')
+    Frameworks    = @{ DORA = @('Art. 11', 'Art. 12', 'RTS Art. 26') }
+    Policy        = @{ '0015ea4d-51ff-4ce3-8d8c-f3f8f0179a56' = 'Audit virtual machines without disaster recovery configured' }
+    ResourceTypes = @('Microsoft.Compute/virtualMachines')
+    Evaluate      = {
+        param($Record)
+        $replicated = Get-ReplicatedMachines
+        $entry = $replicated.Machines[$Record.id.ToLowerInvariant()]
+        if ($entry) {
+            $p = $entry.Item.properties
+            $evidence = [ordered]@{ vault = $entry.Vault; protectionState = $p.protectionState; replicationHealth = $p.replicationHealth; lastSuccessfulTestFailover = Format-UtcDate $p.lastSuccessfulTestFailoverTime }
+            return New-Pass "Replicated by vault $($entry.Vault) ($($p.protectionState), health $($p.replicationHealth))" $evidence
+        }
+        if (-not $replicated.Complete) { return New-Unknown 'The replicated items of every Recovery Services vault could not be read' }
+        New-Fail 'Not replicated with Site Recovery in this subscription'
+    }
+}
+
+$zoneTypes = @(
+    'Microsoft.Storage/storageAccounts', 'Microsoft.Sql/servers/databases', 'Microsoft.Sql/managedInstances', 'Microsoft.Web/serverfarms',
+    'Microsoft.ContainerService/managedClusters', 'Microsoft.DBforPostgreSQL/flexibleServers', 'Microsoft.DBforMySQL/flexibleServers',
+    'Microsoft.DocumentDB/databaseAccounts', 'Microsoft.Network/applicationGateways', 'Microsoft.Network/azureFirewalls', 'Microsoft.Compute/virtualMachineScaleSets'
+)
+
+Add-AzTest @{
+    Id            = 'AZ-BCK-012'
+    Title         = 'Zone capable resources are zone redundant'
+    Category      = 'Backup and recovery'
+    Service       = 'Multiple'
+    Severity      = 'Informational'
+    Description   = 'Checks zone redundancy of storage accounts, SQL databases and managed instances, App Service plans, AKS node pools, PostgreSQL and MySQL flexible servers, Cosmos DB regions, Application Gateways, Azure Firewalls and virtual machine scale sets.'
+    Rationale     = 'A resource in a single availability zone is a single point of failure: a datacenter outage takes it down even though the region keeps running. Zone redundancy keeps it available without a failover. It is only possible in regions with availability zones.'
+    Remediation   = 'Use zone-redundant storage (ZRS or GZRS), enable zone redundancy on databases, App Service plans (Premium v2, v3 or Isolated v2) and Cosmos DB regions, spread AKS node pools, scale sets, Application Gateways and firewalls over at least two zones, and use zone-redundant high availability for flexible servers.'
+    References    = @('https://learn.microsoft.com/azure/reliability/availability-zones-overview')
+    Frameworks    = @{ ALZ = 'Audit-ZoneResiliency'; DORA = @('Art. 7', 'Art. 12') }
+    ResourceTypes = $zoneTypes
+    Filter        = { param($Record) (Test-UserDatabase $Record) -and -not ($Record.type -eq 'Microsoft.Web/serverfarms' -and [string]$Record.resource.sku.tier -in 'Free', 'Shared', 'Dynamic', 'FlexConsumption') }
+    Evaluate      = {
+        param($Record)
+        $r = $Record.resource
+        $p = $r.properties
+        $type = $Record.type
+        if ($type -eq 'Microsoft.Storage/storageAccounts') {
+            $evidence = [ordered]@{ sku = $r.sku.name }
+            if (-not $r.sku.name) { return New-Unknown 'The replication setting could not be read' $evidence }
+            if ([string]$r.sku.name -match 'ZRS$') { return New-Pass "$($r.sku.name) replicates across availability zones" $evidence }
+            return New-Fail "$($r.sku.name) is not zone redundant" $evidence
+        }
+        if ($type -eq 'Microsoft.ContainerService/managedClusters') {
+            $pools = @($p.agentPoolProfiles | Where-Object { $_ })
+            $evidence = [ordered]@{ nodePools = @($pools | ForEach-Object { "$($_.name): zones $(@($_.availabilityZones | Where-Object { $_ }) -join ',')" } | Sort-Object) }
+            if (-not $pools) { return New-Unknown 'The node pools could not be read' $evidence }
+            $single = @($pools | Where-Object { @($_.availabilityZones | Where-Object { $_ }).Count -lt 2 } | ForEach-Object { $_.name } | Sort-Object)
+            if ($single) { return New-Fail "Node pool(s) $($single -join ', ') not spread over availability zones" $evidence }
+            return New-Pass 'All node pools spread over availability zones' $evidence
+        }
+        if ($type -in 'Microsoft.DBforPostgreSQL/flexibleServers', 'Microsoft.DBforMySQL/flexibleServers') {
+            $evidence = [ordered]@{ highAvailability = $p.highAvailability.mode }
+            if (-not $p.highAvailability.mode) { return New-Unknown 'The high availability setting could not be read' $evidence }
+            if ($p.highAvailability.mode -eq 'ZoneRedundant') { return New-Pass 'Zone-redundant high availability' $evidence }
+            return New-Fail "High availability $($p.highAvailability.mode)" $evidence
+        }
+        if ($type -eq 'Microsoft.DocumentDB/databaseAccounts') {
+            $locations = @($p.locations | Where-Object { $_ })
+            $evidence = [ordered]@{ regions = @($locations | ForEach-Object { "$($_.locationName): $(if ($_.isZoneRedundant) { 'zone redundant' } else { 'single zone' })" }) }
+            if (-not $locations) { return New-Unknown 'The account regions could not be read' $evidence }
+            $single = @($locations | Where-Object { -not $_.isZoneRedundant } | ForEach-Object { $_.locationName })
+            if ($single) { return New-Fail "Not zone redundant in $($single -join ', ')" $evidence }
+            return New-Pass 'Zone redundant in every region' $evidence
+        }
+        if ($type -in 'Microsoft.Network/applicationGateways', 'Microsoft.Network/azureFirewalls', 'Microsoft.Compute/virtualMachineScaleSets') {
+            $zones = @($r.zones | Where-Object { $_ })
+            $evidence = [ordered]@{ zones = $zones }
+            if ($zones.Count -ge 2) { return New-Pass "Spread over zones $($zones -join ', ')" $evidence }
+            $detail = if ($zones) { "Deployed in zone $($zones -join ', ') only" } else { 'Not deployed across availability zones' }
+            return New-Fail $detail $evidence
+        }
+        #SQL databases, managed instances and App Service plans
+        $evidence = [ordered]@{ zoneRedundant = $p.zoneRedundant; sku = $r.sku.name }
+        if ($null -eq $p.zoneRedundant) { return New-Unknown 'The zone redundancy setting could not be read' $evidence }
+        if ($p.zoneRedundant) { return New-Pass 'Zone redundant' $evidence }
+        New-Fail 'Not zone redundant' $evidence
+    }
+}

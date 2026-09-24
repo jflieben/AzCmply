@@ -61,7 +61,10 @@
             "A.8.16",
             "A.8.7"
           ],
-          "SOC 2": "CC7.2"
+          "SOC 2": "CC7.2",
+          "DORA": [
+            "Art. 9"
+          ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-artificial-intelligence-security#ai-2"
       },
@@ -86,7 +89,10 @@
             "A.8.28",
             "A.8.15"
           ],
-          "SOC 2": "CC8.1"
+          "SOC 2": "CC8.1",
+          "DORA": [
+            "Art. 9"
+          ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-artificial-intelligence-security#ai-3"
       },
@@ -115,7 +121,10 @@
             "A.5.15",
             "A.8.3"
           ],
-          "SOC 2": "CC6.3"
+          "SOC 2": "CC6.3",
+          "DORA": [
+            "RTS Art. 21"
+          ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-artificial-intelligence-security#ai-4"
       },
@@ -173,7 +182,11 @@
             "A.8.16",
             "A.8.15"
           ],
-          "SOC 2": "CC7.2"
+          "SOC 2": "CC7.2",
+          "DORA": [
+            "Art. 10",
+            "RTS Art. 23"
+          ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-artificial-intelligence-security#ai-6"
       },
@@ -243,6 +256,11 @@
           "SOC 2": [
             "CC6.1",
             "CC7.2"
+          ],
+          "DORA": [
+            "Art. 8",
+            "RTS Art. 4",
+            "RTS Art. 5"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-asset-management#am-1"
@@ -282,6 +300,10 @@
             "CC6.1",
             "CC6.6",
             "CC7.2"
+          ],
+          "DORA": [
+            "Art. 8",
+            "RTS Art. 16"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-asset-management#am-2"
@@ -323,6 +345,11 @@
             "CC6.1",
             "CC6.6",
             "CC8.1"
+          ],
+          "DORA": [
+            "Art. 8",
+            "RTS Art. 4",
+            "RTS Art. 5"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-asset-management#am-3"
@@ -366,6 +393,9 @@
             "CC6.1",
             "CC6.2",
             "CC6.3"
+          ],
+          "DORA": [
+            "RTS Art. 21"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-asset-management#am-4"
@@ -407,6 +437,9 @@
             "CC6.1",
             "CC6.6",
             "CC7.2"
+          ],
+          "DORA": [
+            "RTS Art. 11"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-asset-management#am-5"
@@ -439,6 +472,11 @@
           "SOC 2": [
             "CC5.1",
             "A1.2"
+          ],
+          "DORA": [
+            "Art. 11",
+            "Art. 12",
+            "RTS Art. 26"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-backup-recovery#br-1"
@@ -478,6 +516,10 @@
             "CC6.1",
             "CC6.7",
             "A1.2"
+          ],
+          "DORA": [
+            "Art. 9",
+            "Art. 12"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-backup-recovery#br-2"
@@ -514,6 +556,10 @@
           "SOC 2": [
             "CC7.2",
             "A1.2"
+          ],
+          "DORA": [
+            "Art. 10",
+            "Art. 12"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-backup-recovery#br-3"
@@ -544,6 +590,10 @@
           "SOC 2": [
             "A1.3",
             "CC9.1"
+          ],
+          "DORA": [
+            "Art. 12",
+            "RTS Art. 25"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-backup-recovery#br-4"
@@ -570,7 +620,11 @@
             "PR.DS-5"
           ],
           "ISO 27001:2022": "A.8.11",
-          "SOC 2": "CC6.1"
+          "SOC 2": "CC6.1",
+          "DORA": [
+            "Art. 8",
+            "RTS Art. 4"
+          ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-data-protection#dp-1"
       },
@@ -598,6 +652,11 @@
           "SOC 2": [
             "CC6.1",
             "CC7.2"
+          ],
+          "DORA": [
+            "Art. 10",
+            "RTS Art. 11",
+            "RTS Art. 23"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-data-protection#dp-2"
@@ -617,6 +676,11 @@
           "SOC 2": [
             "CC6.1",
             "CC6.7"
+          ],
+          "DORA": [
+            "Art. 9",
+            "RTS Art. 6",
+            "RTS Art. 14"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-data-protection#dp-3"
@@ -633,7 +697,11 @@
           "CIS Controls v8.1": "3.11",
           "NIST CSF v2.0": "PR.DS-1",
           "ISO 27001:2022": "A.8.24",
-          "SOC 2": "CC6.1"
+          "SOC 2": "CC6.1",
+          "DORA": [
+            "Art. 9",
+            "RTS Art. 6"
+          ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-data-protection#dp-4"
       },
@@ -656,7 +724,11 @@
             "ID.AM-3"
           ],
           "ISO 27001:2022": "A.8.24",
-          "SOC 2": "CC6.1"
+          "SOC 2": "CC6.1",
+          "DORA": [
+            "RTS Art. 6",
+            "RTS Art. 7"
+          ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-data-protection#dp-5"
       },
@@ -685,6 +757,9 @@
           "SOC 2": [
             "CC6.1",
             "CC6.2"
+          ],
+          "DORA": [
+            "RTS Art. 7"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-data-protection#dp-6"
@@ -711,6 +786,9 @@
           "SOC 2": [
             "CC6.1",
             "CC6.2"
+          ],
+          "DORA": [
+            "RTS Art. 7"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-data-protection#dp-7"
@@ -740,6 +818,9 @@
           "SOC 2": [
             "CC6.1",
             "CC6.2"
+          ],
+          "DORA": [
+            "RTS Art. 7"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-data-protection#dp-8"
@@ -775,6 +856,9 @@
           "SOC 2": [
             "CC3.2",
             "CC7.1"
+          ],
+          "DORA": [
+            "RTS Art. 16"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-devops-security#ds-1"
@@ -814,6 +898,9 @@
           "SOC 2": [
             "CC3.2",
             "CC8.1"
+          ],
+          "DORA": [
+            "RTS Art. 16"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-devops-security#ds-2"
@@ -857,6 +944,10 @@
             "CC6.1",
             "CC6.6",
             "CC6.7"
+          ],
+          "DORA": [
+            "RTS Art. 16",
+            "RTS Art. 17"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-devops-security#ds-3"
@@ -890,6 +981,9 @@
           "SOC 2": [
             "CC7.1",
             "CC7.2"
+          ],
+          "DORA": [
+            "RTS Art. 16"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-devops-security#ds-4"
@@ -922,6 +1016,9 @@
           "SOC 2": [
             "CC7.1",
             "CC7.3"
+          ],
+          "DORA": [
+            "RTS Art. 16"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-devops-security#ds-5"
@@ -960,6 +1057,10 @@
           "SOC 2": [
             "CC7.2",
             "CC8.1"
+          ],
+          "DORA": [
+            "RTS Art. 16",
+            "RTS Art. 17"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-devops-security#ds-6"
@@ -997,6 +1098,9 @@
           "SOC 2": [
             "CC7.2",
             "CC7.3"
+          ],
+          "DORA": [
+            "RTS Art. 12"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-devops-security#ds-7"
@@ -1040,6 +1144,11 @@
           "SOC 2": [
             "CC7.2",
             "CC7.3"
+          ],
+          "DORA": [
+            "Art. 10",
+            "RTS Art. 11",
+            "RTS Art. 23"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-endpoint-security#es-1"
@@ -1077,6 +1186,10 @@
           "SOC 2": [
             "CC6.1",
             "CC7.2"
+          ],
+          "DORA": [
+            "Art. 9",
+            "RTS Art. 11"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-endpoint-security#es-2"
@@ -1106,7 +1219,11 @@
             "A.8.7",
             "A.8.8"
           ],
-          "SOC 2": "CC8.1"
+          "SOC 2": "CC8.1",
+          "DORA": [
+            "RTS Art. 10",
+            "RTS Art. 11"
+          ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-endpoint-security#es-3"
       },
@@ -1147,6 +1264,10 @@
             "CC6.1",
             "CC6.2",
             "CC6.6"
+          ],
+          "DORA": [
+            "Art. 9",
+            "RTS Art. 20"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-identity-management#im-1"
@@ -1193,6 +1314,10 @@
             "CC6.2",
             "CC6.6",
             "CC7.2"
+          ],
+          "DORA": [
+            "Art. 9",
+            "RTS Art. 20"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-identity-management#im-2"
@@ -1236,6 +1361,9 @@
           "SOC 2": [
             "CC6.1",
             "CC6.2"
+          ],
+          "DORA": [
+            "RTS Art. 20"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-identity-management#im-3"
@@ -1271,6 +1399,9 @@
           "SOC 2": [
             "CC6.6",
             "CC6.7"
+          ],
+          "DORA": [
+            "RTS Art. 14"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-identity-management#im-4"
@@ -1306,6 +1437,9 @@
           "SOC 2": [
             "CC6.1",
             "CC6.2"
+          ],
+          "DORA": [
+            "RTS Art. 20"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-identity-management#im-5"
@@ -1346,6 +1480,10 @@
           "SOC 2": [
             "CC6.1",
             "CC6.2"
+          ],
+          "DORA": [
+            "Art. 9",
+            "RTS Art. 21"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-identity-management#im-6"
@@ -1386,6 +1524,9 @@
             "CC6.1",
             "CC6.3",
             "CC6.6"
+          ],
+          "DORA": [
+            "RTS Art. 21"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-identity-management#im-7"
@@ -1427,6 +1568,10 @@
             "CC6.1",
             "CC6.6",
             "CC7.2"
+          ],
+          "DORA": [
+            "RTS Art. 11",
+            "RTS Art. 21"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-identity-management#im-8"
@@ -1466,6 +1611,10 @@
           "SOC 2": [
             "CC9.1",
             "A1.1"
+          ],
+          "DORA": [
+            "Art. 17",
+            "RTS Art. 22"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-incident-response#ir-1"
@@ -1503,6 +1652,10 @@
           "SOC 2": [
             "CC9.1",
             "A1.1"
+          ],
+          "DORA": [
+            "Art. 10",
+            "RTS Art. 23"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-incident-response#ir-2"
@@ -1546,6 +1699,10 @@
           "SOC 2": [
             "CC7.2",
             "CC7.3"
+          ],
+          "DORA": [
+            "Art. 10",
+            "RTS Art. 23"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-incident-response#ir-3"
@@ -1594,6 +1751,10 @@
             "CC7.2",
             "CC7.4",
             "A1.2"
+          ],
+          "DORA": [
+            "Art. 17",
+            "RTS Art. 22"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-incident-response#ir-4"
@@ -1632,6 +1793,10 @@
           "SOC 2": [
             "CC7.3",
             "A1.1"
+          ],
+          "DORA": [
+            "Art. 17",
+            "RTS Art. 22"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-incident-response#ir-5"
@@ -1670,6 +1835,10 @@
             "CC7.3",
             "CC7.4",
             "CC9.1"
+          ],
+          "DORA": [
+            "Art. 11",
+            "RTS Art. 22"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-incident-response#ir-6"
@@ -1749,6 +1918,10 @@
           "SOC 2": [
             "CC7.2",
             "CC7.3"
+          ],
+          "DORA": [
+            "Art. 10",
+            "RTS Art. 23"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-logging-threat-detection#lt-1"
@@ -1790,6 +1963,10 @@
             "CC6.1",
             "CC7.2",
             "CC7.3"
+          ],
+          "DORA": [
+            "Art. 10",
+            "RTS Art. 23"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-logging-threat-detection#lt-2"
@@ -1834,6 +2011,9 @@
             "CC4.1",
             "CC7.2",
             "CC7.3"
+          ],
+          "DORA": [
+            "RTS Art. 12"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-logging-threat-detection#lt-3"
@@ -1878,7 +2058,11 @@
             "A.8.15",
             "A.8.16"
           ],
-          "SOC 2": "CC7.2"
+          "SOC 2": "CC7.2",
+          "DORA": [
+            "RTS Art. 12",
+            "RTS Art. 13"
+          ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-logging-threat-detection#lt-4"
       },
@@ -1932,6 +2116,10 @@
           "SOC 2": [
             "CC7.2",
             "CC7.3"
+          ],
+          "DORA": [
+            "Art. 10",
+            "RTS Art. 12"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-logging-threat-detection#lt-5"
@@ -1959,7 +2147,10 @@
             "DE.CM-1"
           ],
           "ISO 27001:2022": "A.8.15",
-          "SOC 2": "CC7.2"
+          "SOC 2": "CC7.2",
+          "DORA": [
+            "RTS Art. 12"
+          ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-logging-threat-detection#lt-6"
       },
@@ -1982,7 +2173,10 @@
             "PR.PT-1"
           ],
           "ISO 27001:2022": "A.8.15",
-          "SOC 2": "CC7.2"
+          "SOC 2": "CC7.2",
+          "DORA": [
+            "RTS Art. 12"
+          ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-logging-threat-detection#lt-7"
       },
@@ -2017,6 +2211,10 @@
           "SOC 2": [
             "CC6.1",
             "CC6.6"
+          ],
+          "DORA": [
+            "Art. 9",
+            "RTS Art. 13"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-network-security#ns-1"
@@ -2050,6 +2248,10 @@
           "SOC 2": [
             "CC6.1",
             "CC6.6"
+          ],
+          "DORA": [
+            "Art. 9",
+            "RTS Art. 13"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-network-security#ns-2"
@@ -2088,6 +2290,9 @@
             "CC6.1",
             "CC6.6",
             "CC7.2"
+          ],
+          "DORA": [
+            "RTS Art. 13"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-network-security#ns-3"
@@ -2125,6 +2330,11 @@
           "SOC 2": [
             "CC6.1",
             "CC7.2"
+          ],
+          "DORA": [
+            "Art. 10",
+            "RTS Art. 13",
+            "RTS Art. 23"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-network-security#ns-4"
@@ -2155,6 +2365,11 @@
           "SOC 2": [
             "CC6.1",
             "CC7.2"
+          ],
+          "DORA": [
+            "Art. 7",
+            "RTS Art. 9",
+            "RTS Art. 13"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-network-security#ns-5"
@@ -2193,6 +2408,9 @@
             "CC6.1",
             "CC6.6",
             "CC7.2"
+          ],
+          "DORA": [
+            "RTS Art. 13"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-network-security#ns-6"
@@ -2233,6 +2451,9 @@
             "CC6.6",
             "CC7.2",
             "CC8.1"
+          ],
+          "DORA": [
+            "RTS Art. 13"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-network-security#ns-7"
@@ -2271,6 +2492,10 @@
             "CC6.1",
             "CC6.7",
             "CC7.1"
+          ],
+          "DORA": [
+            "RTS Art. 13",
+            "RTS Art. 14"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-network-security#ns-8"
@@ -2305,6 +2530,10 @@
           "SOC 2": [
             "CC6.6",
             "CC6.7"
+          ],
+          "DORA": [
+            "RTS Art. 13",
+            "RTS Art. 14"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-network-security#ns-9"
@@ -2342,6 +2571,9 @@
             "CC6.1",
             "CC7.2",
             "CC7.3"
+          ],
+          "DORA": [
+            "RTS Art. 13"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-network-security#ns-10"
@@ -2379,6 +2611,10 @@
           "SOC 2": [
             "CC6.1",
             "CC6.2"
+          ],
+          "DORA": [
+            "Art. 9",
+            "RTS Art. 21"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-privileged-access#pa-1"
@@ -2415,6 +2651,9 @@
           "SOC 2": [
             "CC6.1",
             "CC6.3"
+          ],
+          "DORA": [
+            "RTS Art. 21"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-privileged-access#pa-2"
@@ -2457,6 +2696,9 @@
             "CC6.1",
             "CC6.2",
             "CC6.3"
+          ],
+          "DORA": [
+            "RTS Art. 20"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-privileged-access#pa-3"
@@ -2495,6 +2737,9 @@
             "CC6.1",
             "CC6.2",
             "CC6.3"
+          ],
+          "DORA": [
+            "RTS Art. 21"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-privileged-access#pa-4"
@@ -2534,6 +2779,9 @@
             "CC6.1",
             "CC7.4",
             "CC9.1"
+          ],
+          "DORA": [
+            "RTS Art. 21"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-privileged-access#pa-5"
@@ -2577,6 +2825,9 @@
             "CC6.1",
             "CC6.6",
             "CC6.7"
+          ],
+          "DORA": [
+            "RTS Art. 21"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-privileged-access#pa-6"
@@ -2620,6 +2871,10 @@
             "CC6.1",
             "CC6.3",
             "CC6.7"
+          ],
+          "DORA": [
+            "Art. 9",
+            "RTS Art. 21"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-privileged-access#pa-7"
@@ -2662,6 +2917,10 @@
             "CC6.3",
             "CC6.7",
             "CC7.2"
+          ],
+          "DORA": [
+            "Art. 28",
+            "RTS Art. 21"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-privileged-access#pa-8"
@@ -2694,6 +2953,9 @@
           "SOC 2": [
             "CC6.1",
             "CC6.6"
+          ],
+          "DORA": [
+            "RTS Art. 11"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-posture-vulnerability-management#pv-1"
@@ -2731,6 +2993,9 @@
             "CC6.1",
             "CC6.6",
             "CC7.1"
+          ],
+          "DORA": [
+            "RTS Art. 11"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-posture-vulnerability-management#pv-2"
@@ -2769,6 +3034,9 @@
             "CC6.1",
             "CC6.6",
             "CC6.7"
+          ],
+          "DORA": [
+            "RTS Art. 11"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-posture-vulnerability-management#pv-3"
@@ -2811,6 +3079,9 @@
             "CC6.6",
             "CC7.1",
             "CC7.2"
+          ],
+          "DORA": [
+            "RTS Art. 11"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-posture-vulnerability-management#pv-4"
@@ -2849,6 +3120,10 @@
           "SOC 2": [
             "CC7.1",
             "CC7.2"
+          ],
+          "DORA": [
+            "Art. 8",
+            "RTS Art. 10"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-posture-vulnerability-management#pv-5"
@@ -2888,6 +3163,9 @@
             "CC7.1",
             "CC7.2",
             "CC8.1"
+          ],
+          "DORA": [
+            "RTS Art. 10"
           ]
         },
         "url": "https://learn.microsoft.com/security/benchmark/azure/mcsb-v2-posture-vulnerability-management#pv-6"
@@ -4042,5 +4320,98 @@
     "access": "Free download",
     "retrieved": "2026-09-20",
     "note": "Derived from the MCSB v2 control mappings: a test maps to this framework through the MCSB controls it implements. A mapping means Azure features can fully or partially address the requirement, not full compliance."
+  },
+  "DORA": {
+    "name": "Digital Operational Resilience Act and its regulatory technical standards on the ICT risk management framework",
+    "shortName": "DORA",
+    "version": "(EU) 2022/2554 and 2024/1774",
+    "publisher": "European Union",
+    "kind": "crosswalk",
+    "derivedFrom": "MCSB",
+    "url": "https://eur-lex.europa.eu/eli/reg/2022/2554/oj/eng",
+    "download": "https://eur-lex.europa.eu/eli/reg_del/2024/1774/oj/eng",
+    "access": "Free, online (EUR-Lex)",
+    "retrieved": "2026-09-24",
+    "note": "Crosswalk by JSolve B.V., not published by the EU or Microsoft. A test maps to a DORA article (Art.) or an article of the regulatory technical standards (RTS Art.) through the MCSB v2 controls it implements, or directly for resilience checks outside MCSB. Only the articles with a technical Azure side are in scope; governance, incident classification and reporting, resilience testing (including TLPT), contracts, the register of information and exit plans cannot be assessed from configuration. A mapping means the configuration contributes to the article, not that the article is met.",
+    "controls": {
+      "Art. 7": {
+        "title": "ICT systems, protocols and tools"
+      },
+      "Art. 8": {
+        "title": "Identification"
+      },
+      "Art. 9": {
+        "title": "Protection and prevention"
+      },
+      "Art. 10": {
+        "title": "Detection"
+      },
+      "Art. 11": {
+        "title": "Response and recovery"
+      },
+      "Art. 12": {
+        "title": "Backup policies and procedures, restoration and recovery procedures and methods"
+      },
+      "Art. 17": {
+        "title": "ICT-related incident management process"
+      },
+      "Art. 28": {
+        "title": "General principles"
+      },
+      "RTS Art. 4": {
+        "title": "ICT asset management policy"
+      },
+      "RTS Art. 5": {
+        "title": "ICT asset management procedure"
+      },
+      "RTS Art. 6": {
+        "title": "Encryption and cryptographic controls"
+      },
+      "RTS Art. 7": {
+        "title": "Cryptographic key management"
+      },
+      "RTS Art. 9": {
+        "title": "Capacity and performance management"
+      },
+      "RTS Art. 10": {
+        "title": "Vulnerability and patch management"
+      },
+      "RTS Art. 11": {
+        "title": "Data and system security"
+      },
+      "RTS Art. 12": {
+        "title": "Logging"
+      },
+      "RTS Art. 13": {
+        "title": "Network security management"
+      },
+      "RTS Art. 14": {
+        "title": "Securing information in transit"
+      },
+      "RTS Art. 16": {
+        "title": "ICT systems acquisition, development, and maintenance"
+      },
+      "RTS Art. 17": {
+        "title": "ICT change management"
+      },
+      "RTS Art. 20": {
+        "title": "Identity management"
+      },
+      "RTS Art. 21": {
+        "title": "Access control"
+      },
+      "RTS Art. 22": {
+        "title": "ICT-related incident management policy"
+      },
+      "RTS Art. 23": {
+        "title": "Anomalous activities detection and criteria for ICT-related incidents detection and response"
+      },
+      "RTS Art. 25": {
+        "title": "Testing of the ICT business continuity plans"
+      },
+      "RTS Art. 26": {
+        "title": "ICT response and recovery plans"
+      }
+    }
   }
 }

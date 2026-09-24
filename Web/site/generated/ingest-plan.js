@@ -48,6 +48,14 @@ export default {
     [
       "directoryRoleEligibilitySchedules",
       "/v1.0/roleManagement/directory/roleEligibilitySchedules?$expand=principal"
+    ],
+    [
+      "conditionalAccessPolicies",
+      "/v1.0/identity/conditionalAccess/policies"
+    ],
+    [
+      "securityDefaults",
+      "/v1.0/policies/identitySecurityDefaultsEnforcementPolicy"
     ]
   ],
   "subscriptionEndpoints": [
@@ -712,6 +720,7 @@ export default {
       "backupPolicies@2023-04-01",
       "backupProtectedItems@2023-04-01",
       "backupResourceGuardProxies@2023-04-01",
+      "replicationProtectedItems@2025-01-01",
       "privateEndpointConnections"
     ],
     "microsoft.relay/namespaces": [

@@ -916,557 +916,557 @@ export default R.script("/app/Report/New-AzureSecurityReport.ps1", { params: [{ 
                 R.e(v35, null);
             }
             return R.u(v35);
-        })(), "Publisher", R.m((S["fw"] ?? null), "publisher"), "Url", R.m((S["fw"] ?? null), "url"), "Download", R.m((S["fw"] ?? null), "download"), "Access", R.m((S["fw"] ?? null), "access"), "Retrieved", R.m((S["fw"] ?? null), "retrieved"), "Note", R.m((S["fw"] ?? null), "note"), "Derived", (S["derived"] ?? null), "Buckets", (S["buckets"] ?? null), "Assessed", R.add(R.add(R.m((S["buckets"] ?? null), "Fail"), R.m((S["buckets"] ?? null), "Unknown")), R.m((S["buckets"] ?? null), "Pass")), "Coverage", R.m((S["fw"] ?? null), "coverage"), "Controls", (S["controls"] ?? null)]));
+        })(), "Publisher", R.m((S["fw"] ?? null), "publisher"), "Url", R.m((S["fw"] ?? null), "url"), "Download", R.m((S["fw"] ?? null), "download"), "Access", R.m((S["fw"] ?? null), "access"), "Retrieved", R.m((S["fw"] ?? null), "retrieved"), "Note", R.m((S["fw"] ?? null), "note"), "Kind", R.m((S["fw"] ?? null), "kind"), "Derived", (S["derived"] ?? null), "Buckets", (S["buckets"] ?? null), "Assessed", R.add(R.add(R.m((S["buckets"] ?? null), "Fail"), R.m((S["buckets"] ?? null), "Unknown")), R.m((S["buckets"] ?? null), "Pass")), "Coverage", R.m((S["fw"] ?? null), "coverage"), "Controls", (S["controls"] ?? null)]));
     }
-    R.ln = F + 420;
+    R.ln = F + 421;
     S["mcsbcontrols"] = R.m(R.m(R.m((S["results"] ?? null), "frameworks"), "MCSB"), "controls");
-    R.ln = F + 422;
+    R.ln = F + 423;
     R.def(S, "Get-ControlLink", { params: [{ n: "Framework", t: "string", pos: null }, { n: "Id", t: "string", pos: null }, { n: "Url", t: "string", pos: null }], adv: 0, h: "77b8cf6a7cc3d005" }, (S, O) => {
-        R.ln = F + 425;
+        R.ln = F + 426;
         if ((!R.t((S["url"] ?? null)) && R.t(R.m(R.m(R.m(R.m((S["results"] ?? null), "frameworks"), R.str((S["framework"] ?? null))), "controls"), R.str((S["id"] ?? null)))))) {
-            R.ln = F + 425;
+            R.ln = F + 426;
             S["url"] = R.c("string", R.m(R.m(R.m(R.m(R.m((S["results"] ?? null), "frameworks"), R.str((S["framework"] ?? null))), "controls"), R.str((S["id"] ?? null))), "url"));
         }
-        R.ln = F + 426;
+        R.ln = F + 427;
         if (R.t((S["url"] ?? null))) {
-            R.ln = F + 426;
+            R.ln = F + 427;
             R.e(O, R.u(R.cmd(S, "New-ExternalLink", [R.np("Url"), (S["url"] ?? null), R.np("Text"), (S["id"] ?? null), R.np("Class"), "mono"], null)));
             return;
         }
-        R.ln = F + 427;
+        R.ln = F + 428;
         R.e(O, ("<span class=\"mono\">" + R.str(R.u(R.cmd(S, "Enc", [(S["id"] ?? null)], null))) + "</span>"));
         return;
     });
-    R.ln = F + 430;
+    R.ln = F + 431;
     R.def(S, "Get-DerivedTags", { params: [{ n: "Test", t: null, pos: null }], adv: 0, h: "9cdb9a7cec419e3e" }, (S, O) => {
-        R.ln = F + 433;
+        R.ln = F + 434;
         const v36 = [];
-        R.ln = F + 433;
+        R.ln = F + 434;
         for (const it37 of R.fi(R.a(R.m(R.m(R.m(R.m((S["test"] ?? null), "frameworks"), "derived"), "PSObject"), "Properties")))) {
             S["property"] = it37;
-            R.ln = F + 434;
+            R.ln = F + 435;
             for (const it38 of R.fi(R.a(R.m((S["property"] ?? null), "Value")))) {
                 S["item"] = it38;
-                R.ln = F + 435;
+                R.ln = F + 436;
                 if (R.t(R.eq(null, (S["item"] ?? null)))) {
                     continue;
                 }
-                R.ln = F + 436;
+                R.ln = F + 437;
                 if (R.t(R.is((S["item"] ?? null), R.ty("string")))) {
-                    R.ln = F + 436;
+                    R.ln = F + 437;
                     R.e(v36, R.pso(["Framework", R.m((S["property"] ?? null), "Name"), "Id", (S["item"] ?? null), "Via", []]));
                 } else {
-                    R.ln = F + 437;
+                    R.ln = F + 438;
                     R.e(v36, R.pso(["Framework", R.m((S["property"] ?? null), "Name"), "Id", R.m((S["item"] ?? null), "id"), "Via", R.a(R.m((S["item"] ?? null), "via"))]));
                 }
             }
         }
         S["result"] = R.u(v36);
-        R.ln = F + 440;
+        R.ln = F + 441;
         R.e(O, (S["result"] ?? null));
         return;
     });
-    R.ln = F + 444;
+    R.ln = F + 445;
     R.def(S, "Get-ScoreRating", { params: [{ n: "Score", t: null, pos: null }], adv: 0, h: "a6aa2355c1a868c5" }, (S, O) => {
-        R.ln = F + 446;
+        R.ln = F + 447;
         if (R.t(R.eq(null, (S["score"] ?? null)))) {
-            R.ln = F + 446;
+            R.ln = F + 447;
             R.e(O, null);
             return;
         }
-        R.ln = F + 447;
+        R.ln = F + 448;
         if (R.t(R.ge((S["score"] ?? null), 85))) {
-            R.ln = F + 447;
+            R.ln = F + 448;
             R.e(O, R.ht(["Label", "Good", "Status", "Pass", "Class", "good"], false));
             return;
         }
-        R.ln = F + 448;
+        R.ln = F + 449;
         if (R.t(R.ge((S["score"] ?? null), 70))) {
-            R.ln = F + 448;
+            R.ln = F + 449;
             R.e(O, R.ht(["Label", "Fair", "Status", "Unknown", "Class", "fair"], false));
             return;
         }
-        R.ln = F + 449;
+        R.ln = F + 450;
         if (R.t(R.ge((S["score"] ?? null), 50))) {
-            R.ln = F + 449;
+            R.ln = F + 450;
             R.e(O, R.ht(["Label", "Needs improvement", "Status", "Error", "Class", "weak"], false));
             return;
         }
-        R.ln = F + 450;
+        R.ln = F + 451;
         R.e(O, R.ht(["Label", "At risk", "Status", "Fail", "Class", "risk"], false));
         return;
     });
-    R.ln = F + 452;
+    R.ln = F + 453;
     S["rating"] = R.u(R.cmd(S, "Get-ScoreRating", [(S["score"] ?? null)], null));
-    R.ln = F + 455;
-    S["trendpoints"] = [];
     R.ln = F + 456;
+    S["trendpoints"] = [];
+    R.ln = F + 457;
     if (R.t(R.m((S["history"] ?? null), "Count"))) {
-        R.ln = F + 457;
+        R.ln = F + 458;
         S["trendpoints"] = R.add(R.a((S["history"] ?? null)), R.a(R.pso(["Folder", R.u(R.cmd(S, "Split-Path", [R.m(R.u(R.cmd(S, "Resolve-Path", [(S["resultsfile"] ?? null)], null)), "Path"), R.np("Parent")], null)), "StartedAt", R.u(R.cmd(S, "ConvertTo-UtcDateOrDefault", [R.m((S["subscription"] ?? null), "startedAt"), (R.st("DateTime", "UtcNow"))], null)), "Score", (S["score"] ?? null), "Tests", R.m(R.m((S["results"] ?? null), "summary"), "tests"), "Findings", (S["findingtotals"] ?? null), "Analyzer", R.m(R.m((S["results"] ?? null), "analyzer"), "version"), "TestCount", R.m(R.m((S["results"] ?? null), "analyzer"), "tests"), "IsCurrent", true])));
     }
-    R.ln = F + 469;
+    R.ln = F + 470;
     S["categoryrows"] = R.u(R.cmd(S, "Sort-Object", [[R.v(R.sb({ params: [], adv: 0, text: " - $_.Buckets.Fail " }, (S, O) => {
-        R.ln = F + 473;
+        R.ln = F + 474;
         R.e(O, R.neg(R.m(R.m((S["_"] ?? null), "Buckets"), "Fail")));
     })), R.v(R.sb({ params: [], adv: 0, text: " - $_.Evaluated " }, (S, O) => {
-        R.ln = F + 473;
+        R.ln = F + 474;
         R.e(O, R.neg(R.m((S["_"] ?? null), "Evaluated")));
     })), R.v("Label")]], R.pi((() => {
         const v39 = [];
-        R.ln = F + 469;
+        R.ln = F + 470;
         for (const it40 of R.fi((S["categories"] ?? null))) {
             S["category"] = it40;
-            R.ln = F + 470;
-            S["categorytests"] = R.cmd(S, "Where-Object", ["category", R.np("eq"), (S["category"] ?? null)], R.pi((S["tests"] ?? null)));
             R.ln = F + 471;
-            S["buckets"] = R.u(R.cmd(S, "Get-Buckets", [R.cmd(S, "ForEach-Object", ["status"], R.pi((S["categorytests"] ?? null)))], null));
+            S["categorytests"] = R.cmd(S, "Where-Object", ["category", R.np("eq"), (S["category"] ?? null)], R.pi((S["tests"] ?? null)));
             R.ln = F + 472;
+            S["buckets"] = R.u(R.cmd(S, "Get-Buckets", [R.cmd(S, "ForEach-Object", ["status"], R.pi((S["categorytests"] ?? null)))], null));
+            R.ln = F + 473;
             R.e(v39, R.pso(["Label", (S["category"] ?? null), "Buckets", (S["buckets"] ?? null), "Evaluated", R.add(R.add(R.m((S["buckets"] ?? null), "Fail"), R.m((S["buckets"] ?? null), "Unknown")), R.m((S["buckets"] ?? null), "Pass"))]));
         }
         return v39;
     })())));
-    R.ln = F + 474;
+    R.ln = F + 475;
     S["categoryrows"] = R.a((S["categoryrows"] ?? null));
-    R.ln = F + 476;
+    R.ln = F + 477;
     S["severityrows"] = (() => {
         const v41 = [];
-        R.ln = F + 476;
+        R.ln = F + 477;
         for (const it42 of R.fi([R.v("Critical"), R.v("High"), R.v("Medium"), R.v("Low"), R.v("Informational")])) {
             S["severity"] = it42;
-            R.ln = F + 477;
-            S["severitytests"] = R.cmd(S, "Where-Object", ["severity", R.np("eq"), (S["severity"] ?? null)], R.pi((S["tests"] ?? null)));
             R.ln = F + 478;
+            S["severitytests"] = R.cmd(S, "Where-Object", ["severity", R.np("eq"), (S["severity"] ?? null)], R.pi((S["tests"] ?? null)));
+            R.ln = F + 479;
             if (!R.t(R.m((S["severitytests"] ?? null), "Count"))) {
                 continue;
             }
-            R.ln = F + 479;
-            S["buckets"] = R.u(R.cmd(S, "Get-Buckets", [R.cmd(S, "ForEach-Object", ["status"], R.pi((S["severitytests"] ?? null)))], null));
             R.ln = F + 480;
+            S["buckets"] = R.u(R.cmd(S, "Get-Buckets", [R.cmd(S, "ForEach-Object", ["status"], R.pi((S["severitytests"] ?? null)))], null));
+            R.ln = F + 481;
             R.e(v41, R.pso(["Label", (S["severity"] ?? null), "Buckets", (S["buckets"] ?? null), "Evaluated", R.add(R.add(R.m((S["buckets"] ?? null), "Fail"), R.m((S["buckets"] ?? null), "Unknown")), R.m((S["buckets"] ?? null), "Pass"))]));
         }
         return v41;
     })();
-    R.ln = F + 485;
-    S["html"] = R.sc("System.Text.StringBuilder", "new", []);
     R.ln = F + 486;
+    S["html"] = R.sc("System.Text.StringBuilder", "new", []);
+    R.ln = F + 487;
     R.def(S, "Add", { params: [{ n: "Text", t: "string", pos: null }], adv: 0, h: "1ee3c0f112b21d35" }, (S, O) => {
-        R.ln = F + 486;
+        R.ln = F + 487;
         void (R.im((S["html"] ?? null), "Append", [(S["text"] ?? null)]));
     });
-    R.ln = F + 489;
+    R.ln = F + 490;
     S["jsolvemark"] = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAAAsCAYAAADVX77/AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAuJSURBVGhD5VoLcBT1GfcttrXaOu04Wh2nPjplqmNV1KqBQDABIR0RHEqRFoUS8rw87/3KXcg7HAHkpcjoqDToTKcitQ/I5XLv9+USAhgjamewKCW53dvb3cvj1/nv3h2XxVba6ojnb+Y3u//H9+1+v/2+/3/35i655CJEoaVQV9xdbJL2fyPwRNcTGwp3F2JBx8LTna7OWdLxnMaql9beUdBVkMxrm4v8jgV4ctuKh6VzcgKlr5VeX/Zm2a3S/kWWJyz5W+fjEVMe5nbOR15L/lPSOTmB5duX/7JoayFXuHlhqPj54oZ9+/ZdTfrnNuf3LrQUYdn2p/HY5nlY2LmkWGqbEyjevnz2Aks+8i35mL91Pgotj7s6ezpnzWl68O11b6zHb194Dvdp5iRX71l/s9Q2J2DoNVy+oKNgZN7meVixYwWKdixCQdt88yPNeSXN1lb8+tVn8GjTPKPULqewdNvSksLdj2NxxyIY3jKgqLvwVKGh8HuWv211Ld+50iCdn5NY3Llk57ytc7HhjfVoPdSGpZ1LbyhsXaRIj+/a5b9izf41d655eeWd3YcOXTXTOkewau+quQUdBZoNL2y0LOl+am+RpVh4+nM75j6db8k/vrCzYGphe8FUUffC0aXbl3SvfWntj6Q+cgYLtizyzdtSVGL4o+Fu+cEGaA5qsHLXSsxrz0PhC4/jcUvBmXWvrLtdapczeEj/2Pq5rQv/IO9RvKx6S5Vcvu8pFGwvQOGuQizetti6es/q3NwV0rhP+VDp/Oai6I2/u/Gam1U33714+2Jz8bbirmV7VjwpnZuTeMDwgOwXTQ+VSvu/EThwFt9d9fqOkdX79/oBXCEdz2kcGMKV+gjvk3v+AbWfgs7HvSadk9MwBBM95mOA2Tf5jNKVGDeeAHTeeJd0Xs6h23PmWnOEP2D5BNA4Y2sBXCp30owmOImWUUDjYTZIbXIGh96dvsoYTLi3xQC9l2knfduHTn9b446f1gYnoA4moQ7ycZM7dofUNidg9LOvbBsHDH5mb7qPZIDaTY/owlNQumk0HgU0PnbA8Kcz1860/prDHEiodo0DxlDisHRM7Ykf0w9MQ+2NQ0VEGAb0IS5i8DBf/5cg/QFc2TXEt+4cA5oH+RM7ouPXp8f8fv8VbWF2izEyManxJqD2xAWqPHGYRwGtlz4009vXDC8Px75vOZ4M7KGBruPJ3g7P2G3pseYB/ldNkWSk9QSg9jJC4BqvSCKA2peAfhBo9McenOn1IkZXiL+n+4Opne1R5sntQ+O3Nw/yvs7Riam2KP9sek5rmJ7dPMjb2kYA0xCEgLVZJG21h4bSTUEbnYYuyIYM1rHrZl7pIkRngLqhdZAf3fYx0H5CSPdkyxDPtPji96bndETY20xhbqz9PUDni8+glvA8EWg0HieLImPvAS6becWLCD09uKw5zNq63gcaA3GYQgl0fkjO6cxqT9Adon7aHJ1A23uAKcTD4I9D70uRnPtFMTReOqscaDS9TzKFvnh/MdoUYF7cfBIw+uMwBuJoDDLYNDSBpih/nDz17LlNrjNzWoaSb26KcFzHKNAUnRTsGv3xjCBaL53JCiKGLsRBF+GSreHkHHMwcWvHILd08/vT+jZ//OfZvr8SmL10DQnE4GeEANLU+2g0HZ2GeYA/03k0qd4SpX+YbbflKHdH+xBvao1yp0jmmMIcDD5atM1iWgR9mCdCJXQ+mm05BnT9HWgMsR9Ywl/h+mB2jRc1DU3BEOKF2hXrmT6X1j4ajREx5Y0h7symAX7rpiB9d7YPslO0D/LG1kGO3zQ4KdhkC5C9TjSGeTSSbCCieGi0jJA3SvrNbH9fOky+2F2mAe6uZi93pzHInTUOTInblocWbiqTvpmVXezTh5JofhdojE5MNvoYsxa4NNtvu596xBThPjUKAYoiin5Ef+dEPddPXpyaRgCjjy7L9vWlwWA/e4smwJ1WeRO80k2f0YQmIXdSULhogaIQohhk8Uq3xXMaKjcF8zARYRpk15D6N3pjrS3vkg8isgjSoqgpIbN3i/QuQfzpgjyMYZ4zeenZUn9fKPb1nrxa5UkEtIOA3JOA0sej3kEJbHDSAuVuGgp3XNi+CBVpeuLQhqdhIp+8AxOcxhNvACC9xCU6L/22cXBaCEztps8xk2HpwGkoXWlSMBwF6Q/iy9wqFc74fv0wUGenZtIhst5Bo56IQOgiYjBQh6dBbLSRaWgD7HFDhG8xBKifSH23OT79jt7P7SKZQYJNByalykWyLYtOSshAuYtC4wlA6Yy1Sn1/IVDYabN2CKjpp1Frp1Brp1HTLx5JWzwX2/LAFLRHAaWPg9rPBnUBvqVxIPnYLr//vJ+8dgdwjSnErjME+RHTMQjZIwREyipFsU1DkRY3LbCQdST7KDQ4YlB4GOgjEzAHqEel1/m/oLTT5doBoMbBQGajUG0TAyZiiKRQY4tBHpiGMgzI3Ymo0sfpTVlvgFJ0BBO3NoaTGqWPG9WT1+HQlLCGZIJy0GggpZUuMdJOlVmGqbHMuIOChnxSe5nRjsj0t6TX/J9gcFKlqjBQ60wIgRMBBBFSAohHCsoI0ODlh7Q+bhn5vpf6SUNrp2frAskXlR6WJhml9E8KZUSyh5QQCUQoJQeNun5KZFa5CQHb6VTpZc1NjRM/umFA5aT2Sa/9X0PtokrIk69zsai2xTICZDIgdZQHJ6HwsFZSx1If2Wiw01Vy3wSrjgJ1TvZcCZFjSsg0M+1Mtp3rF8YyZSfaZ8+pc8ShiQJy29nfSO/hgqF00TI1efIuNnMTogiiEGmSsqjzsJOftbBlw+Aav11FxPROoco6DlmfmEWCn9Qxk10pptvC3Bmll7qfFLNtCKv6Yqh2cahzs6zCfvYe6b18LnQetkU3SJ5SArW2mKiwLTaDws3YKNQSAVzMpNk//mOpn2wYArim1kYfaAgDDUFA1s+gyhqbEWSaVQJjqOyjUGkVKfal5qQFktiQ+RXWGMqtFMqtMVT7AJmdGbFc6Kd0p+ujWRov+7pxGGhwxlFP6qo/hpp+UQRyXm+Pob4/JpyL6RiDKjwNhSt+QOrvs6B1M8UNbu6dajsDRQSodk2iso8Wbjw70AoSRG8sQ9KutMVRRYTLzBdtCCtS88qOpNhLofRIDNVBoKKP+bP0Ps6DyU7PVnm5AFmRxRU3LixQ2iigCZNVGlD7kmiwxwTKHZRAQRA7BfUAoHQl3thhP/dz13+Cyc//rMHJbqq2J4Zr3FOoCwLV7ilU2OIzAi8XghGeKltupZgKa4yTuSZRHwDqg0CtF5A5eJRb40LAJHhit/HwOEoOk2MM1SFA1jfzs3wG5HZmg9zNxcneTeqepL/CzRAOKd3Miwb3+EqTm16t9yVOmcj+7qSgJPuugxLpYaEOAab3yBsif1LWO14ovca/A9B7ucabyKt1sC2y/kS00s4JYsjcUyjvpYVAKvoTkNnZiMKVWNMR+fgHtX1j98od8fV1Nvr5ij7aWtZLfVTRG5uq9QG1AaDKC1Q6p1BmY7Gxl0bJERpVAaDiCNU54+KyvsTDVXbWrx8F6v1AtY3+QO1mfm/0sxtaw/x579VdrjM3bQryPc1DgGkAMA+S3/kAo5umlE7KV2cbG652cFAI6wezu/TtC8uGbBi8zP0KF9tYaWMGyuwTqPIBZf1JlDmnUWqNT2y0MgdlzmRetk3PR9OzTD7uLqWbKZb1xeXlvdQr5b20v+ww/UmZlUGFG6j0A7XHgMpeeodgVN9Hr2rwcO/UuiderXYwJWovc/++kxD+tvZ5aAkkVrQNJAfbQuxBS5R/tucEcxPpJ+/2CvvZW1Rubpncy+2qscZaOwM474PnQlFnS+TV2BN7Sq3MyLq/jo+ue2fsw+f+Qv1zw2HmlKyf3ae0j98ntcmGIYzrFB7+nmp74unSI7Sh5HB8f7WTP1FxeKzhX/VHBsxoQFenAAAAAElFTkSuQmCC";
-    R.ln = F + 491;
+    R.ln = F + 492;
     S["css"] = "/* the look of M365Permissions: slate neutrals, white cards with a soft shadow, cyan accent (#00acd7); text and lines\n   that need contrast on white use the deeper --accent-strong */\n:root {\n  color-scheme: light;\n  --page: #f8fafc; --surface: #ffffff; --surface-2: #f8fafc; --ink: #1e293b; --ink-2: #475569; --muted: #64748b;\n  --grid: #e2e8f0; --axis: #cbd5e1; --border: #e2e8f0; --link: #007ea3; --wash: #f0f9ff;\n  --accent: #00acd7; --accent-strong: #007ea3; --accent-wash: #f0f9ff; --shadow: 0 2px 8px rgba(0,0,0,0.08);\n  --fail: #dc2626; --unknown: #f59e0b; --pass-bar: #94a3b8; --good: #16a34a; --serious: #fb923c; --neutral: #cbd5e1;\n  --on-fail: #ffffff; --on-good: #ffffff; --on-unknown: #1e293b; --on-serious: #1e293b; --on-neutral: #1e293b;\n  --up: #15803d; --down: #b91c1c;\n}\n@media (prefers-color-scheme: dark) {\n  :root:where(:not([data-theme=\"light\"])) {\n    color-scheme: dark;\n    --page: #0f172a; --surface: #1e293b; --surface-2: #172033; --ink: #f1f5f9; --ink-2: #cbd5e1; --muted: #94a3b8;\n    --grid: #334155; --axis: #475569; --border: #334155; --link: #00acd7; --wash: #1e3a4d;\n    --accent-strong: #00acd7; --accent-wash: #1e3a4d; --shadow: 0 2px 8px rgba(0,0,0,0.3);\n    --fail: #ef4444; --good: #22c55e; --on-good: #0f172a;\n    --pass-bar: #64748b; --neutral: #475569; --on-neutral: #ffffff; --up: #22c55e; --down: #f87171;\n  }\n}\n:root[data-theme=\"dark\"] {\n  color-scheme: dark;\n  --page: #0f172a; --surface: #1e293b; --surface-2: #172033; --ink: #f1f5f9; --ink-2: #cbd5e1; --muted: #94a3b8;\n  --grid: #334155; --axis: #475569; --border: #334155; --link: #00acd7; --wash: #1e3a4d;\n  --accent-strong: #00acd7; --accent-wash: #1e3a4d; --shadow: 0 2px 8px rgba(0,0,0,0.3);\n  --fail: #ef4444; --good: #22c55e; --on-good: #0f172a;\n  --pass-bar: #64748b; --neutral: #475569; --on-neutral: #ffffff; --up: #22c55e; --down: #f87171;\n}\n* { box-sizing: border-box; }\nhtml { background: var(--page); scroll-behavior: smooth; }\nbody { margin: 0; background: var(--page); color: var(--ink); font: 15px/1.55 -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif; -webkit-font-smoothing: antialiased; }\na { color: var(--link); font-weight: 500; text-decoration: none; }\na:hover { text-decoration: underline; }\n* { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }\na.ext::after { content: \"\\2197\"; font-size: 0.8em; margin-left: 2px; text-decoration: none; display: inline-block; }\np { margin: 0 0 12px; }\n.mono { font-family: ui-monospace, \"Cascadia Mono\", Consolas, monospace; font-size: 12.5px; }\n\n/* cover */\n.cover { background: var(--surface); border-top: 4px solid var(--accent); border-bottom: 1px solid var(--border); }\n.cover-inner { max-width: 1320px; margin: 0 auto; padding: 24px 24px 32px; }\n.cover-top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }\n.eyebrow { font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent-strong); }\n.pill { font-size: 11px; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase; background: var(--accent-wash); border-radius: 999px; padding: 3px 10px; color: var(--accent-strong); }\n.cover-actions { margin-left: auto; display: flex; gap: 8px; }\n.cover h1 { font-size: 32px; line-height: 1.2; font-weight: 600; margin: 24px 0 6px; }\n.cover-sub { color: var(--muted); font-size: 16px; margin: 0; }\n.cover-meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px 32px; margin: 24px 0 0; padding-top: 20px; border-top: 1px solid var(--border); }\n.cover-meta dt { font-size: 12px; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); margin-bottom: 2px; }\n.cover-meta dd { margin: 0; font-size: 14px; overflow-wrap: anywhere; }\n.btn { font: inherit; font-size: 14px; font-weight: 500; color: var(--ink); background: var(--surface); border: 1px solid var(--accent); border-radius: 8px; padding: 7px 14px; cursor: pointer; transition: background-color 0.2s, color 0.2s; }\n.btn:hover { background: var(--accent-strong); border-color: var(--accent-strong); color: var(--surface); }\n.btn.ghost { background: transparent; border-color: var(--border); }\n.btn.ghost:hover { background: var(--accent-wash); border-color: var(--border); color: var(--ink); }\n\n/* layout */\n.layout { max-width: 1320px; margin: 0 auto; padding: 0 24px 64px; display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 48px; }\n.toc { position: sticky; top: 0; align-self: start; padding-top: 40px; max-height: 100vh; overflow-y: auto; }\n.toc-title { font-size: 12px; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }\n.toc ol { list-style: none; margin: 0; padding: 0; }\n.toc a { display: flex; gap: 10px; align-items: baseline; padding: 7px 10px; border-radius: 8px; color: var(--ink-2); text-decoration: none; font-size: 14px; font-weight: 400; border: 1px solid transparent; }\n.toc a:hover { background: var(--accent-wash); color: var(--ink); }\n.toc a.active { color: var(--ink); background: var(--accent-wash); border-color: var(--accent); font-weight: 500; }\n.toc .n { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; min-width: 16px; }\n.toc .c { margin-left: auto; font-size: 12px; color: var(--muted); font-weight: 400; }\nmain { min-width: 0; }\n\n/* sections */\n.section { padding-top: 40px; scroll-margin-top: 8px; }\n.section-head { display: flex; gap: 16px; align-items: baseline; margin-bottom: 20px; }\n.section-head .num { font-size: 13px; font-weight: 600; color: var(--accent-strong); font-variant-numeric: tabular-nums; }\n.section-head h2 { font-size: 24px; line-height: 1.25; font-weight: 600; margin: 0 0 4px; }\n.section-head .sub { color: var(--muted); margin: 0; max-width: 820px; }\nh3 { font-size: 16px; font-weight: 600; margin: 0 0 12px; }\n.card { background: var(--surface); border-radius: 12px; padding: 24px; box-shadow: var(--shadow); }\n.card + .card, .card + h3 { margin-top: 16px; }\n.fw-grid > .card, .two > .card { margin-top: 0; }\n.note { color: var(--ink-2); font-size: 13px; }\n.muted { color: var(--muted); }\n\n/* executive summary */\n.exec { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 32px; align-items: start; }\n.score { text-align: center; }\n.meter { position: relative; width: 180px; height: 180px; margin: 0 auto; }\n.meter svg { width: 180px; height: 180px; display: block; }\n.meter .track-ring { fill: none; stroke: var(--grid); stroke-width: 12; }\n.meter .arc { fill: none; stroke-width: 12; stroke-linecap: round; }\n.meter .arc.good { stroke: var(--good); } .meter .arc.fair { stroke: var(--unknown); } .meter .arc.weak { stroke: var(--serious); } .meter .arc.risk { stroke: var(--fail); }\n.meter-value { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }\n.meter-value .big { font-size: 48px; font-weight: 700; line-height: 1; }\n.meter-value .of { font-size: 13px; color: var(--muted); margin-top: 4px; }\n.score .caption { font-size: 12px; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }\n.score .rating { margin-top: 14px; font-size: 15px; }\n.score .delta { margin-top: 6px; font-size: 13px; color: var(--ink-2); }\n.up { color: var(--up); font-weight: 600; } .down { color: var(--down); font-weight: 600; }\n.lead { font-size: 16px; line-height: 1.6; }\n.lead:last-of-type { margin-bottom: 0; }\n.kpis { display: grid; grid-template-columns: repeat(4, 1fr); margin-top: 24px; border-top: 1px solid var(--grid); }\n.kpi { padding: 16px 16px 0 0; }\n.kpi + .kpi { padding-left: 16px; border-left: 1px solid var(--grid); }\n.kpi .label { font-size: 12px; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }\n.kpi .value { font-size: 30px; font-weight: 700; line-height: 1.2; margin-top: 4px; }\n.kpi .value small { font-size: 14px; font-weight: 400; color: var(--muted); }\n.kpi .hint { font-size: 12px; color: var(--muted); }\n\n/* tables */\ntable { border-collapse: collapse; width: 100%; font-size: 14px; }\nth { text-align: left; font-weight: 500; font-size: 12px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); background: var(--surface-2); border-bottom: 1px solid var(--grid); padding: 10px 12px; white-space: nowrap; }\ntd { border-bottom: 1px solid var(--grid); padding: 10px 12px; vertical-align: top; }\ntbody tr:last-child td { border-bottom: 0; }\ntbody tr { transition: background-color 0.15s; }\ntbody tr:hover td { background: var(--wash); }\ntd.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }\ntd.rank { color: var(--muted); font-variant-numeric: tabular-nums; width: 32px; }\n.prio td:nth-child(3) { min-width: 300px; width: 38%; } .prio td:nth-child(4) { min-width: 150px; } .chg td:nth-child(2) { min-width: 300px; width: 42%; }\n.scroll { overflow-x: auto; }\n.card.flush { padding: 8px 14px; }\n\n/* status and severity */\n.badge { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; font-weight: 500; }\n.dot { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 50%; font-size: 11px; font-weight: 700; line-height: 1; flex: none; }\n.s-fail { background: var(--fail); color: var(--on-fail); }\n.s-error { background: var(--serious); color: var(--on-serious); }\n.s-unknown { background: var(--unknown); color: var(--on-unknown); }\n.s-pass { background: var(--good); color: var(--on-good); }\n.s-notapplicable, .s-notassessed { background: var(--neutral); color: var(--on-neutral); }\n.sev { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; color: var(--ink-2); }\n.pips { display: inline-flex; gap: 2px; }\n.pips i { width: 6px; height: 11px; border-radius: 1.5px; border: 1px solid var(--ink-2); }\n.sev[data-level=\"1\"] .pips i:nth-child(-n+1), .sev[data-level=\"2\"] .pips i:nth-child(-n+2), .sev[data-level=\"3\"] .pips i:nth-child(-n+3), .sev[data-level=\"4\"] .pips i:nth-child(-n+4) { background: var(--ink-2); }\n\n/* charts */\n.legend { display: flex; flex-wrap: wrap; gap: 18px; font-size: 13px; color: var(--ink-2); margin-bottom: 14px; }\n.key { display: inline-flex; align-items: center; gap: 6px; }\n.sw { width: 12px; height: 12px; border-radius: 3px; display: inline-block; flex: none; }\n.row { display: grid; grid-template-columns: 230px minmax(0, 1fr) 160px; gap: 14px; align-items: center; min-height: 42px; padding: 3px 0; }\n.row.has-extra { grid-template-columns: 230px minmax(0, 1fr) 160px 150px; }\n.row-label { font-size: 14px; }\n.row-label a { color: var(--ink); text-decoration: none; }\n.row-label a:hover { text-decoration: underline; }\n.row-label .ver { display: block; font-size: 12px; color: var(--muted); }\n.row-note { display: block; font-size: 12px; color: var(--muted); }\n.row-value { font-size: 13px; color: var(--ink-2); font-variant-numeric: tabular-nums; }\n.row-extra { font-size: 13px; text-align: right; }\n.trend { display: block; width: 100%; min-width: 560px; max-width: 920px; height: auto; margin: 4px auto 2px; }\n.trend .tg { stroke: var(--grid); stroke-width: 1; }\n.trend .tl { fill: var(--muted); font-size: 11px; font-family: inherit; }\n.trend .tv { fill: var(--ink); font-size: 12px; font-weight: 600; font-family: inherit; }\n.trend .tline { fill: none; stroke: var(--accent-strong); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }\n/* the 2px surface ring keeps a marker readable where it sits on the line or on a neighbour */\n.trend .tdot { fill: var(--accent-strong); stroke: var(--surface); stroke-width: 2; cursor: default; }\n.trend .tdot.now { stroke-width: 2.5; }\n.trend .tdot:focus { outline: none; stroke: var(--ink); }\n.trend-note { color: var(--muted); font-size: 13px; margin: 2px 0 0; }\n.track { border-left: 1px solid var(--axis); padding: 2px 0; }\n.bar { display: flex; gap: 2px; height: 16px; min-width: 2px; }\n.seg { min-width: 3px; height: 100%; cursor: default; }\n.seg:last-child { border-radius: 0 4px 4px 0; }\n.seg:hover, .seg:focus-visible { filter: brightness(1.1); outline: 2px solid var(--ink); outline-offset: 1px; }\n.b-fail { background: var(--fail); } .b-unknown { background: var(--unknown); } .b-pass { background: var(--pass-bar); }\n.table-view { margin-top: 14px; }\n.table-view > summary, details.more > summary { cursor: pointer; color: var(--link); font-size: 13px; width: fit-content; }\n.table-view table { margin-top: 8px; }\n.two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }\n.group-label { font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin: 20px 0 6px; }\n\n/* framework cards */\n.fw-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-bottom: 16px; }\n.fwcard { display: flex; flex-direction: column; gap: 14px; }\n.fw-head { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }\n.fw-head h3 { margin: 0; font-size: 18px; }\n.fw-name { font-size: 13px; color: var(--ink-2); margin-top: 2px; }\n.ver-chip { font-size: 12px; font-weight: 500; white-space: nowrap; border: 1px solid var(--border); background: var(--surface-2); border-radius: 999px; padding: 2px 10px; color: var(--ink-2); }\n.fw-figure { display: flex; align-items: baseline; gap: 8px; }\n.fw-figure .big { font-size: 30px; font-weight: 700; line-height: 1; }\n.fw-figure .of { font-size: 13px; color: var(--ink-2); }\n.fwcard .track { border-left: 0; padding: 0; }\n.fw-stats { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--ink-2); }\n.fw-stats span { display: inline-flex; align-items: center; gap: 6px; }\n.fw-stats b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }\n.fw-foot { margin-top: auto; padding-top: 12px; border-top: 1px solid var(--grid); display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 16px; font-size: 13px; color: var(--ink-2); }\n.fw-foot > span { display: flex; flex-wrap: wrap; gap: 4px 14px; }\n.fw-foot a { white-space: nowrap; }\n\n/* control tables */\ndetails.fw { background: var(--surface); border-radius: 12px; box-shadow: var(--shadow); margin-top: 10px; scroll-margin-top: 16px; }\ndetails.fw > summary { cursor: pointer; list-style: none; padding: 14px 20px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }\ndetails.fw > summary::-webkit-details-marker { display: none; }\ndetails.fw > summary::before, details.test > summary::before { content: \"\"; width: 7px; height: 7px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(-45deg); transition: transform 0.15s; flex: none; margin-right: 2px; }\ndetails[open].fw > summary::before, details[open].test > summary::before { transform: rotate(45deg); }\ndetails.fw > summary .t { font-weight: 600; }\ndetails.fw > summary .c { margin-left: auto; font-size: 13px; color: var(--ink-2); }\ndetails.fw[open] > summary { border-bottom: 1px solid var(--grid); }\n.fw-meta { padding: 16px 20px 4px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px 24px; font-size: 13px; }\n.fw-meta dt { color: var(--muted); font-size: 12px; }\n.fw-meta dd { margin: 0; }\n.fw-note { padding: 8px 20px 0; font-size: 13px; color: var(--ink-2); max-width: 900px; }\n.fw-table { padding: 8px 10px 10px; }\n.links a { white-space: nowrap; }\n.more-links > summary { cursor: pointer; color: var(--link); font-size: 12px; }\n\n/* filters and tests */\n.filters { position: sticky; top: 0; z-index: 5; background: var(--page); padding: 12px 0; border-bottom: 1px solid var(--grid); }\n.frow { display: flex; flex-wrap: wrap; gap: 10px 12px; align-items: center; }\n.frow + .frow { margin-top: 10px; }\n.fsep { width: 1px; height: 22px; background: var(--grid); }\n.filters input[type=\"search\"], .filters select { font: inherit; font-size: 14px; color: var(--ink); background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 7px 10px; }\n.filters input[type=\"search\"] { min-width: 200px; flex: 1 1 240px; }\n.filters select { max-width: 230px; }\n.chips { display: flex; flex-wrap: wrap; gap: 6px; }\n.chip { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; border: 1px solid var(--border); border-radius: 999px; padding: 4px 12px; background: var(--surface); cursor: pointer; user-select: none; transition: background-color 0.2s, border-color 0.2s; }\n.chip:hover { background: var(--accent-wash); }\n.chip:has(input:checked) { border-color: var(--accent); background: var(--accent-wash); }\n.chip input { margin: 0; accent-color: var(--accent-strong); }\n.count { font-size: 13px; color: var(--ink-2); margin-left: auto; }\n.test-list { margin-top: 12px; }\ndetails.test { background: var(--surface); border-left: 4px solid var(--neutral); border-radius: 12px; margin-top: 8px; box-shadow: var(--shadow); scroll-margin-top: 150px; overflow: hidden; }\ndetails.test[data-status=\"Fail\"] { border-left-color: var(--fail); }\ndetails.test[data-status=\"Error\"] { border-left-color: var(--serious); }\ndetails.test[data-status=\"Unknown\"] { border-left-color: var(--unknown); }\ndetails.test[data-status=\"Pass\"] { border-left-color: var(--good); }\ndetails.test > summary { list-style: none; cursor: pointer; padding: 12px 16px; display: grid; grid-template-columns: auto 120px 130px minmax(0, 1fr) auto; gap: 14px; align-items: center; }\ndetails.test > summary::-webkit-details-marker { display: none; }\ndetails.test > summary:hover { background: var(--wash); }\ndetails.test[open] > summary { border-bottom: 1px solid var(--grid); }\n.tid { font-family: ui-monospace, \"Cascadia Mono\", Consolas, monospace; font-size: 12px; color: var(--muted); display: block; }\n.ttitle { font-weight: 600; }\n.tcounts { font-size: 13px; color: var(--ink-2); white-space: nowrap; font-variant-numeric: tabular-nums; }\n.tbody { padding: 20px; }\n.tcols { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 32px; }\n.tbody h4 { font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); margin: 0 0 6px; }\n.tbody h4.sp { margin-top: 24px; }\n.fix { background: var(--accent-wash); border: 1px solid var(--accent); border-radius: 8px; padding: 12px 14px; margin-bottom: 4px; }\n.fix h4 { color: var(--accent-strong); }\n.fix p { margin: 0; }\n.facts { margin: 0 0 16px; display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; font-size: 13px; }\n.facts dt { color: var(--muted); }\n.facts dd { margin: 0; }\n.plain { list-style: none; padding: 0; margin: 0 0 16px; font-size: 13px; }\n.plain li { margin-bottom: 6px; overflow-wrap: anywhere; }\n.reason { font-size: 13px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; margin-bottom: 16px; }\n.map-table td, .map-table th { padding: 7px 10px; }\n.map-table .fwl { white-space: nowrap; font-weight: 600; }\n.map-table .fwv { color: var(--ink-2); font-size: 12.5px; }\n.rname { font-weight: 600; overflow-wrap: anywhere; }\n.rmeta { color: var(--ink-2); font-size: 12px; }\n.rid { color: var(--muted); font-size: 11px; word-break: break-all; font-family: ui-monospace, \"Cascadia Mono\", Consolas, monospace; }\n.rlink { overflow-wrap: anywhere; }\n.evidence { font-size: 12px; color: var(--ink-2); overflow-wrap: anywhere; }\n.evidence .ek { color: var(--ink); font-weight: 600; }\ndetails.findings { margin-top: 12px; }\n.empty { color: var(--ink-2); }\n\n/* sources */\n.src-table td:first-child { min-width: 180px; }\n.defs { display: grid; grid-template-columns: max-content 1fr; gap: 8px 16px; font-size: 14px; margin: 0; }\n.defs dt { font-weight: 600; }\n.defs dd { margin: 0; color: var(--ink-2); }\nfooter.foot { max-width: 1320px; margin: 0 auto; padding: 24px; border-top: 1px solid var(--grid); font-size: 12px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: space-between; align-items: center; }\n.made { display: inline-flex; align-items: center; gap: 8px; }\n.made img { width: 32px; height: 22px; flex: none; }\n\n#tip { position: fixed; z-index: 20; pointer-events: none; background: var(--surface); color: var(--ink); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; font-size: 13px; box-shadow: var(--shadow); max-width: 300px; }\n#tip strong { display: block; font-weight: 600; }\n#tip span { color: var(--ink-2); }\n\n@media (max-width: 1100px) {\n  .layout { grid-template-columns: minmax(0, 1fr); gap: 0; }\n  .toc { display: none; }\n  .fw-grid { grid-template-columns: minmax(0, 1fr); }\n}\n@media (max-width: 760px) {\n  .cover-inner { padding: 20px 16px 28px; }\n  .cover h1 { font-size: 28px; }\n  .layout { padding: 0 16px 48px; }\n  .exec { grid-template-columns: minmax(0, 1fr); }\n  .kpis { grid-template-columns: repeat(2, 1fr); }\n  .kpi:nth-child(3) { border-left: 0; padding-left: 0; }\n  .row, .row.has-extra { grid-template-columns: minmax(0, 1fr); gap: 4px; }\n  .row-extra { text-align: left; }\n  .two, .tcols { grid-template-columns: minmax(0, 1fr); }\n  details.test > summary { grid-template-columns: auto minmax(0, 1fr); }\n  details.test > summary .sevcol, details.test > summary .tcounts { display: none; }\n  details.test > summary .ttl { grid-column: 1 / -1; }\n  .card { padding: 18px; }\n}\n@media print {\n  :root, :root[data-theme=\"dark\"] { color-scheme: light; --page: #ffffff; --surface: #ffffff; --surface-2: #f8fafc; --ink: #1e293b; --ink-2: #475569; --muted: #64748b; --grid: #e2e8f0; --axis: #cbd5e1; --border: #cbd5e1; --link: #007ea3; --wash: #f0f9ff; --accent: #00acd7; --accent-strong: #007ea3; --accent-wash: #f0f9ff; --fail: #dc2626; --good: #16a34a; --on-good: #ffffff; --pass-bar: #94a3b8; --neutral: #cbd5e1; --on-neutral: #1e293b; --shadow: none; --up: #15803d; --down: #b91c1c; }\n  html { scroll-behavior: auto; }\n  .card, details.fw { border: 1px solid var(--border); }\n  details.test { border: 1px solid var(--border); border-left-width: 4px; }\n  .layout { display: block; padding: 0; max-width: none; }\n  .toc, .filters, .cover-actions, #tip, .table-view, .more-links > summary { display: none !important; }\n  .cover, .seg, .dot, .sw, .pips i, .meter, details.test, .fix { print-color-adjust: exact; -webkit-print-color-adjust: exact; }\n  .section { break-before: page; padding-top: 0; }\n  #summary { break-before: auto; padding-top: 24px; }\n  .card, details.test, .row, tr { break-inside: avoid; }\n  .section-head { break-after: avoid; }\n  details.test[hidden] { display: none; }\n}";
-    R.ln = F + 795;
+    R.ln = F + 796;
     S["script"] = "(() => {\n  const $ = (s, r = document) => r.querySelector(s);\n  const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));\n  const root = document.documentElement;\n\n  const toggle = $('#theme');\n  const labels = { auto: 'Theme: automatic', light: 'Theme: light', dark: 'Theme: dark' };\n  function applyTheme(theme) {\n    if (theme === 'light' || theme === 'dark') { root.setAttribute('data-theme', theme); } else { root.removeAttribute('data-theme'); theme = 'auto'; }\n    toggle.textContent = labels[theme];\n    toggle.dataset.theme = theme;\n  }\n  let stored = null;\n  try { stored = localStorage.getItem('azure-report-theme'); } catch (e) { stored = null; }\n  applyTheme(stored);\n  toggle.addEventListener('click', () => {\n    const next = { auto: 'light', light: 'dark', dark: 'auto' }[toggle.dataset.theme || 'auto'];\n    applyTheme(next);\n    try { localStorage.setItem('azure-report-theme', next); } catch (e) { }\n  });\n  $('#print').addEventListener('click', () => window.print());\n\n  const tip = $('#tip');\n  function showTip(el, x, y) {\n    const value = document.createElement('strong');\n    value.textContent = el.getAttribute('data-tip');\n    const label = document.createElement('span');\n    label.textContent = el.getAttribute('data-sub') || '';\n    tip.replaceChildren(value, label);\n    tip.hidden = false;\n    const w = tip.offsetWidth, h = tip.offsetHeight;\n    tip.style.left = Math.max(8, Math.min(window.innerWidth - w - 8, x + 12)) + 'px';\n    tip.style.top = Math.max(8, y - h - 12) + 'px';\n  }\n  function hideTip() { tip.hidden = true; }\n  $$('[data-tip]').forEach(el => {\n    el.addEventListener('pointermove', e => showTip(el, e.clientX, e.clientY));\n    el.addEventListener('pointerleave', hideTip);\n    el.addEventListener('focus', () => { const r = el.getBoundingClientRect(); showTip(el, r.left + r.width / 2, r.top); });\n    el.addEventListener('blur', hideTip);\n  });\n\n  const tocLinks = $$('.toc a');\n  if ('IntersectionObserver' in window && tocLinks.length) {\n    const visible = new Map();\n    const observer = new IntersectionObserver(entries => {\n      entries.forEach(entry => visible.set(entry.target.id, entry.isIntersecting));\n      const current = tocLinks.find(a => visible.get(a.getAttribute('href').slice(1)));\n      if (current) { tocLinks.forEach(a => a.classList.toggle('active', a === current)); }\n    }, { rootMargin: '-10% 0px -70% 0px' });\n    $$('.section').forEach(section => observer.observe(section));\n  }\n\n  const cards = $$('details.test');\n  const search = $('#f-search'), category = $('#f-category'), framework = $('#f-framework'), count = $('#f-count'), empty = $('#f-empty');\n  function checked(name) { return new Set($$('input[name=\"' + name + '\"]:checked').map(i => i.value)); }\n  function applyFilters() {\n    const q = search.value.trim().toLowerCase();\n    const statuses = checked('status'), severities = checked('severity');\n    let shown = 0;\n    cards.forEach(card => {\n      const ok = statuses.has(card.dataset.status) && severities.has(card.dataset.severity)\n        && (!category.value || card.dataset.category === category.value)\n        && (!framework.value || card.dataset.frameworks.split(' ').includes(framework.value))\n        && (!q || card.dataset.search.includes(q));\n      card.hidden = !ok;\n      if (ok) { shown++; }\n    });\n    count.textContent = 'Showing ' + shown + ' of ' + cards.length + ' tests';\n    empty.hidden = shown > 0;\n  }\n  function resetFilters() {\n    search.value = ''; category.value = ''; framework.value = '';\n    $$('input[name=\"status\"], input[name=\"severity\"]').forEach(i => { i.checked = true; });\n  }\n  [search, category, framework].forEach(el => el.addEventListener('input', applyFilters));\n  $$('input[name=\"status\"], input[name=\"severity\"]').forEach(el => el.addEventListener('change', applyFilters));\n  $('#f-reset').addEventListener('click', () => { resetFilters(); applyFilters(); });\n  document.addEventListener('click', e => {\n    const link = e.target.closest('a[href^=\"#\"]');\n    if (!link) { return; }\n    const target = document.getElementById(decodeURIComponent(link.getAttribute('href').slice(1)));\n    if (!target || target.tagName !== 'DETAILS') { return; }\n    if (target.hidden) { resetFilters(); applyFilters(); }\n    target.open = true;\n  });\n  applyFilters();\n\n  let printOpened = [];\n  window.addEventListener('beforeprint', () => {\n    printOpened = cards.filter(c => !c.hidden).flatMap(c => [c, ...$$('details', c)]).filter(d => !d.open);\n    printOpened.forEach(d => { d.open = true; });\n  });\n  window.addEventListener('afterprint', () => { printOpened.forEach(c => { c.open = false; }); printOpened = []; });\n})();";
-    R.ln = F + 895;
+    R.ln = F + 896;
     const v43 = [];
-    R.ln = F + 895;
+    R.ln = F + 896;
     if (R.t((S["organization"] ?? null))) {
-        R.ln = F + 895;
+        R.ln = F + 896;
         R.e(v43, (S["organization"] ?? null));
     } else {
-        R.ln = F + 895;
+        R.ln = F + 896;
         R.e(v43, R.m((S["subscription"] ?? null), "subscriptionName"));
     }
     S["heading"] = R.u(v43);
-    R.ln = F + 896;
-    R.pa(O, R.cmd(S, "Add", ["<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"], null));
     R.ln = F + 897;
-    R.pa(O, R.cmd(S, "Add", [("<title>" + R.str(R.u(R.cmd(S, "Enc", [("" + R.str((S["title"] ?? null)) + ", " + R.str((S["heading"] ?? null)))], null))) + "</title>")], null));
+    R.pa(O, R.cmd(S, "Add", ["<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"], null));
     R.ln = F + 898;
-    R.pa(O, R.cmd(S, "Add", ["<link rel=\"icon\" href=\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 1l6 2.5v4c0 3.5-2.6 6.3-6 7.5-3.4-1.2-6-4-6-7.5v-4z' fill='%23256abf'/%3E%3C/svg%3E\">"], null));
+    R.pa(O, R.cmd(S, "Add", [("<title>" + R.str(R.u(R.cmd(S, "Enc", [("" + R.str((S["title"] ?? null)) + ", " + R.str((S["heading"] ?? null)))], null))) + "</title>")], null));
     R.ln = F + 899;
-    R.pa(O, R.cmd(S, "Add", [("<style>" + R.str((S["css"] ?? null)) + "</style></head><body>")], null));
+    R.pa(O, R.cmd(S, "Add", ["<link rel=\"icon\" href=\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 1l6 2.5v4c0 3.5-2.6 6.3-6 7.5-3.4-1.2-6-4-6-7.5v-4z' fill='%23256abf'/%3E%3C/svg%3E\">"], null));
     R.ln = F + 900;
-    R.pa(O, R.cmd(S, "Add", ["<header class=\"cover\"><div class=\"cover-inner\"><div class=\"cover-top\">"], null));
+    R.pa(O, R.cmd(S, "Add", [("<style>" + R.str((S["css"] ?? null)) + "</style></head><body>")], null));
     R.ln = F + 901;
-    R.pa(O, R.cmd(S, "Add", [("<span class=\"eyebrow\">" + R.str(R.u(R.cmd(S, "Enc", [(S["title"] ?? null)], null))) + "</span><span class=\"pill\">Confidential</span>")], null));
+    R.pa(O, R.cmd(S, "Add", ["<header class=\"cover\"><div class=\"cover-inner\"><div class=\"cover-top\">"], null));
     R.ln = F + 902;
-    R.pa(O, R.cmd(S, "Add", ["<div class=\"cover-actions\"><button type=\"button\" class=\"btn ghost\" id=\"print\">Print or save as PDF</button><button type=\"button\" class=\"btn ghost\" id=\"theme\">Theme: automatic</button></div></div>"], null));
+    R.pa(O, R.cmd(S, "Add", [("<span class=\"eyebrow\">" + R.str(R.u(R.cmd(S, "Enc", [(S["title"] ?? null)], null))) + "</span><span class=\"pill\">Confidential</span>")], null));
     R.ln = F + 903;
+    R.pa(O, R.cmd(S, "Add", ["<div class=\"cover-actions\"><button type=\"button\" class=\"btn ghost\" id=\"print\">Print or save as PDF</button><button type=\"button\" class=\"btn ghost\" id=\"theme\">Theme: automatic</button></div></div>"], null));
+    R.ln = F + 904;
     R.pa(O, R.cmd(S, "Add", [("<h1>" + R.str(R.u(R.cmd(S, "Enc", [(S["heading"] ?? null)], null))) + "</h1>")], null));
-    R.ln = F + 904;
+    R.ln = F + 905;
     const v44 = [];
-    R.ln = F + 904;
+    R.ln = F + 905;
     if (R.t((S["organization"] ?? null))) {
-        R.ln = F + 904;
+        R.ln = F + 905;
         R.e(v44, ("Azure subscription " + R.str(R.u(R.pi(R.m((S["subscription"] ?? null), "subscriptionName"))))));
     } else {
-        R.ln = F + 904;
+        R.ln = F + 905;
         R.e(v44, "Azure subscription");
     }
     S["coversub"] = R.u(v44);
-    R.ln = F + 905;
-    R.pa(O, R.cmd(S, "Add", [("<p class=\"cover-sub\">" + R.str(R.u(R.cmd(S, "Enc", [(S["coversub"] ?? null)], null))) + "</p>")], null));
     R.ln = F + 906;
-    R.pa(O, R.cmd(S, "Add", ["<dl class=\"cover-meta\">"], null));
+    R.pa(O, R.cmd(S, "Add", [("<p class=\"cover-sub\">" + R.str(R.u(R.cmd(S, "Enc", [(S["coversub"] ?? null)], null))) + "</p>")], null));
     R.ln = F + 907;
+    R.pa(O, R.cmd(S, "Add", ["<dl class=\"cover-meta\">"], null));
+    R.ln = F + 908;
     for (const it45 of R.fi((() => {
         const v46 = [];
-        R.ln = F + 908;
-        R.e(v46, [R.v(R.a([R.v("Subscription ID"), R.v(R.m((S["subscription"] ?? null), "subscriptionId"))]))]);
         R.ln = F + 909;
-        R.e(v46, [R.v(R.a([R.v("Tenant ID"), R.v(R.m((S["subscription"] ?? null), "tenantId"))]))]);
+        R.e(v46, [R.v(R.a([R.v("Subscription ID"), R.v(R.m((S["subscription"] ?? null), "subscriptionId"))]))]);
         R.ln = F + 910;
-        R.e(v46, [R.v(R.a([R.v("Data collected"), R.v(R.u(R.cmd(S, "Format-Date", [R.m((S["subscription"] ?? null), "startedAt")], null)))]))]);
+        R.e(v46, [R.v(R.a([R.v("Tenant ID"), R.v(R.m((S["subscription"] ?? null), "tenantId"))]))]);
         R.ln = F + 911;
+        R.e(v46, [R.v(R.a([R.v("Data collected"), R.v(R.u(R.cmd(S, "Format-Date", [R.m((S["subscription"] ?? null), "startedAt")], null)))]))]);
+        R.ln = F + 912;
         R.e(v46, [R.v(R.a([R.v("Report based on"), R.v(("" + R.str(R.u(R.pi(R.m(R.m((S["results"] ?? null), "analyzer"), "tests")))) + " tests, analyzer " + R.str(R.u(R.pi(R.m(R.m((S["results"] ?? null), "analyzer"), "version"))))))]))]);
         return v46;
     })())) {
         S["item"] = it45;
-        R.ln = F + 912;
+        R.ln = F + 913;
         R.pa(O, R.cmd(S, "Add", [("<div><dt>" + R.str(R.u(R.cmd(S, "Enc", [R.i((S["item"] ?? null), 0)], null))) + "</dt><dd>" + R.str(R.u(R.cmd(S, "Enc", [R.i((S["item"] ?? null), 1)], null))) + "</dd></div>")], null));
     }
-    R.ln = F + 913;
+    R.ln = F + 914;
     R.pa(O, R.cmd(S, "Add", ["</dl></div></header>"], null));
-    R.ln = F + 915;
-    S["sections"] = R.sc("System.Collections.Generic.List[object]", "new", []);
     R.ln = F + 916;
-    R.e(O, R.im((S["sections"] ?? null), "Add", [R.a([R.v("summary"), R.v("Executive summary"), R.v(null)])]));
+    S["sections"] = R.sc("System.Collections.Generic.List[object]", "new", []);
     R.ln = F + 917;
+    R.e(O, R.im((S["sections"] ?? null), "Add", [R.a([R.v("summary"), R.v("Executive summary"), R.v(null)])]));
+    R.ln = F + 918;
     if ((R.t((S["comparison"] ?? null)) || R.t(R.ge(R.m((S["trendpoints"] ?? null), "Count"), 2)))) {
-        R.ln = F + 918;
+        R.ln = F + 919;
         S["scoredruns"] = R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $null -ne $_.Score " }, (S, O) => {
-            R.ln = F + 918;
+            R.ln = F + 919;
             R.e(O, R.ne(null, R.m((S["_"] ?? null), "Score")));
         })], R.pi((S["trendpoints"] ?? null))), "Count");
-        R.ln = F + 920;
+        R.ln = F + 921;
         if (R.t(R.ge((S["scoredruns"] ?? null), 2))) {
-            R.ln = F + 920;
+            R.ln = F + 921;
             R.e(O, R.im((S["sections"] ?? null), "Add", [R.a([R.v("changes"), R.v("Trend"), R.v((S["scoredruns"] ?? null))])]));
         } else {
-            R.ln = F + 921;
+            R.ln = F + 922;
             R.e(O, R.im((S["sections"] ?? null), "Add", [R.a(R.add([R.v("changes"), R.v("Changes"), R.v(R.m(R.m((S["comparison"] ?? null), "counts"), "newFailures"))], R.m(R.m((S["comparison"] ?? null), "counts"), "resolved")))]));
         }
     }
-    R.ln = F + 923;
-    R.e(O, R.im((S["sections"] ?? null), "Add", [R.a([R.v("priorities"), R.v("Priorities"), R.v(R.m((S["failingcriticalhigh"] ?? null), "Count"))])]));
     R.ln = F + 924;
-    R.e(O, R.im((S["sections"] ?? null), "Add", [R.a([R.v("domains"), R.v("Security domains"), R.v(R.m((S["categories"] ?? null), "Count"))])]));
+    R.e(O, R.im((S["sections"] ?? null), "Add", [R.a([R.v("priorities"), R.v("Priorities"), R.v(R.m((S["failingcriticalhigh"] ?? null), "Count"))])]));
     R.ln = F + 925;
-    R.e(O, R.im((S["sections"] ?? null), "Add", [R.a([R.v("frameworks"), R.v("Frameworks"), R.v(R.m((S["frameworks"] ?? null), "Count"))])]));
+    R.e(O, R.im((S["sections"] ?? null), "Add", [R.a([R.v("domains"), R.v("Security domains"), R.v(R.m((S["categories"] ?? null), "Count"))])]));
     R.ln = F + 926;
-    R.e(O, R.im((S["sections"] ?? null), "Add", [R.a([R.v("tests"), R.v("Test results"), R.v(R.m((S["tests"] ?? null), "Count"))])]));
+    R.e(O, R.im((S["sections"] ?? null), "Add", [R.a([R.v("frameworks"), R.v("Frameworks"), R.v(R.m((S["frameworks"] ?? null), "Count"))])]));
     R.ln = F + 927;
-    R.e(O, R.im((S["sections"] ?? null), "Add", [R.a([R.v("sources"), R.v("Scope and sources"), R.v(null)])]));
+    R.e(O, R.im((S["sections"] ?? null), "Add", [R.a([R.v("tests"), R.v("Test results"), R.v(R.m((S["tests"] ?? null), "Count"))])]));
     R.ln = F + 928;
-    S["sectionnumber"] = R.ht([], false);
+    R.e(O, R.im((S["sections"] ?? null), "Add", [R.a([R.v("sources"), R.v("Scope and sources"), R.v(null)])]));
     R.ln = F + 929;
+    S["sectionnumber"] = R.ht([], false);
+    R.ln = F + 930;
     for (S["i"] = 0; R.t(R.lt((S["i"] ?? null), R.m((S["sections"] ?? null), "Count"))); R.incv(S, "i", 1, true)) {
-        R.ln = F + 929;
+        R.ln = F + 930;
         R.si((S["sectionnumber"] ?? null), R.i(R.i((S["sections"] ?? null), (S["i"] ?? null)), 0), R.fmt("{0:00}", (R.add((S["i"] ?? null), 1))));
     }
-    R.ln = F + 931;
-    R.pa(O, R.cmd(S, "Add", ["<div class=\"layout\"><nav class=\"toc\" aria-label=\"Report sections\"><div class=\"toc-title\">Contents</div><ol>"], null));
     R.ln = F + 932;
+    R.pa(O, R.cmd(S, "Add", ["<div class=\"layout\"><nav class=\"toc\" aria-label=\"Report sections\"><div class=\"toc-title\">Contents</div><ol>"], null));
+    R.ln = F + 933;
     for (const it47 of R.fi((S["sections"] ?? null))) {
         S["section"] = it47;
-        R.ln = F + 933;
+        R.ln = F + 934;
         const v48 = [];
-        R.ln = F + 933;
+        R.ln = F + 934;
         if (R.t(R.ne(null, R.i((S["section"] ?? null), 2)))) {
-            R.ln = F + 933;
+            R.ln = F + 934;
             R.e(v48, ("<span class=\"c\">" + R.str(R.u(R.pi(R.i((S["section"] ?? null), 2)))) + "</span>"));
         } else {
-            R.ln = F + 933;
+            R.ln = F + 934;
             R.e(v48, "");
         }
         S["counthtml"] = R.u(v48);
-        R.ln = F + 934;
+        R.ln = F + 935;
         R.pa(O, R.cmd(S, "Add", [("<li><a href=\"#" + R.str(R.u(R.pi(R.i((S["section"] ?? null), 0)))) + "\"><span class=\"n\">" + R.str(R.u(R.pi(R.i((S["sectionnumber"] ?? null), R.i((S["section"] ?? null), 0))))) + "</span><span>" + R.str(R.u(R.cmd(S, "Enc", [R.i((S["section"] ?? null), 1)], null))) + "</span>" + R.str((S["counthtml"] ?? null)) + "</a></li>")], null));
     }
-    R.ln = F + 936;
+    R.ln = F + 937;
     R.pa(O, R.cmd(S, "Add", ["</ol></nav><main>"], null));
-    R.ln = F + 938;
+    R.ln = F + 939;
     R.def(S, "Add-SectionHead", { params: [{ n: "Id", t: "string", pos: null }, { n: "Heading", t: "string", pos: null }, { n: "Subtitle", t: "string", pos: null }], adv: 0, h: "ad5a365f0b19ef7a" }, (S, O) => {
-        R.ln = F + 940;
-        R.pa(O, R.cmd(S, "Add", [("<section class=\"section\" id=\"" + R.str((S["id"] ?? null)) + "\" aria-labelledby=\"h-" + R.str((S["id"] ?? null)) + "\"><div class=\"section-head\"><span class=\"num\">" + R.str(R.u(R.pi(R.i((S["sectionnumber"] ?? null), (S["id"] ?? null))))) + "</span><div><h2 id=\"h-" + R.str((S["id"] ?? null)) + "\">" + R.str(R.u(R.cmd(S, "Enc", [(S["heading"] ?? null)], null))) + "</h2>")], null));
         R.ln = F + 941;
+        R.pa(O, R.cmd(S, "Add", [("<section class=\"section\" id=\"" + R.str((S["id"] ?? null)) + "\" aria-labelledby=\"h-" + R.str((S["id"] ?? null)) + "\"><div class=\"section-head\"><span class=\"num\">" + R.str(R.u(R.pi(R.i((S["sectionnumber"] ?? null), (S["id"] ?? null))))) + "</span><div><h2 id=\"h-" + R.str((S["id"] ?? null)) + "\">" + R.str(R.u(R.cmd(S, "Enc", [(S["heading"] ?? null)], null))) + "</h2>")], null));
+        R.ln = F + 942;
         if (R.t((S["subtitle"] ?? null))) {
-            R.ln = F + 941;
+            R.ln = F + 942;
             R.pa(O, R.cmd(S, "Add", [("<p class=\"sub\">" + R.str((S["subtitle"] ?? null)) + "</p>")], null));
         }
-        R.ln = F + 942;
+        R.ln = F + 943;
         R.pa(O, R.cmd(S, "Add", ["</div></div>"], null));
     });
-    R.ln = F + 949;
-    R.pa(O, R.cmd(S, "Add-SectionHead", [R.np("Id"), "summary", R.np("Heading"), "Executive summary", R.np("Subtitle"), ("Security posture of the subscription on " + R.str(R.u(R.cmd(S, "Enc", [R.u(R.cmd(S, "Format-Date", [R.m((S["subscription"] ?? null), "startedAt"), R.np("DateOnly")], null))], null))) + ", measured against " + R.str(R.u(R.pi(R.m((S["frameworks"] ?? null), "Count")))) + " frameworks and benchmarks.")], null));
     R.ln = F + 950;
-    R.pa(O, R.cmd(S, "Add", ["<div class=\"card exec\"><div class=\"score\"><div class=\"caption\">Posture score</div>"], null));
+    R.pa(O, R.cmd(S, "Add-SectionHead", [R.np("Id"), "summary", R.np("Heading"), "Executive summary", R.np("Subtitle"), ("Security posture of the subscription on " + R.str(R.u(R.cmd(S, "Enc", [R.u(R.cmd(S, "Format-Date", [R.m((S["subscription"] ?? null), "startedAt"), R.np("DateOnly")], null))], null))) + ", measured against " + R.str(R.u(R.pi(R.m((S["frameworks"] ?? null), "Count")))) + " frameworks and benchmarks.")], null));
     R.ln = F + 951;
+    R.pa(O, R.cmd(S, "Add", ["<div class=\"card exec\"><div class=\"score\"><div class=\"caption\">Posture score</div>"], null));
+    R.ln = F + 952;
     if (R.t(R.ne(null, (S["score"] ?? null)))) {
-        R.ln = F + 952;
-        S["circumference"] = R.mul(R.mul(2, R.st("math", "PI")), 76);
         R.ln = F + 953;
-        S["arc"] = R.sc("math", "Max", [0.01, R.div(R.mul((S["circumference"] ?? null), R.c("double", (S["score"] ?? null))), 100)]);
+        S["circumference"] = R.mul(R.mul(2, R.st("math", "PI")), 76);
         R.ln = F + 954;
-        R.pa(O, R.cmd(S, "Add", [("<div class=\"meter\"><svg viewBox=\"0 0 180 180\" role=\"img\" aria-label=\"Posture score " + R.str(R.u(R.cmd(S, "Format-Number", [(S["score"] ?? null)], null))) + " out of 100, rated " + R.str(R.u(R.cmd(S, "Enc", [R.m((S["rating"] ?? null), "Label")], null))) + "\"><circle class=\"track-ring\" cx=\"90\" cy=\"90\" r=\"76\"/><circle class=\"arc " + R.str(R.u(R.pi(R.m((S["rating"] ?? null), "Class")))) + "\" cx=\"90\" cy=\"90\" r=\"76\" stroke-dasharray=\"" + R.str(R.u(R.cmd(S, "Format-Number", [(S["arc"] ?? null)], null))) + " " + R.str(R.u(R.cmd(S, "Format-Number", [(S["circumference"] ?? null)], null))) + "\" transform=\"rotate(-90 90 90)\"/></svg>")], null));
+        S["arc"] = R.sc("math", "Max", [0.01, R.div(R.mul((S["circumference"] ?? null), R.c("double", (S["score"] ?? null))), 100)]);
         R.ln = F + 955;
-        R.pa(O, R.cmd(S, "Add", [("<div class=\"meter-value\" aria-hidden=\"true\"><span class=\"big\">" + R.str(R.u(R.cmd(S, "Format-Number", [(S["score"] ?? null)], null))) + "</span><span class=\"of\">out of 100</span></div></div>")], null));
+        R.pa(O, R.cmd(S, "Add", [("<div class=\"meter\"><svg viewBox=\"0 0 180 180\" role=\"img\" aria-label=\"Posture score " + R.str(R.u(R.cmd(S, "Format-Number", [(S["score"] ?? null)], null))) + " out of 100, rated " + R.str(R.u(R.cmd(S, "Enc", [R.m((S["rating"] ?? null), "Label")], null))) + "\"><circle class=\"track-ring\" cx=\"90\" cy=\"90\" r=\"76\"/><circle class=\"arc " + R.str(R.u(R.pi(R.m((S["rating"] ?? null), "Class")))) + "\" cx=\"90\" cy=\"90\" r=\"76\" stroke-dasharray=\"" + R.str(R.u(R.cmd(S, "Format-Number", [(S["arc"] ?? null)], null))) + " " + R.str(R.u(R.cmd(S, "Format-Number", [(S["circumference"] ?? null)], null))) + "\" transform=\"rotate(-90 90 90)\"/></svg>")], null));
         R.ln = F + 956;
+        R.pa(O, R.cmd(S, "Add", [("<div class=\"meter-value\" aria-hidden=\"true\"><span class=\"big\">" + R.str(R.u(R.cmd(S, "Format-Number", [(S["score"] ?? null)], null))) + "</span><span class=\"of\">out of 100</span></div></div>")], null));
+        R.ln = F + 957;
         R.pa(O, R.cmd(S, "Add", [("<div class=\"rating\">" + R.str(R.u(R.cmd(S, "New-StatusBadge", [R.np("Status"), R.m((S["rating"] ?? null), "Status"), R.np("Label"), R.m((S["rating"] ?? null), "Label")], null))) + "</div>")], null));
     } else {
-        R.ln = F + 958;
+        R.ln = F + 959;
         R.pa(O, R.cmd(S, "Add", ["<p class=\"note\">No score: no test evaluated any resource.</p>"], null));
     }
-    R.ln = F + 960;
+    R.ln = F + 961;
     if ((R.t((S["comparison"] ?? null)) && R.t(R.ne(null, R.m((S["comparison"] ?? null), "scoreDelta"))))) {
-        R.ln = F + 961;
+        R.ln = F + 962;
         const v49 = [];
-        R.ln = F + 961;
+        R.ln = F + 962;
         if (R.t(R.ge(R.m((S["comparison"] ?? null), "scoreDelta"), 0))) {
-            R.ln = F + 961;
+            R.ln = F + 962;
             R.e(v49, "up");
         } else {
-            R.ln = F + 961;
+            R.ln = F + 962;
             R.e(v49, "down");
         }
         S["deltaclass"] = R.u(v49);
-        R.ln = F + 962;
+        R.ln = F + 963;
         const v50 = [];
-        R.ln = F + 962;
+        R.ln = F + 963;
         if (R.t(R.gt(R.m((S["comparison"] ?? null), "scoreDelta"), 0))) {
-            R.ln = F + 962;
+            R.ln = F + 963;
             R.e(v50, "+");
         } else {
-            R.ln = F + 962;
+            R.ln = F + 963;
             R.e(v50, "");
         }
         S["sign"] = R.u(v50);
-        R.ln = F + 963;
+        R.ln = F + 964;
         R.pa(O, R.cmd(S, "Add", [("<div class=\"delta\"><span class=\"" + R.str((S["deltaclass"] ?? null)) + "\">" + R.str((S["sign"] ?? null)) + R.str(R.u(R.cmd(S, "Format-Number", [R.m((S["comparison"] ?? null), "scoreDelta")], null))) + "</span> since " + R.str(R.u(R.cmd(S, "Enc", [R.u(R.cmd(S, "Format-Date", [R.m(R.m((S["comparison"] ?? null), "baseline"), "ingestStartedAt"), R.np("DateOnly")], null))], null))) + "</div>")], null));
     }
-    R.ln = F + 965;
+    R.ln = F + 966;
     R.pa(O, R.cmd(S, "Add", ["</div><div>"], null));
-    R.ln = F + 968;
+    R.ln = F + 969;
     const v51 = [];
-    R.ln = F + 968;
+    R.ln = F + 969;
     if (R.t((S["organization"] ?? null))) {
-        R.ln = F + 968;
+        R.ln = F + 969;
         R.e(v51, ("The " + R.str(R.u(R.pi(R.m((S["subscription"] ?? null), "subscriptionName")))) + " subscription"));
     } else {
-        R.ln = F + 968;
+        R.ln = F + 969;
         R.e(v51, "The subscription");
     }
     S["subject"] = R.u(v51);
-    R.ln = F + 969;
-    S["sentences"] = R.sc("System.Collections.Generic.List[string]", "new", []);
     R.ln = F + 970;
+    S["sentences"] = R.sc("System.Collections.Generic.List[string]", "new", []);
+    R.ln = F + 971;
     if (R.t(R.ne(null, (S["score"] ?? null)))) {
-        R.ln = F + 970;
+        R.ln = F + 971;
         R.e(O, R.im((S["sentences"] ?? null), "Add", [("" + R.str((S["subject"] ?? null)) + " scores <b>" + R.str(R.u(R.cmd(S, "Format-Number", [(S["score"] ?? null)], null))) + " out of 100</b>, rated <b>" + R.str(R.u(R.cmd(S, "Enc", [R.im(R.m((S["rating"] ?? null), "Label"), "ToLowerInvariant", [])], null))) + "</b>.")]));
     }
-    R.ln = F + 971;
+    R.ln = F + 972;
     if (R.t(R.m((S["failing"] ?? null), "Count"))) {
-        R.ln = F + 972;
-        S["line"] = ("<b>" + R.str(R.u(R.pi(R.m((S["failing"] ?? null), "Count")))) + " of " + R.str(R.u(R.pi(R.m((S["evaluated"] ?? null), "Count")))) + "</b> evaluated tests fail, affecting <b>" + R.str(R.u(R.pi(R.m((S["failingresources"] ?? null), "Count")))) + "</b> resources.");
         R.ln = F + 973;
+        S["line"] = ("<b>" + R.str(R.u(R.pi(R.m((S["failing"] ?? null), "Count")))) + " of " + R.str(R.u(R.pi(R.m((S["evaluated"] ?? null), "Count")))) + "</b> evaluated tests fail, affecting <b>" + R.str(R.u(R.pi(R.m((S["failingresources"] ?? null), "Count")))) + "</b> resources.");
+        R.ln = F + 974;
         if (R.t(R.m((S["failingcriticalhigh"] ?? null), "Count"))) {
-            R.ln = F + 974;
-            S["criticalcount"] = R.m(R.cmd(S, "Where-Object", ["severity", R.np("eq"), "Critical"], R.pi((S["failingcriticalhigh"] ?? null))), "Count");
             R.ln = F + 975;
+            S["criticalcount"] = R.m(R.cmd(S, "Where-Object", ["severity", R.np("eq"), "Critical"], R.pi((S["failingcriticalhigh"] ?? null))), "Count");
+            R.ln = F + 976;
             S["line"] = R.add(S["line"] ?? null, (" " + R.str(R.u(R.pi(R.m((S["failingcriticalhigh"] ?? null), "Count")))) + " of these failures are rated Critical or High" + R.str((() => {
                 const v52 = [];
-                R.ln = F + 975;
+                R.ln = F + 976;
                 if (R.t((S["criticalcount"] ?? null))) {
-                    R.ln = F + 975;
+                    R.ln = F + 976;
                     R.e(v52, (" (" + R.str((S["criticalcount"] ?? null)) + " Critical)"));
                 }
                 return R.u(v52);
             })()) + " and should be addressed first."));
         } else {
-            R.ln = F + 976;
+            R.ln = F + 977;
             S["line"] = R.add(S["line"] ?? null, " None of the failures is rated Critical or High.");
         }
-        R.ln = F + 977;
-        R.e(O, R.im((S["sentences"] ?? null), "Add", [(S["line"] ?? null)]));
         R.ln = F + 978;
+        R.e(O, R.im((S["sentences"] ?? null), "Add", [(S["line"] ?? null)]));
+        R.ln = F + 979;
         S["weakest"] = R.cmd(S, "Select-Object", [R.np("First"), 2], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.Buckets.Fail " }, (S, O) => {
-            R.ln = F + 978;
+            R.ln = F + 979;
             R.e(O, R.m(R.m((S["_"] ?? null), "Buckets"), "Fail"));
         })], R.pi((S["categoryrows"] ?? null))));
-        R.ln = F + 979;
+        R.ln = F + 980;
         if (R.t(R.eq(R.m((S["weakest"] ?? null), "Count"), 2))) {
-            R.ln = F + 979;
+            R.ln = F + 980;
             R.e(O, R.im((S["sentences"] ?? null), "Add", [("Most failures are in <b>" + R.str(R.u(R.cmd(S, "Enc", [R.m(R.i((S["weakest"] ?? null), 0), "Label")], null))) + "</b> (" + R.str(R.u(R.pi(R.m(R.m(R.i((S["weakest"] ?? null), 0), "Buckets"), "Fail")))) + " of " + R.str(R.u(R.pi(R.m(R.i((S["weakest"] ?? null), 0), "Evaluated")))) + " tests) and <b>" + R.str(R.u(R.cmd(S, "Enc", [R.m(R.i((S["weakest"] ?? null), 1), "Label")], null))) + "</b> (" + R.str(R.u(R.pi(R.m(R.m(R.i((S["weakest"] ?? null), 1), "Buckets"), "Fail")))) + " of " + R.str(R.u(R.pi(R.m(R.i((S["weakest"] ?? null), 1), "Evaluated")))) + ").")]));
         } else if (R.t(R.eq(R.m((S["weakest"] ?? null), "Count"), 1))) {
-            R.ln = F + 980;
+            R.ln = F + 981;
             R.e(O, R.im((S["sentences"] ?? null), "Add", [("Most failures are in <b>" + R.str(R.u(R.cmd(S, "Enc", [R.m(R.i((S["weakest"] ?? null), 0), "Label")], null))) + "</b> (" + R.str(R.u(R.pi(R.m(R.m(R.i((S["weakest"] ?? null), 0), "Buckets"), "Fail")))) + " of " + R.str(R.u(R.pi(R.m(R.i((S["weakest"] ?? null), 0), "Evaluated")))) + " tests).")]));
         }
     } else if (R.t(R.m((S["evaluated"] ?? null), "Count"))) {
-        R.ln = F + 982;
+        R.ln = F + 983;
         R.e(O, R.im((S["sentences"] ?? null), "Add", [("All " + R.str(R.u(R.pi(R.m((S["evaluated"] ?? null), "Count")))) + " evaluated tests pass.")]));
     }
-    R.ln = F + 984;
+    R.ln = F + 985;
     if (R.t((S["comparison"] ?? null))) {
-        R.ln = F + 985;
+        R.ln = F + 986;
         S["line"] = ("Since " + R.str(R.u(R.cmd(S, "Enc", [R.u(R.cmd(S, "Format-Date", [R.m(R.m((S["comparison"] ?? null), "baseline"), "ingestStartedAt"), R.np("DateOnly")], null))], null))) + ", " + R.str(R.u(R.pi(R.m(R.m((S["comparison"] ?? null), "counts"), "newFailures")))) + " findings started failing and " + R.str(R.u(R.pi(R.m(R.m((S["comparison"] ?? null), "counts"), "resolved")))) + " were resolved.");
-        R.ln = F + 987;
+        R.ln = F + 988;
         if (R.t(R.m(R.m((S["comparison"] ?? null), "counts"), "lostVisibility"))) {
-            R.ln = F + 987;
+            R.ln = F + 988;
             S["line"] = R.add(S["line"] ?? null, (" A further <b>" + R.str(R.u(R.pi(R.m(R.m((S["comparison"] ?? null), "counts"), "lostVisibility")))) + "</b> went from failing to unknown because the data needed to judge them was not collected this time, so the score is not comparable."));
         }
-        R.ln = F + 988;
+        R.ln = F + 989;
         R.e(O, R.im((S["sentences"] ?? null), "Add", [(S["line"] ?? null)]));
     }
-    R.ln = F + 990;
+    R.ln = F + 991;
     if (R.t(R.m((S["notevaluated"] ?? null), "Count"))) {
-        R.ln = F + 990;
+        R.ln = F + 991;
         R.e(O, R.im((S["sentences"] ?? null), "Add", [("" + R.str(R.u(R.pi(R.m((S["notevaluated"] ?? null), "Count")))) + " tests could not be evaluated because the data they need was not collected; see <a href=\"#tests\">test results</a>.")]));
     }
-    R.ln = F + 991;
-    R.pa(O, R.cmd(S, "Add", ["<h3>Key findings</h3>"], null));
     R.ln = F + 992;
+    R.pa(O, R.cmd(S, "Add", ["<h3>Key findings</h3>"], null));
+    R.ln = F + 993;
     for (const it53 of R.fi((S["sentences"] ?? null))) {
         S["sentence"] = it53;
-        R.ln = F + 992;
+        R.ln = F + 993;
         R.pa(O, R.cmd(S, "Add", [("<p class=\"lead\">" + R.str((S["sentence"] ?? null)) + "</p>")], null));
     }
-    R.ln = F + 994;
-    S["evaluatedfindings"] = R.add(R.add(R.m((S["findingtotals"] ?? null), "Fail"), R.m((S["findingtotals"] ?? null), "Pass")), R.m((S["findingtotals"] ?? null), "Unknown"));
     R.ln = F + 995;
-    R.pa(O, R.cmd(S, "Add", ["<div class=\"kpis\">"], null));
+    S["evaluatedfindings"] = R.add(R.add(R.m((S["findingtotals"] ?? null), "Fail"), R.m((S["findingtotals"] ?? null), "Pass")), R.m((S["findingtotals"] ?? null), "Unknown"));
     R.ln = F + 996;
+    R.pa(O, R.cmd(S, "Add", ["<div class=\"kpis\">"], null));
+    R.ln = F + 997;
     for (const it54 of R.fi((() => {
         const v55 = [];
-        R.ln = F + 997;
-        R.e(v55, [R.v(R.a([R.v("Failing tests"), R.v(R.m((S["failing"] ?? null), "Count")), R.v(("of " + R.str(R.u(R.pi(R.m((S["evaluated"] ?? null), "Count")))))), R.v("evaluated tests")]))]);
         R.ln = F + 998;
-        R.e(v55, [R.v(R.a([R.v("Critical and high"), R.v(R.m((S["failingcriticalhigh"] ?? null), "Count")), R.v(""), R.v("failing tests")]))]);
+        R.e(v55, [R.v(R.a([R.v("Failing tests"), R.v(R.m((S["failing"] ?? null), "Count")), R.v(("of " + R.str(R.u(R.pi(R.m((S["evaluated"] ?? null), "Count")))))), R.v("evaluated tests")]))]);
         R.ln = F + 999;
-        R.e(v55, [R.v(R.a([R.v("Affected resources"), R.v(R.m((S["failingresources"] ?? null), "Count")), R.v(""), R.v("with a failing finding")]))]);
+        R.e(v55, [R.v(R.a([R.v("Critical and high"), R.v(R.m((S["failingcriticalhigh"] ?? null), "Count")), R.v(""), R.v("failing tests")]))]);
         R.ln = F + 1000;
+        R.e(v55, [R.v(R.a([R.v("Affected resources"), R.v(R.m((S["failingresources"] ?? null), "Count")), R.v(""), R.v("with a failing finding")]))]);
+        R.ln = F + 1001;
         R.e(v55, [R.v(R.a([R.v("Failing findings"), R.v(R.m((S["findingtotals"] ?? null), "Fail")), R.v(("of " + R.str((S["evaluatedfindings"] ?? null)))), R.v("resource results")]))]);
         return v55;
     })())) {
         S["kpi"] = it54;
-        R.ln = F + 1002;
+        R.ln = F + 1003;
         const v56 = [];
-        R.ln = F + 1002;
+        R.ln = F + 1003;
         if (R.t(R.i((S["kpi"] ?? null), 2))) {
-            R.ln = F + 1002;
+            R.ln = F + 1003;
             R.e(v56, (" <small>" + R.str(R.u(R.cmd(S, "Enc", [R.i((S["kpi"] ?? null), 2)], null))) + "</small>"));
         } else {
-            R.ln = F + 1002;
+            R.ln = F + 1003;
             R.e(v56, "");
         }
         S["of"] = R.u(v56);
-        R.ln = F + 1003;
+        R.ln = F + 1004;
         R.pa(O, R.cmd(S, "Add", [("<div class=\"kpi\"><div class=\"label\">" + R.str(R.u(R.cmd(S, "Enc", [R.i((S["kpi"] ?? null), 0)], null))) + "</div><div class=\"value\">" + R.str(R.u(R.pi(R.i((S["kpi"] ?? null), 1)))) + R.str((S["of"] ?? null)) + "</div><div class=\"hint\">" + R.str(R.u(R.cmd(S, "Enc", [R.i((S["kpi"] ?? null), 3)], null))) + "</div></div>")], null));
     }
-    R.ln = F + 1005;
+    R.ln = F + 1006;
     R.pa(O, R.cmd(S, "Add", ["</div></div></div>"], null));
-    R.ln = F + 1007;
-    S["severityscale"] = R.m(R.u(R.cmd(S, "Measure-Object", [R.np("Maximum")], R.cmd(S, "ForEach-Object", ["Evaluated"], R.pi((S["severityrows"] ?? null))))), "Maximum");
     R.ln = F + 1008;
-    R.pa(O, R.cmd(S, "Add", ["<div class=\"card\" role=\"group\" aria-label=\"Test results by severity\"><h3>Test results by severity</h3>"], null));
+    S["severityscale"] = R.m(R.u(R.cmd(S, "Measure-Object", [R.np("Maximum")], R.cmd(S, "ForEach-Object", ["Evaluated"], R.pi((S["severityrows"] ?? null))))), "Maximum");
     R.ln = F + 1009;
-    R.pa(O, R.cmd(S, "Add", [(S["legend"] ?? null)], null));
+    R.pa(O, R.cmd(S, "Add", ["<div class=\"card\" role=\"group\" aria-label=\"Test results by severity\"><h3>Test results by severity</h3>"], null));
     R.ln = F + 1010;
+    R.pa(O, R.cmd(S, "Add", [(S["legend"] ?? null)], null));
+    R.ln = F + 1011;
     for (const it57 of R.fi((S["severityrows"] ?? null))) {
         S["row"] = it57;
-        R.ln = F + 1011;
+        R.ln = F + 1012;
         R.pa(O, R.cmd(S, "Add", [R.u(R.cmd(S, "New-ChartRow", [R.np("LabelHtml"), R.u(R.cmd(S, "New-SeverityChip", [R.m((S["row"] ?? null), "Label")], null)), R.np("Buckets"), R.m((S["row"] ?? null), "Buckets"), R.np("Scale"), (S["severityscale"] ?? null), R.np("Label"), R.m((S["row"] ?? null), "Label"), R.np("Unit"), "tests", R.np("Note"), (() => {
             const v58 = [];
-            R.ln = F + 1011;
+            R.ln = F + 1012;
             if (R.t(R.m(R.m((S["row"] ?? null), "Buckets"), "NotApplicable"))) {
-                R.ln = F + 1011;
+                R.ln = F + 1012;
                 R.e(v58, ("" + R.str(R.u(R.pi(R.m(R.m((S["row"] ?? null), "Buckets"), "NotApplicable")))) + " not applicable"));
             }
             return R.u(v58);
         })()], null))], null));
     }
-    R.ln = F + 1013;
-    R.pa(O, R.cmd(S, "Add", [R.u(R.cmd(S, "New-TableView", [R.np("FirstColumn"), "Severity", R.np("Rows"), (S["severityrows"] ?? null)], null))], null));
     R.ln = F + 1014;
+    R.pa(O, R.cmd(S, "Add", [R.u(R.cmd(S, "New-TableView", [R.np("FirstColumn"), "Severity", R.np("Rows"), (S["severityrows"] ?? null)], null))], null));
+    R.ln = F + 1015;
     R.pa(O, R.cmd(S, "Add", ["</div></section>"], null));
-    R.ln = F + 1020;
+    R.ln = F + 1021;
     if ((R.t((S["comparison"] ?? null)) || R.t(R.ge(R.m((S["trendpoints"] ?? null), "Count"), 2)))) {
-        R.ln = F + 1021;
+        R.ln = F + 1022;
         S["logicchanged"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.logicChanged " }, (S, O) => {
-            R.ln = F + 1021;
+            R.ln = F + 1022;
             R.e(O, R.m((S["_"] ?? null), "logicChanged"));
         })], R.pi(R.m(R.m((S["comparison"] ?? null), "tests"), "changed")));
-        R.ln = F + 1023;
+        R.ln = F + 1024;
         S["lostvisibility"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 1023;
+            R.ln = F + 1024;
             R.e(O, (S["_"] ?? null));
         })], R.pi(R.m((S["comparison"] ?? null), "lostVisibility")));
-        R.ln = F + 1024;
+        R.ln = F + 1025;
         S["scored"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $null -ne $_.Score " }, (S, O) => {
-            R.ln = F + 1024;
+            R.ln = F + 1025;
             R.e(O, R.ne(null, R.m((S["_"] ?? null), "Score")));
         })], R.pi((S["trendpoints"] ?? null)));
-        R.ln = F + 1025;
+        R.ln = F + 1026;
         const v59 = [];
-        R.ln = F + 1025;
+        R.ln = F + 1026;
         if (R.t(R.ge(R.m((S["scored"] ?? null), "Count"), 2))) {
-            R.ln = F + 1025;
+            R.ln = F + 1026;
             R.e(v59, "Trend and changes");
         } else {
-            R.ln = F + 1025;
+            R.ln = F + 1026;
             R.e(v59, "Changes since the previous analysis");
         }
         S["heading"] = R.u(v59);
-        R.ln = F + 1026;
+        R.ln = F + 1027;
         const v60 = [];
-        R.ln = F + 1026;
+        R.ln = F + 1027;
         if (R.t((S["comparison"] ?? null))) {
-            R.ln = F + 1026;
+            R.ln = F + 1027;
             R.e(v60, ("Compared with data collected on " + R.str(R.u(R.cmd(S, "Enc", [R.u(R.cmd(S, "Format-Date", [R.m(R.m((S["comparison"] ?? null), "baseline"), "ingestStartedAt")], null))], null))) + ". Findings are matched on test and resource."));
         } else {
-            R.ln = F + 1026;
+            R.ln = F + 1027;
             R.e(v60, "");
         }
         S["subtitle"] = R.u(v60);
-        R.ln = F + 1027;
+        R.ln = F + 1028;
         if (R.t(R.ge(R.m((S["scored"] ?? null), "Count"), 2))) {
-            R.ln = F + 1028;
+            R.ln = F + 1029;
             S["movement"] = R.sc("math", "Round", [R.sub(R.c("double", R.m(R.i((S["scored"] ?? null), -1), "Score")), R.c("double", R.m(R.i((S["scored"] ?? null), 0), "Score"))), 1]);
-            R.ln = F + 1029;
+            R.ln = F + 1030;
             const v61 = [];
-            R.ln = F + 1029;
+            R.ln = F + 1030;
             if (R.t(R.gt((S["movement"] ?? null), 0))) {
-                R.ln = F + 1029;
+                R.ln = F + 1030;
                 R.e(v61, ("up " + R.str(R.u(R.cmd(S, "Format-Number", [(S["movement"] ?? null)], null))) + " point(s)"));
             } else if (R.t(R.lt((S["movement"] ?? null), 0))) {
-                R.ln = F + 1029;
+                R.ln = F + 1030;
                 R.e(v61, ("down " + R.str(R.u(R.cmd(S, "Format-Number", [(R.sc("math", "Abs", [(S["movement"] ?? null)]))], null))) + " point(s)"));
             } else {
-                R.ln = F + 1029;
+                R.ln = F + 1030;
                 R.e(v61, "unchanged");
             }
             S["direction"] = R.u(v61);
-            R.ln = F + 1030;
+            R.ln = F + 1031;
             S["subtitle"] = ("" + R.str(R.u(R.pi(R.m((S["scored"] ?? null), "Count")))) + " analyses of this subscription since " + R.str(R.u(R.cmd(S, "Enc", [(R.im(R.m(R.i((S["scored"] ?? null), 0), "StartedAt"), "ToString", ["d MMMM yyyy", R.st("System.Globalization.CultureInfo", "InvariantCulture")]))], null))) + ". The posture score is " + R.str((S["direction"] ?? null)) + " over that period. " + R.str((S["subtitle"] ?? null)));
         }
-        R.ln = F + 1032;
+        R.ln = F + 1033;
         R.pa(O, R.cmd(S, "Add-SectionHead", [R.np("Id"), "changes", R.np("Heading"), (S["heading"] ?? null), R.np("Subtitle"), (S["subtitle"] ?? null)], null));
-        R.ln = F + 1034;
+        R.ln = F + 1035;
         if (R.t(R.ge(R.m((S["scored"] ?? null), "Count"), 2))) {
-            R.ln = F + 1035;
-            R.pa(O, R.cmd(S, "Add", ["<div class=\"card\" role=\"group\" aria-label=\"Posture score over time\"><h3>Posture score over time</h3>"], null));
             R.ln = F + 1036;
+            R.pa(O, R.cmd(S, "Add", ["<div class=\"card\" role=\"group\" aria-label=\"Posture score over time\"><h3>Posture score over time</h3>"], null));
+            R.ln = F + 1037;
             R.pa(O, R.cmd(S, "Add", [R.u(R.cmd(S, "New-TrendChart", [R.np("Points"), (S["trendpoints"] ?? null)], null))], null));
-            R.ln = F + 1039;
+            R.ln = F + 1040;
             S["trendrows"] = (() => {
                 const v62 = [];
-                R.ln = F + 1039;
+                R.ln = F + 1040;
                 for (const it63 of R.fi((S["trendpoints"] ?? null))) {
                     S["point"] = it63;
-                    R.ln = F + 1040;
-                    S["buckets"] = R.ht(["Fail", R.c("int", R.m(R.m((S["point"] ?? null), "Tests"), "Fail")), "Unknown", R.add(R.c("int", R.m(R.m((S["point"] ?? null), "Tests"), "Unknown")), R.c("int", R.m(R.m((S["point"] ?? null), "Tests"), "Error"))), "Pass", R.c("int", R.m(R.m((S["point"] ?? null), "Tests"), "Pass")), "NotApplicable", R.c("int", R.m(R.m((S["point"] ?? null), "Tests"), "NotApplicable")), "NotAssessed", 0], true);
                     R.ln = F + 1041;
+                    S["buckets"] = R.ht(["Fail", R.c("int", R.m(R.m((S["point"] ?? null), "Tests"), "Fail")), "Unknown", R.add(R.c("int", R.m(R.m((S["point"] ?? null), "Tests"), "Unknown")), R.c("int", R.m(R.m((S["point"] ?? null), "Tests"), "Error"))), "Pass", R.c("int", R.m(R.m((S["point"] ?? null), "Tests"), "Pass")), "NotApplicable", R.c("int", R.m(R.m((S["point"] ?? null), "Tests"), "NotApplicable")), "NotAssessed", 0], true);
+                    R.ln = F + 1042;
                     R.e(v62, R.pso(["Label", R.add(R.im(R.m((S["point"] ?? null), "StartedAt"), "ToString", ["d MMM yyyy", R.st("System.Globalization.CultureInfo", "InvariantCulture")]), (() => {
                         const v64 = [];
-                        R.ln = F + 1042;
+                        R.ln = F + 1043;
                         if (R.t(R.m((S["point"] ?? null), "IsCurrent"))) {
-                            R.ln = F + 1042;
+                            R.ln = F + 1043;
                             R.e(v64, " (this run)");
                         } else {
-                            R.ln = F + 1042;
+                            R.ln = F + 1043;
                             R.e(v64, "");
                         }
                         return R.u(v64);
@@ -1474,417 +1474,422 @@ export default R.script("/app/Report/New-AzureSecurityReport.ps1", { params: [{ 
                 }
                 return v62;
             })();
-            R.ln = F + 1049;
-            S["trendscale"] = R.m(R.u(R.cmd(S, "Measure-Object", [R.np("Maximum")], R.cmd(S, "ForEach-Object", ["Evaluated"], R.pi((S["trendrows"] ?? null))))), "Maximum");
             R.ln = F + 1050;
-            R.pa(O, R.cmd(S, "Add", ["<h3 class=\"sp\" style=\"margin-top:26px\">Test results per run</h3>"], null));
+            S["trendscale"] = R.m(R.u(R.cmd(S, "Measure-Object", [R.np("Maximum")], R.cmd(S, "ForEach-Object", ["Evaluated"], R.pi((S["trendrows"] ?? null))))), "Maximum");
             R.ln = F + 1051;
-            R.pa(O, R.cmd(S, "Add", [(S["legend"] ?? null)], null));
+            R.pa(O, R.cmd(S, "Add", ["<h3 class=\"sp\" style=\"margin-top:26px\">Test results per run</h3>"], null));
             R.ln = F + 1052;
+            R.pa(O, R.cmd(S, "Add", [(S["legend"] ?? null)], null));
+            R.ln = F + 1053;
             for (const it65 of R.fi((S["trendrows"] ?? null))) {
                 S["row"] = it65;
-                R.ln = F + 1053;
+                R.ln = F + 1054;
                 R.pa(O, R.cmd(S, "Add", [R.u(R.cmd(S, "New-ChartRow", [R.np("LabelHtml"), R.u(R.cmd(S, "Enc", [R.m((S["row"] ?? null), "Label")], null)), R.np("Buckets"), R.m((S["row"] ?? null), "Buckets"), R.np("Scale"), (S["trendscale"] ?? null), R.np("Label"), R.m((S["row"] ?? null), "Label"), R.np("Unit"), "tests", R.np("Note"), (() => {
                     const v66 = [];
-                    R.ln = F + 1053;
+                    R.ln = F + 1054;
                     if (R.t(R.ne(null, R.m((S["row"] ?? null), "Score")))) {
-                        R.ln = F + 1053;
+                        R.ln = F + 1054;
                         R.e(v66, ("score " + R.str(R.u(R.cmd(S, "Format-Number", [R.m((S["row"] ?? null), "Score")], null)))));
                     }
                     return R.u(v66);
                 })()], null))], null));
             }
-            R.ln = F + 1055;
-            R.pa(O, R.cmd(S, "Add", ["<details class=\"table-view\"><summary>Table view</summary><div class=\"scroll\"><table><thead><tr><th>Analysis</th><th class=\"num\">Score</th><th class=\"num\">Change</th><th class=\"num\">Failing</th><th class=\"num\">Unknown or error</th><th class=\"num\">Passing</th><th class=\"num\">Not applicable</th><th class=\"num\">Tests</th></tr></thead><tbody>"], null));
             R.ln = F + 1056;
-            S["previousscore"] = null;
+            R.pa(O, R.cmd(S, "Add", ["<details class=\"table-view\"><summary>Table view</summary><div class=\"scroll\"><table><thead><tr><th>Analysis</th><th class=\"num\">Score</th><th class=\"num\">Change</th><th class=\"num\">Failing</th><th class=\"num\">Unknown or error</th><th class=\"num\">Passing</th><th class=\"num\">Not applicable</th><th class=\"num\">Tests</th></tr></thead><tbody>"], null));
             R.ln = F + 1057;
+            S["previousscore"] = null;
+            R.ln = F + 1058;
             for (const it67 of R.fi((S["trendrows"] ?? null))) {
                 S["row"] = it67;
-                R.ln = F + 1058;
+                R.ln = F + 1059;
                 const v68 = [];
-                R.ln = F + 1058;
+                R.ln = F + 1059;
                 if ((R.t(R.ne(null, R.m((S["row"] ?? null), "Score"))) && R.t(R.ne(null, (S["previousscore"] ?? null))))) {
-                    R.ln = F + 1058;
+                    R.ln = F + 1059;
                     S["d"] = R.sc("math", "Round", [R.sub(R.c("double", R.m((S["row"] ?? null), "Score")), R.c("double", (S["previousscore"] ?? null))), 1]);
-                    R.ln = F + 1058;
+                    R.ln = F + 1059;
                     R.e(v68, ("" + R.str((() => {
                         const v69 = [];
-                        R.ln = F + 1058;
+                        R.ln = F + 1059;
                         if (R.t(R.gt((S["d"] ?? null), 0))) {
-                            R.ln = F + 1058;
+                            R.ln = F + 1059;
                             R.e(v69, "+");
                         }
                         return R.u(v69);
                     })()) + R.str(R.u(R.cmd(S, "Format-Number", [(S["d"] ?? null)], null)))));
                 } else {
-                    R.ln = F + 1058;
+                    R.ln = F + 1059;
                     R.e(v68, "");
                 }
                 S["delta"] = R.u(v68);
-                R.ln = F + 1059;
+                R.ln = F + 1060;
                 if (R.t(R.ne(null, R.m((S["row"] ?? null), "Score")))) {
-                    R.ln = F + 1059;
+                    R.ln = F + 1060;
                     S["previousscore"] = R.m((S["row"] ?? null), "Score");
                 }
-                R.ln = F + 1060;
+                R.ln = F + 1061;
                 R.pa(O, R.cmd(S, "Add", [("<tr><td>" + R.str(R.u(R.cmd(S, "Enc", [R.m((S["row"] ?? null), "Label")], null))) + "</td><td class=\"num\">" + R.str((() => {
                     const v70 = [];
-                    R.ln = F + 1060;
+                    R.ln = F + 1061;
                     if (R.t(R.ne(null, R.m((S["row"] ?? null), "Score")))) {
-                        R.ln = F + 1060;
+                        R.ln = F + 1061;
                         R.pa(v70, R.cmd(S, "Format-Number", [R.m((S["row"] ?? null), "Score")], null));
                     } else {
-                        R.ln = F + 1060;
+                        R.ln = F + 1061;
                         R.e(v70, "-");
                     }
                     return R.u(v70);
                 })()) + "</td><td class=\"num\">" + R.str(R.u(R.cmd(S, "Enc", [(S["delta"] ?? null)], null))) + "</td><td class=\"num\">" + R.str(R.u(R.pi(R.m(R.m((S["row"] ?? null), "Buckets"), "Fail")))) + "</td><td class=\"num\">" + R.str(R.u(R.pi(R.m(R.m((S["row"] ?? null), "Buckets"), "Unknown")))) + "</td><td class=\"num\">" + R.str(R.u(R.pi(R.m(R.m((S["row"] ?? null), "Buckets"), "Pass")))) + "</td><td class=\"num\">" + R.str(R.u(R.pi(R.m(R.m((S["row"] ?? null), "Buckets"), "NotApplicable")))) + "</td><td class=\"num\">" + R.str(R.u(R.pi(R.m((S["row"] ?? null), "TestCount")))) + "</td></tr>")], null));
             }
-            R.ln = F + 1062;
+            R.ln = F + 1063;
             R.pa(O, R.cmd(S, "Add", ["</tbody></table></div></details></div>"], null));
         }
-        R.ln = F + 1065;
+        R.ln = F + 1066;
         if (!R.t((S["comparison"] ?? null))) {
-            R.ln = F + 1065;
+            R.ln = F + 1066;
             R.pa(O, R.cmd(S, "Add", ["</section>"], null));
         }
     }
-    R.ln = F + 1068;
+    R.ln = F + 1069;
     if (R.t((S["comparison"] ?? null))) {
-        R.ln = F + 1069;
-        R.pa(O, R.cmd(S, "Add", ["<div class=\"card\"><div class=\"kpis\" style=\"margin-top:0;border-top:0\">"], null));
         R.ln = F + 1070;
+        R.pa(O, R.cmd(S, "Add", ["<div class=\"card\"><div class=\"kpis\" style=\"margin-top:0;border-top:0\">"], null));
+        R.ln = F + 1071;
         for (const it71 of R.fi((() => {
             const v72 = [];
-            R.ln = F + 1071;
-            R.e(v72, [R.v(R.a([R.v("New failures"), R.v(R.m(R.m((S["comparison"] ?? null), "counts"), "newFailures")), R.v("failing now, not before")]))]);
             R.ln = F + 1072;
-            R.e(v72, [R.v(R.a([R.v("Resolved"), R.v(R.m(R.m((S["comparison"] ?? null), "counts"), "resolved")), R.v("demonstrably fixed or gone")]))]);
+            R.e(v72, [R.v(R.a([R.v("New failures"), R.v(R.m(R.m((S["comparison"] ?? null), "counts"), "newFailures")), R.v("failing now, not before")]))]);
             R.ln = F + 1073;
-            R.e(v72, [R.v(R.a([R.v("Still failing"), R.v(R.m(R.m((S["comparison"] ?? null), "counts"), "stillFailing")), R.v("failing in both analyses")]))]);
+            R.e(v72, [R.v(R.a([R.v("Resolved"), R.v(R.m(R.m((S["comparison"] ?? null), "counts"), "resolved")), R.v("demonstrably fixed or gone")]))]);
             R.ln = F + 1074;
-            R.e(v72, [R.v(R.a([R.v("Lost visibility"), R.v(R.m((S["lostvisibility"] ?? null), "Count")), R.v("failing before, unknown now")]))]);
+            R.e(v72, [R.v(R.a([R.v("Still failing"), R.v(R.m(R.m((S["comparison"] ?? null), "counts"), "stillFailing")), R.v("failing in both analyses")]))]);
             R.ln = F + 1075;
+            R.e(v72, [R.v(R.a([R.v("Lost visibility"), R.v(R.m((S["lostvisibility"] ?? null), "Count")), R.v("failing before, unknown now")]))]);
+            R.ln = F + 1076;
             R.e(v72, [R.v(R.a([R.v("Changed test logic"), R.v(R.m((S["logicchanged"] ?? null), "Count")), R.v("compare these with care")]))]);
             return v72;
         })())) {
             S["kpi"] = it71;
-            R.ln = F + 1076;
+            R.ln = F + 1077;
             R.pa(O, R.cmd(S, "Add", [("<div class=\"kpi\" style=\"padding-top:0\"><div class=\"label\">" + R.str(R.u(R.cmd(S, "Enc", [R.i((S["kpi"] ?? null), 0)], null))) + "</div><div class=\"value\">" + R.str(R.u(R.pi(R.i((S["kpi"] ?? null), 1)))) + "</div><div class=\"hint\">" + R.str(R.u(R.cmd(S, "Enc", [R.i((S["kpi"] ?? null), 2)], null))) + "</div></div>")], null));
         }
-        R.ln = F + 1077;
-        R.pa(O, R.cmd(S, "Add", ["</div>"], null));
         R.ln = F + 1078;
+        R.pa(O, R.cmd(S, "Add", ["</div>"], null));
+        R.ln = F + 1079;
         if (R.t(R.m((S["lostvisibility"] ?? null), "Count"))) {
-            R.ln = F + 1079;
+            R.ln = F + 1080;
             R.pa(O, R.cmd(S, "Add", [("<p class=\"note\" style=\"margin:16px 0 0\">" + R.str(R.u(R.pi(R.m((S["lostvisibility"] ?? null), "Count")))) + " finding(s) went from failing to unknown because the data needed to judge them was not collected this time. They were not fixed, and the posture score is not comparable with the baseline until the collection gap is closed.</p>")], null));
         }
-        R.ln = F + 1081;
+        R.ln = F + 1082;
         if (R.t(R.m((S["logicchanged"] ?? null), "Count"))) {
-            R.ln = F + 1082;
+            R.ln = F + 1083;
             S["links"] = R.join(R.u(R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " '<a href=\"#{0}\">{0}</a>' -f (Enc $_.id) " }, (S, O) => {
-                R.ln = F + 1082;
+                R.ln = F + 1083;
                 R.e(O, R.fmt("<a href=\"#{0}\">{0}</a>", R.u(R.cmd(S, "Enc", [R.m((S["_"] ?? null), "id")], null))));
             })], R.pi((S["logicchanged"] ?? null)))), ", ");
-            R.ln = F + 1083;
+            R.ln = F + 1084;
             R.pa(O, R.cmd(S, "Add", [("<p class=\"note\" style=\"margin:16px 0 0\">Tests whose logic changed since the baseline: " + R.str((S["links"] ?? null)) + ".</p>")], null));
         }
-        R.ln = F + 1085;
-        R.pa(O, R.cmd(S, "Add", ["</div>"], null));
         R.ln = F + 1086;
+        R.pa(O, R.cmd(S, "Add", ["</div>"], null));
+        R.ln = F + 1087;
         for (const it73 of R.fi(R.a([R.v(R.a([R.v("New failures"), R.v(R.m((S["comparison"] ?? null), "newFailures"))])), R.v(R.a([R.v("Lost visibility"), R.v((S["lostvisibility"] ?? null))])), R.v(R.a([R.v("Resolved"), R.v(R.m((S["comparison"] ?? null), "resolved"))]))]))) {
             S["list"] = it73;
-            R.ln = F + 1087;
+            R.ln = F + 1088;
             S["items"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                R.ln = F + 1087;
+                R.ln = F + 1088;
                 R.e(O, (S["_"] ?? null));
             })], R.pi(R.i((S["list"] ?? null), 1)));
-            R.ln = F + 1088;
+            R.ln = F + 1089;
             if (!R.t(R.m((S["items"] ?? null), "Count"))) {
                 continue;
             }
-            R.ln = F + 1089;
+            R.ln = F + 1090;
             S["groups"] = R.cmd(S, "Sort-Object", [[R.v(R.sb({ params: [], adv: 0, text: " $severityOrder[$_.Group[0].severity] " }, (S, O) => {
-                R.ln = F + 1089;
+                R.ln = F + 1090;
                 R.e(O, R.i((S["severityorder"] ?? null), R.m(R.i(R.m((S["_"] ?? null), "Group"), 0), "severity")));
             })), R.v(R.sb({ params: [], adv: 0, text: " - $_.Count " }, (S, O) => {
-                R.ln = F + 1089;
+                R.ln = F + 1090;
                 R.e(O, R.neg(R.m((S["_"] ?? null), "Count")));
             })), R.v("Name")]], R.cmd(S, "Group-Object", [R.sb({ params: [], adv: 0, text: " $_.testId " }, (S, O) => {
-                R.ln = F + 1089;
+                R.ln = F + 1090;
                 R.e(O, R.m((S["_"] ?? null), "testId"));
             })], R.pi((S["items"] ?? null))));
-            R.ln = F + 1090;
-            R.pa(O, R.cmd(S, "Add", [("<div class=\"card\"><h3>" + R.str(R.u(R.cmd(S, "Enc", [R.i((S["list"] ?? null), 0)], null))) + " <span class=\"muted\" style=\"font-weight:400\">" + R.str(R.u(R.pi(R.m((S["items"] ?? null), "Count")))) + " findings in " + R.str(R.u(R.pi(R.m((S["groups"] ?? null), "Count")))) + " tests</span></h3><div class=\"scroll\"><table class=\"chg\"><thead><tr><th>Severity</th><th>Test</th><th class=\"num\">Findings</th><th>Resources</th></tr></thead><tbody>")], null));
             R.ln = F + 1091;
+            R.pa(O, R.cmd(S, "Add", [("<div class=\"card\"><h3>" + R.str(R.u(R.cmd(S, "Enc", [R.i((S["list"] ?? null), 0)], null))) + " <span class=\"muted\" style=\"font-weight:400\">" + R.str(R.u(R.pi(R.m((S["items"] ?? null), "Count")))) + " findings in " + R.str(R.u(R.pi(R.m((S["groups"] ?? null), "Count")))) + " tests</span></h3><div class=\"scroll\"><table class=\"chg\"><thead><tr><th>Severity</th><th>Test</th><th class=\"num\">Findings</th><th>Resources</th></tr></thead><tbody>")], null));
+            R.ln = F + 1092;
             for (const it74 of R.fi(R.u(R.cmd(S, "Select-Object", [R.np("First"), 25], R.pi((S["groups"] ?? null)))))) {
                 S["group"] = it74;
-                R.ln = F + 1092;
+                R.ln = F + 1093;
                 S["shown"] = R.u(R.cmd(S, "New-ResourceNameList", [R.np("Findings"), R.m((S["group"] ?? null), "Group"), R.np("Max"), 4], null));
-                R.ln = F + 1093;
+                R.ln = F + 1094;
                 const v75 = [];
-                R.ln = F + 1093;
+                R.ln = F + 1094;
                 if (R.t(R.i((S["testsbyid"] ?? null), R.m((S["group"] ?? null), "Name")))) {
-                    R.ln = F + 1093;
+                    R.ln = F + 1094;
                     R.e(v75, R.m(R.i((S["testsbyid"] ?? null), R.m((S["group"] ?? null), "Name")), "title"));
                 } else {
-                    R.ln = F + 1093;
+                    R.ln = F + 1094;
                     R.e(v75, R.m((S["group"] ?? null), "Name"));
                 }
                 S["testtitle"] = R.u(v75);
-                R.ln = F + 1094;
+                R.ln = F + 1095;
                 R.pa(O, R.cmd(S, "Add", [("<tr><td>" + R.str(R.u(R.cmd(S, "New-SeverityChip", [R.m(R.i(R.m((S["group"] ?? null), "Group"), 0), "severity")], null))) + "</td><td><a href=\"#" + R.str(R.u(R.cmd(S, "Enc", [R.m((S["group"] ?? null), "Name")], null))) + "\">" + R.str(R.u(R.cmd(S, "Enc", [(S["testtitle"] ?? null)], null))) + "</a><span class=\"tid\">" + R.str(R.u(R.cmd(S, "Enc", [R.m((S["group"] ?? null), "Name")], null))) + "</span></td><td class=\"num\">" + R.str(R.u(R.pi(R.m((S["group"] ?? null), "Count")))) + "</td><td>" + R.str((S["shown"] ?? null)) + "</td></tr>")], null));
             }
-            R.ln = F + 1096;
-            R.pa(O, R.cmd(S, "Add", ["</tbody></table></div>"], null));
             R.ln = F + 1097;
+            R.pa(O, R.cmd(S, "Add", ["</tbody></table></div>"], null));
+            R.ln = F + 1098;
             if (R.t(R.gt(R.m((S["groups"] ?? null), "Count"), 25))) {
-                R.ln = F + 1097;
+                R.ln = F + 1098;
                 R.pa(O, R.cmd(S, "Add", [("<p class=\"note\">And " + R.str(R.u(R.pi(R.sub(R.m((S["groups"] ?? null), "Count"), 25)))) + " more tests, listed with their findings below.</p>")], null));
             }
-            R.ln = F + 1098;
-            R.pa(O, R.cmd(S, "Add", [("<details class=\"more findings\"><summary>Show all " + R.str(R.u(R.pi(R.m((S["items"] ?? null), "Count")))) + " findings</summary><div class=\"scroll\"><table><thead><tr><th>Test</th><th>Resource</th><th>Change</th><th>Detail</th></tr></thead><tbody>")], null));
             R.ln = F + 1099;
+            R.pa(O, R.cmd(S, "Add", [("<details class=\"more findings\"><summary>Show all " + R.str(R.u(R.pi(R.m((S["items"] ?? null), "Count")))) + " findings</summary><div class=\"scroll\"><table><thead><tr><th>Test</th><th>Resource</th><th>Change</th><th>Detail</th></tr></thead><tbody>")], null));
+            R.ln = F + 1100;
             for (const it76 of R.fi(R.u(R.cmd(S, "Sort-Object", [[R.v(R.sb({ params: [], adv: 0, text: " $severityOrder[$_.severity] " }, (S, O) => {
-                R.ln = F + 1099;
+                R.ln = F + 1100;
                 R.e(O, R.i((S["severityorder"] ?? null), R.m((S["_"] ?? null), "severity")));
             })), R.v(R.sb({ params: [], adv: 0, text: " $_.testId " }, (S, O) => {
-                R.ln = F + 1099;
+                R.ln = F + 1100;
                 R.e(O, R.m((S["_"] ?? null), "testId"));
             })), R.v(R.sb({ params: [], adv: 0, text: " $_.resourceName " }, (S, O) => {
-                R.ln = F + 1099;
+                R.ln = F + 1100;
                 R.e(O, R.m((S["_"] ?? null), "resourceName"));
             }))]], R.pi((S["items"] ?? null)))))) {
                 S["item"] = it76;
-                R.ln = F + 1100;
+                R.ln = F + 1101;
                 const v77 = [];
-                R.ln = F + 1100;
+                R.ln = F + 1101;
                 if (!R.t(R.m((S["item"] ?? null), "to"))) {
-                    R.ln = F + 1100;
+                    R.ln = F + 1101;
                     R.e(v77, ("" + R.str(R.u(R.pi(R.i((S["statuslabels"] ?? null), R.m((S["item"] ?? null), "from"))))) + ", resource no longer present"));
                 } else if (!R.t(R.m((S["item"] ?? null), "from"))) {
-                    R.ln = F + 1100;
+                    R.ln = F + 1101;
                     R.e(v77, ("new resource, " + R.str(R.u(R.pi(R.i((S["statuslabels"] ?? null), R.m((S["item"] ?? null), "to")))))));
                 } else {
-                    R.ln = F + 1100;
+                    R.ln = F + 1101;
                     R.e(v77, ("" + R.str(R.u(R.pi(R.i((S["statuslabels"] ?? null), R.m((S["item"] ?? null), "from"))))) + " to " + R.str(R.u(R.pi(R.i((S["statuslabels"] ?? null), R.m((S["item"] ?? null), "to")))))));
                 }
                 S["change"] = R.u(v77);
-                R.ln = F + 1101;
+                R.ln = F + 1102;
                 R.pa(O, R.cmd(S, "Add", [("<tr><td class=\"mono\"><a href=\"#" + R.str(R.u(R.cmd(S, "Enc", [R.m((S["item"] ?? null), "testId")], null))) + "\">" + R.str(R.u(R.cmd(S, "Enc", [R.m((S["item"] ?? null), "testId")], null))) + "</a></td><td>" + R.str(R.u(R.cmd(S, "New-ResourceLink", [R.np("Name"), R.m((S["item"] ?? null), "resourceName"), R.np("ResourceId"), R.m((S["item"] ?? null), "resourceId")], null))) + "<div class=\"rid\">" + R.str(R.u(R.cmd(S, "Enc", [R.m((S["item"] ?? null), "resourceId")], null))) + "</div></td><td>" + R.str(R.u(R.cmd(S, "Enc", [(S["change"] ?? null)], null))) + "</td><td>" + R.str(R.u(R.cmd(S, "Enc", [R.m((S["item"] ?? null), "detail")], null))) + "</td></tr>")], null));
             }
-            R.ln = F + 1103;
+            R.ln = F + 1104;
             R.pa(O, R.cmd(S, "Add", ["</tbody></table></div></details></div>"], null));
         }
-        R.ln = F + 1105;
+        R.ln = F + 1106;
         R.pa(O, R.cmd(S, "Add", ["</section>"], null));
     }
-    R.ln = F + 1112;
-    R.pa(O, R.cmd(S, "Add-SectionHead", [R.np("Id"), "priorities", R.np("Heading"), "Priorities", R.np("Subtitle"), "Failing tests rated Critical or High, most severe and most widespread first. Each links to its remediation."], null));
     R.ln = F + 1113;
+    R.pa(O, R.cmd(S, "Add-SectionHead", [R.np("Id"), "priorities", R.np("Heading"), "Priorities", R.np("Subtitle"), "Failing tests rated Critical or High, most severe and most widespread first. Each links to its remediation."], null));
+    R.ln = F + 1114;
     if (R.t(R.m((S["failingcriticalhigh"] ?? null), "Count"))) {
-        R.ln = F + 1114;
-        R.pa(O, R.cmd(S, "Add", ["<div class=\"card flush scroll\"><table class=\"prio\"><thead><tr><th>#</th><th>Severity</th><th>Test</th><th>Domain</th><th class=\"num\">Failing</th><th>Affected resources</th></tr></thead><tbody>"], null));
         R.ln = F + 1115;
-        S["rank"] = 0;
+        R.pa(O, R.cmd(S, "Add", ["<div class=\"card flush scroll\"><table class=\"prio\"><thead><tr><th>#</th><th>Severity</th><th>Test</th><th>Domain</th><th class=\"num\">Failing</th><th>Affected resources</th></tr></thead><tbody>"], null));
         R.ln = F + 1116;
+        S["rank"] = 0;
+        R.ln = F + 1117;
         for (const it78 of R.fi(R.u(R.cmd(S, "Sort-Object", [[R.v(R.sb({ params: [], adv: 0, text: " $severityOrder[$_.severity] " }, (S, O) => {
-            R.ln = F + 1116;
+            R.ln = F + 1117;
             R.e(O, R.i((S["severityorder"] ?? null), R.m((S["_"] ?? null), "severity")));
         })), R.v(R.sb({ params: [], adv: 0, text: " - $_.counts.Fail " }, (S, O) => {
-            R.ln = F + 1116;
+            R.ln = F + 1117;
             R.e(O, R.neg(R.m(R.m((S["_"] ?? null), "counts"), "Fail")));
         })), R.v("id")]], R.pi((S["failingcriticalhigh"] ?? null)))))) {
             S["test"] = it78;
-            R.ln = F + 1117;
-            R.incv(S, "rank", 1, true);
             R.ln = F + 1118;
-            S["shown"] = R.u(R.cmd(S, "New-ResourceNameList", [R.np("Findings"), R.cmd(S, "Where-Object", ["status", R.np("eq"), "Fail"], R.pi(R.m((S["test"] ?? null), "findings"))), R.np("Max"), 3], null));
+            R.incv(S, "rank", 1, true);
             R.ln = F + 1119;
+            S["shown"] = R.u(R.cmd(S, "New-ResourceNameList", [R.np("Findings"), R.cmd(S, "Where-Object", ["status", R.np("eq"), "Fail"], R.pi(R.m((S["test"] ?? null), "findings"))), R.np("Max"), 3], null));
+            R.ln = F + 1120;
             R.pa(O, R.cmd(S, "Add", [("<tr><td class=\"rank\">" + R.str((S["rank"] ?? null)) + "</td><td>" + R.str(R.u(R.cmd(S, "New-SeverityChip", [R.m((S["test"] ?? null), "severity")], null))) + "</td><td><a href=\"#" + R.str(R.u(R.cmd(S, "Enc", [R.m((S["test"] ?? null), "id")], null))) + "\">" + R.str(R.u(R.cmd(S, "Enc", [R.m((S["test"] ?? null), "title")], null))) + "</a><span class=\"tid\">" + R.str(R.u(R.cmd(S, "Enc", [R.m((S["test"] ?? null), "id")], null))) + "</span></td><td>" + R.str(R.u(R.cmd(S, "Enc", [R.m((S["test"] ?? null), "category")], null))) + "</td><td class=\"num\">" + R.str(R.u(R.pi(R.m(R.m((S["test"] ?? null), "counts"), "Fail")))) + "</td><td>" + R.str((S["shown"] ?? null)) + "</td></tr>")], null));
         }
-        R.ln = F + 1121;
+        R.ln = F + 1122;
         R.pa(O, R.cmd(S, "Add", ["</tbody></table></div>"], null));
     } else {
-        R.ln = F + 1123;
+        R.ln = F + 1124;
         R.pa(O, R.cmd(S, "Add", ["<div class=\"card\"><p class=\"empty\" style=\"margin:0\">No failing tests rated Critical or High.</p></div>"], null));
     }
-    R.ln = F + 1125;
+    R.ln = F + 1126;
     R.pa(O, R.cmd(S, "Add", ["</section>"], null));
-    R.ln = F + 1131;
-    R.pa(O, R.cmd(S, "Add-SectionHead", [R.np("Id"), "domains", R.np("Heading"), "Security domains", R.np("Subtitle"), "Tests grouped by Microsoft cloud security benchmark domain, most failures first. Bar length is the number of evaluated tests."], null));
     R.ln = F + 1132;
-    S["domainscale"] = R.m(R.u(R.cmd(S, "Measure-Object", [R.np("Maximum")], R.cmd(S, "ForEach-Object", ["Evaluated"], R.pi((S["categoryrows"] ?? null))))), "Maximum");
+    R.pa(O, R.cmd(S, "Add-SectionHead", [R.np("Id"), "domains", R.np("Heading"), "Security domains", R.np("Subtitle"), "Tests grouped by Microsoft cloud security benchmark domain, most failures first. Bar length is the number of evaluated tests."], null));
     R.ln = F + 1133;
-    R.pa(O, R.cmd(S, "Add", [("<div class=\"card\" role=\"group\" aria-label=\"Test results by security domain\">" + R.str((S["legend"] ?? null)))], null));
+    S["domainscale"] = R.m(R.u(R.cmd(S, "Measure-Object", [R.np("Maximum")], R.cmd(S, "ForEach-Object", ["Evaluated"], R.pi((S["categoryrows"] ?? null))))), "Maximum");
     R.ln = F + 1134;
+    R.pa(O, R.cmd(S, "Add", [("<div class=\"card\" role=\"group\" aria-label=\"Test results by security domain\">" + R.str((S["legend"] ?? null)))], null));
+    R.ln = F + 1135;
     for (const it79 of R.fi((S["categoryrows"] ?? null))) {
         S["row"] = it79;
-        R.ln = F + 1135;
+        R.ln = F + 1136;
         R.pa(O, R.cmd(S, "Add", [R.u(R.cmd(S, "New-ChartRow", [R.np("LabelHtml"), R.u(R.cmd(S, "Enc", [R.m((S["row"] ?? null), "Label")], null)), R.np("Buckets"), R.m((S["row"] ?? null), "Buckets"), R.np("Scale"), (S["domainscale"] ?? null), R.np("Label"), R.m((S["row"] ?? null), "Label"), R.np("Unit"), "tests", R.np("Note"), (() => {
             const v80 = [];
-            R.ln = F + 1135;
+            R.ln = F + 1136;
             if (R.t(R.m(R.m((S["row"] ?? null), "Buckets"), "NotApplicable"))) {
-                R.ln = F + 1135;
+                R.ln = F + 1136;
                 R.e(v80, ("" + R.str(R.u(R.pi(R.m(R.m((S["row"] ?? null), "Buckets"), "NotApplicable")))) + " not applicable"));
             }
             return R.u(v80);
         })()], null))], null));
     }
-    R.ln = F + 1137;
-    R.pa(O, R.cmd(S, "Add", [R.u(R.cmd(S, "New-TableView", [R.np("FirstColumn"), "Domain", R.np("Rows"), (S["categoryrows"] ?? null)], null))], null));
     R.ln = F + 1138;
+    R.pa(O, R.cmd(S, "Add", [R.u(R.cmd(S, "New-TableView", [R.np("FirstColumn"), "Domain", R.np("Rows"), (S["categoryrows"] ?? null)], null))], null));
+    R.ln = F + 1139;
     R.pa(O, R.cmd(S, "Add", ["</div></section>"], null));
-    R.ln = F + 1144;
-    R.pa(O, R.cmd(S, "Add-SectionHead", [R.np("Id"), "frameworks", R.np("Heading"), "Framework compliance", R.np("Subtitle"), "Each control takes the worst result of the tests mapped to it. Bars show the share of assessed controls; controls without a test are not assessed. Versions and sources are listed with each framework."], null));
     R.ln = F + 1145;
-    R.pa(O, R.cmd(S, "Add", [(S["legend"] ?? null)], null));
+    R.pa(O, R.cmd(S, "Add-SectionHead", [R.np("Id"), "frameworks", R.np("Heading"), "Framework compliance", R.np("Subtitle"), "Each control takes the worst result of the tests mapped to it. Bars show the share of assessed controls; controls without a test are not assessed. Versions and sources are listed with each framework."], null));
     R.ln = F + 1146;
-    R.pa(O, R.cmd(S, "Add", ["<div class=\"fw-grid\">"], null));
+    R.pa(O, R.cmd(S, "Add", [(S["legend"] ?? null)], null));
     R.ln = F + 1147;
+    R.pa(O, R.cmd(S, "Add", ["<div class=\"fw-grid\">"], null));
+    R.ln = F + 1148;
     for (const it81 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " -not $_.Derived " }, (S, O) => {
-        R.ln = F + 1147;
+        R.ln = F + 1148;
         R.e(O, !R.t(R.m((S["_"] ?? null), "Derived")));
     })], R.pi(R.m((S["frameworks"] ?? null), "Values"))))) {
         S["fw"] = it81;
-        R.ln = F + 1148;
-        S["total"] = R.m((S["fw"] ?? null), "Assessed");
         R.ln = F + 1149;
-        R.pa(O, R.cmd(S, "Add", [("<article class=\"card fwcard\"><div class=\"fw-head\"><div><h3>" + R.str(R.u(R.cmd(S, "Enc", [R.m((S["fw"] ?? null), "Label")], null))) + "</h3><div class=\"fw-name\">" + R.str(R.u(R.cmd(S, "Enc", [R.m((S["fw"] ?? null), "Name")], null))) + "</div></div>")], null));
+        S["total"] = R.m((S["fw"] ?? null), "Assessed");
         R.ln = F + 1150;
+        R.pa(O, R.cmd(S, "Add", [("<article class=\"card fwcard\"><div class=\"fw-head\"><div><h3>" + R.str(R.u(R.cmd(S, "Enc", [R.m((S["fw"] ?? null), "Label")], null))) + "</h3><div class=\"fw-name\">" + R.str(R.u(R.cmd(S, "Enc", [R.m((S["fw"] ?? null), "Name")], null))) + "</div></div>")], null));
+        R.ln = F + 1151;
         if (R.t(R.m((S["fw"] ?? null), "Version"))) {
-            R.ln = F + 1150;
+            R.ln = F + 1151;
             R.pa(O, R.cmd(S, "Add", [("<span class=\"ver-chip\" title=\"Version\">" + R.str(R.u(R.cmd(S, "Enc", [R.m((S["fw"] ?? null), "Version")], null))) + "</span>")], null));
         }
-        R.ln = F + 1151;
-        R.pa(O, R.cmd(S, "Add", ["</div>"], null));
         R.ln = F + 1152;
-        R.pa(O, R.cmd(S, "Add", [("<div class=\"fw-figure\"><span class=\"big\">" + R.str(R.u(R.pi(R.m(R.m((S["fw"] ?? null), "Buckets"), "Fail")))) + "</span><span class=\"of\">of " + R.str((S["total"] ?? null)) + " assessed controls failing</span></div>")], null));
+        R.pa(O, R.cmd(S, "Add", ["</div>"], null));
         R.ln = F + 1153;
-        R.pa(O, R.cmd(S, "Add", [R.u(R.cmd(S, "New-StackBar", [R.np("Buckets"), R.m((S["fw"] ?? null), "Buckets"), R.np("Scale"), (S["total"] ?? null), R.np("Label"), R.m((S["fw"] ?? null), "Label"), R.np("Unit"), "controls"], null))], null));
+        R.pa(O, R.cmd(S, "Add", [("<div class=\"fw-figure\"><span class=\"big\">" + R.str(R.u(R.pi(R.m(R.m((S["fw"] ?? null), "Buckets"), "Fail")))) + "</span><span class=\"of\">of " + R.str((S["total"] ?? null)) + " assessed controls failing</span></div>")], null));
         R.ln = F + 1154;
+        R.pa(O, R.cmd(S, "Add", [R.u(R.cmd(S, "New-StackBar", [R.np("Buckets"), R.m((S["fw"] ?? null), "Buckets"), R.np("Scale"), (S["total"] ?? null), R.np("Label"), R.m((S["fw"] ?? null), "Label"), R.np("Unit"), "controls"], null))], null));
+        R.ln = F + 1155;
         R.pa(O, R.cmd(S, "Add", [("<div class=\"fw-stats\"><span><i class=\"sw b-fail\"></i><b>" + R.str(R.u(R.pi(R.m(R.m((S["fw"] ?? null), "Buckets"), "Fail")))) + "</b> failing</span><span><i class=\"sw b-unknown\"></i><b>" + R.str(R.u(R.pi(R.m(R.m((S["fw"] ?? null), "Buckets"), "Unknown")))) + "</b> unknown</span><span><i class=\"sw b-pass\"></i><b>" + R.str(R.u(R.pi(R.m(R.m((S["fw"] ?? null), "Buckets"), "Pass")))) + "</b> passing</span><span><b>" + R.str(R.u(R.pi(R.m(R.m((S["fw"] ?? null), "Buckets"), "NotApplicable")))) + "</b> not applicable</span></div>")], null));
-        R.ln = F + 1155;
+        R.ln = F + 1156;
+        if (R.t(R.eq(R.m((S["fw"] ?? null), "Kind"), "crosswalk"))) {
+            R.ln = F + 1156;
+            R.pa(O, R.cmd(S, "Add", ["<p class=\"note\" style=\"margin:0\">Crosswalk by JSolve B.V. via MCSB v2, technical articles only. A mapping means the configuration contributes to an article, not that the article is met.</p>"], null));
+        }
+        R.ln = F + 1157;
         const v82 = [];
-        R.ln = F + 1155;
+        R.ln = F + 1157;
         if (R.t(R.m((S["fw"] ?? null), "Coverage"))) {
-            R.ln = F + 1155;
+            R.ln = F + 1157;
             R.e(v82, ("Assessed " + R.str(R.u(R.pi(R.m(R.m((S["fw"] ?? null), "Coverage"), "assessed")))) + " of " + R.str(R.u(R.pi(R.m(R.m((S["fw"] ?? null), "Coverage"), "controls")))) + " controls"));
         } else {
-            R.ln = F + 1155;
+            R.ln = F + 1157;
             R.e(v82, "");
         }
         S["coverage"] = R.u(v82);
-        R.ln = F + 1156;
+        R.ln = F + 1158;
         S["footmeta"] = R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 1156;
+            R.ln = F + 1158;
             R.e(O, (S["_"] ?? null));
         })], R.pi(R.a([R.v((() => {
             const v83 = [];
-            R.ln = F + 1156;
+            R.ln = F + 1158;
             if (R.t(R.m((S["fw"] ?? null), "Publisher"))) {
-                R.ln = F + 1156;
+                R.ln = F + 1158;
                 R.e(v83, ("<span>" + R.str(R.u(R.cmd(S, "Enc", [R.m((S["fw"] ?? null), "Publisher")], null))) + "</span>"));
             }
             return R.u(v83);
         })()), R.v((() => {
             const v84 = [];
-            R.ln = F + 1156;
+            R.ln = F + 1158;
             if (R.t((S["coverage"] ?? null))) {
-                R.ln = F + 1156;
+                R.ln = F + 1158;
                 R.e(v84, ("<span>" + R.str(R.u(R.cmd(S, "Enc", [(S["coverage"] ?? null)], null))) + "</span>"));
             }
             return R.u(v84);
         })())]))));
-        R.ln = F + 1157;
+        R.ln = F + 1159;
         S["footlinks"] = R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 1157;
+            R.ln = F + 1159;
             R.e(O, (S["_"] ?? null));
         })], R.pi(R.a([R.v((() => {
             const v85 = [];
-            R.ln = F + 1157;
+            R.ln = F + 1159;
             if (R.t(R.m((S["fw"] ?? null), "Url"))) {
-                R.ln = F + 1157;
+                R.ln = F + 1159;
                 R.pa(v85, R.cmd(S, "New-ExternalLink", [R.np("Url"), R.m((S["fw"] ?? null), "Url"), R.np("Text"), "Source"], null));
             }
             return R.u(v85);
         })()), R.v(("<a href=\"#fw-" + R.str(R.u(R.pi(R.m((S["fw"] ?? null), "Slug")))) + "\">Controls</a>"))]))));
-        R.ln = F + 1158;
+        R.ln = F + 1160;
         R.pa(O, R.cmd(S, "Add", [("<div class=\"fw-foot\"><span>" + R.str(R.u(R.pi(R.join((S["footmeta"] ?? null), "")))) + "</span><span>" + R.str(R.u(R.pi(R.join((S["footlinks"] ?? null), "")))) + "</span></div></article>")], null));
     }
-    R.ln = F + 1160;
-    R.pa(O, R.cmd(S, "Add", ["</div>"], null));
     R.ln = F + 1162;
+    R.pa(O, R.cmd(S, "Add", ["</div>"], null));
+    R.ln = F + 1164;
     S["derivedframeworks"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.Derived " }, (S, O) => {
-        R.ln = F + 1162;
+        R.ln = F + 1164;
         R.e(O, R.m((S["_"] ?? null), "Derived"));
     })], R.pi(R.m((S["frameworks"] ?? null), "Values")));
-    R.ln = F + 1163;
+    R.ln = F + 1165;
     if (R.t(R.m((S["derivedframeworks"] ?? null), "Count"))) {
-        R.ln = F + 1164;
-        R.pa(O, R.cmd(S, "Add", ["<div class=\"card\" role=\"group\" aria-label=\"Derived framework results\"><h3>Derived frameworks</h3>"], null));
-        R.ln = F + 1165;
-        R.pa(O, R.cmd(S, "Add", ["<p class=\"note\">These results follow from the control mappings that Microsoft publishes in MCSB v2: a test maps to a framework through the MCSB controls it implements. A mapping means Azure features can fully or partially address a requirement, not that the requirement is met.</p>"], null));
         R.ln = F + 1166;
+        R.pa(O, R.cmd(S, "Add", ["<div class=\"card\" role=\"group\" aria-label=\"Derived framework results\"><h3>Derived frameworks</h3>"], null));
+        R.ln = F + 1167;
+        R.pa(O, R.cmd(S, "Add", ["<p class=\"note\">These results follow from the control mappings that Microsoft publishes in MCSB v2: a test maps to a framework through the MCSB controls it implements. A mapping means Azure features can fully or partially address a requirement, not that the requirement is met.</p>"], null));
+        R.ln = F + 1168;
         for (const it86 of R.fi((S["derivedframeworks"] ?? null))) {
             S["fw"] = it86;
-            R.ln = F + 1167;
+            R.ln = F + 1169;
             const v87 = [];
-            R.ln = F + 1167;
+            R.ln = F + 1169;
             if (R.t(R.m((S["fw"] ?? null), "Version"))) {
-                R.ln = F + 1167;
+                R.ln = F + 1169;
                 R.e(v87, R.fmt("<span class=\"ver\">{0}</span>", R.u(R.cmd(S, "Enc", [R.m((S["fw"] ?? null), "Version")], null))));
             } else {
-                R.ln = F + 1167;
+                R.ln = F + 1169;
                 R.e(v87, "");
             }
             S["versionhtml"] = R.u(v87);
-            R.ln = F + 1168;
+            R.ln = F + 1170;
             S["labelhtml"] = ("<a href=\"#fw-" + R.str(R.u(R.pi(R.m((S["fw"] ?? null), "Slug")))) + "\">" + R.str(R.u(R.cmd(S, "Enc", [R.m((S["fw"] ?? null), "Label")], null))) + "</a>" + R.str((S["versionhtml"] ?? null)));
-            R.ln = F + 1169;
+            R.ln = F + 1171;
             const v88 = [];
-            R.ln = F + 1169;
+            R.ln = F + 1171;
             if (R.t(R.m((S["fw"] ?? null), "Url"))) {
-                R.ln = F + 1169;
+                R.ln = F + 1171;
                 R.pa(v88, R.cmd(S, "New-ExternalLink", [R.np("Url"), R.m((S["fw"] ?? null), "Url"), R.np("Text"), "Source"], null));
             } else {
-                R.ln = F + 1169;
+                R.ln = F + 1171;
                 R.e(v88, "");
             }
             S["source"] = R.u(v88);
-            R.ln = F + 1170;
+            R.ln = F + 1172;
             R.pa(O, R.cmd(S, "Add", [R.u(R.cmd(S, "New-ChartRow", [R.np("LabelHtml"), (S["labelhtml"] ?? null), R.np("Buckets"), R.m((S["fw"] ?? null), "Buckets"), R.np("Scale"), R.m((S["fw"] ?? null), "Assessed"), R.np("Label"), R.m((S["fw"] ?? null), "Label"), R.np("Unit"), "controls", R.np("Extra"), (S["source"] ?? null)], null))], null));
         }
-        R.ln = F + 1172;
+        R.ln = F + 1174;
         R.pa(O, R.cmd(S, "Add", [R.u(R.cmd(S, "New-TableView", [R.np("FirstColumn"), "Framework", R.np("Rows"), R.a(R.m((S["frameworks"] ?? null), "Values")), R.np("WithNotAssessed")], null))], null));
-        R.ln = F + 1173;
+        R.ln = F + 1175;
         R.pa(O, R.cmd(S, "Add", ["</div>"], null));
     }
-    R.ln = F + 1176;
+    R.ln = F + 1178;
     R.pa(O, R.cmd(S, "Add", ["<h3 style=\"margin-top:32px\">Controls per framework</h3>"], null));
-    R.ln = F + 1177;
+    R.ln = F + 1179;
     for (const it89 of R.fi(R.m((S["frameworks"] ?? null), "Values"))) {
         S["fw"] = it89;
-        R.ln = F + 1178;
-        R.pa(O, R.cmd(S, "Add", [("<details class=\"fw\" id=\"fw-" + R.str(R.u(R.pi(R.m((S["fw"] ?? null), "Slug")))) + "\"><summary><span class=\"t\">" + R.str(R.u(R.cmd(S, "Enc", [R.m((S["fw"] ?? null), "Label")], null))) + "</span><span class=\"muted\">" + R.str(R.u(R.cmd(S, "Enc", [R.m((S["fw"] ?? null), "Name")], null))) + "</span><span class=\"c\">" + R.str(R.u(R.pi(R.m(R.m((S["fw"] ?? null), "Buckets"), "Fail")))) + " failing of " + R.str(R.u(R.pi(R.m((S["fw"] ?? null), "Assessed")))) + " assessed</span></summary>")], null));
-        R.ln = F + 1179;
-        R.pa(O, R.cmd(S, "Add", ["<dl class=\"fw-meta\">"], null));
         R.ln = F + 1180;
+        R.pa(O, R.cmd(S, "Add", [("<details class=\"fw\" id=\"fw-" + R.str(R.u(R.pi(R.m((S["fw"] ?? null), "Slug")))) + "\"><summary><span class=\"t\">" + R.str(R.u(R.cmd(S, "Enc", [R.m((S["fw"] ?? null), "Label")], null))) + "</span><span class=\"muted\">" + R.str(R.u(R.cmd(S, "Enc", [R.m((S["fw"] ?? null), "Name")], null))) + "</span><span class=\"c\">" + R.str(R.u(R.pi(R.m(R.m((S["fw"] ?? null), "Buckets"), "Fail")))) + " failing of " + R.str(R.u(R.pi(R.m((S["fw"] ?? null), "Assessed")))) + " assessed</span></summary>")], null));
+        R.ln = F + 1181;
+        R.pa(O, R.cmd(S, "Add", ["<dl class=\"fw-meta\">"], null));
+        R.ln = F + 1182;
         for (const it90 of R.fi((() => {
             const v91 = [];
-            R.ln = F + 1181;
-            R.e(v91, [R.v(R.a([R.v("Version"), R.v(R.m((S["fw"] ?? null), "Version"))]))]);
-            R.ln = F + 1182;
-            R.e(v91, [R.v(R.a([R.v("Publisher"), R.v(R.m((S["fw"] ?? null), "Publisher"))]))]);
             R.ln = F + 1183;
-            R.e(v91, [R.v(R.a([R.v("Access"), R.v(R.m((S["fw"] ?? null), "Access"))]))]);
+            R.e(v91, [R.v(R.a([R.v("Version"), R.v(R.m((S["fw"] ?? null), "Version"))]))]);
             R.ln = F + 1184;
+            R.e(v91, [R.v(R.a([R.v("Publisher"), R.v(R.m((S["fw"] ?? null), "Publisher"))]))]);
+            R.ln = F + 1185;
+            R.e(v91, [R.v(R.a([R.v("Access"), R.v(R.m((S["fw"] ?? null), "Access"))]))]);
+            R.ln = F + 1186;
             R.e(v91, [R.v(R.a([R.v("Coverage"), R.v((() => {
                 const v92 = [];
-                R.ln = F + 1184;
+                R.ln = F + 1186;
                 if (R.t(R.m((S["fw"] ?? null), "Coverage"))) {
-                    R.ln = F + 1184;
+                    R.ln = F + 1186;
                     R.e(v92, ("" + R.str(R.u(R.pi(R.m(R.m((S["fw"] ?? null), "Coverage"), "assessed")))) + " of " + R.str(R.u(R.pi(R.m(R.m((S["fw"] ?? null), "Coverage"), "controls")))) + " controls assessed"));
                 }
                 return R.u(v92);
@@ -1892,657 +1897,702 @@ export default R.script("/app/Report/New-AzureSecurityReport.ps1", { params: [{ 
             return v91;
         })())) {
             S["item"] = it90;
-            R.ln = F + 1185;
+            R.ln = F + 1187;
             if (R.t(R.i((S["item"] ?? null), 1))) {
-                R.ln = F + 1185;
+                R.ln = F + 1187;
                 R.pa(O, R.cmd(S, "Add", [("<div><dt>" + R.str(R.u(R.cmd(S, "Enc", [R.i((S["item"] ?? null), 0)], null))) + "</dt><dd>" + R.str(R.u(R.cmd(S, "Enc", [R.i((S["item"] ?? null), 1)], null))) + "</dd></div>")], null));
             }
         }
-        R.ln = F + 1186;
+        R.ln = F + 1188;
         S["sourcelinks"] = R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 1186;
+            R.ln = F + 1188;
             R.e(O, (S["_"] ?? null));
         })], R.pi(R.a([R.v((() => {
             const v93 = [];
-            R.ln = F + 1186;
+            R.ln = F + 1188;
             if (R.t(R.m((S["fw"] ?? null), "Url"))) {
-                R.ln = F + 1186;
+                R.ln = F + 1188;
                 R.pa(v93, R.cmd(S, "New-ExternalLink", [R.np("Url"), R.m((S["fw"] ?? null), "Url"), R.np("Text"), "Source documentation"], null));
             }
             return R.u(v93);
         })()), R.v((() => {
             const v94 = [];
-            R.ln = F + 1186;
+            R.ln = F + 1188;
             if (R.t(R.m((S["fw"] ?? null), "Download"))) {
-                R.ln = F + 1186;
+                R.ln = F + 1188;
                 R.pa(v94, R.cmd(S, "New-ExternalLink", [R.np("Url"), R.m((S["fw"] ?? null), "Download"), R.np("Text"), "Download"], null));
             }
             return R.u(v94);
         })())]))));
-        R.ln = F + 1187;
+        R.ln = F + 1189;
         if (R.t((S["sourcelinks"] ?? null))) {
-            R.ln = F + 1187;
+            R.ln = F + 1189;
             R.pa(O, R.cmd(S, "Add", [("<div><dt>Source</dt><dd>" + R.str(R.u(R.pi(R.join((S["sourcelinks"] ?? null), " &middot; ")))) + "</dd></div>")], null));
         }
-        R.ln = F + 1188;
+        R.ln = F + 1190;
         R.pa(O, R.cmd(S, "Add", ["</dl>"], null));
-        R.ln = F + 1189;
+        R.ln = F + 1191;
         if (R.t(R.m((S["fw"] ?? null), "Note"))) {
-            R.ln = F + 1189;
+            R.ln = F + 1191;
             R.pa(O, R.cmd(S, "Add", [("<p class=\"fw-note\">" + R.str(R.u(R.cmd(S, "Enc", [R.m((S["fw"] ?? null), "Note")], null))) + "</p>")], null));
         }
-        R.ln = F + 1190;
+        R.ln = F + 1192;
         const v95 = [];
-        R.ln = F + 1190;
+        R.ln = F + 1192;
         if (R.t(R.m((S["fw"] ?? null), "Derived"))) {
-            R.ln = F + 1190;
+            R.ln = F + 1192;
             R.e(v95, "<th>Control</th><th>Result</th><th>Via MCSB v2</th><th>Tests</th>");
+        } else if (R.t(R.eq(R.m((S["fw"] ?? null), "Kind"), "crosswalk"))) {
+            R.ln = F + 1192;
+            R.e(v95, "<th>Control</th><th>Title</th><th>Result</th><th>Via MCSB v2</th><th>Tests</th>");
         } else {
-            R.ln = F + 1190;
+            R.ln = F + 1192;
             R.e(v95, "<th>Control</th><th>Title</th><th>Result</th><th>Tests</th>");
         }
         S["head"] = R.u(v95);
-        R.ln = F + 1191;
+        R.ln = F + 1193;
         R.pa(O, R.cmd(S, "Add", [("<div class=\"fw-table scroll\"><table><thead><tr>" + R.str((S["head"] ?? null)) + "</tr></thead><tbody>")], null));
-        R.ln = F + 1192;
+        R.ln = F + 1194;
         for (const it96 of R.fi(R.m((S["fw"] ?? null), "Controls"))) {
             S["control"] = it96;
-            R.ln = F + 1193;
-            S["item"] = R.m((S["control"] ?? null), "Value");
-            R.ln = F + 1194;
-            S["testids"] = R.a(R.m((S["item"] ?? null), "tests"));
             R.ln = F + 1195;
+            S["item"] = R.m((S["control"] ?? null), "Value");
+            R.ln = F + 1196;
+            S["testids"] = R.a(R.m((S["item"] ?? null), "tests"));
+            R.ln = F + 1197;
             S["testlinks"] = R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " '<a href=\"#{0}\">{0}</a>' -f (Enc $_) " }, (S, O) => {
-                R.ln = F + 1195;
+                R.ln = F + 1197;
                 R.e(O, R.fmt("<a href=\"#{0}\">{0}</a>", R.u(R.cmd(S, "Enc", [(S["_"] ?? null)], null))));
             })], R.pi((S["testids"] ?? null)));
-            R.ln = F + 1196;
+            R.ln = F + 1198;
             S["links"] = R.join(R.u(R.cmd(S, "Select-Object", [R.np("First"), 8], R.pi((S["testlinks"] ?? null)))), ", ");
-            R.ln = F + 1197;
+            R.ln = F + 1199;
             if (R.t(R.gt(R.m((S["testlinks"] ?? null), "Count"), 8))) {
-                R.ln = F + 1198;
+                R.ln = F + 1200;
                 S["rest"] = R.join(R.u(R.cmd(S, "Select-Object", [R.np("Skip"), 8], R.pi((S["testlinks"] ?? null)))), ", ");
-                R.ln = F + 1199;
+                R.ln = F + 1201;
                 S["links"] = R.add(S["links"] ?? null, ("<details class=\"more-links\"><summary>" + R.str(R.u(R.pi(R.sub(R.m((S["testlinks"] ?? null), "Count"), 8)))) + " more</summary>" + R.str((S["rest"] ?? null)) + "</details>"));
             }
-            R.ln = F + 1201;
+            R.ln = F + 1203;
             S["idhtml"] = R.u(R.cmd(S, "Get-ControlLink", [R.np("Framework"), R.m((S["fw"] ?? null), "Key"), R.np("Id"), R.m((S["control"] ?? null), "Name"), R.np("Url"), R.m((S["item"] ?? null), "url")], null));
-            R.ln = F + 1202;
+            R.ln = F + 1204;
             if (R.t(R.m((S["fw"] ?? null), "Derived"))) {
-                R.ln = F + 1203;
+                R.ln = F + 1205;
                 S["via"] = R.join(R.u(R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " Get-ControlLink -Framework 'MCSB' -Id $_ " }, (S, O) => {
-                    R.ln = F + 1203;
+                    R.ln = F + 1205;
                     R.pa(O, R.cmd(S, "Get-ControlLink", [R.np("Framework"), "MCSB", R.np("Id"), (S["_"] ?? null)], null));
                 })], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                    R.ln = F + 1203;
+                    R.ln = F + 1205;
                     R.e(O, (S["_"] ?? null));
                 })], R.pi(R.a(R.m((S["item"] ?? null), "via")))))), ", ");
-                R.ln = F + 1204;
+                R.ln = F + 1206;
                 R.pa(O, R.cmd(S, "Add", [("<tr><td>" + R.str((S["idhtml"] ?? null)) + "</td><td>" + R.str(R.u(R.cmd(S, "New-StatusBadge", [R.m((S["item"] ?? null), "status")], null))) + "</td><td class=\"links\">" + R.str((S["via"] ?? null)) + "</td><td class=\"links\">" + R.str((S["links"] ?? null)) + "</td></tr>")], null));
+            } else if (R.t(R.eq(R.m((S["fw"] ?? null), "Kind"), "crosswalk"))) {
+                R.ln = F + 1208;
+                S["via"] = R.join(R.u(R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " Get-ControlLink -Framework 'MCSB' -Id $_ " }, (S, O) => {
+                    R.ln = F + 1208;
+                    R.pa(O, R.cmd(S, "Get-ControlLink", [R.np("Framework"), "MCSB", R.np("Id"), (S["_"] ?? null)], null));
+                })], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+                    R.ln = F + 1208;
+                    R.e(O, (S["_"] ?? null));
+                })], R.pi(R.a(R.m((S["item"] ?? null), "via")))))), ", ");
+                R.ln = F + 1209;
+                R.pa(O, R.cmd(S, "Add", [("<tr><td style=\"white-space:nowrap\">" + R.str((S["idhtml"] ?? null)) + "</td><td>" + R.str(R.u(R.cmd(S, "Enc", [R.m((S["item"] ?? null), "title")], null))) + "</td><td>" + R.str(R.u(R.cmd(S, "New-StatusBadge", [R.m((S["item"] ?? null), "status")], null))) + "</td><td class=\"links\">" + R.str((S["via"] ?? null)) + "</td><td class=\"links\">" + R.str((S["links"] ?? null)) + "</td></tr>")], null));
             } else {
-                R.ln = F + 1206;
+                R.ln = F + 1211;
                 const v97 = [];
-                R.ln = F + 1206;
+                R.ln = F + 1211;
                 if (R.t(R.eq(R.m((S["item"] ?? null), "assessment"), "Manual"))) {
-                    R.ln = F + 1206;
+                    R.ln = F + 1211;
                     R.e(v97, " <span class=\"note\">(manual in CIS)</span>");
                 } else {
-                    R.ln = F + 1206;
+                    R.ln = F + 1211;
                     R.e(v97, "");
                 }
                 S["manual"] = R.u(v97);
-                R.ln = F + 1207;
+                R.ln = F + 1212;
                 R.pa(O, R.cmd(S, "Add", [("<tr><td style=\"white-space:nowrap\">" + R.str((S["idhtml"] ?? null)) + "</td><td>" + R.str(R.u(R.cmd(S, "Enc", [R.m((S["item"] ?? null), "title")], null))) + R.str((S["manual"] ?? null)) + "</td><td>" + R.str(R.u(R.cmd(S, "New-StatusBadge", [R.m((S["item"] ?? null), "status")], null))) + "</td><td class=\"links\">" + R.str((S["links"] ?? null)) + "</td></tr>")], null));
             }
         }
-        R.ln = F + 1210;
+        R.ln = F + 1215;
         R.pa(O, R.cmd(S, "Add", ["</tbody></table></div></details>"], null));
     }
-    R.ln = F + 1212;
+    R.ln = F + 1217;
     R.pa(O, R.cmd(S, "Add", ["</section>"], null));
-    R.ln = F + 1218;
+    R.ln = F + 1223;
     R.pa(O, R.cmd(S, "Add-SectionHead", [R.np("Id"), "tests", R.np("Heading"), "Test results", R.np("Subtitle"), "Every test with what it checks, why it matters, how to fix it, the framework controls it maps to and the result per resource. Failing tests are shown first."], null));
-    R.ln = F + 1219;
+    R.ln = F + 1224;
     R.pa(O, R.cmd(S, "Add", ["<div class=\"filters\" role=\"search\"><div class=\"frow\"><input type=\"search\" id=\"f-search\" placeholder=\"Search tests, controls or resources\" aria-label=\"Search tests, controls or resources\">"], null));
-    R.ln = F + 1220;
+    R.ln = F + 1225;
     R.pa(O, R.cmd(S, "Add", ["<select id=\"f-category\" aria-label=\"Domain\"><option value=\"\">All domains</option>"], null));
-    R.ln = F + 1221;
+    R.ln = F + 1226;
     for (const it98 of R.fi((S["categories"] ?? null))) {
         S["category"] = it98;
-        R.ln = F + 1221;
+        R.ln = F + 1226;
         R.pa(O, R.cmd(S, "Add", [("<option value=\"" + R.str(R.u(R.cmd(S, "Enc", [(S["category"] ?? null)], null))) + "\">" + R.str(R.u(R.cmd(S, "Enc", [(S["category"] ?? null)], null))) + "</option>")], null));
     }
-    R.ln = F + 1222;
+    R.ln = F + 1227;
     R.pa(O, R.cmd(S, "Add", ["</select><select id=\"f-framework\" aria-label=\"Framework\"><option value=\"\">All frameworks</option>"], null));
-    R.ln = F + 1223;
+    R.ln = F + 1228;
     for (const it99 of R.fi(R.m((S["frameworks"] ?? null), "Values"))) {
         S["fw"] = it99;
-        R.ln = F + 1223;
+        R.ln = F + 1228;
         R.pa(O, R.cmd(S, "Add", [("<option value=\"" + R.str(R.u(R.pi(R.m((S["fw"] ?? null), "Slug")))) + "\">" + R.str(R.u(R.cmd(S, "Enc", [R.m((S["fw"] ?? null), "Label")], null))) + "</option>")], null));
     }
-    R.ln = F + 1224;
+    R.ln = F + 1229;
     R.pa(O, R.cmd(S, "Add", ["</select><button type=\"button\" id=\"f-reset\" class=\"btn\">Show all</button></div><div class=\"frow\"><div class=\"chips\" role=\"group\" aria-label=\"Result\">"], null));
-    R.ln = F + 1225;
+    R.ln = F + 1230;
     for (const it100 of R.fi([R.v("Fail"), R.v("Error"), R.v("Unknown"), R.v("Pass"), R.v("NotApplicable")])) {
         S["status"] = it100;
-        R.ln = F + 1226;
+        R.ln = F + 1231;
         S["count"] = R.m(R.cmd(S, "Where-Object", ["status", R.np("eq"), (S["status"] ?? null)], R.pi((S["tests"] ?? null))), "Count");
-        R.ln = F + 1227;
+        R.ln = F + 1232;
         if (!R.t((S["count"] ?? null))) {
             continue;
         }
-        R.ln = F + 1228;
+        R.ln = F + 1233;
         const v101 = [];
-        R.ln = F + 1228;
+        R.ln = F + 1233;
         if (R.t(R.in((S["status"] ?? null), [R.v("Fail"), R.v("Error"), R.v("Unknown")]))) {
-            R.ln = F + 1228;
+            R.ln = F + 1233;
             R.e(v101, " checked");
         } else {
-            R.ln = F + 1228;
+            R.ln = F + 1233;
             R.e(v101, "");
         }
         S["checked"] = R.u(v101);
-        R.ln = F + 1229;
+        R.ln = F + 1234;
         R.pa(O, R.cmd(S, "Add", [("<label class=\"chip\"><input type=\"checkbox\" name=\"status\" value=\"" + R.str((S["status"] ?? null)) + "\"" + R.str((S["checked"] ?? null)) + ">" + R.str(R.u(R.cmd(S, "New-StatusBadge", [(S["status"] ?? null)], null))) + " " + R.str((S["count"] ?? null)) + "</label>")], null));
     }
-    R.ln = F + 1231;
+    R.ln = F + 1236;
     R.pa(O, R.cmd(S, "Add", ["</div><span class=\"fsep\" aria-hidden=\"true\"></span><div class=\"chips\" role=\"group\" aria-label=\"Severity\">"], null));
-    R.ln = F + 1232;
+    R.ln = F + 1237;
     for (const it102 of R.fi([R.v("Critical"), R.v("High"), R.v("Medium"), R.v("Low"), R.v("Informational")])) {
         S["severity"] = it102;
-        R.ln = F + 1233;
+        R.ln = F + 1238;
         if (!R.t(R.m(R.cmd(S, "Where-Object", ["severity", R.np("eq"), (S["severity"] ?? null)], R.pi((S["tests"] ?? null))), "Count"))) {
             continue;
         }
-        R.ln = F + 1234;
+        R.ln = F + 1239;
         R.pa(O, R.cmd(S, "Add", [("<label class=\"chip\"><input type=\"checkbox\" name=\"severity\" value=\"" + R.str((S["severity"] ?? null)) + "\" checked>" + R.str(R.u(R.cmd(S, "New-SeverityChip", [(S["severity"] ?? null)], null))) + "</label>")], null));
     }
-    R.ln = F + 1236;
+    R.ln = F + 1241;
     R.pa(O, R.cmd(S, "Add", ["</div><span class=\"count\" id=\"f-count\"></span></div></div><div class=\"test-list\">"], null));
-    R.ln = F + 1238;
+    R.ln = F + 1243;
     for (const it103 of R.fi((S["tests"] ?? null))) {
         S["test"] = it103;
-        R.ln = F + 1239;
+        R.ln = F + 1244;
         S["primarytags"] = (() => {
             const v104 = [];
-            R.ln = F + 1239;
+            R.ln = F + 1244;
             for (const it105 of R.fi((S["primaryframeworks"] ?? null))) {
                 S["key"] = it105;
-                R.ln = F + 1239;
+                R.ln = F + 1244;
                 for (const it106 of R.fi(R.a(R.m(R.m((S["test"] ?? null), "frameworks"), R.str((S["key"] ?? null)))))) {
                     S["tag"] = it106;
-                    R.ln = F + 1239;
+                    R.ln = F + 1244;
                     if (R.t((S["tag"] ?? null))) {
-                        R.ln = F + 1239;
+                        R.ln = F + 1244;
                         R.e(v104, R.pso(["Framework", (S["key"] ?? null), "Tag", (S["tag"] ?? null)]));
                     }
                 }
             }
             return v104;
         })();
-        R.ln = F + 1240;
-        S["derivedtags"] = R.cmd(S, "Get-DerivedTags", [(S["test"] ?? null)], null);
-        R.ln = F + 1241;
+        R.ln = F + 1246;
+        S["derivedtags"] = [];
+        R.ln = F + 1247;
+        for (const it107 of R.fi(R.cmd(S, "Get-DerivedTags", [(S["test"] ?? null)], null))) {
+            S["tag"] = it107;
+            R.ln = F + 1248;
+            if ((R.t(R.im((S["frameworks"] ?? null), "Contains", [R.m((S["tag"] ?? null), "Framework")])) && R.t(R.eq(R.m(R.i((S["frameworks"] ?? null), R.m((S["tag"] ?? null), "Framework")), "Kind"), "crosswalk")))) {
+                R.ln = F + 1249;
+                S["control"] = R.m(R.m(R.m(R.m((S["results"] ?? null), "frameworks"), R.str((R.m((S["tag"] ?? null), "Framework")))), "controls"), R.str((R.m((S["tag"] ?? null), "Id"))));
+                R.ln = F + 1250;
+                S["primarytags"] = R.add(S["primarytags"] ?? null, R.pso(["Framework", R.m((S["tag"] ?? null), "Framework"), "Tag", R.pso(["id", R.m((S["tag"] ?? null), "Id"), "title", R.m((S["control"] ?? null), "title"), "via", R.a(R.m((S["tag"] ?? null), "Via"))])]));
+            } else {
+                R.ln = F + 1251;
+                S["derivedtags"] = R.add(S["derivedtags"] ?? null, (S["tag"] ?? null));
+            }
+        }
+        R.ln = F + 1253;
         S["testframeworks"] = R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " if ($_ -and $frameworks.Contains($_)) { $frameworks[$_].Slug } " }, (S, O) => {
-            R.ln = F + 1241;
+            R.ln = F + 1253;
             if ((R.t((S["_"] ?? null)) && R.t(R.im((S["frameworks"] ?? null), "Contains", [(S["_"] ?? null)])))) {
-                R.ln = F + 1241;
+                R.ln = F + 1253;
                 R.e(O, R.m(R.i((S["frameworks"] ?? null), (S["_"] ?? null)), "Slug"));
             }
         })], R.cmd(S, "Sort-Object", [R.np("Unique")], R.pi(R.add(R.cmd(S, "ForEach-Object", ["Framework"], R.pi((S["primarytags"] ?? null))), R.cmd(S, "ForEach-Object", ["Framework"], R.pi((S["derivedtags"] ?? null)))))));
-        R.ln = F + 1242;
+        R.ln = F + 1254;
         S["searchtext"] = R.join(R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 1242;
+            R.ln = F + 1254;
             R.e(O, (S["_"] ?? null));
         })], R.pi(R.add(R.add(R.add(R.a([R.v(R.m((S["test"] ?? null), "id")), R.v(R.m((S["test"] ?? null), "title")), R.v(R.m((S["test"] ?? null), "service")), R.v(R.m((S["test"] ?? null), "category"))]), R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " $_.Tag.id " }, (S, O) => {
-            R.ln = F + 1242;
+            R.ln = F + 1254;
             R.e(O, R.m(R.m((S["_"] ?? null), "Tag"), "id"));
         })], R.pi((S["primarytags"] ?? null)))), R.cmd(S, "ForEach-Object", ["Id"], R.pi((S["derivedtags"] ?? null)))), R.cmd(S, "ForEach-Object", ["resourceName"], R.pi(R.m((S["test"] ?? null), "findings"))))))), " ");
-        R.ln = F + 1243;
+        R.ln = F + 1255;
         S["evaluatedcount"] = R.add(R.add(R.m(R.m((S["test"] ?? null), "counts"), "Pass"), R.m(R.m((S["test"] ?? null), "counts"), "Fail")), R.m(R.m((S["test"] ?? null), "counts"), "Unknown"));
-        R.ln = F + 1244;
-        const v107 = [];
-        R.ln = F + 1244;
-        const had111 = Object.prototype.hasOwnProperty.call(S, '_'), prev110 = S['_'];
+        R.ln = F + 1256;
+        const v108 = [];
+        R.ln = F + 1256;
+        const had112 = Object.prototype.hasOwnProperty.call(S, '_'), prev111 = S['_'];
         try {
-            for (const sw108 of R.pi(R.m((S["test"] ?? null), "status"))) {
-                S['_'] = sw108;
-                let hit109 = false;
-                if (R.t(R.eq(sw108, "Fail", false))) {
-                    hit109 = true;
-                    R.ln = F + 1245;
-                    R.e(v107, ("" + R.str(R.u(R.pi(R.m(R.m((S["test"] ?? null), "counts"), "Fail")))) + " of " + R.str((S["evaluatedcount"] ?? null)) + " failing"));
+            for (const sw109 of R.pi(R.m((S["test"] ?? null), "status"))) {
+                S['_'] = sw109;
+                let hit110 = false;
+                if (R.t(R.eq(sw109, "Fail", false))) {
+                    hit110 = true;
+                    R.ln = F + 1257;
+                    R.e(v108, ("" + R.str(R.u(R.pi(R.m(R.m((S["test"] ?? null), "counts"), "Fail")))) + " of " + R.str((S["evaluatedcount"] ?? null)) + " failing"));
                 }
-                if (R.t(R.eq(sw108, "Pass", false))) {
-                    hit109 = true;
-                    R.ln = F + 1246;
-                    R.e(v107, ("" + R.str(R.u(R.pi(R.m(R.m((S["test"] ?? null), "counts"), "Pass")))) + " passing"));
+                if (R.t(R.eq(sw109, "Pass", false))) {
+                    hit110 = true;
+                    R.ln = F + 1258;
+                    R.e(v108, ("" + R.str(R.u(R.pi(R.m(R.m((S["test"] ?? null), "counts"), "Pass")))) + " passing"));
                 }
-                if (R.t(R.eq(sw108, "Unknown", false))) {
-                    hit109 = true;
-                    R.ln = F + 1247;
+                if (R.t(R.eq(sw109, "Unknown", false))) {
+                    hit110 = true;
+                    R.ln = F + 1259;
                     if (R.t(R.m(R.m((S["test"] ?? null), "counts"), "Unknown"))) {
-                        R.ln = F + 1247;
-                        R.e(v107, ("" + R.str(R.u(R.pi(R.m(R.m((S["test"] ?? null), "counts"), "Unknown")))) + " of " + R.str((S["evaluatedcount"] ?? null)) + " unknown"));
+                        R.ln = F + 1259;
+                        R.e(v108, ("" + R.str(R.u(R.pi(R.m(R.m((S["test"] ?? null), "counts"), "Unknown")))) + " of " + R.str((S["evaluatedcount"] ?? null)) + " unknown"));
                     } else {
-                        R.ln = F + 1247;
-                        R.e(v107, "data missing");
+                        R.ln = F + 1259;
+                        R.e(v108, "data missing");
                     }
                 }
-                if (R.t(R.eq(sw108, "NotApplicable", false))) {
-                    hit109 = true;
-                    R.ln = F + 1248;
-                    R.e(v107, "nothing in scope");
+                if (R.t(R.eq(sw109, "NotApplicable", false))) {
+                    hit110 = true;
+                    R.ln = F + 1260;
+                    R.e(v108, "nothing in scope");
                 }
-                if (!hit109) {
-                    R.ln = F + 1249;
-                    R.e(v107, "test error");
+                if (!hit110) {
+                    R.ln = F + 1261;
+                    R.e(v108, "test error");
                 }
             }
-        } finally { if (had111) { S['_'] = prev110; } else { delete S['_']; } }
-        S["countstext"] = R.u(v107);
-        R.ln = F + 1251;
+        } finally { if (had112) { S['_'] = prev111; } else { delete S['_']; } }
+        S["countstext"] = R.u(v108);
+        R.ln = F + 1263;
         R.pa(O, R.cmd(S, "Add", [("<details class=\"test\" id=\"" + R.str(R.u(R.cmd(S, "Enc", [R.m((S["test"] ?? null), "id")], null))) + "\" data-status=\"" + R.str(R.u(R.pi(R.m((S["test"] ?? null), "status")))) + "\" data-severity=\"" + R.str(R.u(R.pi(R.m((S["test"] ?? null), "severity")))) + "\" data-category=\"" + R.str(R.u(R.cmd(S, "Enc", [R.m((S["test"] ?? null), "category")], null))) + "\" data-frameworks=\"" + R.str(R.u(R.pi(R.join((S["testframeworks"] ?? null), " ")))) + "\" data-search=\"" + R.str(R.u(R.cmd(S, "Enc", [R.im((S["searchtext"] ?? null), "ToLowerInvariant", [])], null))) + "\">")], null));
-        R.ln = F + 1252;
+        R.ln = F + 1264;
         R.pa(O, R.cmd(S, "Add", [("<summary>" + R.str(R.u(R.cmd(S, "New-StatusBadge", [R.m((S["test"] ?? null), "status")], null))) + "<span class=\"sevcol\">" + R.str(R.u(R.cmd(S, "New-SeverityChip", [R.m((S["test"] ?? null), "severity")], null))) + "</span><span class=\"ttl\"><span class=\"ttitle\">" + R.str(R.u(R.cmd(S, "Enc", [R.m((S["test"] ?? null), "title")], null))) + "</span><span class=\"tid\">" + R.str(R.u(R.cmd(S, "Enc", [R.m((S["test"] ?? null), "id")], null))) + " &middot; " + R.str(R.u(R.cmd(S, "Enc", [R.m((S["test"] ?? null), "service")], null))) + "</span></span><span class=\"tcounts\">" + R.str(R.u(R.cmd(S, "Enc", [(S["countstext"] ?? null)], null))) + "</span></summary>")], null));
-        R.ln = F + 1253;
+        R.ln = F + 1265;
         R.pa(O, R.cmd(S, "Add", ["<div class=\"tbody\">"], null));
-        R.ln = F + 1254;
+        R.ln = F + 1266;
         if (R.t(R.m((S["test"] ?? null), "statusReason"))) {
-            R.ln = F + 1254;
+            R.ln = F + 1266;
             R.pa(O, R.cmd(S, "Add", [("<div class=\"reason\">" + R.str(R.u(R.cmd(S, "Enc", [R.m((S["test"] ?? null), "statusReason")], null))) + "</div>")], null));
         }
-        R.ln = F + 1255;
+        R.ln = F + 1267;
         R.pa(O, R.cmd(S, "Add", ["<div class=\"tcols\"><div>"], null));
-        R.ln = F + 1256;
+        R.ln = F + 1268;
         R.pa(O, R.cmd(S, "Add", [("<h4>What is checked</h4><p>" + R.str(R.u(R.cmd(S, "Enc", [R.m((S["test"] ?? null), "description")], null))) + "</p><h4 class=\"sp\">Why it matters</h4><p>" + R.str(R.u(R.cmd(S, "Enc", [R.m((S["test"] ?? null), "rationale")], null))) + "</p>")], null));
-        R.ln = F + 1257;
+        R.ln = F + 1269;
         R.pa(O, R.cmd(S, "Add", [("<div class=\"fix\"><h4>Remediation</h4><p>" + R.str(R.u(R.cmd(S, "Enc", [R.m((S["test"] ?? null), "remediation")], null))) + "</p></div>")], null));
-        R.ln = F + 1258;
-        R.pa(O, R.cmd(S, "Add", ["</div><div>"], null));
-        R.ln = F + 1259;
-        R.pa(O, R.cmd(S, "Add", [("<dl class=\"facts\"><dt>Domain</dt><dd>" + R.str(R.u(R.cmd(S, "Enc", [R.m((S["test"] ?? null), "category")], null))) + "</dd><dt>Service</dt><dd>" + R.str(R.u(R.cmd(S, "Enc", [R.m((S["test"] ?? null), "service")], null))) + "</dd><dt>Severity</dt><dd>" + R.str(R.u(R.cmd(S, "New-SeverityChip", [R.m((S["test"] ?? null), "severity")], null))) + "</dd><dt>Test version</dt><dd>" + R.str(R.u(R.cmd(S, "Enc", [R.m((S["test"] ?? null), "version")], null))) + "</dd></dl>")], null));
-        R.ln = F + 1260;
-        if (R.t(R.m(R.a(R.m((S["test"] ?? null), "defenderRecommendations")), "Count"))) {
-            R.ln = F + 1261;
-            R.pa(O, R.cmd(S, "Add", ["<h4>Defender for Cloud recommendations</h4><ul class=\"plain\">"], null));
-            R.ln = F + 1262;
-            for (const it112 of R.fi(R.m((S["test"] ?? null), "defenderRecommendations"))) {
-                S["item"] = it112;
-                R.ln = F + 1262;
-                R.pa(O, R.cmd(S, "Add", [("<li>" + R.str(R.u(R.cmd(S, "Enc", [R.m((S["item"] ?? null), "name")], null))) + "<span class=\"tid\">" + R.str(R.u(R.cmd(S, "Enc", [R.m((S["item"] ?? null), "id")], null))) + "</span></li>")], null));
-            }
-            R.ln = F + 1263;
-            R.pa(O, R.cmd(S, "Add", ["</ul>"], null));
-        }
-        R.ln = F + 1265;
-        if (R.t(R.m(R.a(R.m((S["test"] ?? null), "azurePolicies")), "Count"))) {
-            R.ln = F + 1266;
-            R.pa(O, R.cmd(S, "Add", ["<h4>Azure Policy definitions</h4><ul class=\"plain\">"], null));
-            R.ln = F + 1267;
-            for (const it113 of R.fi(R.m((S["test"] ?? null), "azurePolicies"))) {
-                S["item"] = it113;
-                R.ln = F + 1267;
-                R.pa(O, R.cmd(S, "Add", [("<li>" + R.str(R.u(R.cmd(S, "Enc", [R.m((S["item"] ?? null), "name")], null))) + "<span class=\"tid\">" + R.str(R.u(R.cmd(S, "Enc", [R.m((S["item"] ?? null), "id")], null))) + "</span></li>")], null));
-            }
-            R.ln = F + 1268;
-            R.pa(O, R.cmd(S, "Add", ["</ul>"], null));
-        }
         R.ln = F + 1270;
+        R.pa(O, R.cmd(S, "Add", ["</div><div>"], null));
+        R.ln = F + 1271;
+        R.pa(O, R.cmd(S, "Add", [("<dl class=\"facts\"><dt>Domain</dt><dd>" + R.str(R.u(R.cmd(S, "Enc", [R.m((S["test"] ?? null), "category")], null))) + "</dd><dt>Service</dt><dd>" + R.str(R.u(R.cmd(S, "Enc", [R.m((S["test"] ?? null), "service")], null))) + "</dd><dt>Severity</dt><dd>" + R.str(R.u(R.cmd(S, "New-SeverityChip", [R.m((S["test"] ?? null), "severity")], null))) + "</dd><dt>Test version</dt><dd>" + R.str(R.u(R.cmd(S, "Enc", [R.m((S["test"] ?? null), "version")], null))) + "</dd></dl>")], null));
+        R.ln = F + 1272;
+        if (R.t(R.m(R.a(R.m((S["test"] ?? null), "defenderRecommendations")), "Count"))) {
+            R.ln = F + 1273;
+            R.pa(O, R.cmd(S, "Add", ["<h4>Defender for Cloud recommendations</h4><ul class=\"plain\">"], null));
+            R.ln = F + 1274;
+            for (const it113 of R.fi(R.m((S["test"] ?? null), "defenderRecommendations"))) {
+                S["item"] = it113;
+                R.ln = F + 1274;
+                R.pa(O, R.cmd(S, "Add", [("<li>" + R.str(R.u(R.cmd(S, "Enc", [R.m((S["item"] ?? null), "name")], null))) + "<span class=\"tid\">" + R.str(R.u(R.cmd(S, "Enc", [R.m((S["item"] ?? null), "id")], null))) + "</span></li>")], null));
+            }
+            R.ln = F + 1275;
+            R.pa(O, R.cmd(S, "Add", ["</ul>"], null));
+        }
+        R.ln = F + 1277;
+        if (R.t(R.m(R.a(R.m((S["test"] ?? null), "azurePolicies")), "Count"))) {
+            R.ln = F + 1278;
+            R.pa(O, R.cmd(S, "Add", ["<h4>Azure Policy definitions</h4><ul class=\"plain\">"], null));
+            R.ln = F + 1279;
+            for (const it114 of R.fi(R.m((S["test"] ?? null), "azurePolicies"))) {
+                S["item"] = it114;
+                R.ln = F + 1279;
+                R.pa(O, R.cmd(S, "Add", [("<li>" + R.str(R.u(R.cmd(S, "Enc", [R.m((S["item"] ?? null), "name")], null))) + "<span class=\"tid\">" + R.str(R.u(R.cmd(S, "Enc", [R.m((S["item"] ?? null), "id")], null))) + "</span></li>")], null));
+            }
+            R.ln = F + 1280;
+            R.pa(O, R.cmd(S, "Add", ["</ul>"], null));
+        }
+        R.ln = F + 1282;
         if (R.t(R.m(R.a(R.m((S["test"] ?? null), "references")), "Count"))) {
-            R.ln = F + 1271;
+            R.ln = F + 1283;
             R.pa(O, R.cmd(S, "Add", ["<h4>References</h4><ul class=\"plain\">"], null));
-            R.ln = F + 1272;
-            for (const it114 of R.fi(R.m((S["test"] ?? null), "references"))) {
-                S["reference"] = it114;
-                R.ln = F + 1272;
+            R.ln = F + 1284;
+            for (const it115 of R.fi(R.m((S["test"] ?? null), "references"))) {
+                S["reference"] = it115;
+                R.ln = F + 1284;
                 R.pa(O, R.cmd(S, "Add", [("<li>" + R.str(R.u(R.cmd(S, "New-ExternalLink", [R.np("Url"), (S["reference"] ?? null), R.np("Text"), (R.rep((S["reference"] ?? null), [R.v("^https?://"), R.v("")]))], null))) + "</li>")], null));
             }
-            R.ln = F + 1273;
+            R.ln = F + 1285;
             R.pa(O, R.cmd(S, "Add", ["</ul>"], null));
         }
-        R.ln = F + 1275;
+        R.ln = F + 1287;
         R.pa(O, R.cmd(S, "Add", ["</div></div>"], null));
-        R.ln = F + 1278;
+        R.ln = F + 1290;
         if (R.t(R.m((S["primarytags"] ?? null), "Count"))) {
-            R.ln = F + 1279;
+            R.ln = F + 1291;
             R.pa(O, R.cmd(S, "Add", ["<h4 class=\"sp\">Framework mappings</h4><div class=\"scroll\"><table class=\"map-table\"><thead><tr><th>Framework</th><th>Version</th><th>Control</th><th>Title</th></tr></thead><tbody>"], null));
-            R.ln = F + 1280;
-            for (const it115 of R.fi((S["primarytags"] ?? null))) {
-                S["entry"] = it115;
-                R.ln = F + 1281;
+            R.ln = F + 1292;
+            for (const it116 of R.fi((S["primarytags"] ?? null))) {
+                S["entry"] = it116;
+                R.ln = F + 1293;
                 S["fw"] = R.i((S["frameworks"] ?? null), R.m((S["entry"] ?? null), "Framework"));
-                R.ln = F + 1282;
-                const v116 = [];
-                R.ln = F + 1282;
+                R.ln = F + 1294;
+                const v117 = [];
+                R.ln = F + 1294;
                 if (R.t(R.m(R.m((S["entry"] ?? null), "Tag"), "version"))) {
-                    R.ln = F + 1282;
-                    R.e(v116, R.m(R.m((S["entry"] ?? null), "Tag"), "version"));
+                    R.ln = F + 1294;
+                    R.e(v117, R.m(R.m((S["entry"] ?? null), "Tag"), "version"));
                 } else {
-                    R.ln = F + 1282;
-                    R.e(v116, R.m((S["fw"] ?? null), "Version"));
+                    R.ln = F + 1294;
+                    R.e(v117, R.m((S["fw"] ?? null), "Version"));
                 }
-                S["version"] = R.u(v116);
-                R.ln = F + 1283;
+                S["version"] = R.u(v117);
+                R.ln = F + 1295;
                 S["extra"] = R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                    R.ln = F + 1283;
+                    R.ln = F + 1295;
                     R.e(O, (S["_"] ?? null));
                 })], R.pi(R.a([R.v((() => {
-                    const v117 = [];
-                    R.ln = F + 1283;
-                    if (R.t(R.m(R.m((S["entry"] ?? null), "Tag"), "criticality"))) {
-                        R.ln = F + 1283;
-                        R.e(v117, R.m(R.m((S["entry"] ?? null), "Tag"), "criticality"));
-                    }
-                    return R.u(v117);
-                })()), R.v((() => {
                     const v118 = [];
-                    R.ln = F + 1283;
-                    if (R.t(R.m(R.m((S["entry"] ?? null), "Tag"), "level"))) {
-                        R.ln = F + 1283;
-                        R.e(v118, ("Level " + R.str(R.u(R.pi(R.rep(R.m(R.m((S["entry"] ?? null), "Tag"), "level"), [R.v("^L"), R.v("")]))))));
+                    R.ln = F + 1295;
+                    if (R.t(R.m(R.m((S["entry"] ?? null), "Tag"), "criticality"))) {
+                        R.ln = F + 1295;
+                        R.e(v118, R.m(R.m((S["entry"] ?? null), "Tag"), "criticality"));
                     }
                     return R.u(v118);
+                })()), R.v((() => {
+                    const v119 = [];
+                    R.ln = F + 1295;
+                    if (R.t(R.m(R.m((S["entry"] ?? null), "Tag"), "level"))) {
+                        R.ln = F + 1295;
+                        R.e(v119, ("Level " + R.str(R.u(R.pi(R.rep(R.m(R.m((S["entry"] ?? null), "Tag"), "level"), [R.v("^L"), R.v("")]))))));
+                    }
+                    return R.u(v119);
+                })()), R.v((() => {
+                    const v120 = [];
+                    R.ln = F + 1295;
+                    if (R.t(R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+                        R.ln = F + 1295;
+                        R.e(O, (S["_"] ?? null));
+                    })], R.pi(R.m(R.m((S["entry"] ?? null), "Tag"), "via"))), "Count"))) {
+                        R.ln = F + 1295;
+                        R.e(v120, ("via MCSB " + R.str(R.u(R.pi(R.join(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+                            R.ln = F + 1295;
+                            R.e(O, (S["_"] ?? null));
+                        })], R.pi(R.m(R.m((S["entry"] ?? null), "Tag"), "via"))), ", "))))));
+                    }
+                    return R.u(v120);
                 })())]))));
-                R.ln = F + 1284;
-                const v119 = [];
-                R.ln = F + 1284;
+                R.ln = F + 1296;
+                const v121 = [];
+                R.ln = F + 1296;
                 if (R.t((S["extra"] ?? null))) {
-                    R.ln = F + 1284;
-                    R.e(v119, (" <span class=\"muted\">(" + R.str(R.u(R.cmd(S, "Enc", [(R.join((S["extra"] ?? null), ", "))], null))) + ")</span>"));
+                    R.ln = F + 1296;
+                    R.e(v121, (" <span class=\"muted\">(" + R.str(R.u(R.cmd(S, "Enc", [(R.join((S["extra"] ?? null), ", "))], null))) + ")</span>"));
                 } else {
-                    R.ln = F + 1284;
-                    R.e(v119, "");
+                    R.ln = F + 1296;
+                    R.e(v121, "");
                 }
-                S["extrahtml"] = R.u(v119);
-                R.ln = F + 1285;
+                S["extrahtml"] = R.u(v121);
+                R.ln = F + 1297;
                 R.pa(O, R.cmd(S, "Add", [("<tr><td class=\"fwl\"><a href=\"#fw-" + R.str(R.u(R.pi(R.m((S["fw"] ?? null), "Slug")))) + "\">" + R.str(R.u(R.cmd(S, "Enc", [R.m((S["fw"] ?? null), "Label")], null))) + "</a></td><td class=\"fwv\">" + R.str(R.u(R.cmd(S, "Enc", [(S["version"] ?? null)], null))) + "</td><td style=\"white-space:nowrap\">" + R.str(R.u(R.cmd(S, "Get-ControlLink", [R.np("Framework"), R.m((S["entry"] ?? null), "Framework"), R.np("Id"), R.m(R.m((S["entry"] ?? null), "Tag"), "id"), R.np("Url"), R.m(R.m((S["entry"] ?? null), "Tag"), "url")], null))) + "</td><td>" + R.str(R.u(R.cmd(S, "Enc", [R.m(R.m((S["entry"] ?? null), "Tag"), "title")], null))) + R.str((S["extrahtml"] ?? null)) + "</td></tr>")], null));
             }
-            R.ln = F + 1287;
+            R.ln = F + 1299;
             R.pa(O, R.cmd(S, "Add", ["</tbody></table></div>"], null));
         }
-        R.ln = F + 1289;
+        R.ln = F + 1301;
         if (R.t(R.m((S["derivedtags"] ?? null), "Count"))) {
-            R.ln = F + 1290;
+            R.ln = F + 1302;
             S["groups"] = R.cmd(S, "Sort-Object", ["Name"], R.cmd(S, "Group-Object", ["Framework"], R.pi((S["derivedtags"] ?? null))));
-            R.ln = F + 1291;
+            R.ln = F + 1303;
             R.pa(O, R.cmd(S, "Add", [("<details class=\"more\" style=\"margin-top:10px\"><summary>Derived mappings to " + R.str(R.u(R.pi(R.m((S["groups"] ?? null), "Count")))) + " frameworks, via MCSB v2</summary><div class=\"scroll\"><table class=\"map-table\"><thead><tr><th>Framework</th><th>Version</th><th>Controls</th><th>Via MCSB v2</th></tr></thead><tbody>")], null));
-            R.ln = F + 1292;
-            for (const it120 of R.fi((S["groups"] ?? null))) {
-                S["group"] = it120;
-                R.ln = F + 1293;
+            R.ln = F + 1304;
+            for (const it122 of R.fi((S["groups"] ?? null))) {
+                S["group"] = it122;
+                R.ln = F + 1305;
                 S["fw"] = R.i((S["frameworks"] ?? null), R.m((S["group"] ?? null), "Name"));
-                R.ln = F + 1294;
-                const v121 = [];
-                R.ln = F + 1294;
+                R.ln = F + 1306;
+                const v123 = [];
+                R.ln = F + 1306;
                 if (R.t((S["fw"] ?? null))) {
-                    R.ln = F + 1294;
-                    R.e(v121, ("<a href=\"#fw-" + R.str(R.u(R.pi(R.m((S["fw"] ?? null), "Slug")))) + "\">" + R.str(R.u(R.cmd(S, "Enc", [R.m((S["fw"] ?? null), "Label")], null))) + "</a>"));
+                    R.ln = F + 1306;
+                    R.e(v123, ("<a href=\"#fw-" + R.str(R.u(R.pi(R.m((S["fw"] ?? null), "Slug")))) + "\">" + R.str(R.u(R.cmd(S, "Enc", [R.m((S["fw"] ?? null), "Label")], null))) + "</a>"));
                 } else {
-                    R.ln = F + 1294;
-                    R.pa(v121, R.cmd(S, "Enc", [R.m((S["group"] ?? null), "Name")], null));
+                    R.ln = F + 1306;
+                    R.pa(v123, R.cmd(S, "Enc", [R.m((S["group"] ?? null), "Name")], null));
                 }
-                S["label"] = R.u(v121);
-                R.ln = F + 1295;
-                const v122 = [];
-                R.ln = F + 1295;
+                S["label"] = R.u(v123);
+                R.ln = F + 1307;
+                const v124 = [];
+                R.ln = F + 1307;
                 if (R.t(R.m((S["fw"] ?? null), "Url"))) {
-                    R.ln = F + 1295;
-                    R.e(v122, (" " + R.str(R.u(R.cmd(S, "New-ExternalLink", [R.np("Url"), R.m((S["fw"] ?? null), "Url"), R.np("Text"), "source"], null)))));
+                    R.ln = F + 1307;
+                    R.e(v124, (" " + R.str(R.u(R.cmd(S, "New-ExternalLink", [R.np("Url"), R.m((S["fw"] ?? null), "Url"), R.np("Text"), "source"], null)))));
                 } else {
-                    R.ln = F + 1295;
-                    R.e(v122, "");
+                    R.ln = F + 1307;
+                    R.e(v124, "");
                 }
-                S["source"] = R.u(v122);
-                R.ln = F + 1296;
+                S["source"] = R.u(v124);
+                R.ln = F + 1308;
                 S["via"] = R.join(R.u(R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " Get-ControlLink -Framework 'MCSB' -Id $_ " }, (S, O) => {
-                    R.ln = F + 1296;
+                    R.ln = F + 1308;
                     R.pa(O, R.cmd(S, "Get-ControlLink", [R.np("Framework"), "MCSB", R.np("Id"), (S["_"] ?? null)], null));
                 })], R.pi(R.cmd(S, "Sort-Object", [R.np("Unique")], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                    R.ln = F + 1296;
+                    R.ln = F + 1308;
                     R.e(O, (S["_"] ?? null));
                 })], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " $_.Via " }, (S, O) => {
-                    R.ln = F + 1296;
+                    R.ln = F + 1308;
                     R.e(O, R.m((S["_"] ?? null), "Via"));
                 })], R.pi(R.m((S["group"] ?? null), "Group")))))))), ", ");
-                R.ln = F + 1297;
+                R.ln = F + 1309;
                 R.pa(O, R.cmd(S, "Add", [("<tr><td class=\"fwl\">" + R.str((S["label"] ?? null)) + "</td><td class=\"fwv\">" + R.str(R.u(R.cmd(S, "Enc", [R.m((S["fw"] ?? null), "Version")], null))) + R.str((S["source"] ?? null)) + "</td><td class=\"mono\">" + R.str(R.u(R.cmd(S, "Enc", [(R.join((R.m(R.m((S["group"] ?? null), "Group"), "Id")), ", "))], null))) + "</td><td class=\"links\">" + R.str((S["via"] ?? null)) + "</td></tr>")], null));
             }
-            R.ln = F + 1299;
+            R.ln = F + 1311;
             R.pa(O, R.cmd(S, "Add", ["</tbody></table></div></details>"], null));
         }
-        R.ln = F + 1302;
+        R.ln = F + 1314;
         S["findings"] = R.cmd(S, "Sort-Object", [[R.v(R.sb({ params: [], adv: 0, text: " $statusOrder[$_.status] " }, (S, O) => {
-            R.ln = F + 1302;
+            R.ln = F + 1314;
             R.e(O, R.i((S["statusorder"] ?? null), R.m((S["_"] ?? null), "status")));
         })), R.v("resourceName")]], R.pi(R.m((S["test"] ?? null), "findings")));
-        R.ln = F + 1303;
+        R.ln = F + 1315;
         if (R.t(R.m((S["findings"] ?? null), "Count"))) {
-            R.ln = F + 1304;
+            R.ln = F + 1316;
             R.pa(O, R.cmd(S, "Add", ["<h4 class=\"sp\">Resources</h4>"], null));
-            R.ln = F + 1306;
+            R.ln = F + 1318;
             S["primary"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.status -in 'Fail', 'Unknown' " }, (S, O) => {
-                R.ln = F + 1306;
+                R.ln = F + 1318;
                 R.e(O, R.in(R.m((S["_"] ?? null), "status"), [R.v("Fail"), R.v("Unknown")]));
             })], R.pi((S["findings"] ?? null)));
-            R.ln = F + 1307;
+            R.ln = F + 1319;
             S["secondary"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.status -notin 'Fail', 'Unknown' " }, (S, O) => {
-                R.ln = F + 1307;
+                R.ln = F + 1319;
                 R.e(O, R.nin(R.m((S["_"] ?? null), "status"), [R.v("Fail"), R.v("Unknown")]));
             })], R.pi((S["findings"] ?? null)));
-            R.ln = F + 1308;
+            R.ln = F + 1320;
             if (!R.t(R.m((S["primary"] ?? null), "Count"))) {
-                R.ln = F + 1308;
+                R.ln = F + 1320;
                 S["primary"] = (S["findings"] ?? null);
-                R.ln = F + 1308;
+                R.ln = F + 1320;
                 S["secondary"] = [];
             }
-            R.ln = F + 1309;
-            for (const it123 of R.fi(R.a([R.v(R.a([R.v("primary"), R.v((S["primary"] ?? null))])), R.v(R.a([R.v("secondary"), R.v((S["secondary"] ?? null))]))]))) {
-                S["set"] = it123;
-                R.ln = F + 1310;
+            R.ln = F + 1321;
+            for (const it125 of R.fi(R.a([R.v(R.a([R.v("primary"), R.v((S["primary"] ?? null))])), R.v(R.a([R.v("secondary"), R.v((S["secondary"] ?? null))]))]))) {
+                S["set"] = it125;
+                R.ln = F + 1322;
                 if (!R.t(R.m(R.a(R.i((S["set"] ?? null), 1)), "Count"))) {
                     continue;
                 }
-                R.ln = F + 1311;
+                R.ln = F + 1323;
                 if (R.t(R.eq(R.i((S["set"] ?? null), 0), "secondary"))) {
-                    R.ln = F + 1312;
+                    R.ln = F + 1324;
                     S["passcount"] = R.m(R.cmd(S, "Where-Object", ["status", R.np("eq"), "Pass"], R.pi(R.i((S["set"] ?? null), 1))), "Count");
-                    R.ln = F + 1313;
+                    R.ln = F + 1325;
                     S["label"] = R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                        R.ln = F + 1313;
+                        R.ln = F + 1325;
                         R.e(O, (S["_"] ?? null));
                     })], R.pi(R.a([R.v((() => {
-                        const v124 = [];
-                        R.ln = F + 1313;
+                        const v126 = [];
+                        R.ln = F + 1325;
                         if (R.t((S["passcount"] ?? null))) {
-                            R.ln = F + 1313;
-                            R.e(v124, ("" + R.str((S["passcount"] ?? null)) + " passing"));
+                            R.ln = F + 1325;
+                            R.e(v126, ("" + R.str((S["passcount"] ?? null)) + " passing"));
                         }
-                        return R.u(v124);
+                        return R.u(v126);
                     })()), R.v((() => {
-                        const v125 = [];
-                        R.ln = F + 1313;
-                        if (R.t(R.sub(R.m(R.i((S["set"] ?? null), 1), "Count"), (S["passcount"] ?? null)))) {
-                            R.ln = F + 1313;
-                            R.e(v125, ("" + R.str(R.u(R.pi(R.sub(R.m(R.i((S["set"] ?? null), 1), "Count"), (S["passcount"] ?? null))))) + " not applicable"));
-                        }
-                        return R.u(v125);
-                    })())]))));
-                    R.ln = F + 1314;
-                    R.pa(O, R.cmd(S, "Add", [("<details class=\"more findings\"><summary>Show " + R.str(R.u(R.cmd(S, "Enc", [(R.join((S["label"] ?? null), " and "))], null))) + " resources</summary>")], null));
-                }
-                R.ln = F + 1316;
-                R.pa(O, R.cmd(S, "Add", ["<div class=\"scroll\"><table><thead><tr><th>Result</th><th>Resource</th><th>Detail</th><th>Evidence</th></tr></thead><tbody>"], null));
-                R.ln = F + 1317;
-                for (const it126 of R.fi(R.i((S["set"] ?? null), 1))) {
-                    S["finding"] = it126;
-                    R.ln = F + 1318;
-                    S["meta"] = R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                        R.ln = F + 1318;
-                        R.e(O, (S["_"] ?? null));
-                    })], R.pi(R.a([R.v(R.m((S["finding"] ?? null), "resourceType")), R.v((() => {
                         const v127 = [];
-                        R.ln = F + 1318;
-                        if (R.t(R.m((S["finding"] ?? null), "resourceGroup"))) {
-                            R.ln = F + 1318;
-                            R.e(v127, ("resource group " + R.str(R.u(R.pi(R.m((S["finding"] ?? null), "resourceGroup"))))));
+                        R.ln = F + 1325;
+                        if (R.t(R.sub(R.m(R.i((S["set"] ?? null), 1), "Count"), (S["passcount"] ?? null)))) {
+                            R.ln = F + 1325;
+                            R.e(v127, ("" + R.str(R.u(R.pi(R.sub(R.m(R.i((S["set"] ?? null), 1), "Count"), (S["passcount"] ?? null))))) + " not applicable"));
                         }
                         return R.u(v127);
                     })())]))));
-                    R.ln = F + 1319;
+                    R.ln = F + 1326;
+                    R.pa(O, R.cmd(S, "Add", [("<details class=\"more findings\"><summary>Show " + R.str(R.u(R.cmd(S, "Enc", [(R.join((S["label"] ?? null), " and "))], null))) + " resources</summary>")], null));
+                }
+                R.ln = F + 1328;
+                R.pa(O, R.cmd(S, "Add", ["<div class=\"scroll\"><table><thead><tr><th>Result</th><th>Resource</th><th>Detail</th><th>Evidence</th></tr></thead><tbody>"], null));
+                R.ln = F + 1329;
+                for (const it128 of R.fi(R.i((S["set"] ?? null), 1))) {
+                    S["finding"] = it128;
+                    R.ln = F + 1330;
+                    S["meta"] = R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+                        R.ln = F + 1330;
+                        R.e(O, (S["_"] ?? null));
+                    })], R.pi(R.a([R.v(R.m((S["finding"] ?? null), "resourceType")), R.v((() => {
+                        const v129 = [];
+                        R.ln = F + 1330;
+                        if (R.t(R.m((S["finding"] ?? null), "resourceGroup"))) {
+                            R.ln = F + 1330;
+                            R.e(v129, ("resource group " + R.str(R.u(R.pi(R.m((S["finding"] ?? null), "resourceGroup"))))));
+                        }
+                        return R.u(v129);
+                    })())]))));
+                    R.ln = F + 1331;
                     R.pa(O, R.cmd(S, "Add", [("<tr><td>" + R.str(R.u(R.cmd(S, "New-StatusBadge", [R.m((S["finding"] ?? null), "status")], null))) + "</td><td>" + R.str(R.u(R.cmd(S, "New-ResourceLink", [R.np("Name"), R.m((S["finding"] ?? null), "resourceName"), R.np("ResourceId"), R.m((S["finding"] ?? null), "resourceId"), R.np("Evidence"), R.m((S["finding"] ?? null), "evidence")], null))) + "<div class=\"rmeta\">" + R.str(R.u(R.cmd(S, "Enc", [(R.join((S["meta"] ?? null), ", "))], null))) + "</div><div class=\"rid\">" + R.str(R.u(R.cmd(S, "Enc", [R.m((S["finding"] ?? null), "resourceId")], null))) + "</div></td><td>" + R.str(R.u(R.cmd(S, "Enc", [R.m((S["finding"] ?? null), "detail")], null))) + "</td><td>" + R.str(R.u(R.cmd(S, "New-Evidence", [R.m((S["finding"] ?? null), "evidence")], null))) + "</td></tr>")], null));
                 }
-                R.ln = F + 1321;
+                R.ln = F + 1333;
                 R.pa(O, R.cmd(S, "Add", ["</tbody></table></div>"], null));
-                R.ln = F + 1322;
+                R.ln = F + 1334;
                 if (R.t(R.eq(R.i((S["set"] ?? null), 0), "secondary"))) {
-                    R.ln = F + 1322;
+                    R.ln = F + 1334;
                     R.pa(O, R.cmd(S, "Add", ["</details>"], null));
                 }
             }
         } else if (!R.t(R.m((S["test"] ?? null), "statusReason"))) {
-            R.ln = F + 1325;
+            R.ln = F + 1337;
             R.pa(O, R.cmd(S, "Add", ["<p class=\"note\" style=\"margin-top:16px\">No resources in scope.</p>"], null));
         }
-        R.ln = F + 1327;
+        R.ln = F + 1339;
         R.pa(O, R.cmd(S, "Add", ["</div></details>"], null));
     }
-    R.ln = F + 1329;
+    R.ln = F + 1341;
     R.pa(O, R.cmd(S, "Add", ["</div><p class=\"empty\" id=\"f-empty\" hidden>No tests match the filters.</p></section>"], null));
-    R.ln = F + 1335;
-    R.pa(O, R.cmd(S, "Add-SectionHead", [R.np("Id"), "sources", R.np("Heading"), "Scope and sources", R.np("Subtitle"), "What was assessed, how results are determined, and the version and source of every framework used."], null));
-    R.ln = F + 1336;
-    R.pa(O, R.cmd(S, "Add", ["<div class=\"two\"><div class=\"card\"><h3>Assessment scope</h3><dl class=\"facts\" style=\"margin:0\">"], null));
-    R.ln = F + 1337;
-    for (const it128 of R.fi((() => {
-        const v129 = [];
-        R.ln = F + 1338;
-        R.e(v129, [R.v(R.a([R.v("Subscription"), R.v(("" + R.str(R.u(R.pi(R.m((S["subscription"] ?? null), "subscriptionName")))) + " (" + R.str(R.u(R.pi(R.m((S["subscription"] ?? null), "subscriptionId")))) + ")"))]))]);
-        R.ln = F + 1339;
-        R.e(v129, [R.v(R.a([R.v("Tenant"), R.v(R.m((S["subscription"] ?? null), "tenantId"))]))]);
-        R.ln = F + 1340;
-        R.e(v129, [R.v(R.a([R.v("Data collected"), R.v(R.u(R.cmd(S, "Format-Date", [R.m((S["subscription"] ?? null), "startedAt")], null)))]))]);
-        R.ln = F + 1341;
-        R.e(v129, [R.v(R.a([R.v("Collection status"), R.v(R.m((S["subscription"] ?? null), "status"))]))]);
-        R.ln = F + 1342;
-        R.e(v129, [R.v(R.a([R.v("Ingest version"), R.v(R.m((S["subscription"] ?? null), "ingestVersion"))]))]);
-        R.ln = F + 1343;
-        R.e(v129, [R.v(R.a([R.v("Analyzed"), R.v(R.u(R.cmd(S, "Format-Date", [R.m((S["results"] ?? null), "analyzedAt")], null)))]))]);
-        R.ln = F + 1344;
-        R.e(v129, [R.v(R.a([R.v("Analyzer"), R.v(("version " + R.str(R.u(R.pi(R.m(R.m((S["results"] ?? null), "analyzer"), "version")))) + ", " + R.str(R.u(R.pi(R.m(R.m((S["results"] ?? null), "analyzer"), "tests")))) + " tests, results schema " + R.str(R.u(R.pi(R.m((S["results"] ?? null), "schemaVersion"))))))]))]);
-        R.ln = F + 1345;
-        R.e(v129, [R.v(R.a([R.v("Posture score"), R.v(R.m(R.m((S["results"] ?? null), "summary"), "scoreMethod"))]))]);
-        return v129;
-    })())) {
-        S["item"] = it128;
-        R.ln = F + 1346;
-        if (R.t(R.i((S["item"] ?? null), 1))) {
-            R.ln = F + 1346;
-            R.pa(O, R.cmd(S, "Add", [("<dt>" + R.str(R.u(R.cmd(S, "Enc", [R.i((S["item"] ?? null), 0)], null))) + "</dt><dd>" + R.str(R.u(R.cmd(S, "Enc", [R.i((S["item"] ?? null), 1)], null))) + "</dd>")], null));
-        }
-    }
     R.ln = F + 1347;
-    R.pa(O, R.cmd(S, "Add", ["</dl></div><div class=\"card\"><h3>How to read the results</h3><dl class=\"defs\">"], null));
+    R.pa(O, R.cmd(S, "Add-SectionHead", [R.np("Id"), "sources", R.np("Heading"), "Scope and sources", R.np("Subtitle"), "What was assessed, how results are determined, and the version and source of every framework used."], null));
     R.ln = F + 1348;
+    R.pa(O, R.cmd(S, "Add", ["<div class=\"two\"><div class=\"card\"><h3>Assessment scope</h3><dl class=\"facts\" style=\"margin:0\">"], null));
+    R.ln = F + 1349;
     for (const it130 of R.fi((() => {
         const v131 = [];
-        R.ln = F + 1349;
-        R.e(v131, [R.v(R.a([R.v("Fail"), R.v("Fail"), R.v("The requirement is not met for at least one resource.")]))]);
         R.ln = F + 1350;
-        R.e(v131, [R.v(R.a([R.v("Pass"), R.v("Pass"), R.v("The requirement is met for every evaluated resource.")]))]);
+        R.e(v131, [R.v(R.a([R.v("Subscription"), R.v(("" + R.str(R.u(R.pi(R.m((S["subscription"] ?? null), "subscriptionName")))) + " (" + R.str(R.u(R.pi(R.m((S["subscription"] ?? null), "subscriptionId")))) + ")"))]))]);
         R.ln = F + 1351;
-        R.e(v131, [R.v(R.a([R.v("Unknown"), R.v("Unknown"), R.v("The data needed was not collected, for example because of a missing permission.")]))]);
+        R.e(v131, [R.v(R.a([R.v("Tenant"), R.v(R.m((S["subscription"] ?? null), "tenantId"))]))]);
         R.ln = F + 1352;
-        R.e(v131, [R.v(R.a([R.v("Error"), R.v("Error"), R.v("The test could not run; see the test for details.")]))]);
+        R.e(v131, [R.v(R.a([R.v("Data collected"), R.v(R.u(R.cmd(S, "Format-Date", [R.m((S["subscription"] ?? null), "startedAt")], null)))]))]);
         R.ln = F + 1353;
-        R.e(v131, [R.v(R.a([R.v("NotApplicable"), R.v("Not applicable"), R.v("No resources of this kind in the subscription.")]))]);
+        R.e(v131, [R.v(R.a([R.v("Collection status"), R.v(R.m((S["subscription"] ?? null), "status"))]))]);
         R.ln = F + 1354;
-        R.e(v131, [R.v(R.a([R.v("NotAssessed"), R.v("Not assessed"), R.v("A framework control that no test covers; review it separately.")]))]);
+        R.e(v131, [R.v(R.a([R.v("Ingest version"), R.v(R.m((S["subscription"] ?? null), "ingestVersion"))]))]);
+        R.ln = F + 1355;
+        R.e(v131, [R.v(R.a([R.v("Analyzed"), R.v(R.u(R.cmd(S, "Format-Date", [R.m((S["results"] ?? null), "analyzedAt")], null)))]))]);
+        R.ln = F + 1356;
+        R.e(v131, [R.v(R.a([R.v("Analyzer"), R.v(("version " + R.str(R.u(R.pi(R.m(R.m((S["results"] ?? null), "analyzer"), "version")))) + ", " + R.str(R.u(R.pi(R.m(R.m((S["results"] ?? null), "analyzer"), "tests")))) + " tests, results schema " + R.str(R.u(R.pi(R.m((S["results"] ?? null), "schemaVersion"))))))]))]);
+        R.ln = F + 1357;
+        R.e(v131, [R.v(R.a([R.v("Posture score"), R.v(R.m(R.m((S["results"] ?? null), "summary"), "scoreMethod"))]))]);
         return v131;
     })())) {
         S["item"] = it130;
-        R.ln = F + 1355;
+        R.ln = F + 1358;
+        if (R.t(R.i((S["item"] ?? null), 1))) {
+            R.ln = F + 1358;
+            R.pa(O, R.cmd(S, "Add", [("<dt>" + R.str(R.u(R.cmd(S, "Enc", [R.i((S["item"] ?? null), 0)], null))) + "</dt><dd>" + R.str(R.u(R.cmd(S, "Enc", [R.i((S["item"] ?? null), 1)], null))) + "</dd>")], null));
+        }
+    }
+    R.ln = F + 1359;
+    R.pa(O, R.cmd(S, "Add", ["</dl></div><div class=\"card\"><h3>How to read the results</h3><dl class=\"defs\">"], null));
+    R.ln = F + 1360;
+    for (const it132 of R.fi((() => {
+        const v133 = [];
+        R.ln = F + 1361;
+        R.e(v133, [R.v(R.a([R.v("Fail"), R.v("Fail"), R.v("The requirement is not met for at least one resource.")]))]);
+        R.ln = F + 1362;
+        R.e(v133, [R.v(R.a([R.v("Pass"), R.v("Pass"), R.v("The requirement is met for every evaluated resource.")]))]);
+        R.ln = F + 1363;
+        R.e(v133, [R.v(R.a([R.v("Unknown"), R.v("Unknown"), R.v("The data needed was not collected, for example because of a missing permission.")]))]);
+        R.ln = F + 1364;
+        R.e(v133, [R.v(R.a([R.v("Error"), R.v("Error"), R.v("The test could not run; see the test for details.")]))]);
+        R.ln = F + 1365;
+        R.e(v133, [R.v(R.a([R.v("NotApplicable"), R.v("Not applicable"), R.v("No resources of this kind in the subscription.")]))]);
+        R.ln = F + 1366;
+        R.e(v133, [R.v(R.a([R.v("NotAssessed"), R.v("Not assessed"), R.v("A framework control that no test covers; review it separately.")]))]);
+        return v133;
+    })())) {
+        S["item"] = it132;
+        R.ln = F + 1367;
         R.pa(O, R.cmd(S, "Add", [("<dt>" + R.str(R.u(R.cmd(S, "New-StatusBadge", [R.np("Status"), R.i((S["item"] ?? null), 0), R.np("Label"), R.i((S["item"] ?? null), 1)], null))) + "</dt><dd>" + R.str(R.u(R.cmd(S, "Enc", [R.i((S["item"] ?? null), 2)], null))) + "</dd>")], null));
     }
-    R.ln = F + 1356;
+    R.ln = F + 1368;
     R.pa(O, R.cmd(S, "Add", ["</dl></div></div>"], null));
-    R.ln = F + 1358;
+    R.ln = F + 1370;
     R.pa(O, R.cmd(S, "Add", ["<div class=\"card flush scroll\" style=\"margin-top:16px\"><table class=\"src-table\"><thead><tr><th>Framework</th><th>Version</th><th>Publisher</th><th>Mapping</th><th>Access</th><th>Source</th></tr></thead><tbody>"], null));
-    R.ln = F + 1359;
-    for (const it132 of R.fi(R.m((S["frameworks"] ?? null), "Values"))) {
-        S["fw"] = it132;
-        R.ln = F + 1360;
-        const v133 = [];
-        R.ln = F + 1360;
+    R.ln = F + 1371;
+    for (const it134 of R.fi(R.m((S["frameworks"] ?? null), "Values"))) {
+        S["fw"] = it134;
+        R.ln = F + 1372;
+        const v135 = [];
+        R.ln = F + 1372;
         if (R.t(R.m((S["fw"] ?? null), "Derived"))) {
-            R.ln = F + 1360;
-            R.e(v133, "Derived via MCSB v2");
+            R.ln = F + 1372;
+            R.e(v135, "Derived via MCSB v2");
+        } else if (R.t(R.eq(R.m((S["fw"] ?? null), "Kind"), "crosswalk"))) {
+            R.ln = F + 1372;
+            R.e(v135, "JSolve crosswalk via MCSB v2");
         } else {
-            R.ln = F + 1360;
-            R.e(v133, "Direct");
+            R.ln = F + 1372;
+            R.e(v135, "Direct");
         }
-        S["mapping"] = R.u(v133);
-        R.ln = F + 1361;
+        S["mapping"] = R.u(v135);
+        R.ln = F + 1373;
         S["links"] = R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 1361;
+            R.ln = F + 1373;
             R.e(O, (S["_"] ?? null));
         })], R.pi(R.a([R.v((() => {
-            const v134 = [];
-            R.ln = F + 1361;
+            const v136 = [];
+            R.ln = F + 1373;
             if (R.t(R.m((S["fw"] ?? null), "Url"))) {
-                R.ln = F + 1361;
-                R.pa(v134, R.cmd(S, "New-ExternalLink", [R.np("Url"), R.m((S["fw"] ?? null), "Url"), R.np("Text"), "Documentation"], null));
+                R.ln = F + 1373;
+                R.pa(v136, R.cmd(S, "New-ExternalLink", [R.np("Url"), R.m((S["fw"] ?? null), "Url"), R.np("Text"), "Documentation"], null));
             }
-            return R.u(v134);
+            return R.u(v136);
         })()), R.v((() => {
-            const v135 = [];
-            R.ln = F + 1361;
+            const v137 = [];
+            R.ln = F + 1373;
             if (R.t(R.m((S["fw"] ?? null), "Download"))) {
-                R.ln = F + 1361;
-                R.pa(v135, R.cmd(S, "New-ExternalLink", [R.np("Url"), R.m((S["fw"] ?? null), "Download"), R.np("Text"), "Download"], null));
+                R.ln = F + 1373;
+                R.pa(v137, R.cmd(S, "New-ExternalLink", [R.np("Url"), R.m((S["fw"] ?? null), "Download"), R.np("Text"), "Download"], null));
             }
-            return R.u(v135);
+            return R.u(v137);
         })())]))));
-        R.ln = F + 1362;
-        const v136 = [];
-        R.ln = F + 1362;
+        R.ln = F + 1374;
+        const v138 = [];
+        R.ln = F + 1374;
         if (R.t(R.m((S["fw"] ?? null), "Retrieved"))) {
-            R.ln = F + 1362;
-            R.e(v136, ("<div class=\"muted\" style=\"font-size:12px\">checked " + R.str(R.u(R.cmd(S, "Enc", [R.m((S["fw"] ?? null), "Retrieved")], null))) + "</div>"));
+            R.ln = F + 1374;
+            R.e(v138, ("<div class=\"muted\" style=\"font-size:12px\">checked " + R.str(R.u(R.cmd(S, "Enc", [R.m((S["fw"] ?? null), "Retrieved")], null))) + "</div>"));
         } else {
-            R.ln = F + 1362;
-            R.e(v136, "");
+            R.ln = F + 1374;
+            R.e(v138, "");
         }
-        S["retrieved"] = R.u(v136);
-        R.ln = F + 1363;
+        S["retrieved"] = R.u(v138);
+        R.ln = F + 1375;
         R.pa(O, R.cmd(S, "Add", [("<tr><td><a href=\"#fw-" + R.str(R.u(R.pi(R.m((S["fw"] ?? null), "Slug")))) + "\"><b>" + R.str(R.u(R.cmd(S, "Enc", [R.m((S["fw"] ?? null), "Label")], null))) + "</b></a><div class=\"muted\" style=\"font-size:12px\">" + R.str(R.u(R.cmd(S, "Enc", [R.m((S["fw"] ?? null), "Name")], null))) + "</div></td><td>" + R.str(R.u(R.cmd(S, "Enc", [R.m((S["fw"] ?? null), "Version")], null))) + "</td><td>" + R.str(R.u(R.cmd(S, "Enc", [R.m((S["fw"] ?? null), "Publisher")], null))) + "</td><td>" + R.str(R.u(R.cmd(S, "Enc", [(S["mapping"] ?? null)], null))) + "</td><td>" + R.str(R.u(R.cmd(S, "Enc", [R.m((S["fw"] ?? null), "Access")], null))) + "</td><td style=\"white-space:nowrap\">" + R.str(R.u(R.pi(R.join((S["links"] ?? null), "<br>")))) + R.str((S["retrieved"] ?? null)) + "</td></tr>")], null));
     }
-    R.ln = F + 1365;
-    R.pa(O, R.cmd(S, "Add", ["</tbody></table></div>"], null));
-    R.ln = F + 1366;
-    R.pa(O, R.cmd(S, "Add", ["<p class=\"note\" style=\"margin-top:16px\">Resource names are links to the Azure portal wherever the portal has a page for the resource. A name without a link has no page to open: either the portal addresses that object differently, or it has no page for a single object of that kind.</p>"], null));
-    R.ln = F + 1367;
-    R.pa(O, R.cmd(S, "Add", ["<p class=\"note\" style=\"margin-top:16px\">Results reflect the configuration at the time the data was collected, read with Reader access and Microsoft Graph read permissions. Mappings to industry frameworks show where Azure configuration contributes to a requirement; they are not a compliance attestation. This report describes weaknesses in the environment in detail: treat it as confidential.</p>"], null));
-    R.ln = F + 1368;
-    R.pa(O, R.cmd(S, "Add", ["</section>"], null));
-    R.ln = F + 1372;
-    R.pa(O, R.cmd(S, "Add", ["</main></div>"], null));
-    R.ln = F + 1373;
-    R.pa(O, R.cmd(S, "Add", [("<footer class=\"foot\"><span>" + R.str(R.u(R.cmd(S, "Enc", [(S["title"] ?? null)], null))) + ", " + R.str(R.u(R.cmd(S, "Enc", [(S["heading"] ?? null)], null))) + "</span><span>Generated " + R.str(R.u(R.cmd(S, "Enc", [R.u(R.cmd(S, "Format-Date", [R.m((S["results"] ?? null), "analyzedAt")], null))], null))) + " from " + R.str(R.u(R.cmd(S, "Enc", [R.m((S["subscription"] ?? null), "folder")], null))) + "</span><span class=\"made\"><img src=\"" + R.str((S["jsolvemark"] ?? null)) + "\" alt=\"\" width=\"32\" height=\"22\">AzCmply by " + R.str(R.u(R.cmd(S, "New-ExternalLink", [R.np("Url"), "https://www.jsolve.nl", R.np("Text"), "JSolve B.V."], null))) + "</span></footer>")], null));
-    R.ln = F + 1374;
-    R.pa(O, R.cmd(S, "Add", ["<div id=\"tip\" role=\"tooltip\" hidden></div>"], null));
-    R.ln = F + 1375;
-    R.pa(O, R.cmd(S, "Add", [("<script>" + R.str((S["script"] ?? null)) + "</script></body></html>")], null));
     R.ln = F + 1377;
-    S["directory"] = R.u(R.cmd(S, "Split-Path", [R.np("Path"), (S["outputpath"] ?? null)], null));
+    R.pa(O, R.cmd(S, "Add", ["</tbody></table></div>"], null));
     R.ln = F + 1378;
+    R.pa(O, R.cmd(S, "Add", ["<p class=\"note\" style=\"margin-top:16px\">Resource names are links to the Azure portal wherever the portal has a page for the resource. A name without a link has no page to open: either the portal addresses that object differently, or it has no page for a single object of that kind.</p>"], null));
+    R.ln = F + 1379;
+    R.pa(O, R.cmd(S, "Add", ["<p class=\"note\" style=\"margin-top:16px\">Results reflect the configuration at the time the data was collected, read with Reader access and Microsoft Graph read permissions. Mappings to industry frameworks show where Azure configuration contributes to a requirement; they are not a compliance attestation. This report describes weaknesses in the environment in detail: treat it as confidential.</p>"], null));
+    R.ln = F + 1380;
+    R.pa(O, R.cmd(S, "Add", ["</section>"], null));
+    R.ln = F + 1384;
+    R.pa(O, R.cmd(S, "Add", ["</main></div>"], null));
+    R.ln = F + 1385;
+    R.pa(O, R.cmd(S, "Add", [("<footer class=\"foot\"><span>" + R.str(R.u(R.cmd(S, "Enc", [(S["title"] ?? null)], null))) + ", " + R.str(R.u(R.cmd(S, "Enc", [(S["heading"] ?? null)], null))) + "</span><span>Generated " + R.str(R.u(R.cmd(S, "Enc", [R.u(R.cmd(S, "Format-Date", [R.m((S["results"] ?? null), "analyzedAt")], null))], null))) + " from " + R.str(R.u(R.cmd(S, "Enc", [R.m((S["subscription"] ?? null), "folder")], null))) + "</span><span class=\"made\"><img src=\"" + R.str((S["jsolvemark"] ?? null)) + "\" alt=\"\" width=\"32\" height=\"22\">AzCmply by " + R.str(R.u(R.cmd(S, "New-ExternalLink", [R.np("Url"), "https://www.jsolve.nl", R.np("Text"), "JSolve B.V."], null))) + "</span></footer>")], null));
+    R.ln = F + 1386;
+    R.pa(O, R.cmd(S, "Add", ["<div id=\"tip\" role=\"tooltip\" hidden></div>"], null));
+    R.ln = F + 1387;
+    R.pa(O, R.cmd(S, "Add", [("<script>" + R.str((S["script"] ?? null)) + "</script></body></html>")], null));
+    R.ln = F + 1389;
+    S["directory"] = R.u(R.cmd(S, "Split-Path", [R.np("Path"), (S["outputpath"] ?? null)], null));
+    R.ln = F + 1390;
     if ((R.t((S["directory"] ?? null)) && !R.t(R.u(R.cmd(S, "Test-Path", [(S["directory"] ?? null)], null))))) {
-        R.ln = F + 1378;
+        R.ln = F + 1390;
         R.cmd(S, "New-Item", [R.np("ItemType"), "Directory", R.np("Force"), R.np("Path"), (S["directory"] ?? null)], null);
     }
-    R.ln = F + 1379;
+    R.ln = F + 1391;
     R.e(O, R.sc("System.IO.File", "WriteAllText", [(S["outputpath"] ?? null), R.im((S["html"] ?? null), "ToString", []), R.sc("System.Text.UTF8Encoding", "new", [false])]));
-    R.ln = F + 1380;
+    R.ln = F + 1392;
     R.e(O, R.pso(["Path", R.m(R.u(R.cmd(S, "Resolve-Path", [(S["outputpath"] ?? null)], null)), "Path"), "Tests", R.m((S["tests"] ?? null), "Count"), "Failing", R.m((S["failing"] ?? null), "Count"), "PostureScore", (S["score"] ?? null)]));
 });

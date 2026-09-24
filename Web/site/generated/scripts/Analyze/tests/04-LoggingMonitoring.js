@@ -665,4 +665,195 @@ export default R.script("/app/Analyze/tests/04-LoggingMonitoring.ps1", { params:
             }
         })], false)], null));
     }
+    R.ln = F + 407;
+    R.def(S, "Get-ActivityLogRetention", { params: [{ n: "Setting", t: null, pos: null }], adv: 0, h: "bb92d84d7e0060f5" }, (S, O) => {
+        R.ln = F + 410;
+        S["p"] = R.m((S["setting"] ?? null), "properties");
+        R.ln = F + 411;
+        S["outcome"] = R.sb({ params: [{ n: "Status", t: "string", pos: null }, { n: "Detail", t: "string", pos: null }], adv: 0, text: " param([string]$Status, [string]$Detail) [pscustomobject]@{ Setting = $Setting.name; Status = $Status; Detail = $Detail } " }, (S, O) => {
+            R.ln = F + 411;
+            R.e(O, R.pso(["Setting", R.m((S["setting"] ?? null), "name"), "Status", (S["status"] ?? null), "Detail", (S["detail"] ?? null)]));
+        });
+        R.ln = F + 412;
+        S["results"] = [];
+        R.ln = F + 413;
+        if (R.t(R.m((S["p"] ?? null), "workspaceId"))) {
+            R.ln = F + 414;
+            S["workspace"] = R.u(R.cmd(S, "Get-AzResourceRecord", [R.np("Id"), R.m((S["p"] ?? null), "workspaceId")], null));
+            R.ln = F + 415;
+            S["name"] = R.u(R.cmd(S, "Get-ResourceName", [R.m((S["p"] ?? null), "workspaceId")], null));
+            R.ln = F + 416;
+            if (!R.t((S["workspace"] ?? null))) {
+                R.ln = F + 416;
+                S["results"] = R.add(S["results"] ?? null, R.u(R.inv(S, (S["outcome"] ?? null), ["Unknown", ("workspace " + R.str((S["name"] ?? null)) + " is not in this subscription or could not be read")], null, false)));
+            } else {
+                R.ln = F + 418;
+                S["days"] = R.c("int", R.m(R.m(R.m((S["workspace"] ?? null), "resource"), "properties"), "retentionInDays"));
+                R.ln = F + 419;
+                if (R.t(R.ge((S["days"] ?? null), 365))) {
+                    R.ln = F + 419;
+                    S["results"] = R.add(S["results"] ?? null, R.u(R.inv(S, (S["outcome"] ?? null), ["Pass", ("workspace " + R.str((S["name"] ?? null)) + " keeps " + R.str((S["days"] ?? null)) + " days")], null, false)));
+                } else if (R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["workspace"] ?? null), "tables"], null)))) {
+                    R.ln = F + 421;
+                    S["table"] = R.u(R.cmd(S, "Select-Object", [R.np("First"), 1], R.pi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.name -eq 'AzureActivity' " }, (S, O) => {
+                        R.ln = F + 421;
+                        R.e(O, (R.t((S["_"] ?? null)) && R.t(R.eq(R.m((S["_"] ?? null), "name"), "AzureActivity"))));
+                    })], R.cmd(S, "Get-Child", [(S["workspace"] ?? null), "tables"], null)))));
+                    R.ln = F + 422;
+                    const v26 = [];
+                    R.ln = F + 422;
+                    if (R.t(R.m(R.m((S["table"] ?? null), "properties"), "totalRetentionInDays"))) {
+                        R.ln = F + 422;
+                        R.e(v26, R.c("int", R.m(R.m((S["table"] ?? null), "properties"), "totalRetentionInDays")));
+                    } else {
+                        R.ln = F + 422;
+                        R.e(v26, (S["days"] ?? null));
+                    }
+                    S["total"] = R.u(v26);
+                    R.ln = F + 423;
+                    const v27 = [];
+                    R.ln = F + 423;
+                    if (R.t(R.ge((S["total"] ?? null), 365))) {
+                        R.ln = F + 423;
+                        R.e(v27, "Pass");
+                    } else {
+                        R.ln = F + 423;
+                        R.e(v27, "Fail");
+                    }
+                    S["status"] = R.u(v27);
+                    R.ln = F + 424;
+                    S["results"] = R.add(S["results"] ?? null, R.u(R.inv(S, (S["outcome"] ?? null), [(S["status"] ?? null), ("the AzureActivity table in workspace " + R.str((S["name"] ?? null)) + " keeps " + R.str((S["total"] ?? null)) + " days")], null, false)));
+                } else {
+                    R.ln = F + 425;
+                    S["results"] = R.add(S["results"] ?? null, R.u(R.inv(S, (S["outcome"] ?? null), ["Unknown", ("workspace " + R.str((S["name"] ?? null)) + " keeps " + R.str((S["days"] ?? null)) + " days, and its table retention could not be read")], null, false)));
+                }
+            }
+        }
+        R.ln = F + 428;
+        if (R.t(R.m((S["p"] ?? null), "storageAccountId"))) {
+            R.ln = F + 429;
+            S["account"] = R.u(R.cmd(S, "Get-AzResourceRecord", [R.np("Id"), R.m((S["p"] ?? null), "storageAccountId")], null));
+            R.ln = F + 430;
+            S["name"] = R.u(R.cmd(S, "Get-ResourceName", [R.m((S["p"] ?? null), "storageAccountId")], null));
+            R.ln = F + 431;
+            if (!R.t((S["account"] ?? null))) {
+                R.ln = F + 431;
+                S["results"] = R.add(S["results"] ?? null, R.u(R.inv(S, (S["outcome"] ?? null), ["Unknown", ("storage account " + R.str((S["name"] ?? null)) + " is not in this subscription or could not be read")], null, false)));
+            } else if (R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["account"] ?? null), "managementPolicies/default"], null)))) {
+                R.ln = F + 434;
+                S["deleteafter"] = R.u(R.cmd(S, "Sort-Object", [], R.pi((() => {
+                    const v28 = [];
+                    R.ln = F + 434;
+                    for (const it29 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.enabled -ne $false " }, (S, O) => {
+                        R.ln = F + 434;
+                        R.e(O, (R.t((S["_"] ?? null)) && R.t(R.ne(R.m((S["_"] ?? null), "enabled"), false))));
+                    })], R.pi(R.m(R.m(R.m(R.u(R.cmd(S, "Get-Child", [(S["account"] ?? null), "managementPolicies/default"], null)), "properties"), "policy"), "rules"))))) {
+                        S["rule"] = it29;
+                        R.ln = F + 435;
+                        S["filters"] = R.m(R.m((S["rule"] ?? null), "definition"), "filters");
+                        R.ln = F + 436;
+                        S["types"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+                            R.ln = F + 436;
+                            R.e(O, (S["_"] ?? null));
+                        })], R.pi(R.m((S["filters"] ?? null), "blobTypes")));
+                        R.ln = F + 437;
+                        if ((R.t((S["types"] ?? null)) && R.t(R.nin("appendBlob", (S["types"] ?? null))))) {
+                            continue;
+                        }
+                        R.ln = F + 438;
+                        S["prefixes"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+                            R.ln = F + 438;
+                            R.e(O, (S["_"] ?? null));
+                        })], R.pi(R.m((S["filters"] ?? null), "prefixMatch")));
+                        R.ln = F + 439;
+                        if ((R.t((S["prefixes"] ?? null)) && !R.t(R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " 'insights-activity-logs/'.StartsWith($_, [System.StringComparison]::OrdinalIgnoreCase) -or $_.StartsWith('insights-activity-logs/', [System.StringComparison]::OrdinalIgnoreCase) " }, (S, O) => {
+                            R.ln = F + 439;
+                            R.e(O, (R.t(R.im("insights-activity-logs/", "StartsWith", [(S["_"] ?? null), R.st("System.StringComparison", "OrdinalIgnoreCase")])) || R.t(R.im((S["_"] ?? null), "StartsWith", ["insights-activity-logs/", R.st("System.StringComparison", "OrdinalIgnoreCase")]))));
+                        })], R.pi((S["prefixes"] ?? null))))))) {
+                            continue;
+                        }
+                        R.ln = F + 440;
+                        S["delete"] = R.m(R.m(R.m(R.m((S["rule"] ?? null), "definition"), "actions"), "baseBlob"), "delete");
+                        R.ln = F + 441;
+                        for (const it30 of R.fi(R.a([R.v(R.m((S["delete"] ?? null), "daysAfterModificationGreaterThan")), R.v(R.m((S["delete"] ?? null), "daysAfterCreationGreaterThan"))]))) {
+                            S["value"] = it30;
+                            R.ln = F + 441;
+                            if (R.t(R.ne(null, (S["value"] ?? null)))) {
+                                R.ln = F + 441;
+                                R.e(v28, R.c("int", (S["value"] ?? null)));
+                            }
+                        }
+                    }
+                    return v28;
+                })())));
+                R.ln = F + 443;
+                if ((R.t((S["deleteafter"] ?? null)) && R.t(R.lt(R.i((S["deleteafter"] ?? null), 0), 365)))) {
+                    R.ln = F + 443;
+                    S["results"] = R.add(S["results"] ?? null, R.u(R.inv(S, (S["outcome"] ?? null), ["Fail", ("a lifecycle rule on storage account " + R.str((S["name"] ?? null)) + " deletes it after " + R.str(R.u(R.pi(R.i((S["deleteafter"] ?? null), 0)))) + " days")], null, false)));
+                } else {
+                    R.ln = F + 444;
+                    S["results"] = R.add(S["results"] ?? null, R.u(R.inv(S, (S["outcome"] ?? null), ["Pass", ("storage account " + R.str((S["name"] ?? null)) + " keeps it (no lifecycle rule deletes it within a year)")], null, false)));
+                }
+            } else if (R.t(R.eq(R.u(R.cmd(S, "Get-ChildFailure", [(S["account"] ?? null), "managementPolicies/default"], null)), 404))) {
+                R.ln = F + 445;
+                S["results"] = R.add(S["results"] ?? null, R.u(R.inv(S, (S["outcome"] ?? null), ["Pass", ("storage account " + R.str((S["name"] ?? null)) + " keeps it (no lifecycle management policy)")], null, false)));
+            } else {
+                R.ln = F + 446;
+                S["results"] = R.add(S["results"] ?? null, R.u(R.inv(S, (S["outcome"] ?? null), ["Unknown", ("the lifecycle management policy of storage account " + R.str((S["name"] ?? null)) + " could not be read")], null, false)));
+            }
+        }
+        R.ln = F + 448;
+        if ((R.t(R.m((S["p"] ?? null), "eventHubAuthorizationRuleId")) || R.t(R.m((S["p"] ?? null), "marketplacePartnerId")))) {
+            R.ln = F + 448;
+            S["results"] = R.add(S["results"] ?? null, R.u(R.inv(S, (S["outcome"] ?? null), ["Unknown", "an event hub or partner solution receives it; retention is set in the receiving system"], null, false)));
+        }
+        R.ln = F + 449;
+        R.e(O, (S["results"] ?? null));
+        return;
+    });
+    R.ln = F + 452;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-LOG-024", "Title", "The activity log is kept for at least a year", "Category", "Logging and threat detection", "Service", "Azure Monitor", "Severity", "Low", "Description", "Follows the activity log diagnostic settings to their destinations and checks that at least one keeps the log for 365 days or more: the Log Analytics workspace (or its AzureActivity table), or the storage account and its lifecycle rules.", "Rationale", "Azure keeps the activity log for 90 days. Investigating an incident found months later, and showing who changed what over a year, needs the control plane history kept longer.", "Remediation", "Keep the AzureActivity table for at least a year (workspace retention or table level total retention), or archive the activity log to a storage account without a lifecycle rule that deletes it earlier, ideally with an immutability policy.", "References", R.a([R.v("https://learn.microsoft.com/azure/azure-monitor/logs/data-retention-configure"), R.v("https://learn.microsoft.com/azure/azure-monitor/essentials/activity-log")]), "Frameworks", R.ht(["MCSB", "LT-6"], false), "Requires", R.a("subscription/diagnosticSettings"), "Run", R.sb({ params: [], adv: 0, text: "\n        $settings = @(Get-ActivityLogSettings | Sort-Object name)\n        if (-not $settings) { return New-SubscriptionFinding (New-Fail 'The activity log is not exported, so Azure keeps it for 90 days only') }\n        $outcomes = @(foreach ($setting in $settings) { Get-ActivityLogRetention $setting })\n        $evidence = [ordered]@{ destinations = @($outcomes | ForEach-Object { \"$($_.Setting): $($_.Detail)\" }) }\n        $kept = @($outcomes | Where-Object Status -eq 'Pass') | Select-Object -First 1\n        if ($kept) { return New-SubscriptionFinding (New-Pass \"Kept for a year or more: $($kept.Detail)\" $evidence) }\n        $unknown = @($outcomes | Where-Object Status -eq 'Unknown') | Select-Object -First 1\n        if ($unknown) { return New-SubscriptionFinding (New-Unknown \"No destination is known to keep it for a year: $($unknown.Detail)\" $evidence) }\n        New-SubscriptionFinding (New-Fail \"No destination keeps it for a year: $(@($outcomes | ForEach-Object Detail) -join '; ')\" $evidence)\n    " }, (S, O) => {
+        R.ln = F + 465;
+        S["settings"] = R.cmd(S, "Sort-Object", ["name"], R.cmd(S, "Get-ActivityLogSettings", [], null));
+        R.ln = F + 466;
+        if (!R.t((S["settings"] ?? null))) {
+            R.ln = F + 466;
+            R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Fail", ["The activity log is not exported, so Azure keeps it for 90 days only"], null))], null));
+            return;
+        }
+        R.ln = F + 467;
+        S["outcomes"] = (() => {
+            const v31 = [];
+            R.ln = F + 467;
+            for (const it32 of R.fi((S["settings"] ?? null))) {
+                S["setting"] = it32;
+                R.ln = F + 467;
+                R.pa(v31, R.cmd(S, "Get-ActivityLogRetention", [(S["setting"] ?? null)], null));
+            }
+            return v31;
+        })();
+        R.ln = F + 468;
+        S["evidence"] = R.ht(["destinations", R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " \"$($_.Setting): $($_.Detail)\" " }, (S, O) => {
+            R.ln = F + 468;
+            R.e(O, ("" + R.str(R.u(R.pi(R.m((S["_"] ?? null), "Setting")))) + ": " + R.str(R.u(R.pi(R.m((S["_"] ?? null), "Detail"))))));
+        })], R.pi((S["outcomes"] ?? null)))], true);
+        R.ln = F + 469;
+        S["kept"] = R.u(R.cmd(S, "Select-Object", [R.np("First"), 1], R.pi(R.cmd(S, "Where-Object", ["Status", R.np("eq"), "Pass"], R.pi((S["outcomes"] ?? null))))));
+        R.ln = F + 470;
+        if (R.t((S["kept"] ?? null))) {
+            R.ln = F + 470;
+            R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Pass", [("Kept for a year or more: " + R.str(R.u(R.pi(R.m((S["kept"] ?? null), "Detail"))))), (S["evidence"] ?? null)], null))], null));
+            return;
+        }
+        R.ln = F + 471;
+        S["unknown"] = R.u(R.cmd(S, "Select-Object", [R.np("First"), 1], R.pi(R.cmd(S, "Where-Object", ["Status", R.np("eq"), "Unknown"], R.pi((S["outcomes"] ?? null))))));
+        R.ln = F + 472;
+        if (R.t((S["unknown"] ?? null))) {
+            R.ln = F + 472;
+            R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Unknown", [("No destination is known to keep it for a year: " + R.str(R.u(R.pi(R.m((S["unknown"] ?? null), "Detail"))))), (S["evidence"] ?? null)], null))], null));
+            return;
+        }
+        R.ln = F + 473;
+        R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Fail", [("No destination keeps it for a year: " + R.str(R.u(R.pi(R.join(R.cmd(S, "ForEach-Object", ["Detail"], R.pi((S["outcomes"] ?? null))), "; "))))), (S["evidence"] ?? null)], null))], null));
+    })], false)], null));
 });

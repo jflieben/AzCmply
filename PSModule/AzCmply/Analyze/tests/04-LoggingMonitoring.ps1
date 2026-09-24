@@ -403,3 +403,73 @@ foreach ($flow in $flowLogKinds) {
         }
     }
 }
+
+function Get-ActivityLogRetention {
+    #how long one activity log destination keeps the log: Status Pass (365 days or more), Fail or Unknown, with a Detail
+    param($Setting)
+    $p = $Setting.properties
+    $outcome = { param([string]$Status, [string]$Detail) [pscustomobject]@{ Setting = $Setting.name; Status = $Status; Detail = $Detail } }
+    $results = @()
+    if ($p.workspaceId) {
+        $workspace = Get-AzResourceRecord -Id $p.workspaceId
+        $name = Get-ResourceName $p.workspaceId
+        if (-not $workspace) { $results += & $outcome 'Unknown' "workspace $name is not in this subscription or could not be read" }
+        else {
+            $days = [int]$workspace.resource.properties.retentionInDays
+            if ($days -ge 365) { $results += & $outcome 'Pass' "workspace $name keeps $days days" }
+            elseif (Test-ChildCollected $workspace 'tables') {
+                $table = @(Get-Child $workspace 'tables' | Where-Object { $_ -and $_.name -eq 'AzureActivity' }) | Select-Object -First 1
+                $total = if ($table.properties.totalRetentionInDays) { [int]$table.properties.totalRetentionInDays } else { $days }
+                $status = if ($total -ge 365) { 'Pass' } else { 'Fail' }
+                $results += & $outcome $status "the AzureActivity table in workspace $name keeps $total days"
+            } else { $results += & $outcome 'Unknown' "workspace $name keeps $days days, and its table retention could not be read" }
+        }
+    }
+    if ($p.storageAccountId) {
+        $account = Get-AzResourceRecord -Id $p.storageAccountId
+        $name = Get-ResourceName $p.storageAccountId
+        if (-not $account) { $results += & $outcome 'Unknown' "storage account $name is not in this subscription or could not be read" }
+        elseif (Test-ChildCollected $account 'managementPolicies/default') {
+            #lifecycle rules that delete append blobs in the insights-activity-logs container
+            $deleteAfter = @(foreach ($rule in @((Get-Child $account 'managementPolicies/default').properties.policy.rules | Where-Object { $_ -and $_.enabled -ne $false })) {
+                    $filters = $rule.definition.filters
+                    $types = @($filters.blobTypes | Where-Object { $_ })
+                    if ($types -and 'appendBlob' -notin $types) { continue }
+                    $prefixes = @($filters.prefixMatch | Where-Object { $_ })
+                    if ($prefixes -and -not ($prefixes | Where-Object { 'insights-activity-logs/'.StartsWith($_, [System.StringComparison]::OrdinalIgnoreCase) -or $_.StartsWith('insights-activity-logs/', [System.StringComparison]::OrdinalIgnoreCase) })) { continue }
+                    $delete = $rule.definition.actions.baseBlob.delete
+                    foreach ($value in @($delete.daysAfterModificationGreaterThan, $delete.daysAfterCreationGreaterThan)) { if ($null -ne $value) { [int]$value } }
+                }) | Sort-Object
+            if ($deleteAfter -and $deleteAfter[0] -lt 365) { $results += & $outcome 'Fail' "a lifecycle rule on storage account $name deletes it after $($deleteAfter[0]) days" }
+            else { $results += & $outcome 'Pass' "storage account $name keeps it (no lifecycle rule deletes it within a year)" }
+        } elseif ((Get-ChildFailure $account 'managementPolicies/default') -eq 404) { $results += & $outcome 'Pass' "storage account $name keeps it (no lifecycle management policy)" }
+        else { $results += & $outcome 'Unknown' "the lifecycle management policy of storage account $name could not be read" }
+    }
+    if ($p.eventHubAuthorizationRuleId -or $p.marketplacePartnerId) { $results += & $outcome 'Unknown' 'an event hub or partner solution receives it; retention is set in the receiving system' }
+    return $results
+}
+
+Add-AzTest @{
+    Id          = 'AZ-LOG-024'
+    Title       = 'The activity log is kept for at least a year'
+    Category    = 'Logging and threat detection'
+    Service     = 'Azure Monitor'
+    Severity    = 'Low'
+    Description = 'Follows the activity log diagnostic settings to their destinations and checks that at least one keeps the log for 365 days or more: the Log Analytics workspace (or its AzureActivity table), or the storage account and its lifecycle rules.'
+    Rationale   = 'Azure keeps the activity log for 90 days. Investigating an incident found months later, and showing who changed what over a year, needs the control plane history kept longer.'
+    Remediation = 'Keep the AzureActivity table for at least a year (workspace retention or table level total retention), or archive the activity log to a storage account without a lifecycle rule that deletes it earlier, ideally with an immutability policy.'
+    References  = @('https://learn.microsoft.com/azure/azure-monitor/logs/data-retention-configure', 'https://learn.microsoft.com/azure/azure-monitor/essentials/activity-log')
+    Frameworks  = @{ MCSB = 'LT-6' }
+    Requires    = @('subscription/diagnosticSettings')
+    Run         = {
+        $settings = @(Get-ActivityLogSettings | Sort-Object name)
+        if (-not $settings) { return New-SubscriptionFinding (New-Fail 'The activity log is not exported, so Azure keeps it for 90 days only') }
+        $outcomes = @(foreach ($setting in $settings) { Get-ActivityLogRetention $setting })
+        $evidence = [ordered]@{ destinations = @($outcomes | ForEach-Object { "$($_.Setting): $($_.Detail)" }) }
+        $kept = @($outcomes | Where-Object Status -eq 'Pass') | Select-Object -First 1
+        if ($kept) { return New-SubscriptionFinding (New-Pass "Kept for a year or more: $($kept.Detail)" $evidence) }
+        $unknown = @($outcomes | Where-Object Status -eq 'Unknown') | Select-Object -First 1
+        if ($unknown) { return New-SubscriptionFinding (New-Unknown "No destination is known to keep it for a year: $($unknown.Detail)" $evidence) }
+        New-SubscriptionFinding (New-Fail "No destination keeps it for a year: $(@($outcomes | ForEach-Object Detail) -join '; ')" $evidence)
+    }
+}

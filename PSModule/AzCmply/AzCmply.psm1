@@ -19,7 +19,7 @@ function Invoke-AzCmplyIngest {
         - Azure Resource Graph tables scoped to the subscription (incl. change history, patch and guest configuration state)
         - Activity log
         - Entra ID: every principal referenced by the above, group members and owners, service principal/application credentials,
-          owners, API permissions and federated credentials, directory role assignments
+          owners, API permissions and federated credentials, directory role assignments, Conditional Access policies and security defaults
 
         Output can contain sensitive values (deployment outputs, unencrypted automation variables, container environment variables, etc).
         .PARAMETER SubscriptionId
@@ -71,7 +71,8 @@ function Invoke-AzCmplyIngest {
         Required permissions:
         - Azure: Reader on the subscription
         - Graph (application): Directory.Read.All
-          Optional: RoleManagement.Read.Directory (eligible directory roles), AuditLog.Read.All (sign-in activity)
+          Optional: RoleManagement.Read.Directory (eligible directory roles), AuditLog.Read.All (sign-in activity),
+          Policy.Read.All (Conditional Access policies and security defaults)
         Missing permissions do not stop the run; every failed call is listed in failures.json.
         Output layout: see README.md
     #>
@@ -369,7 +370,7 @@ Set-Alias -Name 'New-AzureSecurityReport' -Value 'New-AzCmplyReport'
 
 Export-ModuleMember -Function 'Invoke-AzCmplyIngest', 'Invoke-AzCmplyAnalysis', 'Compare-AzCmplyAnalysis', 'New-AzCmplyReport', 'Invoke-AzCmplySelfTest', 'Invoke-AzCmplyAssessment' -Alias 'Invoke-AzureIngest', 'Invoke-AzureAnalyze', 'Compare-AzureAnalysis', 'New-AzureSecurityReport'
 
-$script:ModuleVersion = '0.9.3'
+$script:ModuleVersion = '0.9.4'
 Write-Host ''
 Write-Host "  AzCmply $script:ModuleVersion" -ForegroundColor Cyan -NoNewline
 Write-Host '  security posture assessment of an Azure subscription (read only)'

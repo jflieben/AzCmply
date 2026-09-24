@@ -70,7 +70,7 @@ Add-AzTest @{
     References    = @('https://learn.microsoft.com/azure/app-service/deploy-ftp#enforce-ftps')
     Frameworks    = @{ MCSB = @('DP-3', 'NS-8'); WAF = 'SE:08'; ALZ = 'Enforce-GR-AppServices0' }
     Defender      = @{ '19beaa2a-a126-b4dd-6d35-617f6cc83fca' = 'FTPS should be required in web apps'; '972a6579-f38f-c0b9-1b4b-a5bbeba3ab5b' = 'FTPS should be required in function apps' }
-    Policy        = @{ '4d24b6d4-5e53-4a4f-a7f4-618fa573ee4b' = 'App Service apps should require FTPS only' }
+    Policy        = @{ '4d24b6d4-5e53-4a4f-a7f4-618fa573ee4b' = 'App Service apps should require FTPS only'; '399b2637-a50f-4f95-96f8-3a145476eb15' = 'Function apps should require FTPS only' }
     ResourceTypes = $siteTypes
     Evaluate      = {
         param($Record)

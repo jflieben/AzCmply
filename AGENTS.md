@@ -32,6 +32,10 @@ These are not style preferences; breaking them makes the tool state something un
   control is reported as failing because of resources it does not cover.
 - Framework catalogs are reproductions of their source, not paraphrases. Control ids, titles and mappings are
   copied as published, including inconsistencies, and `retrieved` records when that was last checked.
+- The one exception is a `crosswalk` framework (DORA): the article titles are copied as published, but the mapping
+  is JSolve's own (`mappings.DORA` on the MCSB controls) and must say so wherever it is shown. Only articles with a
+  technical Azure side belong in its catalog. A test tags DORA directly only when it is a resilience check with no
+  fitting MCSB control; that is also the only case in which a test may go without an MCSB control.
 - `Unknown` is a coverage gap, never progress. A finding that goes from `Fail` to `Unknown` between runs is
   `lostVisibility` in the comparison, never `resolved`.
 - A portal link is only rendered for a resource id the Azure portal really has a page for. A link that lands on an

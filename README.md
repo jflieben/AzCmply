@@ -2,7 +2,7 @@
 
 Free (non commercially) fully automated test suite for Azure subscriptions against multiple up to date industry security baselines.
 
-AzCmply reads an Azure subscription and its Entra ID context, runs 245 tests against it and writes a report: a posture score, the failures to address first, results per security domain and per framework, and every test with its remediation and evidence per resource. Tests map to the Microsoft cloud security benchmark v2, CIS Microsoft Azure Foundations Benchmark 6.0.0, the Well-Architected Framework security pillar and the Azure landing zone policies; NIST SP 800-53, PCI DSS, CIS Controls, NIST CSF, ISO 27001 and SOC 2 follow from the MCSB mappings. It only reads. Run it again later and the report shows the trend and what changed.
+AzCmply reads an Azure subscription and its Entra ID context, runs 254 tests against it and writes a report: a posture score, the failures to address first, results per security domain and per framework, and every test with its remediation and evidence per resource. Tests map to the Microsoft cloud security benchmark v2, CIS Microsoft Azure Foundations Benchmark 6.0.0, the Well-Architected Framework security pillar and the Azure landing zone policies; NIST SP 800-53, PCI DSS, CIS Controls, NIST CSF, ISO 27001 and SOC 2 follow from the MCSB mappings, and a JSolve crosswalk maps the results to the technical articles of DORA and its ICT risk management standard (RTS 2024/1774). It only reads. Run it again later and the report shows the trend and what changed.
 
 There are two ways to run it, with the same tests and the same report:
 
@@ -24,7 +24,7 @@ Open [the page](https://azcmply.jsolve.nl/), sign in, pick a subscription and ru
 | Needed | For |
 |---|---|
 | Azure RBAC **Reader** on the subscription | everything in the subscription |
-| Entra ID role **Global Reader** | the Entra ID checks: principals behind role assignments, privileged and eligible roles, app credentials, sign-in activity |
+| Entra ID role **Global Reader** | the Entra ID checks: principals behind role assignments, privileged and eligible roles, app credentials, sign-in activity, Conditional Access |
 
 Without the Entra role the assessment still runs; the Entra ID checks then report Unknown. Clear **Entra ID enrichment** on the page to skip them.
 
@@ -39,10 +39,11 @@ The page signs in through an Entra ID app registration of the single-page applic
 | Microsoft Graph | `Directory.Read.All` | principals, groups, service principals and their credentials |
 | Microsoft Graph | `RoleManagement.Read.Directory` | directory role assignments and eligible (PIM) assignments |
 | Microsoft Graph | `AuditLog.Read.All` | last sign-in of accounts with access |
+| Microsoft Graph | `Policy.Read.All` | Conditional Access policies and security defaults (MFA for Azure management) |
 
 Use one of these:
 
-1. **The JSolve app** (multi-tenant, on the page hosted by JSolve B.V.). An administrator of your tenant (Global Administrator, Privileged Role Administrator or Cloud Application Administrator) grants consent once, with **Admin consent for this app** on the page. After that anyone in the tenant with the access above can sign in.
+1. **The JSolve app** (multi-tenant, on the page hosted by JSolve B.V.). An administrator of your tenant (Global Administrator, Privileged Role Administrator or Cloud Application Administrator) grants consent once, with **Admin consent for this app** on the page. After that anyone in the tenant with the access above can sign in. When a release adds a permission (0.9.4 added `Policy.Read.All`), consent again; until then the checks that need it report Unknown.
 2. **Your own app registration**, for a page you host yourself or run on your own computer, or if your policies do not allow third party apps. Create it with one command, which signs in with a device code and needs a role that can create app registrations:
 
    ```powershell
@@ -80,7 +81,7 @@ Invoke-AzCmplyAssessment -SubscriptionId <id> -TenantId <id> -ClientId <appId> -
 Invoke-AzCmplyAssessment -SubscriptionId <id> -ManagedIdentity -Path D:\Assessments
 ```
 
-The service principal or managed identity needs **Reader** on the subscription and the Microsoft Graph application permission **Directory.Read.All**; **RoleManagement.Read.Directory** and **AuditLog.Read.All** add eligible directory roles and sign-in activity. Certificate authentication is supported too (`-CertificateThumbprint`, `-CertificatePath`). See [PSModule](PSModule/README.md) for the separate steps (`Invoke-AzCmplyIngest`, `Invoke-AzCmplyAnalysis`, `New-AzCmplyReport`, `Compare-AzCmplyAnalysis`).
+The service principal or managed identity needs **Reader** on the subscription and the Microsoft Graph application permission **Directory.Read.All**; **RoleManagement.Read.Directory**, **AuditLog.Read.All** and **Policy.Read.All** add eligible directory roles, sign-in activity and Conditional Access. Certificate authentication is supported too (`-CertificateThumbprint`, `-CertificatePath`). See [PSModule](PSModule/README.md) for the separate steps (`Invoke-AzCmplyIngest`, `Invoke-AzCmplyAnalysis`, `New-AzCmplyReport`, `Compare-AzCmplyAnalysis`).
 
 ## How the web variant is built
 

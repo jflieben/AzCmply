@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.9.4
+
+### Added
+- DORA as a framework: a JSolve crosswalk from the MCSB v2 controls to the 26 articles of DORA (Regulation (EU)
+  2022/2554) and its ICT risk management standard (Delegated Regulation (EU) 2024/1774) that have a technical Azure
+  side. 
+- Nine tests (254 in total): geo-redundant database backups (AZ-BCK-007), SQL long-term retention (AZ-BCK-008), cross
+  region restore on geo-redundant vaults (AZ-BCK-009), tested restores and failovers (AZ-BCK-010), Site Recovery for
+  virtual machines (AZ-BCK-011), zone redundancy (AZ-BCK-012), a year of activity log (AZ-LOG-024), Conditional Access
+  MFA for Azure management (AZ-IAM-024) and applications of other organizations with Azure roles (AZ-IAM-025).
+- Ingestion: Conditional Access policies and security defaults (needs Graph `Policy.Read.All`;
+
 ## 0.9.3
 
 ### Changed

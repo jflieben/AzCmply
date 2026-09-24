@@ -745,3 +745,114 @@ Add-AzTest @{
         }
     }
 }
+
+#the 'Windows Azure Service Management API' application: every Azure Resource Manager client (portal, CLI, PowerShell, SDKs)
+$azureManagementAppId = '797f4846-ba00-4fd7-ba43-dac1f8f63013'
+
+function Get-AzureMfaPolicyGap {
+    #$null when a Conditional Access policy requires MFA for Azure management for everyone; the reason it falls short when
+    #it is close; 'unrelated' when it does not target Azure management with MFA at all
+    param($Policy)
+    $conditions = $Policy.conditions
+    $apps = $conditions.applications
+    $grant = $Policy.grantControls
+    $targetsAzure = (@($apps.includeApplications) -contains 'All' -or @($apps.includeApplications) -contains $azureManagementAppId) -and @($apps.excludeApplications) -notcontains $azureManagementAppId
+    $controls = @($grant.builtInControls | Where-Object { $_ })
+    $requiresMfa = ($controls -contains 'mfa') -or [bool]$grant.authenticationStrength
+    if (-not ($targetsAzure -and $requiresMfa)) { return 'unrelated' }
+    if ($Policy.state -eq 'enabledForReportingButNotEnforced') { return 'it is in report-only mode' }
+    if ($Policy.state -ne 'enabled') { return 'it is turned off' }
+    if (@($conditions.users.includeUsers) -notcontains 'All') { return 'it applies to selected users, groups or roles only' }
+    $alternatives = @($controls | Where-Object { $_ -ne 'mfa' }).Count + @($grant.termsOfUse | Where-Object { $_ }).Count + @($grant.customAuthenticationFactors | Where-Object { $_ }).Count
+    if ($grant.operator -eq 'OR' -and $alternatives) { return 'MFA is one of several alternative grant controls' }
+    $clients = @($conditions.clientAppTypes | Where-Object { $_ })
+    if ($clients -and $clients -notcontains 'all' -and -not ($clients -contains 'browser' -and $clients -contains 'mobileAppsAndDesktopClients')) { return 'it applies to some client apps only' }
+    if ($conditions.platforms -and @($conditions.platforms.includePlatforms) -notcontains 'all') { return 'it applies to some device platforms only' }
+    if ($conditions.locations -and (@($conditions.locations.includeLocations) -notcontains 'All' -or @($conditions.locations.excludeLocations | Where-Object { $_ }).Count)) { return 'MFA is skipped for some locations' }
+    if (@($conditions.signInRiskLevels | Where-Object { $_ }).Count -or @($conditions.userRiskLevels | Where-Object { $_ }).Count) { return 'it applies at elevated risk only' }
+    if ($conditions.devices.deviceFilter) { return 'a device filter limits it' }
+    return $null
+}
+
+Add-AzTest @{
+    Id          = 'AZ-IAM-024'
+    Title       = 'Conditional Access requires multifactor authentication for Azure management'
+    Category    = 'Identity management'
+    Service     = 'Microsoft Entra ID'
+    Severity    = 'High'
+    Description = 'Looks for an enabled Conditional Access policy for all users that requires multifactor authentication or an authentication strength for Azure management (the Windows Azure Service Management API, or all resources), without conditions that limit it to some client apps, platforms, locations or risk levels. Security defaults count as well.'
+    Rationale   = 'Every Azure management tool (portal, CLI, PowerShell, infrastructure as code) signs in to Azure Resource Manager. A policy the organization owns makes MFA there its own control: it covers every client, can require phishing resistant methods for administrators, and is evidence of strong authentication for privileged access.'
+    Remediation = "Create a Conditional Access policy for all users (exclude only emergency access accounts) that targets 'Windows Azure Service Management API' or all resources and grants access with 'Require multifactor authentication' or a phishing resistant authentication strength. Check it in report-only mode, then turn it on."
+    References  = @('https://learn.microsoft.com/entra/identity/conditional-access/policy-old-require-mfa-azure-mgmt', 'https://learn.microsoft.com/entra/fundamentals/security-defaults')
+    Frameworks  = @{ MCSB = @('IM-6', 'IM-7') }
+    Requires    = @('identity/conditionalAccessPolicies')
+    Run         = {
+        $policies = @(Get-IngestData 'identity/conditionalAccessPolicies' | Where-Object { $_ } | Sort-Object displayName, id)
+        $qualifying = @($policies | Where-Object { $null -eq (Get-AzureMfaPolicyGap $_) })
+        $nearMisses = @(foreach ($policy in $policies) { $gap = Get-AzureMfaPolicyGap $policy; if ($gap -and $gap -ne 'unrelated') { "$($policy.displayName): $gap" } })
+        if ($qualifying) {
+            $users = $qualifying[0].conditions.users
+            $evidence = [ordered]@{
+                policies         = @($qualifying | ForEach-Object { $_.displayName })
+                grant            = $(if ($qualifying[0].grantControls.authenticationStrength) { "authentication strength $($qualifying[0].grantControls.authenticationStrength.displayName)" } else { 'multifactor authentication' })
+                excludedUsers    = @($users.excludeUsers | Where-Object { $_ }).Count
+                excludedGroups   = @($users.excludeGroups | Where-Object { $_ }).Count
+                excludedRoles    = @($users.excludeRoles | Where-Object { $_ }).Count
+            }
+            return New-TenantFinding -Result (New-Pass "Policy '$($qualifying[0].displayName)' requires $($evidence.grant) for Azure management" $evidence) -Suffix '/conditionalAccess'
+        }
+        $evidence = [ordered]@{ enabledPolicies = @($policies | Where-Object { $_.state -eq 'enabled' }).Count; nearMisses = $nearMisses }
+        #security defaults can only be on while no Conditional Access policy is enabled
+        if (-not @($policies | Where-Object { $_.state -eq 'enabled' }).Count) {
+            if (-not (Test-IngestSection 'identity/securityDefaults')) { return New-TenantFinding -Result (New-Unknown 'No Conditional Access policy requires it, and security defaults could not be read' $evidence) -Suffix '/conditionalAccess' }
+            if ((Get-IngestData 'identity/securityDefaults').isEnabled) { return New-TenantFinding -Result (New-Pass 'Security defaults require MFA for Azure management' $evidence) -Suffix '/conditionalAccess' }
+        }
+        $detail = if ($nearMisses) { "No enabled policy requires MFA for Azure management for all users ($($nearMisses -join '; '))" } else { 'No Conditional Access policy requires MFA for Azure management' }
+        New-TenantFinding -Result (New-Fail $detail $evidence) -Suffix '/conditionalAccess'
+    }
+}
+
+#organizations whose applications are Microsoft first-party services rather than third parties
+$microsoftTenantIds = @('f8cdef31-a31e-4b4a-93e4-5f571e91255a', '72f988bf-86f1-41af-91ab-2d7cd011db47')
+
+Add-AzTest @{
+    Id          = 'AZ-IAM-025'
+    Title       = 'Applications of other organizations hold no Azure role assignments'
+    Category    = 'Privileged access'
+    Service     = 'Azure RBAC'
+    Severity    = 'Informational'
+    Description = 'Lists role assignments that apply to the subscription and belong to service principals of multi-tenant applications registered by another organization. Managed identities and Microsoft first-party applications are left out.'
+    Rationale   = 'Such an application is a third party with access to Azure resources: its publisher controls the code and the credentials. Every third party with access has to be known, assessed and recorded (for DORA in the register of information), and this list is where that inventory starts.'
+    Remediation = 'Confirm that each application is expected and recorded as a third party, limit it to the roles and scopes it needs, and remove the assignments of applications that are no longer used.'
+    References  = @('https://learn.microsoft.com/entra/identity-platform/single-and-multi-tenant-apps')
+    Frameworks  = @{ MCSB = 'PA-4'; DORA = 'Art. 28' }
+    Requires    = @('rbac/roleAssignments', 'identity/directoryObjects')
+    Run         = {
+        $tenantId = [string]$script:Ingest.Manifest.subscription.tenantId
+        $unresolved = @{}
+        foreach ($id in @(Get-IngestData 'identity/unresolvedPrincipalIds')) { if ($id) { $unresolved[$id.ToLowerInvariant()] = $true } }
+        $findings = foreach ($assignment in @(Get-ActiveRoleAssignments | Where-Object { $_.properties.principalType -eq 'ServicePrincipal' } | Sort-Object id)) {
+            $principalId = [string]$assignment.properties.principalId
+            $evidence = Get-AssignmentEvidence $assignment
+            $principal = Get-Principal $principalId
+            if (-not $principal) {
+                #deleted principals are AZ-IAM-007
+                if ($unresolved.ContainsKey($principalId.ToLowerInvariant())) { continue }
+                New-Finding -ResourceId $assignment.id -ResourceType $assignment.type -ResourceName "$($evidence.role): $($evidence.principal)" -Result (New-Unknown 'The service principal behind this assignment could not be resolved in the directory' $evidence)
+                continue
+            }
+            if ($principal.servicePrincipalType -eq 'ManagedIdentity') { continue }
+            $owner = [string]$principal.appOwnerOrganizationId
+            if (-not $owner) {
+                New-Finding -ResourceId $assignment.id -ResourceType $assignment.type -ResourceName "$($evidence.role): $($evidence.principal)" -Result (New-Unknown 'The organization that registered this application was not recorded' $evidence)
+                continue
+            }
+            if ($owner -eq $tenantId -or $owner -in $microsoftTenantIds) { continue }
+            $evidence.appId = $principal.appId
+            $evidence.ownerOrganization = $owner
+            New-Finding -ResourceId $assignment.id -ResourceType $assignment.type -ResourceName "$($evidence.role): $($evidence.principal)" -Result (New-Fail "$($principal.displayName), an application of organization $owner, holds $($evidence.role) on $($evidence.scope)" $evidence)
+        }
+        if (-not $findings) { return New-SubscriptionFinding (New-Pass 'No applications of other organizations hold Azure roles') }
+        $findings
+    }
+}

@@ -30,7 +30,7 @@ The script returns `{ Path, Resources, FailedRequests }`.
 ## Permissions
 
 - Azure: **Reader** on the subscription.
-- Graph application permissions: **Directory.Read.All**. Optional: **RoleManagement.Read.Directory** (eligible directory roles), **AuditLog.Read.All** (user sign-in activity).
+- Graph application permissions: **Directory.Read.All**. Optional: **RoleManagement.Read.Directory** (eligible directory roles), **AuditLog.Read.All** (user sign-in activity), **Policy.Read.All** (Conditional Access policies and security defaults).
 
 Missing permissions do not stop the run. Each failed call is listed in `failures.json` and the affected section is marked in `manifest.json`.
 
@@ -52,7 +52,7 @@ resources/<Namespace>/<type>/<name>_<hash>.json
 resourceGraph/<table>.json   Azure Resource Graph rows scoped to the subscription
 activityLog/activityLog.json
 identity/              directoryObjects, users, groups, servicePrincipals, apiServicePrincipals,
-                       directoryRole*, unresolvedPrincipalIds, organization
+                       directoryRole*, conditionalAccessPolicies, securityDefaults, unresolvedPrincipalIds, organization
 ```
 
 Collections are JSON arrays of the raw API objects. Values are written exactly as returned (no date conversion).

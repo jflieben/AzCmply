@@ -283,7 +283,9 @@ function Add-AzTest {
             if (-not $script:Catalog[$framework].controls.Contains($control)) { throw "Test $($Definition.Id): $framework control '$control' not in catalog" }
         }
     }
-    if (-not $Definition.Frameworks.MCSB) { throw "Test $($Definition.Id): at least one MCSB control is required" }
+    #MCSB is a security benchmark; a resilience check outside it carries a crosswalk tag (DORA) instead
+    $crosswalkTags = @($Definition.Frameworks.Keys | Where-Object { $script:Catalog[$_].kind -eq 'crosswalk' })
+    if (-not $Definition.Frameworks.MCSB -and -not $crosswalkTags) { throw "Test $($Definition.Id): at least one MCSB control is required" }
     if (-not $Definition.Version) { $Definition.Version = 1 }
     $script:Tests.Add([pscustomobject]$Definition)
 }

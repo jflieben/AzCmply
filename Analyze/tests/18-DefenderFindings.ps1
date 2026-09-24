@@ -52,6 +52,7 @@ Add-AzTest @{
     References  = @('https://learn.microsoft.com/azure/update-manager/overview')
     Frameworks  = @{ MCSB = 'PV-6'; WAF = 'SE:08' }
     Defender    = @{ 'e1145ab1-eb4f-43d8-911b-36ddf771d13f' = 'System updates should be installed on your machines (powered by Azure Update Manager)' }
+    Policy      = @{ 'f85bf3e0-d513-442e-89c3-1784ad63382b' = 'System updates should be installed on your machines (powered by Update Center)' }
     Requires    = @('defender/assessments')
     Run         = {
         Get-AssessmentFindings -Keys @{ 'e1145ab1-eb4f-43d8-911b-36ddf771d13f' = 'missing system updates' } -HealthyText 'System updates installed' -SubscriptionNotApplicable 'Defender for Cloud reports no system update assessments'

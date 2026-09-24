@@ -1,6 +1,6 @@
 # Azure security analysis
 
-`Invoke-AzureAnalyze.ps1` runs 245 security tests against an ingestion made by `..\Ingest\Invoke-AzureIngest.ps1` and writes one result per test, with a finding per evaluated resource. PowerShell 7.2+, no modules, no network access.
+`Invoke-AzureAnalyze.ps1` runs 254 security tests against an ingestion made by `..\Ingest\Invoke-AzureIngest.ps1` and writes one result per test, with a finding per evaluated resource. PowerShell 7.2+, no modules, no network access.
 
 ```powershell
 .\Invoke-AzureAnalyze.ps1 -IngestPath ..\Ingest\AzureIngest\<subscriptionId>_<timestamp>          # folder or .zip
@@ -20,10 +20,11 @@ Every test carries the controls it implements:
 | `WAF` | [Well-Architected Framework security checklist](https://learn.microsoft.com/azure/well-architected/security/checklist) | SE:01 to SE:12 | Learn guide per recommendation |
 | `ALZ` | [Azure landing zone policy assignments](https://azure.github.io/Azure-Landing-Zones/policy/policyassignments/) | ALZ library platform/alz/2026.08.1 | assignment file in the pinned library release |
 | `derived` | NIST SP 800-53 Rev.5, PCI DSS v4, CIS Controls v8.1, NIST CSF 2.0, ISO 27001:2022, SOC 2, via Microsoft's MCSB v2 control mappings | per framework in the catalog | the MCSB controls it comes from (`via`) |
+| `DORA` | [Regulation (EU) 2022/2554](https://eur-lex.europa.eu/eli/reg/2022/2554/oj/eng) and its RTS on the ICT risk management framework, [Delegated Regulation (EU) 2024/1774](https://eur-lex.europa.eu/eli/reg_del/2024/1774/oj/eng), through a JSolve crosswalk of the MCSB v2 controls (`mappings.DORA` in the catalog), or tagged directly on resilience tests that MCSB does not cover | 26 articles with a technical Azure side | the MCSB controls it comes from (`via`), none when tagged directly |
 
 `catalog\frameworks.json` holds each framework's name, short name, version, publisher, source URL, access terms and the date the catalog was checked against the source. MCSB v2 publishes some NIST CSF identifiers in CSF 1.1 form (for example `PR.AC-05`, unpadded as `PR.AA-1` on some pages); they are reproduced exactly as published.
 
-Tests also list the matching Defender for Cloud recommendation ids and built-in Azure Policy definition ids where they exist (156 tests), so results can be cross-checked against Defender and Policy. Every id is verified against the published Azure Policy definitions and the Defender assessment metadata catalogue.
+Tests also list the matching Defender for Cloud recommendation ids and built-in Azure Policy definition ids where they exist (158 tests), so results can be cross-checked against Defender and Policy. Every id is verified against the published Azure Policy definitions and the Defender assessment metadata catalogue.
 
 A test is one requirement, and a control is only tagged on tests that cover exactly what it asks for. Where a benchmark numbers variants separately (CIS 8.3.1/8.3.2 for keys in RBAC and access policy vaults, 8.3.3/8.3.4 for secrets, 7.5/7.8 and 6.1.1.5/6.1.1.6 for NSG and virtual network flow logs, 9.3.9/9.3.10 for storage account locks, 2.1.2 for Databricks subnets), each variant has its own test, so a control is never reported as failing because of resources it does not cover. Where frameworks genuinely overlap, the test is tagged with all of them instead of being duplicated. Generic tests (`AZ-PAAS-*`, `AZ-LOG-015`) exclude resource types that have a dedicated test, so no resource is evaluated twice for the same setting. The catalog of controls is `catalog\frameworks.json`; tags are validated against it when tests load.
 
@@ -31,17 +32,17 @@ A test is one requirement, and a control is only tagged on tests that cover exac
 
 | Area | Tests | Area | Tests |
 |---|---|---|---|
-| Identity and privileged access (`IAM`) | 23 | Storage (`STG`) | 26 |
+| Identity and privileged access (`IAM`) | 25 | Storage (`STG`) | 26 |
 | Defender for Cloud plans and settings (`DEF`) | 25 | Key Vault (`KV`) | 11 |
 | Defender findings (`DFA`) | 4 | SQL, PostgreSQL, MySQL, Cosmos DB, Redis (`SQL` `PG` `MY` `COS` `RED` `DB`) | 23 |
-| Logging and monitoring (`LOG`) | 23 | App Service (`APP`) | 9 |
+| Logging and monitoring (`LOG`) | 24 | App Service (`APP`) | 9 |
 | Governance (`GOV`) | 10 | Compute (`VM`) | 12 |
 | Network (`NET`) | 23 | Containers (`AKS` `ACR` `CAPP` `ACI`) | 17 |
 | Integration (`MSG` `APIM` `AUTO`) | 10 | AI (`AI`) | 7 |
-| Backup (`BCK`) | 6 | Data and analytics (`DBX` `SYN` `ADF`) | 9 |
+| Backup and resilience (`BCK`) | 12 | Data and analytics (`DBX` `SYN` `ADF`) | 9 |
 | Exposed secrets (`SEC`) | 4 | Generic PaaS (`PAAS`) | 3 |
 
-Severity: Critical 4, High 56, Medium 120, Low 61, Informational 4.
+Severity: Critical 4, High 57, Medium 121, Low 64, Informational 8.
 
 ## Output
 
@@ -56,7 +57,7 @@ Severity: Critical 4, High 56, Medium 120, Low 61, Informational 4.
 ```jsonc
 {
   "schemaVersion": 2,
-  "analyzer": { "version": "0.9", "tests": 245 },
+  "analyzer": { "version": "0.9", "tests": 254 },
   "ingest": { "folder", "subscriptionId", "subscriptionName", "tenantId", "startedAt", "ingestVersion", "status" },
   "analyzedAt": "...",                                   // the only value that changes between identical runs
   "summary": { "postureScore", "scoreMethod", "tests": {status: n}, "findings": {status: n}, "bySeverity": {...} },
@@ -92,7 +93,8 @@ Evidence never contains secret values; secret tests report the location and patt
 Every framework card reports its own coverage (`assessed of controls`), counting all controls in the catalog, not only the ones a test happens to cover. What is left is:
 
 - CIS: the four Automated recommendations 5.1.1, 5.1.3 and 5.6 need tenant level Entra and subscription policy data that the ingestion does not collect; the remaining unassessed CIS recommendations are the ones CIS itself marks Manual, and the report labels them "(manual in CIS)".
-- MCSB process controls (incident response plans, threat modeling, DevOps pipeline security, red teaming, emergency access, backup testing) cannot be derived from configuration.
+- MCSB process controls (incident response plans, threat modeling, DevOps pipeline security, red teaming, emergency access) cannot be derived from configuration.
+- DORA: only the articles with a technical Azure side are in the catalog. Governance, incident classification and reporting, resilience testing (including TLPT), contracts, the register of information and exit plans are processes, not configuration. The crosswalk is JSolve's, not published by the EU or Microsoft; a mapping means the configuration contributes to an article, not that the article is met.
 - ALZ: 56 of the 80 policy assignments in the pinned library release are covered. The rest are not security controls (resource location, zone resiliency, change tracking) or apply to management group scopes this tool does not read.
 - Types not present in a subscription report `NotApplicable`. The self-test checks every test on synthetic data shaped after the Azure Resource Manager API.
 

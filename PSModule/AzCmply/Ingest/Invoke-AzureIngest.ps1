@@ -14,7 +14,7 @@
     - Azure Resource Graph tables scoped to the subscription (incl. change history, patch and guest configuration state)
     - Activity log
     - Entra ID: every principal referenced by the above, group members and owners, service principal/application credentials,
-      owners, API permissions and federated credentials, directory role assignments
+      owners, API permissions and federated credentials, directory role assignments, Conditional Access policies and security defaults
 
     Output can contain sensitive values (deployment outputs, unencrypted automation variables, container environment variables, etc).
     .PARAMETER SubscriptionId
@@ -66,7 +66,8 @@
     Required permissions:
     - Azure: Reader on the subscription
     - Graph (application): Directory.Read.All
-      Optional: RoleManagement.Read.Directory (eligible directory roles), AuditLog.Read.All (sign-in activity)
+      Optional: RoleManagement.Read.Directory (eligible directory roles), AuditLog.Read.All (sign-in activity),
+      Policy.Read.All (Conditional Access policies and security defaults)
     Missing permissions do not stop the run; every failed call is listed in failures.json.
     Output layout: see README.md
 #>
@@ -127,7 +128,8 @@ $coreApiVersions = [ordered]@{
 }
 $resourceListExpand = 'createdTime,changedTime,provisioningState'
 
-#Microsoft Graph properties read per kind of object, and the tenant wide directory role exports (file name, path)
+#Microsoft Graph properties read per kind of object, and the tenant wide exports (file name, path): directory roles,
+#Conditional Access policies and security defaults
 $graphSelect = [ordered]@{
     member = 'id,displayName,userPrincipalName,userType,accountEnabled,onPremisesSyncEnabled,appId,servicePrincipalType,appOwnerOrganizationId'
     user   = 'id,displayName,userPrincipalName,mail,userType,accountEnabled,creationType,externalUserState,onPremisesSyncEnabled,onPremisesSamAccountName,createdDateTime,lastPasswordChangeDateTime'
@@ -138,6 +140,8 @@ $graphDirectoryExports = @(
     ,@('directoryRoleDefinitions', '/v1.0/roleManagement/directory/roleDefinitions')
     ,@('directoryRoleAssignments', '/v1.0/roleManagement/directory/roleAssignments?$expand=principal')
     ,@('directoryRoleEligibilitySchedules', '/v1.0/roleManagement/directory/roleEligibilitySchedules?$expand=principal')
+    ,@('conditionalAccessPolicies', '/v1.0/identity/conditionalAccess/policies')
+    ,@('securityDefaults', '/v1.0/policies/identitySecurityDefaultsEnforcementPolicy')
 )
 
 #subscription scoped endpoints: output folder, file name, path below /subscriptions/{id}/, api version, method
@@ -285,7 +289,7 @@ $childResourceMap = @{
     )
     'microsoft.recoveryservices/vaults'                = @(
         'backupconfig/vaultconfig@2023-04-01', 'backupstorageconfig/vaultstorageconfig@2023-04-01', 'backupEncryptionConfigs/backupResourceEncryptionConfig@2023-04-01',
-        'backupPolicies@2023-04-01', 'backupProtectedItems@2023-04-01', 'backupResourceGuardProxies@2023-04-01', 'privateEndpointConnections'
+        'backupPolicies@2023-04-01', 'backupProtectedItems@2023-04-01', 'backupResourceGuardProxies@2023-04-01', 'replicationProtectedItems@2025-01-01', 'privateEndpointConnections'
     )
     'microsoft.dataprotection/backupvaults'            = @('backupPolicies', 'backupInstances', 'backupResourceGuardProxies')
     'microsoft.operationalinsights/workspaces'         = @(

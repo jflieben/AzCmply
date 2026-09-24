@@ -6,7 +6,7 @@
     The web page runs in the browser and signs in as the user, so it needs an app registration of the single-page
     application type with these delegated, read-only permissions:
     - Azure Service Management: user_impersonation (reads the subscription with the user's own Azure RBAC, Reader is enough)
-    - Microsoft Graph: User.Read, Directory.Read.All, RoleManagement.Read.Directory, AuditLog.Read.All (Entra ID checks)
+    - Microsoft Graph: User.Read, Directory.Read.All, RoleManagement.Read.Directory, AuditLog.Read.All, Policy.Read.All (Entra ID checks)
     The app has no secret and no application permissions: it can never do more than the signed in user.
 
     Run once per tenant for your own app (single tenant), or once by the publisher for a multi-tenant app that other
@@ -58,7 +58,7 @@ $cloud = @{
 $graphCliAppId = '14d82eec-204b-4c2f-b7e8-296a70dab67e'
 $graphAppId = '00000003-0000-0000-c000-000000000000'
 $armAppId = '797f4846-ba00-4fd7-ba43-dac1f8f63013'
-$graphScopes = @('User.Read', 'Directory.Read.All', 'RoleManagement.Read.Directory', 'AuditLog.Read.All')
+$graphScopes = @('User.Read', 'Directory.Read.All', 'RoleManagement.Read.Directory', 'AuditLog.Read.All', 'Policy.Read.All')
 $armScopes = @('user_impersonation')
 
 #region sign-in (device code)

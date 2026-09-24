@@ -410,6 +410,7 @@ foreach ($key in $frameworkKeys) {
         Access    = $fw.access
         Retrieved = $fw.retrieved
         Note      = $fw.note
+        Kind      = $fw.kind
         Derived   = $derived
         Buckets   = $buckets
         Assessed  = $buckets.Fail + $buckets.Unknown + $buckets.Pass
@@ -1152,6 +1153,7 @@ foreach ($fw in @($frameworks.Values | Where-Object { -not $_.Derived })) {
     Add "<div class=""fw-figure""><span class=""big"">$($fw.Buckets.Fail)</span><span class=""of"">of $total assessed controls failing</span></div>"
     Add (New-StackBar -Buckets $fw.Buckets -Scale $total -Label $fw.Label -Unit 'controls')
     Add "<div class=""fw-stats""><span><i class=""sw b-fail""></i><b>$($fw.Buckets.Fail)</b> failing</span><span><i class=""sw b-unknown""></i><b>$($fw.Buckets.Unknown)</b> unknown</span><span><i class=""sw b-pass""></i><b>$($fw.Buckets.Pass)</b> passing</span><span><b>$($fw.Buckets.NotApplicable)</b> not applicable</span></div>"
+    if ($fw.Kind -eq 'crosswalk') { Add '<p class="note" style="margin:0">Crosswalk by JSolve B.V. via MCSB v2, technical articles only. A mapping means the configuration contributes to an article, not that the article is met.</p>' }
     $coverage = if ($fw.Coverage) { "Assessed $($fw.Coverage.assessed) of $($fw.Coverage.controls) controls" } else { '' }
     $footMeta = @($(if ($fw.Publisher) { "<span>$(Enc $fw.Publisher)</span>" }), $(if ($coverage) { "<span>$(Enc $coverage)</span>" })) | Where-Object { $_ }
     $footLinks = @($(if ($fw.Url) { New-ExternalLink -Url $fw.Url -Text 'Source' }), "<a href=""#fw-$($fw.Slug)"">Controls</a>") | Where-Object { $_ }
@@ -1187,7 +1189,7 @@ foreach ($fw in $frameworks.Values) {
     if ($sourceLinks) { Add "<div><dt>Source</dt><dd>$($sourceLinks -join ' &middot; ')</dd></div>" }
     Add '</dl>'
     if ($fw.Note) { Add "<p class=""fw-note"">$(Enc $fw.Note)</p>" }
-    $head = if ($fw.Derived) { '<th>Control</th><th>Result</th><th>Via MCSB v2</th><th>Tests</th>' } else { '<th>Control</th><th>Title</th><th>Result</th><th>Tests</th>' }
+    $head = if ($fw.Derived) { '<th>Control</th><th>Result</th><th>Via MCSB v2</th><th>Tests</th>' } elseif ($fw.Kind -eq 'crosswalk') { '<th>Control</th><th>Title</th><th>Result</th><th>Via MCSB v2</th><th>Tests</th>' } else { '<th>Control</th><th>Title</th><th>Result</th><th>Tests</th>' }
     Add "<div class=""fw-table scroll""><table><thead><tr>$head</tr></thead><tbody>"
     foreach ($control in $fw.Controls) {
         $item = $control.Value
@@ -1202,6 +1204,9 @@ foreach ($fw in $frameworks.Values) {
         if ($fw.Derived) {
             $via = (@($item.via) | Where-Object { $_ } | ForEach-Object { Get-ControlLink -Framework 'MCSB' -Id $_ }) -join ', '
             Add "<tr><td>$idHtml</td><td>$(New-StatusBadge $item.status)</td><td class=""links"">$via</td><td class=""links"">$links</td></tr>"
+        } elseif ($fw.Kind -eq 'crosswalk') {
+            $via = (@($item.via) | Where-Object { $_ } | ForEach-Object { Get-ControlLink -Framework 'MCSB' -Id $_ }) -join ', '
+            Add "<tr><td style=""white-space:nowrap"">$idHtml</td><td>$(Enc $item.title)</td><td>$(New-StatusBadge $item.status)</td><td class=""links"">$via</td><td class=""links"">$links</td></tr>"
         } else {
             $manual = if ($item.assessment -eq 'Manual') { ' <span class="note">(manual in CIS)</span>' } else { '' }
             Add "<tr><td style=""white-space:nowrap"">$idHtml</td><td>$(Enc $item.title)$manual</td><td>$(New-StatusBadge $item.status)</td><td class=""links"">$links</td></tr>"
@@ -1237,7 +1242,14 @@ Add '</div><span class="count" id="f-count"></span></div></div><div class="test-
 
 foreach ($test in $tests) {
     $primaryTags = @(foreach ($key in $primaryFrameworks) { foreach ($tag in @($test.frameworks.$key)) { if ($tag) { [pscustomobject]@{ Framework = $key; Tag = $tag } } } })
-    $derivedTags = @(Get-DerivedTags $test)
+    #crosswalk tags (DORA) are listed with the direct mappings, with their title and the MCSB controls they come through
+    $derivedTags = @()
+    foreach ($tag in @(Get-DerivedTags $test)) {
+        if ($frameworks.Contains($tag.Framework) -and $frameworks[$tag.Framework].Kind -eq 'crosswalk') {
+            $control = $results.frameworks.($tag.Framework).controls.($tag.Id)
+            $primaryTags += [pscustomobject]@{ Framework = $tag.Framework; Tag = [pscustomobject]@{ id = $tag.Id; title = $control.title; via = @($tag.Via) } }
+        } else { $derivedTags += $tag }
+    }
     $testFrameworks = @(@($primaryTags | ForEach-Object Framework) + @($derivedTags | ForEach-Object Framework) | Sort-Object -Unique | ForEach-Object { if ($_ -and $frameworks.Contains($_)) { $frameworks[$_].Slug } })
     $searchText = (@($test.id, $test.title, $test.service, $test.category) + @($primaryTags | ForEach-Object { $_.Tag.id }) + @($derivedTags | ForEach-Object Id) + @($test.findings | ForEach-Object resourceName) | Where-Object { $_ }) -join ' '
     $evaluatedCount = $test.counts.Pass + $test.counts.Fail + $test.counts.Unknown
@@ -1280,7 +1292,7 @@ foreach ($test in $tests) {
         foreach ($entry in $primaryTags) {
             $fw = $frameworks[$entry.Framework]
             $version = if ($entry.Tag.version) { $entry.Tag.version } else { $fw.Version }
-            $extra = @($(if ($entry.Tag.criticality) { $entry.Tag.criticality }), $(if ($entry.Tag.level) { "Level $($entry.Tag.level -replace '^L', '')" })) | Where-Object { $_ }
+            $extra = @($(if ($entry.Tag.criticality) { $entry.Tag.criticality }), $(if ($entry.Tag.level) { "Level $($entry.Tag.level -replace '^L', '')" }), $(if (@($entry.Tag.via | Where-Object { $_ }).Count) { "via MCSB $(@($entry.Tag.via | Where-Object { $_ }) -join ', ')" })) | Where-Object { $_ }
             $extraHtml = if ($extra) { " <span class=""muted"">($(Enc ($extra -join ', ')))</span>" } else { '' }
             Add "<tr><td class=""fwl""><a href=""#fw-$($fw.Slug)"">$(Enc $fw.Label)</a></td><td class=""fwv"">$(Enc $version)</td><td style=""white-space:nowrap"">$(Get-ControlLink -Framework $entry.Framework -Id $entry.Tag.id -Url $entry.Tag.url)</td><td>$(Enc $entry.Tag.title)$extraHtml</td></tr>"
         }
@@ -1357,7 +1369,7 @@ Add '</dl></div></div>'
 
 Add '<div class="card flush scroll" style="margin-top:16px"><table class="src-table"><thead><tr><th>Framework</th><th>Version</th><th>Publisher</th><th>Mapping</th><th>Access</th><th>Source</th></tr></thead><tbody>'
 foreach ($fw in $frameworks.Values) {
-    $mapping = if ($fw.Derived) { 'Derived via MCSB v2' } else { 'Direct' }
+    $mapping = if ($fw.Derived) { 'Derived via MCSB v2' } elseif ($fw.Kind -eq 'crosswalk') { 'JSolve crosswalk via MCSB v2' } else { 'Direct' }
     $links = @($(if ($fw.Url) { New-ExternalLink -Url $fw.Url -Text 'Documentation' }), $(if ($fw.Download) { New-ExternalLink -Url $fw.Download -Text 'Download' })) | Where-Object { $_ }
     $retrieved = if ($fw.Retrieved) { "<div class=""muted"" style=""font-size:12px"">checked $(Enc $fw.Retrieved)</div>" } else { '' }
     Add "<tr><td><a href=""#fw-$($fw.Slug)""><b>$(Enc $fw.Label)</b></a><div class=""muted"" style=""font-size:12px"">$(Enc $fw.Name)</div></td><td>$(Enc $fw.Version)</td><td>$(Enc $fw.Publisher)</td><td>$(Enc $mapping)</td><td>$(Enc $fw.Access)</td><td style=""white-space:nowrap"">$($links -join '<br>')$retrieved</td></tr>"
