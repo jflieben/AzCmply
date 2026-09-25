@@ -5,7 +5,7 @@ import { R, VFS } from '../site/js/runtime/index.js';
 
 const [modulePath, virtualPath] = process.argv.slice(2);
 const vfs = new VFS();
-R.configure({ vfs, host: { write: t => console.log(t), warn: t => console.log('WARNING: ' + t), error: t => console.log('ERROR: ' + t) } });
+R.configure({ vfs, host: { write: t => console.log(t), warn: t => console.log('WARNING: ' + t) } });
 const block = (await import(pathToFileURL(modulePath).href)).default;
 vfs.registerScript(virtualPath, block);
 try {

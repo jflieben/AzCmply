@@ -649,7 +649,7 @@ function trendCell(series) {
         element('span', { class: 'delta' }, element('span', { class: 'arrow', 'aria-hidden': 'true', text: direction === 'up' ? '▲' : direction === 'down' ? '▼' : '▶' }), deltaText));
 }
 
-function runOrder(a, b) { return Date.parse(a.startedAt) - Date.parse(b.startedAt) || (a.analyzedAt ?? '').localeCompare(b.analyzedAt ?? ''); }
+function runOrder(a, b) { return Date.parse(a.startedAt) - Date.parse(b.startedAt) || a.analyzedAt.localeCompare(b.analyzedAt); }
 
 async function renderHistory() {
     const rows = $('#history-rows');
@@ -668,12 +668,12 @@ async function renderHistory() {
         const series = bySubscription.get(String(run.subscriptionId).toLowerCase()).filter(r => runOrder(r, run) <= 0 && typeof r.score === 'number');
         return element('tr', {},
             element('td', {}, formatDate(run.startedAt), element('span', { class: 'sub', text: `analysed ${formatDate(run.analyzedAt)}` })),
-            element('td', {}, run.subscriptionName ?? '', element('span', { class: 'sub', text: run.subscriptionId })),
-            element('td', { class: 'num', text: run.score === null || run.score === undefined ? '-' : String(run.score) }),
+            element('td', {}, run.subscriptionName, element('span', { class: 'sub', text: run.subscriptionId })),
+            element('td', { class: 'num', text: run.score === null ? '-' : String(run.score) }),
             element('td', { class: 'trend-cell' }, trendCell(typeof run.score === 'number' ? series : [])),
-            element('td', { class: 'num', text: String(run.tests?.Fail ?? '-') }),
-            element('td', { class: 'num', text: String(run.testCount ?? '-') }),
-            element('td', {}, element('span', { class: 'pill', text: run.source ?? '' })),
+            element('td', { class: 'num', text: String(run.tests.Fail) }),
+            element('td', { class: 'num', text: String(run.testCount) }),
+            element('td', {}, element('span', { class: 'pill', text: run.source })),
             element('td', { class: 'actions' },
                 element('button', {
                     type: 'button', class: 'btn small', text: 'View report', onclick: async () => {

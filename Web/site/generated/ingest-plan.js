@@ -33,6 +33,7 @@ export default {
   "graphSelect": {
     "member": "id,displayName,userPrincipalName,userType,accountEnabled,onPremisesSyncEnabled,appId,servicePrincipalType,appOwnerOrganizationId",
     "user": "id,displayName,userPrincipalName,mail,userType,accountEnabled,creationType,externalUserState,onPremisesSyncEnabled,onPremisesSamAccountName,createdDateTime,lastPasswordChangeDateTime",
+    "group": "id,displayName,isAssignableToRole,groupTypes,membershipRule,onPremisesSyncEnabled,securityEnabled",
     "owner": "id,displayName,userPrincipalName,appId",
     "api": "id,appId,displayName,appRoles,oauth2PermissionScopes"
   },
@@ -61,9 +62,27 @@ export default {
   "subscriptionEndpoints": [
     [
       "subscription",
+      "subscriptionPolicies",
+      "/providers/Microsoft.Subscription/policies/default",
+      "2021-10-01"
+    ],
+    [
+      "subscription",
       "locks",
       "providers/Microsoft.Authorization/locks",
       "2020-05-01"
+    ],
+    [
+      "subscription",
+      "serialConsole",
+      "providers/Microsoft.SerialConsole/consoleServices/default",
+      "2023-01-01"
+    ],
+    [
+      "subscription",
+      "budgets",
+      "providers/Microsoft.Consumption/budgets",
+      "2023-11-01"
     ],
     [
       "subscription",
@@ -374,6 +393,7 @@ export default {
   ],
   "diagnosticSettingsPath": "providers/Microsoft.Insights/diagnosticSettings@2021-05-01-preview",
   "threatProtectionPath": "providers/Microsoft.Security/advancedThreatProtectionSettings/current@2019-01-01",
+  "dataCollectionRuleAssociationsPath": "providers/Microsoft.Insights/dataCollectionRuleAssociations@2022-06-01",
   "kubernetesConfigPaths": [
     "providers/Microsoft.KubernetesConfiguration/extensions@2023-05-01",
     "providers/Microsoft.KubernetesConfiguration/fluxConfigurations@2023-05-01"
@@ -500,11 +520,13 @@ export default {
     ],
     "microsoft.compute/virtualmachines": [
       "instanceView",
-      "extensions"
+      "extensions",
+      "providers/Microsoft.Insights/dataCollectionRuleAssociations@2022-06-01"
     ],
     "microsoft.compute/virtualmachinescalesets": [
       "extensions",
-      "virtualMachines"
+      "virtualMachines",
+      "providers/Microsoft.Insights/dataCollectionRuleAssociations@2022-06-01"
     ],
     "microsoft.containerregistry/registries": [
       "scopeMaps",
@@ -629,7 +651,8 @@ export default {
       "applicationGroups"
     ],
     "microsoft.hybridcompute/machines": [
-      "extensions"
+      "extensions",
+      "providers/Microsoft.Insights/dataCollectionRuleAssociations@2022-06-01"
     ],
     "microsoft.insights/components": [
       "ApiKeys@2015-05-01"
@@ -663,6 +686,9 @@ export default {
     ],
     "microsoft.managedidentity/userassignedidentities": [
       "federatedIdentityCredentials"
+    ],
+    "microsoft.network/dnsresolverpolicies": [
+      "virtualNetworkLinks"
     ],
     "microsoft.network/dnszones": [
       "recordsets"
@@ -802,6 +828,8 @@ export default {
       "advancedThreatProtectionSettings",
       "vulnerabilityAssessments",
       "dataMaskingPolicies/Default",
+      "dataMaskingPolicies/Default/rules",
+      "currentSensitivityLabels",
       "backupShortTermRetentionPolicies",
       "backupLongTermRetentionPolicies",
       "ledgerDigestUploads"

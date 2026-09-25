@@ -16,7 +16,6 @@ Add-AzTest @{
     Rationale     = 'Without secure transfer, requests and shared access signatures can be sent over plain HTTP and SMB without encryption, exposing data and credentials on the network.'
     Remediation   = 'Enable secure transfer (az storage account update --https-only true ...).'
     References    = @('https://learn.microsoft.com/azure/storage/common/storage-require-secure-transfer')
-    Frameworks    = @{ MCSB = 'DP-3'; CIS = '9.3.4'; WAF = 'SE:07'; ALZ = @('Deny-Storage-http', 'Enforce-TLS-SSL-Q225') }
     Defender      = @{ '1c5de8e1-f68d-6a17-e0d2-ec259c42768c' = 'Secure transfer to storage accounts should be enabled' }
     Policy        = @{ '404c3081-a854-4457-ae30-26a93ef643f9' = 'Secure transfer to storage accounts should be enabled' }
     ResourceTypes = $storageType
@@ -38,7 +37,6 @@ Add-AzTest @{
     Rationale     = 'TLS 1.0 and 1.1 have known weaknesses. Azure Storage stopped accepting them on 3 February 2026, and the account setting should reflect TLS 1.2 so clients and audits see the enforced minimum.'
     Remediation   = 'Set the minimum TLS version to TLS 1.2 (az storage account update --min-tls-version TLS1_2 ...).'
     References    = @('https://learn.microsoft.com/azure/storage/common/transport-layer-security-configure-minimum-version')
-    Frameworks    = @{ MCSB = 'DP-3'; CIS = '9.3.6'; WAF = 'SE:07'; ALZ = 'Enforce-TLS-SSL-Q225' }
     Defender      = @{ '54bb9d74-fb09-c933-8249-91d5b36310c3' = 'Storage accounts should have the specified minimum TLS version' }
     Policy        = @{ 'fe83a0eb-a853-422d-aac2-1bffd182c5d0' = 'Storage accounts should have the specified minimum TLS version' }
     ResourceTypes = $storageType
@@ -61,7 +59,6 @@ Add-AzTest @{
     Rationale     = 'When the account allows anonymous access, any container can be made public with a single change, exposing its blobs to anyone on the Internet without authentication.'
     Remediation   = 'Disable anonymous access on the account (az storage account update --allow-blob-public-access false ...). Serve public content through a CDN or Front Door with private origins if needed.'
     References    = @('https://learn.microsoft.com/azure/storage/blobs/anonymous-read-access-prevent')
-    Frameworks    = @{ MCSB = @('NS-2', 'IM-7'); CIS = '9.3.8'; WAF = 'SE:05'; ALZ = 'Enforce-GR-Storage0' }
     Defender      = @{ '51fd8bb1-0db4-bbf1-7e2b-cfcba7eb66a6' = 'Storage account public access should be disallowed' }
     Policy        = @{ '4fa4b6c0-31ca-4c0d-b10d-24b96f62a751' = 'Storage account public access should be disallowed' }
     ResourceTypes = $storageType
@@ -84,7 +81,6 @@ Add-AzTest @{
     Rationale     = 'Publicly readable containers are a leading cause of data breaches; their content can be enumerated and downloaded without any credential.'
     Remediation   = "Set the container access level to Private (az storage container set-permission --public-access off ...) and disable anonymous access on the account."
     References    = @('https://learn.microsoft.com/azure/storage/blobs/anonymous-read-access-prevent')
-    Frameworks    = @{ MCSB = @('DP-2', 'NS-2'); WAF = 'SE:05' }
     ResourceTypes = $storageType
     Filter        = { param($Record) Test-BlobCapable $Record }
     Evaluate      = {
@@ -108,7 +104,6 @@ Add-AzTest @{
     Rationale     = 'Account keys grant full control over all data, never expire on their own, are not tied to an identity and bypass RBAC and Conditional Access. Service SAS and account SAS tokens are derived from them.'
     Remediation   = 'Move clients to Entra ID authorization (RBAC data roles, managed identities, user delegation SAS), then disable shared key access (az storage account update --allow-shared-key-access false ...).'
     References    = @('https://learn.microsoft.com/azure/storage/common/shared-key-authorization-prevent')
-    Frameworks    = @{ MCSB = @('IM-1', 'IM-3'); CIS = '9.3.1.3'; WAF = 'SE:05'; ALZ = 'Enforce-GR-Storage0' }
     Defender      = @{ '3b363842-30f5-4056-980d-3a40fa5de8b3' = 'Storage accounts should prevent shared key access' }
     Policy        = @{ '8c6a50c6-9ffd-4ae7-986f-5fa6111f9a54' = 'Storage accounts should prevent shared key access' }
     ResourceTypes = $storageType
@@ -131,7 +126,6 @@ Add-AzTest @{
     Rationale     = 'A public endpoint can be reached from anywhere; any leaked key, SAS token or overly broad firewall rule then exposes the data to the Internet.'
     Remediation   = 'Create private endpoints for the required sub-resources and set public network access to Disabled (az storage account update --public-network-access Disabled ...).'
     References    = @('https://learn.microsoft.com/azure/storage/common/storage-network-security')
-    Frameworks    = @{ MCSB = 'NS-2'; CIS = '9.3.2.2'; WAF = 'SE:06'; ALZ = @('Deny-Public-Endpoints', 'Enforce-GR-Storage0') }
     Defender      = @{ '85b39950-d5ba-0ff5-664d-8f33544545ca' = 'Storage accounts should disable public network access' }
     Policy        = @{ 'b2982f36-99f2-4db5-8eff-283140c09693' = 'Storage accounts should disable public network access' }
     ResourceTypes = $storageType
@@ -154,7 +148,6 @@ Add-AzTest @{
     Rationale     = "With default action Allow, the public endpoint accepts traffic from every network, so authentication is the only barrier."
     Remediation   = 'Set the default network action to Deny and allow only required virtual networks, IP ranges and resource instances (az storage account update --default-action Deny ...).'
     References    = @('https://learn.microsoft.com/azure/storage/common/storage-network-security')
-    Frameworks    = @{ MCSB = 'NS-2'; CIS = '9.3.2.3'; WAF = 'SE:06' }
     Defender      = @{ '45d313c3-3fca-5040-035f-d61928366d31' = 'Access to storage accounts with firewall and virtual network configurations should be restricted' }
     Policy        = @{ '34c877ad-507e-4c82-993e-3452a6e0ad3c' = 'Storage accounts should restrict network access' }
     ResourceTypes = $storageType
@@ -178,7 +171,6 @@ Add-AzTest @{
     Rationale     = 'Private endpoints keep traffic on the Microsoft backbone and let the public endpoint be disabled entirely.'
     Remediation   = 'Create private endpoints for the used sub-resources (blob, file, queue, table, dfs) with private DNS zone integration.'
     References    = @('https://learn.microsoft.com/azure/storage/common/storage-private-endpoints')
-    Frameworks    = @{ MCSB = 'NS-2'; CIS = '9.3.2.1'; ALZ = 'Deploy-Private-DNS-Zones' }
     Defender      = @{ 'cdc78c07-02b0-4af0-1cb2-cb7c672a8b0a' = 'Storage account should use a private link connection' }
     Policy        = @{ '6edd7eda-6dd8-40f7-810d-67160c639cd9' = 'Storage accounts should use private link' }
     ResourceTypes = $storageType
@@ -201,7 +193,6 @@ Add-AzTest @{
     Rationale     = 'Without the exception, administrators tend to open the firewall entirely to make platform integrations work.'
     Remediation   = "Enable 'Allow Azure services on the trusted services list to access this storage account' (az storage account update --bypass AzureServices ...), or use resource instance rules."
     References    = @('https://learn.microsoft.com/azure/storage/common/storage-network-security-trusted-azure-services')
-    Frameworks    = @{ MCSB = 'NS-2'; CIS = '9.3.5' }
     Defender      = @{ '6bb1ea0d-9a68-9ca0-f16b-f77a4648a9f6' = 'Storage accounts should allow access from trusted Microsoft services' }
     Policy        = @{ 'c9d007d0-c057-4772-b18c-01e546713bcd' = 'Storage accounts should allow access from trusted Microsoft services' }
     ResourceTypes = $storageType
@@ -225,7 +216,6 @@ Add-AzTest @{
     Rationale     = 'Cross-tenant object replication lets data be copied continuously to a storage account in another Entra tenant, which is an exfiltration path outside your control.'
     Remediation   = 'Disable cross-tenant replication (az storage account update --allow-cross-tenant-replication false ...).'
     References    = @('https://learn.microsoft.com/azure/storage/blobs/object-replication-prevent-cross-tenant-policies')
-    Frameworks    = @{ MCSB = @('DP-2', 'PV-2'); CIS = '9.3.7' }
     Policy        = @{ '92a89a79-6c52-4a7e-a03f-61306fc49312' = 'Storage accounts should prevent cross tenant object replication' }
     ResourceTypes = $storageType
     Evaluate      = {
@@ -246,7 +236,6 @@ Add-AzTest @{
     Description   = 'Checks defaultToOAuthAuthentication, which makes the portal use Entra ID (RBAC) instead of the account key to access data.'
     Rationale     = 'Portal access with the account key bypasses data plane RBAC and is not attributable to a user in the logs.'
     Remediation   = "Enable 'Default to Microsoft Entra authorization in the Azure portal' (az storage account update --set defaultToOAuthAuthentication=true ...)."
-    Frameworks    = @{ MCSB = 'IM-1'; CIS = '9.3.3.1' }
     ResourceTypes = $storageType
     Evaluate      = {
         param($Record)
@@ -267,7 +256,6 @@ Add-AzTest @{
     Rationale     = 'A key expiration policy flags keys that are due for rotation, so long lived keys become visible.'
     Remediation   = 'Set a key expiration policy of 90 days or less (az storage account update --key-exp-days 90 ...) and rotate keys before they expire.'
     References    = @('https://learn.microsoft.com/azure/storage/common/storage-account-keys-manage')
-    Frameworks    = @{ MCSB = 'DP-6'; CIS = '9.3.1.1' }
     Defender      = @{ 'bdd60d05-d94b-268c-6298-fdc1597ca0e2' = 'Storage account keys should not be expired' }
     Policy        = @{ '044985bb-afe1-42cd-8a36-9d5d42424537' = 'Storage account keys should not be expired' }
     ResourceTypes = $storageType
@@ -291,7 +279,6 @@ Add-AzTest @{
     Rationale     = 'Access keys are full access credentials. Regular regeneration limits how long a leaked key remains usable.'
     Remediation   = 'Regenerate the keys (az storage account keys renew --key primary|secondary ...) after updating clients, or disable shared key access.'
     References    = @('https://learn.microsoft.com/azure/storage/common/storage-account-keys-manage')
-    Frameworks    = @{ MCSB = 'DP-6'; CIS = '9.3.1.2' }
     ResourceTypes = $storageType
     Evaluate      = {
         param($Record)
@@ -316,7 +303,6 @@ Add-AzTest @{
     Rationale     = 'Soft delete allows recovery of blobs that were deleted or overwritten by mistake or by an attacker (for example ransomware deleting data).'
     Remediation   = 'Enable blob soft delete with 7 to 365 days retention (az storage account blob-service-properties update --enable-delete-retention true --delete-retention-days 14 ...).'
     References    = @('https://learn.microsoft.com/azure/storage/blobs/soft-delete-blob-overview')
-    Frameworks    = @{ MCSB = @('BR-1', 'DP-4'); CIS = '9.2.1' }
     ResourceTypes = $storageType
     Filter        = { param($Record) Test-BlobCapable $Record }
     Evaluate      = {
@@ -339,7 +325,6 @@ Add-AzTest @{
     Rationale     = 'Deleting a container removes all of its blobs at once; container soft delete allows restoring it.'
     Remediation   = 'Enable container soft delete (az storage account blob-service-properties update --enable-container-delete-retention true --container-delete-retention-days 14 ...).'
     References    = @('https://learn.microsoft.com/azure/storage/blobs/soft-delete-container-overview')
-    Frameworks    = @{ MCSB = @('BR-1', 'DP-4'); CIS = '9.2.2' }
     ResourceTypes = $storageType
     Filter        = { param($Record) Test-BlobCapable $Record }
     Evaluate      = {
@@ -362,7 +347,6 @@ Add-AzTest @{
     Rationale     = 'Versioning keeps previous versions of overwritten blobs, which protects against accidental and malicious modification such as ransomware encryption.'
     Remediation   = 'Enable versioning (az storage account blob-service-properties update --enable-versioning true ...) with a lifecycle rule to delete old versions.'
     References    = @('https://learn.microsoft.com/azure/storage/blobs/versioning-overview')
-    Frameworks    = @{ MCSB = 'BR-1'; CIS = '9.2.3' }
     ResourceTypes = $storageType
     Filter        = { param($Record) (Test-BlobCapable $Record) -and -not $Record.resource.properties.isHnsEnabled }
     Evaluate      = {
@@ -384,7 +368,6 @@ Add-AzTest @{
     Rationale     = 'Soft delete allows recovery of file shares that were deleted by mistake or by an attacker.'
     Remediation   = 'Enable share soft delete (az storage account file-service-properties update --enable-delete-retention true --delete-retention-days 14 ...).'
     References    = @('https://learn.microsoft.com/azure/storage/files/storage-files-prevent-file-share-deletion')
-    Frameworks    = @{ MCSB = @('BR-1', 'DP-4'); CIS = '9.1.1' }
     ResourceTypes = $storageType
     Filter        = { param($Record) Test-FileCapable $Record }
     Evaluate      = {
@@ -415,7 +398,6 @@ Add-AzTest @{
     Rationale     = 'Older SMB versions lack pre-authentication integrity and the strongest encryption, and allow downgrade attacks.'
     Remediation   = "Restrict SMB versions to SMB3.1.1 in the file service properties (az storage account file-service-properties update --versions SMB3.1.1 ...)."
     References    = @('https://learn.microsoft.com/azure/storage/files/files-smb-protocol')
-    Frameworks    = @{ MCSB = @('DP-3', 'NS-8'); CIS = '9.1.2' }
     ResourceTypes = $storageType
     Filter        = { param($Record) Test-FileCapable $Record }
     Evaluate      = {
@@ -440,7 +422,6 @@ Add-AzTest @{
     Rationale     = 'AES-256-GCM is the strongest channel encryption supported by Azure Files; allowing weaker algorithms permits negotiation down.'
     Remediation   = 'Restrict SMB channel encryption to AES-256-GCM (az storage account file-service-properties update --channel-encryption AES-256-GCM ...).'
     References    = @('https://learn.microsoft.com/azure/storage/files/files-smb-protocol')
-    Frameworks    = @{ MCSB = 'DP-3'; CIS = '9.1.3' }
     ResourceTypes = $storageType
     Filter        = { param($Record) Test-FileCapable $Record }
     Evaluate      = {
@@ -465,7 +446,6 @@ Add-AzTest @{
     Rationale     = 'Double encryption protects against a compromise of one of the encryption algorithms or keys, and is required by some regulations for highly sensitive data.'
     Remediation   = 'For accounts with sensitive data, create a new account with infrastructure encryption enabled and migrate the data.'
     References    = @('https://learn.microsoft.com/azure/storage/common/infrastructure-encryption-enable')
-    Frameworks    = @{ MCSB = 'DP-4' }
     Defender      = @{ 'a5cd34d5-26df-c2b1-0ace-ff62f8730abd' = 'Storage accounts should have infrastructure encryption' }
     Policy        = @{ '4733ea7b-a883-42fe-8cac-97454c2a9e4a' = 'Storage accounts should have infrastructure encryption' }
     ResourceTypes = $storageType
@@ -487,7 +467,6 @@ Add-AzTest @{
     Rationale     = 'Customer-managed keys give control over key rotation and the ability to revoke access to the data (crypto shredding). Only required for data whose classification or regulation demands it.'
     Remediation   = 'Configure encryption with a customer-managed key in Key Vault or Managed HSM, using a user-assigned managed identity and automatic key version updates.'
     References    = @('https://learn.microsoft.com/azure/storage/common/customer-managed-keys-overview')
-    Frameworks    = @{ MCSB = 'DP-5'; ALZ = 'Enforce-Encrypt-CMK0' }
     Defender      = @{ 'ca98bba7-719e-48ee-e193-0b76766cdb07' = '[Enable if required] Storage accounts should use customer-managed key (CMK) for encryption' }
     Policy        = @{ '6fac406b-40ca-413b-bf8e-0bf964659c25' = 'Storage accounts should use customer-managed key for encryption' }
     ResourceTypes = $storageType
@@ -510,7 +489,6 @@ Add-AzTest @{
     Rationale     = 'Geo-redundancy keeps a copy of the data in a paired region, which protects critical data against regional outages and disasters.'
     Remediation   = 'Change the redundancy of critical accounts to GZRS or GRS (az storage account update --sku Standard_GZRS ...).'
     References    = @('https://learn.microsoft.com/azure/storage/common/storage-redundancy')
-    Frameworks    = @{ MCSB = 'BR-1'; CIS = '9.3.11' }
     Defender      = @{ 'bb819c3c-29fc-8bbe-4bb1-433ab95c4590' = 'Geo-redundant storage should be enabled for Storage Accounts' }
     Policy        = @{ 'bf045164-79ba-4215-8f95-f8048dc1780b' = 'Geo-redundant storage should be enabled for Storage Accounts' }
     ResourceTypes = $storageType
@@ -534,7 +512,6 @@ Add-AzTest @{
     Rationale     = 'Local users are not Entra identities: passwords cannot be protected with MFA or Conditional Access and are a target for brute force on the Internet facing SFTP endpoint.'
     Remediation   = 'Use SSH key authentication for local users, remove their passwords (az storage account local-user update --has-ssh-password false ...) and disable SFTP when not needed.'
     References    = @('https://learn.microsoft.com/azure/storage/blobs/secure-file-transfer-protocol-support-authorize-access')
-    Frameworks    = @{ MCSB = @('IM-6', 'IM-3') }
     ResourceTypes = $storageType
     Filter        = { param($Record) $Record.resource.properties.isSftpEnabled -or @(Get-Child $Record 'localUsers' | Where-Object { $_ }).Count }
     Evaluate      = {
@@ -558,7 +535,6 @@ Add-AzTest @{
     Rationale     = 'Account and service SAS tokens signed with the account key cannot be revoked individually. An expiration policy limits their validity and logs or blocks tokens that exceed it.'
     Remediation   = "Configure a SAS expiration policy, for example 7 days with action Block (az storage account update --sas-exp 7.00:00:00 ...), and prefer user delegation SAS."
     References    = @('https://learn.microsoft.com/azure/storage/common/sas-expiration-policy')
-    Frameworks    = @{ MCSB = 'IM-8'; WAF = 'SE:09' }
     Policy        = @{ '7aa1c9d5-3d7e-4579-8117-d85e99211757' = 'Storage SAS tokens should adhere to 7 day maximum validity' }
     ResourceTypes = $storageType
     Evaluate      = {
@@ -583,7 +559,6 @@ Add-AzTest @{
     Rationale     = 'Deleting a storage account destroys all of its data at once and cannot be undone. A lock makes that a deliberate two step action, because removing it needs Microsoft.Authorization/locks/delete.'
     Remediation   = 'Add a CanNotDelete lock (az lock create --lock-type CanNotDelete --name DoNotDelete --resource <storage account id>) and restrict lock administration to a dedicated role.'
     References    = @('https://learn.microsoft.com/azure/azure-resource-manager/management/lock-resources')
-    Frameworks    = @{ MCSB = @('BR-2', 'AM-3'); CIS = '9.3.9' }
     Requires      = @('subscription/locks')
     ResourceTypes = $storageType
     Evaluate      = {
@@ -605,7 +580,6 @@ Add-AzTest @{
     Rationale     = 'A ReadOnly lock prevents both deletion and configuration changes, including someone quietly widening the firewall or re-enabling anonymous access.'
     Remediation   = 'Decide per account whether a ReadOnly lock fits its use (az lock create --lock-type ReadOnly --name ReadOnly --resource <storage account id>). Accounts that need key rotation or data plane writes through the management plane should keep a CanNotDelete lock instead.'
     References    = @('https://learn.microsoft.com/azure/azure-resource-manager/management/lock-resources')
-    Frameworks    = @{ MCSB = @('BR-2', 'AM-3'); CIS = '9.3.10' }
     Requires      = @('subscription/locks')
     ResourceTypes = $storageType
     Evaluate      = {
@@ -617,3 +591,27 @@ Add-AzTest @{
         New-Fail 'No ReadOnly lock; confirm this account does not need one' $evidence
     }
 }
+
+Add-AzTest @{
+    Id            = 'AZ-STG-027'
+    Title         = 'Storage firewall resource instance rules only admit resources of this tenant'
+    Category      = 'Network security'
+    Service       = 'Storage'
+    Severity      = 'Medium'
+    Description   = 'Checks the resource instance rules of storage account firewalls (networkAcls.resourceAccessRules) for rules that admit resources of another Microsoft Entra tenant.'
+    Rationale     = 'A resource instance rule lets the named resource, for example a Synapse workspace or a Data Factory, through the storage firewall. A rule for another tenant lets a resource that someone outside the organization controls reach the account from Azure, and with a key, a SAS or a granted role read its data around the firewall.'
+    Remediation   = 'Remove resource instance rules for other tenants, and give the external party access through a private endpoint connection that you approve, or copy the data to an account meant for sharing.'
+    References    = @('https://learn.microsoft.com/azure/storage/common/storage-network-security-resource-instances')
+    ResourceTypes = @('Microsoft.Storage/storageAccounts')
+    Evaluate      = {
+        param($Record)
+        $tenant = [string]$script:Ingest.Manifest.subscription.tenantId
+        $rules = @($Record.resource.properties.networkAcls.resourceAccessRules | Where-Object { $_ })
+        if (-not $rules) { return New-NotApplicable 'No resource instance rules' }
+        $foreign = @($rules | Where-Object { [string]$_.tenantId -ne $tenant } | ForEach-Object { "$($_.resourceId) (tenant $($_.tenantId))" } | Sort-Object)
+        $evidence = [ordered]@{ rules = @($rules | ForEach-Object { [string]$_.resourceId } | Sort-Object); otherTenants = $foreign }
+        if ($foreign) { return New-Fail "Resource instance rule(s) for another tenant: $($foreign -join '; ')" $evidence }
+        New-Pass "$($rules.Count) resource instance rule(s), all for this tenant" $evidence
+    }
+}
+

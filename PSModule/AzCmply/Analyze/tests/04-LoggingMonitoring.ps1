@@ -14,7 +14,6 @@ Add-AzTest @{
     Rationale   = 'The activity log keeps control plane operations for only 90 days and cannot be queried together with other logs. Exporting it enables long term retention, correlation and alerting in a SIEM.'
     Remediation = 'Create a subscription diagnostic setting that sends all activity log categories to a central Log Analytics workspace (Monitor > Activity log > Export activity logs).'
     References  = @('https://learn.microsoft.com/azure/azure-monitor/essentials/activity-log')
-    Frameworks  = @{ MCSB = @('LT-3', 'LT-5'); CIS = '6.1.1.1'; WAF = 'SE:10'; ALZ = 'Deploy-AzActivity-Log' }
     Requires    = @('subscription/diagnosticSettings')
     Run         = {
         $settings = @(Get-ActivityLogSettings)
@@ -34,7 +33,6 @@ Add-AzTest @{
     Rationale   = 'These categories record configuration changes, alerts, policy decisions and Defender for Cloud events, which investigations depend on.'
     Remediation = 'Edit the subscription diagnostic setting and select at least Administrative, Alert, Policy and Security (or all categories).'
     References  = @('https://learn.microsoft.com/azure/azure-monitor/essentials/activity-log-schema')
-    Frameworks  = @{ MCSB = 'LT-3'; CIS = '6.1.1.2' }
     Requires    = @('subscription/diagnosticSettings')
     Run         = {
         $settings = @(Get-ActivityLogSettings)
@@ -71,16 +69,22 @@ function Get-ConditionValues {
 }
 
 $activityAlerts = @(
-    @{ Id = 'AZ-LOG-003'; Cis = '6.1.2.1'; Operation = 'Microsoft.Authorization/policyAssignments/write'; Label = 'Create policy assignment'; Category = 'Administrative'; Policy = @{ 'c5447c04-a4d7-4ba8-a263-c9ee321a6858' = 'An activity log alert should exist for specific Policy operations' } }
-    @{ Id = 'AZ-LOG-004'; Cis = '6.1.2.2'; Operation = 'Microsoft.Authorization/policyAssignments/delete'; Label = 'Delete policy assignment'; Category = 'Administrative'; Policy = @{ 'c5447c04-a4d7-4ba8-a263-c9ee321a6858' = 'An activity log alert should exist for specific Policy operations' } }
-    @{ Id = 'AZ-LOG-005'; Cis = '6.1.2.3'; Operation = 'Microsoft.Network/networkSecurityGroups/write'; Label = 'Create or update network security group'; Category = 'Administrative'; Policy = @{ 'b954148f-4c11-4c38-8221-be76711e194a' = 'An activity log alert should exist for specific Administrative operations' } }
-    @{ Id = 'AZ-LOG-006'; Cis = '6.1.2.4'; Operation = 'Microsoft.Network/networkSecurityGroups/delete'; Label = 'Delete network security group'; Category = 'Administrative'; Policy = @{ 'b954148f-4c11-4c38-8221-be76711e194a' = 'An activity log alert should exist for specific Administrative operations' } }
-    @{ Id = 'AZ-LOG-007'; Cis = '6.1.2.5'; Operation = 'Microsoft.Security/securitySolutions/write'; Label = 'Create or update security solution'; Category = 'Security'; Policy = @{ '3b980d31-7904-4bb7-8575-5665739a8052' = 'An activity log alert should exist for specific Security operations' } }
-    @{ Id = 'AZ-LOG-008'; Cis = '6.1.2.6'; Operation = 'Microsoft.Security/securitySolutions/delete'; Label = 'Delete security solution'; Category = 'Security'; Policy = @{ '3b980d31-7904-4bb7-8575-5665739a8052' = 'An activity log alert should exist for specific Security operations' } }
-    @{ Id = 'AZ-LOG-009'; Cis = '6.1.2.7'; Operation = 'Microsoft.Sql/servers/firewallRules/write'; Label = 'Create or update SQL server firewall rule'; Category = 'Administrative'; Policy = @{ 'b954148f-4c11-4c38-8221-be76711e194a' = 'An activity log alert should exist for specific Administrative operations' } }
-    @{ Id = 'AZ-LOG-010'; Cis = '6.1.2.8'; Operation = 'Microsoft.Sql/servers/firewallRules/delete'; Label = 'Delete SQL server firewall rule'; Category = 'Administrative'; Policy = @{ 'b954148f-4c11-4c38-8221-be76711e194a' = 'An activity log alert should exist for specific Administrative operations' } }
-    @{ Id = 'AZ-LOG-011'; Cis = '6.1.2.9'; Operation = 'Microsoft.Network/publicIPAddresses/write'; Label = 'Create or update public IP address'; Category = 'Administrative'; Policy = @{ 'b954148f-4c11-4c38-8221-be76711e194a' = 'An activity log alert should exist for specific Administrative operations' } }
-    @{ Id = 'AZ-LOG-012'; Cis = '6.1.2.10'; Operation = 'Microsoft.Network/publicIPAddresses/delete'; Label = 'Delete public IP address'; Category = 'Administrative'; Policy = @{ 'b954148f-4c11-4c38-8221-be76711e194a' = 'An activity log alert should exist for specific Administrative operations' } }
+    @{ Id = 'AZ-LOG-003'; Operation = 'Microsoft.Authorization/policyAssignments/write'; Label = 'Create policy assignment'; Category = 'Administrative'; Policy = @{ 'c5447c04-a4d7-4ba8-a263-c9ee321a6858' = 'An activity log alert should exist for specific Policy operations' } }
+    @{ Id = 'AZ-LOG-004'; Operation = 'Microsoft.Authorization/policyAssignments/delete'; Label = 'Delete policy assignment'; Category = 'Administrative'; Policy = @{ 'c5447c04-a4d7-4ba8-a263-c9ee321a6858' = 'An activity log alert should exist for specific Policy operations' } }
+    @{ Id = 'AZ-LOG-005'; Operation = 'Microsoft.Network/networkSecurityGroups/write'; Label = 'Create or update network security group'; Category = 'Administrative'; Policy = @{ 'b954148f-4c11-4c38-8221-be76711e194a' = 'An activity log alert should exist for specific Administrative operations' } }
+    @{ Id = 'AZ-LOG-006'; Operation = 'Microsoft.Network/networkSecurityGroups/delete'; Label = 'Delete network security group'; Category = 'Administrative'; Policy = @{ 'b954148f-4c11-4c38-8221-be76711e194a' = 'An activity log alert should exist for specific Administrative operations' } }
+    @{ Id = 'AZ-LOG-007'; Operation = 'Microsoft.Security/securitySolutions/write'; Label = 'Create or update security solution'; Category = 'Security'; Policy = @{ '3b980d31-7904-4bb7-8575-5665739a8052' = 'An activity log alert should exist for specific Security operations' } }
+    @{ Id = 'AZ-LOG-008'; Operation = 'Microsoft.Security/securitySolutions/delete'; Label = 'Delete security solution'; Category = 'Security'; Policy = @{ '3b980d31-7904-4bb7-8575-5665739a8052' = 'An activity log alert should exist for specific Security operations' } }
+    @{ Id = 'AZ-LOG-009'; Operation = 'Microsoft.Sql/servers/firewallRules/write'; Label = 'Create or update SQL server firewall rule'; Category = 'Administrative'; Policy = @{ 'b954148f-4c11-4c38-8221-be76711e194a' = 'An activity log alert should exist for specific Administrative operations' } }
+    @{ Id = 'AZ-LOG-010'; Operation = 'Microsoft.Sql/servers/firewallRules/delete'; Label = 'Delete SQL server firewall rule'; Category = 'Administrative'; Policy = @{ 'b954148f-4c11-4c38-8221-be76711e194a' = 'An activity log alert should exist for specific Administrative operations' } }
+    @{ Id = 'AZ-LOG-011'; Operation = 'Microsoft.Network/publicIPAddresses/write'; Label = 'Create or update public IP address'; Category = 'Administrative'; Policy = @{ 'b954148f-4c11-4c38-8221-be76711e194a' = 'An activity log alert should exist for specific Administrative operations' } }
+    @{ Id = 'AZ-LOG-012'; Operation = 'Microsoft.Network/publicIPAddresses/delete'; Label = 'Delete public IP address'; Category = 'Administrative'; Policy = @{ 'b954148f-4c11-4c38-8221-be76711e194a' = 'An activity log alert should exist for specific Administrative operations' } }
+    #not a CIS recommendation: deleting a diagnostic setting stops that audit log, so it is an audit logging failure to alert on
+    @{ Id = 'AZ-LOG-025'; Operation = 'Microsoft.Insights/diagnosticSettings/delete'; Label = 'Delete diagnostic setting'; Category = 'Administrative' }
+    #AzCmply: role assignments, removed locks and run command are how attackers take over, delete and move laterally in Azure
+    @{ Id = 'AZ-LOG-027'; Operation = 'Microsoft.Authorization/roleAssignments/write'; Label = 'Create role assignment'; Category = 'Administrative' }
+    @{ Id = 'AZ-LOG-028'; Operation = 'Microsoft.Authorization/locks/delete'; Label = 'Delete management lock'; Category = 'Administrative' }
+    @{ Id = 'AZ-LOG-029'; Operation = 'Microsoft.Compute/virtualMachines/runCommand/action'; Label = 'Run command on a virtual machine'; Category = 'Administrative' }
 )
 
 function Test-ActivityAlert {
@@ -109,7 +113,6 @@ foreach ($alert in $activityAlerts) {
         Rationale   = 'Alerting on security relevant control plane changes shortens the time to detect unauthorized or accidental changes that weaken the security posture.'
         Remediation = "Create an activity log alert on the subscription with category $($alert.Category) and operation name $($alert.Operation), and attach an action group that reaches the security team."
         References  = @('https://learn.microsoft.com/azure/azure-monitor/alerts/alerts-create-activity-log-alert-rule')
-        Frameworks  = @{ MCSB = 'LT-3'; CIS = $alert.Cis }
         Policy      = $alert.Policy
         Config      = $alert
         Run         = {
@@ -134,7 +137,6 @@ Add-AzTest @{
     Rationale   = 'Service Health notifies about platform incidents, planned maintenance and security advisories (for example about compromised or deprecated components) affecting your resources.'
     Remediation = 'Create a Service Health alert for the subscription (Service Health > Health alerts) with an action group that reaches the operations and security teams.'
     References  = @('https://learn.microsoft.com/azure/service-health/alerts-activity-log-service-notifications-portal')
-    Frameworks  = @{ MCSB = 'IR-2'; CIS = '6.1.2.11'; ALZ = 'Deploy-SvcHealth-BuiltIn' }
     Run         = {
         $alertRules = @(Test-ActivityAlert -Category 'ServiceHealth')
         $notifying = @($alertRules | Where-Object { $_.ActionGroups -gt 0 })
@@ -155,7 +157,6 @@ Add-AzTest @{
     Rationale     = 'Key Vault audit logs record every access to secrets, keys and certificates. Without them, theft of secrets cannot be detected or investigated.'
     Remediation   = 'Add a diagnostic setting with the audit category group to a Log Analytics workspace (az monitor diagnostic-settings create --resource <vault id> --workspace <id> --logs "[{categoryGroup:audit,enabled:true}]").'
     References    = @('https://learn.microsoft.com/azure/key-vault/general/logging')
-    Frameworks    = @{ MCSB = @('LT-3', 'DP-8'); CIS = '6.1.1.4'; WAF = 'SE:10'; ALZ = 'Deploy-Diag-LogsCat' }
     Policy        = @{ 'cf820ca0-f99e-4f3e-84fb-66e913812d21' = 'Resource logs in Key Vault should be enabled'; 'a2a5b911-5617-447e-a49e-59dbe0e0434b' = 'Resource logs in Azure Key Vault Managed HSM should be enabled' }
     ResourceTypes = @('Microsoft.KeyVault/vaults', 'Microsoft.KeyVault/managedHSMs')
     Evaluate      = {
@@ -192,7 +193,6 @@ Add-AzTest @{
     Rationale     = 'Resource (data plane) logs record who accessed data and how services were used. They are needed to detect abuse and to investigate incidents, and are not collected unless configured.'
     Remediation   = 'Create diagnostic settings with the allLogs or audit category group to a central Log Analytics workspace, preferably enforced with the built-in "Enable logging by category group" policy initiatives.'
     References    = @('https://learn.microsoft.com/azure/azure-monitor/essentials/diagnostic-settings')
-    Frameworks    = @{ MCSB = 'LT-3'; CIS = '6.1.4'; WAF = 'SE:10'; ALZ = 'Deploy-Diag-LogsCat' }
     ResourceTypes = $resourceLogTypes
     Evaluate      = {
         param($Record)
@@ -225,7 +225,6 @@ Add-AzTest @{
     Rationale   = 'Application telemetry (requests, exceptions, dependencies) is needed to detect application layer attacks and to investigate incidents inside the application.'
     Remediation = 'Create a workspace based Application Insights component and connect the applications to it (preferably with Entra authenticated ingestion).'
     References  = @('https://learn.microsoft.com/azure/azure-monitor/app/app-insights-overview')
-    Frameworks  = @{ MCSB = 'LT-3'; CIS = '6.1.3.1'; WAF = 'SE:10' }
     Requires    = @('subscription/resources')
     Run         = {
         $resources = @(Get-IngestData 'subscription/resources' | Where-Object { $_ })
@@ -248,7 +247,6 @@ Add-AzTest @{
     Rationale     = 'Attacks are often discovered weeks or months after the initial compromise. Short retention removes the evidence needed to scope and investigate them.'
     Remediation   = 'Set workspace retention to at least 90 days (or longer per policy; Microsoft Sentinel workspaces include 90 days), and use table level or long term retention for high value tables.'
     References    = @('https://learn.microsoft.com/azure/azure-monitor/logs/data-retention-configure')
-    Frameworks    = @{ MCSB = 'LT-6' }
     ResourceTypes = @('Microsoft.OperationalInsights/workspaces')
     Evaluate      = {
         param($Record)
@@ -269,7 +267,6 @@ Add-AzTest @{
     Rationale   = 'Network Watcher provides flow logs, connection troubleshooting and packet capture; it must exist in a region before flow logs can be configured there.'
     Remediation = 'Enable Network Watcher in the missing regions (az network watcher configure --locations <region> --enabled true --resource-group NetworkWatcherRG).'
     References  = @('https://learn.microsoft.com/azure/network-watcher/network-watcher-create')
-    Frameworks  = @{ MCSB = @('LT-4', 'IR-4'); CIS = '7.6' }
     Policy      = @{ 'b6e2945c-0b7b-40f5-9233-7a5323b5cdc6' = 'Network Watcher should be enabled' }
     Requires    = @('subscription/resources')
     Run         = {
@@ -315,7 +312,6 @@ Add-AzTest @{
     Rationale     = 'Flow logs record which IP addresses communicated over which ports. They are essential to detect lateral movement and data exfiltration and to scope incidents.'
     Remediation   = 'Create virtual network flow logs (az network watcher flow-log create --vnet <id> ...) and migrate existing NSG flow logs to virtual network flow logs.'
     References    = @('https://learn.microsoft.com/azure/network-watcher/vnet-flow-logs-overview', 'https://learn.microsoft.com/azure/network-watcher/nsg-flow-logs-migrate')
-    Frameworks    = @{ MCSB = 'LT-4'; CIS = '6.1.1.6'; WAF = 'SE:10' }
     Policy        = @{ '4c3c6c5f-0d47-4402-99b8-aa543dd8bcee' = 'Audit flow logs configuration for every virtual network'; '27960feb-a23c-4577-8d36-ef8b5f35e0be' = 'All flow log resources should be in enabled state' }
     ResourceTypes = @('Microsoft.Network/virtualNetworks')
     Evaluate      = {
@@ -342,8 +338,8 @@ Add-AzTest @{
 #CIS numbers the two flow log kinds separately (retention 7.5 NSG / 7.8 virtual network, Log Analytics 6.1.1.5 / 6.1.1.6),
 #so each kind gets its own test and a control is never judged on flow logs it does not cover
 $flowLogKinds = @(
-    @{ Kind = 'Vnet'; Label = 'Virtual network'; RetentionId = 'AZ-LOG-019'; RetentionCis = '7.8'; AnalyticsId = 'AZ-LOG-020'; AnalyticsCis = '6.1.1.6' }
-    @{ Kind = 'Nsg'; Label = 'Network security group'; RetentionId = 'AZ-LOG-022'; RetentionCis = '7.5'; AnalyticsId = 'AZ-LOG-023'; AnalyticsCis = '6.1.1.5' }
+    @{ Kind = 'Vnet'; Label = 'Virtual network'; RetentionId = 'AZ-LOG-019'; AnalyticsId = 'AZ-LOG-020' }
+    @{ Kind = 'Nsg'; Label = 'Network security group'; RetentionId = 'AZ-LOG-022'; AnalyticsId = 'AZ-LOG-023' }
 )
 
 foreach ($flow in $flowLogKinds) {
@@ -358,7 +354,6 @@ foreach ($flow in $flowLogKinds) {
         Rationale   = 'Network evidence is needed for incidents that are detected long after the initial access.'
         Remediation = 'Set the flow log retention to 90 days or more (az network watcher flow-log update --retention 90 ...), or retain the data in Log Analytics through traffic analytics.'
         References  = @('https://learn.microsoft.com/azure/network-watcher/vnet-flow-logs-manage')
-        Frameworks  = @{ MCSB = 'LT-6'; CIS = $flow.RetentionCis }
         Config      = $flow
         Run         = {
             param($Test)
@@ -386,7 +381,6 @@ foreach ($flow in $flowLogKinds) {
         Rationale   = 'Flow logs in a storage account are hard to query during an incident. Traffic analytics makes flows searchable and highlights malicious and unusual traffic.'
         Remediation = 'Enable traffic analytics on each flow log with a Log Analytics workspace and a 10 minute processing interval.'
         References  = @('https://learn.microsoft.com/azure/network-watcher/traffic-analytics')
-        Frameworks  = @{ MCSB = @('LT-4', 'LT-5'); CIS = $flow.AnalyticsCis }
         Policy      = @{ '2f080164-9f4d-497e-9db6-416dc9f7b48a' = 'Network Watcher flow logs should have traffic analytics enabled' }
         Config      = $flow
         Run         = {
@@ -459,7 +453,6 @@ Add-AzTest @{
     Rationale   = 'Azure keeps the activity log for 90 days. Investigating an incident found months later, and showing who changed what over a year, needs the control plane history kept longer.'
     Remediation = 'Keep the AzureActivity table for at least a year (workspace retention or table level total retention), or archive the activity log to a storage account without a lifecycle rule that deletes it earlier, ideally with an immutability policy.'
     References  = @('https://learn.microsoft.com/azure/azure-monitor/logs/data-retention-configure', 'https://learn.microsoft.com/azure/azure-monitor/essentials/activity-log')
-    Frameworks  = @{ MCSB = 'LT-6' }
     Requires    = @('subscription/diagnosticSettings')
     Run         = {
         $settings = @(Get-ActivityLogSettings | Sort-Object name)
@@ -471,5 +464,26 @@ Add-AzTest @{
         $unknown = @($outcomes | Where-Object Status -eq 'Unknown') | Select-Object -First 1
         if ($unknown) { return New-SubscriptionFinding (New-Unknown "No destination is known to keep it for a year: $($unknown.Detail)" $evidence) }
         New-SubscriptionFinding (New-Fail "No destination keeps it for a year: $(@($outcomes | ForEach-Object Detail) -join '; ')" $evidence)
+    }
+}
+
+Add-AzTest @{
+    Id            = 'AZ-LOG-026'
+    Title         = 'Log Analytics workspaces have a delete lock'
+    Category      = 'Logging and threat detection'
+    Service       = 'Log Analytics'
+    Severity      = 'Medium'
+    Description   = 'Checks Log Analytics workspaces for a CanNotDelete or ReadOnly lock on the workspace, its resource group or the subscription.'
+    Rationale     = 'Deleting a workspace deletes the logs in it, which is the quickest way to erase the trail of an intrusion. A lock makes deletion a separate, privileged and logged step.'
+    Remediation   = 'Add a CanNotDelete lock to the workspace (az lock create --lock-type CanNotDelete --name DoNotDelete --resource <workspace id>) and restrict lock administration to a dedicated role.'
+    References    = @('https://learn.microsoft.com/azure/azure-resource-manager/management/lock-resources')
+    Requires      = @('subscription/locks')
+    ResourceTypes = @('Microsoft.OperationalInsights/workspaces')
+    Evaluate      = {
+        param($Record)
+        $locks = @(Get-EffectiveLocks $Record.id)
+        $evidence = [ordered]@{ locks = @($locks | ForEach-Object { "$($_.properties.level) @ $($_.id -replace '(?i)/providers/Microsoft\.Authorization/locks/.*$', '')" } | Sort-Object) }
+        if ($locks) { return New-Pass "Locked ($($locks[0].properties.level))" $evidence }
+        New-Fail 'No delete lock on the workspace, resource group or subscription' $evidence
     }
 }

@@ -2,7 +2,9 @@
 
 Free (non commercially) fully automated test suite for Azure subscriptions against multiple up to date industry security baselines.
 
-AzCmply reads an Azure subscription and its Entra ID context, runs 254 tests against it and writes a report: a posture score, the failures to address first, results per security domain and per framework, and every test with its remediation and evidence per resource. Tests map to the Microsoft cloud security benchmark v2, CIS Microsoft Azure Foundations Benchmark 6.0.0, the Well-Architected Framework security pillar and the Azure landing zone policies; NIST SP 800-53, PCI DSS, CIS Controls, NIST CSF, ISO 27001 and SOC 2 follow from the MCSB mappings, and a JSolve crosswalk maps the results to the technical articles of DORA and its ICT risk management standard (RTS 2024/1774). It only reads. Run it again later and the report shows the trend and what changed.
+AzCmply reads an Azure subscription and its Entra ID context, runs 289 tests against it and writes a report: a posture score, the failures to address first, results per security domain and per framework, and every test with its remediation and evidence per resource. Results are reported per framework, each against its full list of controls: the Microsoft cloud security benchmark v2, CIS Microsoft Azure Foundations Benchmark 6.0.0, the Well-Architected Framework security pillar and the Azure landing zone policies, which describe Azure checks themselves, and ISO 27001:2022, NIST CSF 2.0, CIS Controls v8.1, SOC 2, NIST SP 800-53 Rev. 5, PCI DSS v4.0.1, DORA with its ICT risk management standard (RTS 2024/1774) and CMMC 2.0 Levels 1 to 3, to which JSolve maps the tests. AzCmply Custom adds JSolve's own controls for Azure attack paths that none of these frameworks covers, such as trust in shared Azure service tags, deployment sites and serial consoles that bypass network controls, and managed identities that reach beyond their resource group. It only reads. Run it again later and the report shows the trend and what changed.
+
+AzCmply is an automated technical assessment of Azure configuration, not an audit or a certification. It does not establish compliance with any framework or regulation and does not replace an assessment by an accredited auditor, certification body or supervisory authority. Framework names and control identifiers show where results relate to their requirements; the frameworks belong to their publishers.
 
 There are two ways to run it, with the same tests and the same report:
 
@@ -13,7 +15,7 @@ There are two ways to run it, with the same tests and the same report:
 | Suited for | an assessment by hand, no install | scheduled and automated runs |
 | Data | stays in the browser; results history kept locally | written to a folder |
 
-The web page exports what it collects and analyses (the ingestion as a zip, results.json, the CSVs, the report, and the history) in the formats the module reads.
+If you want, the web page can export what it collects and analyses just like the PS module, and the format is interchangeable.
 
 ## AzCmply web
 
@@ -24,7 +26,7 @@ Open [the page](https://azcmply.jsolve.nl/), sign in, pick a subscription and ru
 | Needed | For |
 |---|---|
 | Azure RBAC **Reader** on the subscription | everything in the subscription |
-| Entra ID role **Global Reader** | the Entra ID checks: principals behind role assignments, privileged and eligible roles, app credentials, sign-in activity, Conditional Access |
+| Entra ID role **Global Reader** | the Entra ID checks: principals behind role assignments, privileged and eligible roles, app credentials, sign-in activity, Conditional Access, security defaults, emergency access accounts, the subscription transfer policy |
 
 Without the Entra role the assessment still runs; the Entra ID checks then report Unknown. Clear **Entra ID enrichment** on the page to skip them.
 
@@ -39,11 +41,11 @@ The page signs in through an Entra ID app registration of the single-page applic
 | Microsoft Graph | `Directory.Read.All` | principals, groups, service principals and their credentials |
 | Microsoft Graph | `RoleManagement.Read.Directory` | directory role assignments and eligible (PIM) assignments |
 | Microsoft Graph | `AuditLog.Read.All` | last sign-in of accounts with access |
-| Microsoft Graph | `Policy.Read.All` | Conditional Access policies and security defaults (MFA for Azure management) |
+| Microsoft Graph | `Policy.Read.All` | Conditional Access policies and security defaults (MFA, emergency access accounts) |
 
 Use one of these:
 
-1. **The JSolve app** (multi-tenant, on the page hosted by JSolve B.V.). An administrator of your tenant (Global Administrator, Privileged Role Administrator or Cloud Application Administrator) grants consent once, with **Admin consent for this app** on the page. After that anyone in the tenant with the access above can sign in. When a release adds a permission (0.9.4 added `Policy.Read.All`), consent again; until then the checks that need it report Unknown.
+1. **The JSolve app** (multi-tenant, on the page hosted by JSolve B.V.). An administrator of your tenant (Global Administrator, Privileged Role Administrator or Cloud Application Administrator) grants consent once, with **Admin consent for this app** on the page. After that anyone in the tenant with the access above can sign in. When a release adds a permission (e.g. 0.9.4 added `Policy.Read.All`), consent again; until then the checks that need it report Unknown.
 2. **Your own app registration**, for a page you host yourself or run on your own computer, or if your policies do not allow third party apps. Create it with one command, which signs in with a device code and needs a role that can create app registrations:
 
    ```powershell

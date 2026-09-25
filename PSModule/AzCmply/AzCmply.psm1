@@ -9,7 +9,7 @@ function Invoke-AzCmplyIngest {
         Collects all security relevant data of an Azure subscription into a folder of JSON files for offline analysis.
         .DESCRIPTION
         Uses REST only (no Az modules) and only read operations; no keys or secrets are listed. Collects:
-        - Subscription, resource groups, providers, locks, deployments (incl. parameters/outputs), deployment stacks, Lighthouse delegations
+        - Subscription, subscription transfer policy, resource groups, providers, locks, deployments (incl. parameters/outputs), deployment stacks, Lighthouse delegations
         - RBAC: role assignments/definitions, deny assignments, classic administrators, PIM schedules, requests and policies
         - Azure Policy: assignments, definitions, initiatives, exemptions, compliance summary, attestations, remediations
         - Defender for Cloud: plans, contacts, settings, assessments, alerts, secure score, JIT policies, workflow automations,
@@ -19,7 +19,8 @@ function Invoke-AzCmplyIngest {
         - Azure Resource Graph tables scoped to the subscription (incl. change history, patch and guest configuration state)
         - Activity log
         - Entra ID: every principal referenced by the above, group members and owners, service principal/application credentials,
-          owners, API permissions and federated credentials, directory role assignments, Conditional Access policies and security defaults
+          owners, API permissions and federated credentials, directory role assignments, Conditional Access policies (and members of
+          the groups they exclude) and security defaults
 
         Output can contain sensitive values (deployment outputs, unencrypted automation variables, container environment variables, etc).
         .PARAMETER SubscriptionId
@@ -113,12 +114,11 @@ function Invoke-AzCmplyAnalysis {
         Runs the Azure security test suite against an ingestion made by Invoke-AzureIngest.ps1.
         .DESCRIPTION
         Every test in tests\*.ps1 evaluates one security requirement and produces a finding per evaluated resource.
-        Tests are tagged with the controls they implement (Microsoft cloud security benchmark v2, CIS Microsoft Azure
-        Foundations Benchmark 6.0.0, Well-Architected Framework security pillar, Azure landing zone policy assignments);
-        NIST SP 800-53, PCI DSS, CIS Controls, NIST CSF, ISO 27001 and SOC 2 tags are derived from the MCSB mappings.
+        Each framework has its own catalog in catalog\frameworks: every control of the framework, and per control the tests
+        that evidence it (full or partial), or whether it needs manual evidence or does not concern Azure.
 
         Output (in <OutputPath>\<FolderName>):
-        - results.json   everything: tests with descriptions, remediation, framework tags, status and findings, rollups per framework control
+        - results.json   everything: tests with descriptions, remediation, framework controls, status and findings, results per framework control
         - tests.csv      one row per test
         - findings.csv   one row per finding
         Output is sorted and contains no timestamps except 'analyzedAt', so runs can be diffed (see Compare-AzureAnalysis.ps1).
@@ -370,7 +370,7 @@ Set-Alias -Name 'New-AzureSecurityReport' -Value 'New-AzCmplyReport'
 
 Export-ModuleMember -Function 'Invoke-AzCmplyIngest', 'Invoke-AzCmplyAnalysis', 'Compare-AzCmplyAnalysis', 'New-AzCmplyReport', 'Invoke-AzCmplySelfTest', 'Invoke-AzCmplyAssessment' -Alias 'Invoke-AzureIngest', 'Invoke-AzureAnalyze', 'Compare-AzureAnalysis', 'New-AzureSecurityReport'
 
-$script:ModuleVersion = '0.9.4'
+$script:ModuleVersion = '1.0.0'
 Write-Host ''
 Write-Host "  AzCmply $script:ModuleVersion" -ForegroundColor Cyan -NoNewline
 Write-Host '  security posture assessment of an Azure subscription (read only)'

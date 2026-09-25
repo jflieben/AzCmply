@@ -19,7 +19,6 @@ Add-AzTest @{
     Rationale   = 'The benchmark initiative is the security baseline that Defender for Cloud uses for recommendations and secure score. Without it, misconfigurations are not measured continuously.'
     Remediation = 'Assign the Microsoft cloud security benchmark v2 initiative (e3ec7e09-768c-4b64-882c-fcada3772047) at the management group or subscription, or enable it as a standard in Defender for Cloud > Environment settings > Security policies.'
     References  = @('https://learn.microsoft.com/azure/defender-for-cloud/concept-regulatory-compliance-standards')
-    Frameworks  = @{ MCSB = @('PV-1', 'PV-2'); CIS = '8.1.11'; WAF = 'SE:01'; ALZ = @('Deploy-MCSB2-Monitoring', 'Deploy-ASC-Monitoring') }
     Requires    = @('policy/policyAssignments')
     Run         = {
         $assignments = @(Get-McsbAssignments)
@@ -39,7 +38,6 @@ Add-AzTest @{
     Rationale   = 'Disabling benchmark policies removes the corresponding recommendations from Defender for Cloud and the secure score, hiding misconfigurations instead of handling them.'
     Remediation = "Set the effect parameters back to their default (Audit/AuditIfNotExists). Handle justified deviations with policy exemptions that have an owner, reason and expiry date."
     References  = @('https://learn.microsoft.com/azure/defender-for-cloud/tutorial-security-policy')
-    Frameworks  = @{ MCSB = 'PV-2'; CIS = '8.1.11' }
     Requires    = @('policy/policyAssignments')
     Run         = {
         $assignments = @(Get-McsbAssignments)
@@ -63,7 +61,6 @@ Add-AzTest @{
     Rationale   = 'A waiver accepts a risk. Without an expiry date the accepted risk is never re-evaluated and exemptions accumulate silently.'
     Remediation = 'Set expiresOn on every waiver and review it before it expires; use the Mitigated category for exemptions that are covered by another control.'
     References  = @('https://learn.microsoft.com/azure/governance/policy/concepts/exemption-structure')
-    Frameworks  = @{ MCSB = 'PV-2'; WAF = 'SE:01' }
     Requires    = @('policy/policyExemptions')
     Run         = {
         $waivers = @(Get-IngestData 'policy/policyExemptions' | Where-Object { $_ -and $_.properties.exemptionCategory -eq 'Waiver' })
@@ -89,7 +86,6 @@ Add-AzTest @{
     Rationale     = 'Locks prevent accidental or malicious deletion of resources whose loss destroys data, keys or backups. Deleting a lock needs Microsoft.Authorization/locks/delete, which most operators do not hold.'
     Remediation   = 'Add a CanNotDelete lock (az lock create --lock-type CanNotDelete --name DoNotDelete --resource <id>) and restrict lock administration to a dedicated role.'
     References    = @('https://learn.microsoft.com/azure/azure-resource-manager/management/lock-resources')
-    Frameworks    = @{ MCSB = @('BR-2', 'AM-3'); CIS = '6.2' }
     Requires      = @('subscription/locks')
     ResourceTypes = @('Microsoft.KeyVault/vaults', 'Microsoft.RecoveryServices/vaults', 'Microsoft.DataProtection/backupVaults')
     Evaluate      = {
@@ -111,7 +107,6 @@ Add-AzTest @{
     Rationale   = 'Only Owner and User Access Administrator can manage locks by default. A dedicated role lets a small group manage locks while keeping them out of reach of everyone else.'
     Remediation = "Create a custom role with Microsoft.Authorization/locks/* and assign it (PIM eligible) to the team responsible for locks."
     References  = @('https://learn.microsoft.com/azure/azure-resource-manager/management/lock-resources')
-    Frameworks  = @{ MCSB = 'PA-7'; CIS = '5.5' }
     Requires    = @('rbac/roleDefinitions')
     Run         = {
         $roles = @(Get-IngestData 'rbac/roleDefinitions' | Where-Object { $_ -and $_.properties.type -eq 'CustomRole' -and (@($_.properties.permissions | ForEach-Object { $_.actions }) | Where-Object { $_ -like 'Microsoft.Authorization/locks/*' }) })
@@ -130,7 +125,6 @@ Add-AzTest @{
     Description   = 'Finds managed disks that are not attached to any virtual machine.'
     Rationale     = 'Orphaned disks keep copies of data (often including credentials and system state) outside of any lifecycle, monitoring or backup process.'
     Remediation   = 'Delete disks that are no longer needed, after checking whether they must be retained; snapshot them to a governed location if retention is required.'
-    Frameworks    = @{ MCSB = 'AM-3'; ALZ = 'Audit-UnusedResources' }
     ResourceTypes = @('Microsoft.Compute/disks')
     Evaluate      = {
         param($Record)
@@ -149,7 +143,6 @@ Add-AzTest @{
     Description   = 'Finds public IP addresses that are not associated with a network interface, load balancer, gateway or NAT gateway.'
     Rationale     = 'Unused public IP addresses are forgotten attack surface: they are easily re-associated with a resource, and DNS records pointing to them can be abused.'
     Remediation   = 'Delete public IP addresses that are not in use and remove DNS records that point to them.'
-    Frameworks    = @{ MCSB = @('AM-3', 'NS-1'); CIS = '7.7'; ALZ = 'Audit-UnusedResources' }
     ResourceTypes = @('Microsoft.Network/publicIPAddresses')
     Evaluate      = {
         param($Record)
@@ -171,7 +164,6 @@ Add-AzTest @{
     Rationale   = 'Retired services no longer receive security updates or support, and classic resources lack Azure Resource Manager RBAC, policy and logging controls. A service with a published retirement date needs a migration plan before the deadline, not after.'
     Remediation = 'Migrate to the supported successor (Azure Resource Manager resources, PostgreSQL or MySQL flexible server, deployment stacks and template specs for blueprints) and delete the retired resources.'
     References  = @('https://learn.microsoft.com/azure/postgresql/migrate/whats-happening-to-postgresql-single-server', 'https://learn.microsoft.com/azure/governance/blueprints/blueprint-retirement')
-    Frameworks  = @{ MCSB = @('AM-2', 'PV-6'); ALZ = 'Deny-Classic-Resources' }
     Requires    = @('subscription/resources')
     Run         = {
         #resource type -> why it is on the list, so the finding says what is actually wrong
@@ -211,7 +203,6 @@ Add-AzTest @{
     Rationale   = 'An assigned policy only improves security once resources actually comply with it. Non-compliant resources are the concrete deviations from the baseline the organization committed to.'
     Remediation = 'Work through the non-compliant resources per definition in Policy > Compliance, remediate them (deployIfNotExists policies can be remediated in bulk with a remediation task), and record accepted deviations as policy exemptions with an owner and expiry date.'
     References  = @('https://learn.microsoft.com/azure/governance/policy/how-to/get-compliance-data')
-    Frameworks  = @{ MCSB = @('PV-2', 'PV-1'); WAF = 'SE:01' }
     Requires    = @('resourceGraph/policyresources')
     Run         = {
         $states = @(Get-IngestData 'resourceGraph/policyresources' | Where-Object { $_ -and $_.type -eq 'microsoft.policyinsights/policystates' })
@@ -253,7 +244,6 @@ Add-AzTest @{
     Rationale   = 'Advisor security recommendations are the platform telling you about concrete, already detected weaknesses in this subscription. Leaving them open means known issues stay unfixed.'
     Remediation = 'Work through the recommendations in Advisor > Security, remediate or dismiss each one with a reason, and treat high impact recommendations first.'
     References  = @('https://learn.microsoft.com/azure/advisor/advisor-security-recommendations')
-    Frameworks  = @{ MCSB = @('PV-2', 'PV-5'); WAF = 'SE:01' }
     Requires    = @('resourceGraph/advisorresources')
     Run         = {
         $recommendations = @(Get-IngestData 'resourceGraph/advisorresources' | Where-Object { $_ -and $_.type -eq 'microsoft.advisor/recommendations' -and $_.properties.category -eq 'Security' })
@@ -265,3 +255,140 @@ Add-AzTest @{
         }
     }
 }
+
+Add-AzTest @{
+    Id          = 'AZ-GOV-011'
+    Title       = 'Subscriptions cannot be moved into or out of the tenant'
+    Category    = 'Asset management'
+    Service     = 'Azure subscriptions'
+    Severity    = 'Medium'
+    Description = "Checks the tenant subscription policy for 'Subscription leaving Microsoft Entra tenant' and 'Subscription entering Microsoft Entra tenant' set to 'Permit no one', and lists the principals exempted from it."
+    Rationale   = 'A subscription moved to another tenant takes its resources and data out of reach of this tenant''s identities, policies and monitoring. A subscription moved in brings resources the organization does not govern. Blocking both makes a move a deliberate decision of a Global Administrator.'
+    Remediation = "In the Azure portal open Subscriptions > Manage policies and set both 'Subscription leaving Microsoft Entra tenant' and 'Subscription entering Microsoft Entra tenant' to 'Permit no one'. Exempt only the principals that must move subscriptions."
+    References  = @('https://learn.microsoft.com/azure/cost-management-billing/manage/manage-azure-subscription-policy')
+    Requires    = @('subscription/subscriptionPolicies')
+    Run         = {
+        $p = (Get-IngestData 'subscription/subscriptionPolicies').properties
+        $evidence = [ordered]@{ blockSubscriptionsLeavingTenant = [bool]$p.blockSubscriptionsLeavingTenant; blockSubscriptionsIntoTenant = [bool]$p.blockSubscriptionsIntoTenant; exemptedPrincipals = @($p.exemptedPrincipals | Where-Object { $_ } | ForEach-Object { Get-PrincipalLabel $_ } | Sort-Object) }
+        $open = @()
+        if (-not $p.blockSubscriptionsLeavingTenant) { $open += 'leaving' }
+        if (-not $p.blockSubscriptionsIntoTenant) { $open += 'entering' }
+        $result = if ($open) { New-Fail "Subscriptions can be moved $($open -join ' and ') the tenant" $evidence } else { New-Pass 'Subscriptions cannot be moved into or out of the tenant' $evidence }
+        New-TenantFinding -Result $result -Suffix '/subscriptionPolicies'
+    }
+}
+
+function Get-AutoscaleTargets {
+    #target resource id (lowercase) -> name of the enabled autoscale setting that scales it
+    if (-not $script:Ingest.Cache.ContainsKey('#autoscale')) {
+        $targets = @{}
+        foreach ($setting in (Get-AzResourceRecords -Type 'Microsoft.Insights/autoscalesettings')) {
+            $p = $setting.resource.properties
+            if ($p.enabled -eq $false -or -not $p.targetResourceUri) { continue }
+            $targets[([string]$p.targetResourceUri).ToLowerInvariant()] = $setting.resource.name
+        }
+        $script:Ingest.Cache['#autoscale'] = $targets
+    }
+    return $script:Ingest.Cache['#autoscale']
+}
+
+#App Service plan tiers that scale out on their own
+$elasticPlanTiers = @('Dynamic', 'ElasticPremium', 'FlexConsumption', 'WorkflowStandard')
+
+Add-AzTest @{
+    Id            = 'AZ-GOV-012'
+    Title         = 'Capacity scales automatically with demand'
+    Category      = 'Backup and recovery'
+    Service       = 'Multiple'
+    Severity      = 'Low'
+    Description   = 'Checks App Service plans with apps, virtual machine scale sets and AKS clusters for automatic scaling: an enabled autoscale setting, automatic scaling or an elastic tier for App Service plans, and the cluster autoscaler or node auto provisioning for AKS node pools. Scale sets managed by AKS are covered through their cluster.'
+    Rationale     = 'Fixed capacity is sized for the load someone expected. A peak, a failed zone or a denial of service then exhausts it and takes the service down, while scaling out would have kept it available.'
+    Remediation   = 'Create an autoscale setting (Azure Monitor autoscale) for App Service plans and scale sets with rules or a predictive profile and sensible minimum and maximum counts, or enable automatic scaling on Premium v2 and v3 plans; enable the cluster autoscaler on every AKS node pool or use node auto provisioning.'
+    References    = @('https://learn.microsoft.com/azure/azure-monitor/autoscale/autoscale-overview', 'https://learn.microsoft.com/azure/aks/cluster-autoscaler')
+    ResourceTypes = @('Microsoft.Web/serverfarms', 'Microsoft.Compute/virtualMachineScaleSets', 'Microsoft.ContainerService/managedClusters')
+    Filter        = { param($Record) -not ($Record.type -eq 'Microsoft.Compute/virtualMachineScaleSets' -and @($Record.resource.tags.PSObject.Properties.Name | Where-Object { $_ -like 'aks-managed-*' }).Count) }
+    Evaluate      = {
+        param($Record)
+        $r = $Record.resource
+        $p = $r.properties
+        if ($Record.type -eq 'Microsoft.ContainerService/managedClusters') {
+            $pools = @($p.agentPoolProfiles | Where-Object { $_ })
+            $evidence = [ordered]@{ nodeProvisioning = $p.nodeProvisioningProfile.mode; nodePools = @($pools | ForEach-Object { "$($_.name): $(if ($_.enableAutoScaling) { "autoscale $($_.minCount)-$($_.maxCount)" } else { "fixed $($_.count)" })" } | Sort-Object) }
+            if ($p.nodeProvisioningProfile.mode -eq 'Auto') { return New-Pass 'Node auto provisioning adds nodes on demand' $evidence }
+            if (-not $pools) { return New-Unknown 'The node pools could not be read' $evidence }
+            $fixed = @($pools | Where-Object { -not $_.enableAutoScaling } | ForEach-Object { $_.name } | Sort-Object)
+            if ($fixed) { return New-Fail "Node pool(s) $($fixed -join ', ') have a fixed node count" $evidence }
+            return New-Pass 'The cluster autoscaler scales every node pool' $evidence
+        }
+        $autoscale = (Get-AutoscaleTargets)[$Record.id.ToLowerInvariant()]
+        if ($Record.type -eq 'Microsoft.Web/serverfarms') {
+            $tier = [string]$r.sku.tier
+            $evidence = [ordered]@{ tier = $tier; apps = $p.numberOfSites; elasticScaleEnabled = $p.elasticScaleEnabled; autoscaleSetting = $autoscale }
+            if ($tier -in 'Free', 'Shared') { return New-NotApplicable "$tier plans are for development and testing" $evidence }
+            if ($null -ne $p.numberOfSites -and [int]$p.numberOfSites -eq 0) { return New-NotApplicable 'No apps run on this plan' $evidence }
+            if ($tier -in $elasticPlanTiers) { return New-Pass "The $tier tier scales out automatically" $evidence }
+            if ($p.elasticScaleEnabled) { return New-Pass "Automatic scaling up to $($p.maximumElasticWorkerCount) instances" $evidence }
+            if ($autoscale) { return New-Pass "Autoscale setting '$autoscale'" $evidence }
+            if ($tier -eq 'Basic') { return New-Fail 'The Basic tier cannot scale automatically' $evidence }
+        } else {
+            $evidence = [ordered]@{ capacity = $r.sku.capacity; autoscaleSetting = $autoscale }
+            if ($autoscale) { return New-Pass "Autoscale setting '$autoscale'" $evidence }
+        }
+        if (Get-FailedResourceIds -Type 'Microsoft.Insights/autoscalesettings') { return New-Unknown 'No autoscale setting found, and some autoscale settings could not be read' $evidence }
+        New-Fail "No enabled autoscale setting; capacity is fixed at $($r.sku.capacity) instance(s)" $evidence
+    }
+}
+
+Add-AzTest @{
+    Id          = 'AZ-GOV-013'
+    Title       = 'Resources are in the region of their resource group'
+    Category    = 'Asset management'
+    Service     = 'Azure Resource Manager'
+    Severity    = 'Low'
+    Description = 'Finds resources whose region differs from the region of their resource group. Global resources are left out, and so are network watchers, which Azure itself creates for every region in one NetworkWatcherRG resource group.'
+    Rationale   = 'A resource group keeps the metadata of its resources in its own region. When that region is unavailable, resources in other regions can no longer be changed or redeployed through it, which slows down recovery exactly when it is needed.'
+    Remediation = 'Place resources in a resource group in the same region, and move or redeploy the ones that are not. Enforce it with the built-in policy that audits matching resource and resource group locations.'
+    References  = @('https://learn.microsoft.com/azure/azure-resource-manager/management/overview#resource-group-location-alignment')
+    Requires    = @('subscription/resources', 'subscription/resourceGroups')
+    Run         = {
+        $groupLocations = @{}
+        foreach ($group in @(Get-IngestData 'subscription/resourceGroups' | Where-Object { $_ })) { $groupLocations[$group.name.ToLowerInvariant()] = ([string]$group.location).ToLowerInvariant() -replace ' ', '' }
+        $checked = 0
+        $findings = foreach ($resource in @(Get-IngestData 'subscription/resources' | Where-Object { $_ -and $_.location -and $_.type -notlike 'Microsoft.Network/networkWatchers*' } | Sort-Object id)) {
+            $location = ([string]$resource.location).ToLowerInvariant() -replace ' ', ''
+            if ($location -eq 'global' -or -not ($resource.id -match '(?i)/resourceGroups/(?<group>[^/]+)/')) { continue }
+            $groupLocation = $groupLocations[$Matches.group.ToLowerInvariant()]
+            if (-not $groupLocation) { continue }
+            $checked++
+            if ($location -eq $groupLocation) { continue }
+            New-Finding -ResourceId $resource.id -ResourceType $resource.type -ResourceName $resource.name -Result (New-Fail "In $location, its resource group is in $groupLocation" ([ordered]@{ location = $location; resourceGroupLocation = $groupLocation }))
+        }
+        if (-not $findings) { return New-SubscriptionFinding (New-Pass "All $checked regional resources are in the region of their resource group") }
+        $findings
+    }
+}
+
+Add-AzTest @{
+    Id          = 'AZ-GOV-014'
+    Title       = 'A cost budget alerts on the spending of the subscription'
+    Category    = 'Logging and threat detection'
+    Service     = 'Cost Management'
+    Severity    = 'Low'
+    Description = 'Checks for a cost budget on the subscription with at least one enabled notification to an email address, a role or an action group.'
+    Rationale   = 'Attackers who take over a subscription often run crypto miners or other expensive workloads at the owner''s expense, and a sudden rise in cost is regularly the first visible sign of the breach. A budget with notifications makes that sign reach someone within a day instead of with the invoice.'
+    Remediation = 'Create a budget for the subscription (Cost Management > Budgets) with notifications on actual and forecasted cost that reach the owners of the subscription and the security team.'
+    References  = @('https://learn.microsoft.com/azure/cost-management-billing/costs/tutorial-acm-create-budgets')
+    Requires    = @('subscription/budgets')
+    Run         = {
+        $budgets = @(Get-IngestData 'subscription/budgets' | Where-Object { $_ } | Sort-Object name)
+        $notifying = @(foreach ($budget in $budgets) {
+                $notifications = @($budget.properties.notifications.PSObject.Properties | ForEach-Object Value | Where-Object { $_ -and $_.enabled -and (@($_.contactEmails) + @($_.contactRoles) + @($_.contactGroups) | Where-Object { $_ }).Count })
+                if ($notifications) { $budget.name }
+            })
+        $evidence = [ordered]@{ budgets = @($budgets | ForEach-Object name); withNotifications = $notifying }
+        if ($notifying) { return New-SubscriptionFinding (New-Pass "Budget(s) with notifications: $($notifying -join ', ')" $evidence) }
+        if ($budgets) { return New-SubscriptionFinding (New-Fail 'Budgets exist, but none notifies anyone' $evidence) }
+        New-SubscriptionFinding (New-Fail 'No cost budget on the subscription' $evidence)
+    }
+}
+

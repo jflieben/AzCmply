@@ -5,192 +5,252 @@ export default R.script("/app/Analyze/tests/16-DataAnalytics.ps1", { params: [],
     R.ln = F + 3;
     S["databrickstype"] = R.a("Microsoft.Databricks/workspaces");
     R.ln = F + 5;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-DBX-001", "Title", "Databricks workspaces are deployed in a customer-managed virtual network", "Category", "Network security", "Service", "Azure Databricks", "Severity", "Medium", "Description", "Checks for VNet injection (customVirtualNetworkId) of Databricks workspaces.", "Rationale", "VNet injection places cluster nodes in your own network, where NSGs, firewalls, private endpoints and flow logs control and record their traffic.", "Remediation", "Deploy the workspace with VNet injection into dedicated host and container subnets (requires a new workspace).", "References", R.a("https://learn.microsoft.com/azure/databricks/security/network/classic/vnet-inject"), "Frameworks", R.ht(["MCSB", R.a([R.v("NS-1"), R.v("NS-2")]), "CIS", "2.1.1"], false), "Policy", R.ht(["9c25c9e4-ee12-4882-afd2-11fb9d87893f", "Azure Databricks Workspaces should be in a virtual network"], false), "ResourceTypes", (S["databrickstype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $vnet = $Record.resource.properties.parameters.customVirtualNetworkId.value\n        if ($vnet) { return New-Pass 'VNet injected' ([ordered]@{ customVirtualNetworkId = $vnet }) }\n        New-Fail 'Managed (Databricks) virtual network' ([ordered]@{ customVirtualNetworkId = $null })\n    " }, (S, O) => {
-        R.ln = F + 20;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-DBX-001", "Title", "Databricks workspaces are deployed in a customer-managed virtual network", "Category", "Network security", "Service", "Azure Databricks", "Severity", "Medium", "Description", "Checks for VNet injection (customVirtualNetworkId) of Databricks workspaces.", "Rationale", "VNet injection places cluster nodes in your own network, where NSGs, firewalls, private endpoints and flow logs control and record their traffic.", "Remediation", "Deploy the workspace with VNet injection into dedicated host and container subnets (requires a new workspace).", "References", R.a("https://learn.microsoft.com/azure/databricks/security/network/classic/vnet-inject"), "Policy", R.ht(["9c25c9e4-ee12-4882-afd2-11fb9d87893f", "Azure Databricks Workspaces should be in a virtual network"], false), "ResourceTypes", (S["databrickstype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $vnet = $Record.resource.properties.parameters.customVirtualNetworkId.value\n        if ($vnet) { return New-Pass 'VNet injected' ([ordered]@{ customVirtualNetworkId = $vnet }) }\n        New-Fail 'Managed (Databricks) virtual network' ([ordered]@{ customVirtualNetworkId = $null })\n    " }, (S, O) => {
+        R.ln = F + 19;
         S["vnet"] = R.m(R.m(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "parameters"), "customVirtualNetworkId"), "value");
-        R.ln = F + 21;
+        R.ln = F + 20;
         if (R.t((S["vnet"] ?? null))) {
-            R.ln = F + 21;
+            R.ln = F + 20;
             R.pa(O, R.cmd(S, "New-Pass", ["VNet injected", (R.ht(["customVirtualNetworkId", (S["vnet"] ?? null)], true))], null));
             return;
         }
-        R.ln = F + 22;
+        R.ln = F + 21;
         R.pa(O, R.cmd(S, "New-Fail", ["Managed (Databricks) virtual network", (R.ht(["customVirtualNetworkId", null], true))], null));
     })], false)], null));
-    R.ln = F + 26;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-DBX-006", "Title", "Databricks subnets are associated with a network security group", "Category", "Network security", "Service", "Azure Databricks", "Severity", "Medium", "Description", "Checks the host and container subnets of VNet injected Databricks workspaces for an associated network security group. Workspaces on the Databricks managed virtual network are not applicable: Databricks manages their NSGs.", "Rationale", "Databricks cluster nodes run customer code. Without an NSG on their subnets, that code can reach every address in the virtual network and its peers.", "Remediation", "Associate the Databricks required NSG with both the host (public) and container (private) subnet of the workspace; Databricks manages the required rules within it.", "References", R.a("https://learn.microsoft.com/azure/databricks/security/network/classic/vnet-inject"), "Frameworks", R.ht(["MCSB", "NS-1", "CIS", "2.1.2"], false), "ResourceTypes", (S["databrickstype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $parameters = $Record.resource.properties.parameters\n        $vnetId = $parameters.customVirtualNetworkId.value\n        if (-not $vnetId) { return New-NotApplicable 'Workspace uses the Databricks managed virtual network, whose NSGs are managed by Databricks' }\n        $vnet = Get-AzResourceRecord $vnetId\n        if (-not $vnet) { return New-Unknown \"The injected virtual network $vnetId was not collected (it may live in another subscription)\" ([ordered]@{ customVirtualNetworkId = $vnetId }) }\n        $names = @($parameters.customPublicSubnetName.value, $parameters.customPrivateSubnetName.value) | Where-Object { $_ }\n        $subnets = @($vnet.resource.properties.subnets | Where-Object { $_ -and (-not $names.Count -or $_.name -in $names) })\n        if (-not $subnets) { return New-Unknown 'The Databricks subnets were not found in the injected virtual network' ([ordered]@{ customVirtualNetworkId = $vnetId; subnetNames = $names }) }\n        $without = @($subnets | Where-Object { -not $_.properties.networkSecurityGroup.id } | ForEach-Object name | Sort-Object)\n        $evidence = [ordered]@{ virtualNetwork = $vnet.resource.name; subnets = @($subnets | ForEach-Object name | Sort-Object); subnetsWithoutNsg = $without }\n        if ($without) { return New-Fail \"Databricks subnet(s) without a network security group: $($without -join ', ')\" $evidence }\n        New-Pass 'All Databricks subnets have a network security group' $evidence\n    " }, (S, O) => {
-        R.ln = F + 40;
+    R.ln = F + 25;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-DBX-006", "Title", "Databricks subnets are associated with a network security group", "Category", "Network security", "Service", "Azure Databricks", "Severity", "Medium", "Description", "Checks the host and container subnets of VNet injected Databricks workspaces for an associated network security group. Workspaces on the Databricks managed virtual network are not applicable: Databricks manages their NSGs.", "Rationale", "Databricks cluster nodes run customer code. Without an NSG on their subnets, that code can reach every address in the virtual network and its peers.", "Remediation", "Associate the Databricks required NSG with both the host (public) and container (private) subnet of the workspace; Databricks manages the required rules within it.", "References", R.a("https://learn.microsoft.com/azure/databricks/security/network/classic/vnet-inject"), "ResourceTypes", (S["databrickstype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $parameters = $Record.resource.properties.parameters\n        $vnetId = $parameters.customVirtualNetworkId.value\n        if (-not $vnetId) { return New-NotApplicable 'Workspace uses the Databricks managed virtual network, whose NSGs are managed by Databricks' }\n        $vnet = Get-AzResourceRecord $vnetId\n        if (-not $vnet) { return New-Unknown \"The injected virtual network $vnetId was not collected (it may live in another subscription)\" ([ordered]@{ customVirtualNetworkId = $vnetId }) }\n        $names = @($parameters.customPublicSubnetName.value, $parameters.customPrivateSubnetName.value) | Where-Object { $_ }\n        $subnets = @($vnet.resource.properties.subnets | Where-Object { $_ -and (-not $names.Count -or $_.name -in $names) })\n        if (-not $subnets) { return New-Unknown 'The Databricks subnets were not found in the injected virtual network' ([ordered]@{ customVirtualNetworkId = $vnetId; subnetNames = $names }) }\n        $without = @($subnets | Where-Object { -not $_.properties.networkSecurityGroup.id } | ForEach-Object name | Sort-Object)\n        $evidence = [ordered]@{ virtualNetwork = $vnet.resource.name; subnets = @($subnets | ForEach-Object name | Sort-Object); subnetsWithoutNsg = $without }\n        if ($without) { return New-Fail \"Databricks subnet(s) without a network security group: $($without -join ', ')\" $evidence }\n        New-Pass 'All Databricks subnets have a network security group' $evidence\n    " }, (S, O) => {
+        R.ln = F + 38;
         S["parameters"] = R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "parameters");
-        R.ln = F + 41;
+        R.ln = F + 39;
         S["vnetid"] = R.m(R.m((S["parameters"] ?? null), "customVirtualNetworkId"), "value");
-        R.ln = F + 42;
+        R.ln = F + 40;
         if (!R.t((S["vnetid"] ?? null))) {
-            R.ln = F + 42;
+            R.ln = F + 40;
             R.pa(O, R.cmd(S, "New-NotApplicable", ["Workspace uses the Databricks managed virtual network, whose NSGs are managed by Databricks"], null));
             return;
         }
-        R.ln = F + 43;
+        R.ln = F + 41;
         S["vnet"] = R.u(R.cmd(S, "Get-AzResourceRecord", [(S["vnetid"] ?? null)], null));
-        R.ln = F + 44;
+        R.ln = F + 42;
         if (!R.t((S["vnet"] ?? null))) {
-            R.ln = F + 44;
+            R.ln = F + 42;
             R.pa(O, R.cmd(S, "New-Unknown", [("The injected virtual network " + R.str((S["vnetid"] ?? null)) + " was not collected (it may live in another subscription)"), (R.ht(["customVirtualNetworkId", (S["vnetid"] ?? null)], true))], null));
             return;
         }
-        R.ln = F + 45;
+        R.ln = F + 43;
         S["names"] = R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 45;
+            R.ln = F + 43;
             R.e(O, (S["_"] ?? null));
         })], R.pi(R.a([R.v(R.m(R.m((S["parameters"] ?? null), "customPublicSubnetName"), "value")), R.v(R.m(R.m((S["parameters"] ?? null), "customPrivateSubnetName"), "value"))]))));
-        R.ln = F + 46;
+        R.ln = F + 44;
         S["subnets"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and (-not $names.Count -or $_.name -in $names) " }, (S, O) => {
-            R.ln = F + 46;
+            R.ln = F + 44;
             R.e(O, (R.t((S["_"] ?? null)) && (!R.t(R.m((S["names"] ?? null), "Count")) || R.t(R.in(R.m((S["_"] ?? null), "name"), (S["names"] ?? null))))));
         })], R.pi(R.m(R.m(R.m((S["vnet"] ?? null), "resource"), "properties"), "subnets")));
-        R.ln = F + 47;
+        R.ln = F + 45;
         if (!R.t((S["subnets"] ?? null))) {
-            R.ln = F + 47;
+            R.ln = F + 45;
             R.pa(O, R.cmd(S, "New-Unknown", ["The Databricks subnets were not found in the injected virtual network", (R.ht(["customVirtualNetworkId", (S["vnetid"] ?? null), "subnetNames", (S["names"] ?? null)], true))], null));
             return;
         }
-        R.ln = F + 48;
+        R.ln = F + 46;
         S["without"] = R.cmd(S, "Sort-Object", [], R.cmd(S, "ForEach-Object", ["name"], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " -not $_.properties.networkSecurityGroup.id " }, (S, O) => {
-            R.ln = F + 48;
+            R.ln = F + 46;
             R.e(O, !R.t(R.m(R.m(R.m((S["_"] ?? null), "properties"), "networkSecurityGroup"), "id")));
         })], R.pi((S["subnets"] ?? null)))));
-        R.ln = F + 49;
+        R.ln = F + 47;
         S["evidence"] = R.ht(["virtualNetwork", R.m(R.m((S["vnet"] ?? null), "resource"), "name"), "subnets", R.cmd(S, "Sort-Object", [], R.cmd(S, "ForEach-Object", ["name"], R.pi((S["subnets"] ?? null)))), "subnetsWithoutNsg", (S["without"] ?? null)], true);
-        R.ln = F + 50;
+        R.ln = F + 48;
         if (R.t((S["without"] ?? null))) {
-            R.ln = F + 50;
+            R.ln = F + 48;
             R.pa(O, R.cmd(S, "New-Fail", [("Databricks subnet(s) without a network security group: " + R.str(R.u(R.pi(R.join((S["without"] ?? null), ", "))))), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 51;
+        R.ln = F + 49;
         R.pa(O, R.cmd(S, "New-Pass", ["All Databricks subnets have a network security group", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 55;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-DBX-002", "Title", "Databricks clusters have no public IP addresses", "Category", "Network security", "Service", "Azure Databricks", "Severity", "High", "Description", "Checks the 'No Public IP' (secure cluster connectivity) setting of Databricks workspaces.", "Rationale", "Without secure cluster connectivity every cluster node gets a public IP address and open inbound ports.", "Remediation", "Enable secure cluster connectivity (No Public IP) on the workspace.", "References", R.a("https://learn.microsoft.com/azure/databricks/security/network/classic/secure-cluster-connectivity"), "Frameworks", R.ht(["MCSB", "NS-2", "CIS", "2.1.9"], false), "Policy", R.ht(["51c1490f-3319-459c-bbbc-7f391bbed753", "Azure Databricks Clusters should disable public IP"], false), "ResourceTypes", (S["databrickstype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $value = $Record.resource.properties.parameters.enableNoPublicIp.value\n        if ($value -eq $true) { return New-Pass 'No public IP addresses' ([ordered]@{ enableNoPublicIp = $true }) }\n        New-Fail 'Cluster nodes get public IP addresses' ([ordered]@{ enableNoPublicIp = $value })\n    " }, (S, O) => {
-        R.ln = F + 70;
+    R.ln = F + 53;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-DBX-002", "Title", "Databricks clusters have no public IP addresses", "Category", "Network security", "Service", "Azure Databricks", "Severity", "High", "Description", "Checks the 'No Public IP' (secure cluster connectivity) setting of Databricks workspaces.", "Rationale", "Without secure cluster connectivity every cluster node gets a public IP address and open inbound ports.", "Remediation", "Enable secure cluster connectivity (No Public IP) on the workspace.", "References", R.a("https://learn.microsoft.com/azure/databricks/security/network/classic/secure-cluster-connectivity"), "Policy", R.ht(["51c1490f-3319-459c-bbbc-7f391bbed753", "Azure Databricks Clusters should disable public IP"], false), "ResourceTypes", (S["databrickstype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $value = $Record.resource.properties.parameters.enableNoPublicIp.value\n        if ($value -eq $true) { return New-Pass 'No public IP addresses' ([ordered]@{ enableNoPublicIp = $true }) }\n        New-Fail 'Cluster nodes get public IP addresses' ([ordered]@{ enableNoPublicIp = $value })\n    " }, (S, O) => {
+        R.ln = F + 67;
         S["value"] = R.m(R.m(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "parameters"), "enableNoPublicIp"), "value");
-        R.ln = F + 71;
+        R.ln = F + 68;
         if (R.t(R.eq((S["value"] ?? null), true))) {
-            R.ln = F + 71;
+            R.ln = F + 68;
             R.pa(O, R.cmd(S, "New-Pass", ["No public IP addresses", (R.ht(["enableNoPublicIp", true], true))], null));
             return;
         }
-        R.ln = F + 72;
+        R.ln = F + 69;
         R.pa(O, R.cmd(S, "New-Fail", ["Cluster nodes get public IP addresses", (R.ht(["enableNoPublicIp", (S["value"] ?? null)], true))], null));
     })], false)], null));
-    R.ln = F + 76;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-DBX-003", "Title", "Databricks workspaces disable public network access", "Category", "Network security", "Service", "Azure Databricks", "Severity", "Medium", "Description", "Checks the public network access setting of Databricks workspaces.", "Rationale", "A public workspace (web UI and REST API) can be reached with stolen tokens or credentials from anywhere.", "Remediation", "Configure front-end private link and set public network access to Disabled.", "References", R.a("https://learn.microsoft.com/azure/databricks/security/network/front-end/front-end-private-connect"), "Frameworks", R.ht(["MCSB", "NS-2", "CIS", "2.1.10", "ALZ", "Deny-Public-Endpoints"], false), "Policy", R.ht(["0e7849de-b939-4c50-ab48-fc6b0f5eeba2", "Azure Databricks Workspaces should disable public network access"], false), "ResourceTypes", (S["databrickstype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $value = $Record.resource.properties.publicNetworkAccess\n        if ($value -eq 'Disabled') { return New-Pass 'Public network access disabled' ([ordered]@{ publicNetworkAccess = $value }) }\n        New-Fail 'Public network access enabled' ([ordered]@{ publicNetworkAccess = $value })\n    " }, (S, O) => {
-        R.ln = F + 91;
+    R.ln = F + 73;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-DBX-003", "Title", "Databricks workspaces disable public network access", "Category", "Network security", "Service", "Azure Databricks", "Severity", "Medium", "Description", "Checks the public network access setting of Databricks workspaces.", "Rationale", "A public workspace (web UI and REST API) can be reached with stolen tokens or credentials from anywhere.", "Remediation", "Configure front-end private link and set public network access to Disabled.", "References", R.a("https://learn.microsoft.com/azure/databricks/security/network/front-end/front-end-private-connect"), "Policy", R.ht(["0e7849de-b939-4c50-ab48-fc6b0f5eeba2", "Azure Databricks Workspaces should disable public network access"], false), "ResourceTypes", (S["databrickstype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $value = $Record.resource.properties.publicNetworkAccess\n        if ($value -eq 'Disabled') { return New-Pass 'Public network access disabled' ([ordered]@{ publicNetworkAccess = $value }) }\n        New-Fail 'Public network access enabled' ([ordered]@{ publicNetworkAccess = $value })\n    " }, (S, O) => {
+        R.ln = F + 87;
         S["value"] = R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "publicNetworkAccess");
-        R.ln = F + 92;
+        R.ln = F + 88;
         if (R.t(R.eq((S["value"] ?? null), "Disabled"))) {
-            R.ln = F + 92;
+            R.ln = F + 88;
             R.pa(O, R.cmd(S, "New-Pass", ["Public network access disabled", (R.ht(["publicNetworkAccess", (S["value"] ?? null)], true))], null));
             return;
         }
-        R.ln = F + 93;
+        R.ln = F + 89;
         R.pa(O, R.cmd(S, "New-Fail", ["Public network access enabled", (R.ht(["publicNetworkAccess", (S["value"] ?? null)], true))], null));
     })], false)], null));
-    R.ln = F + 97;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-DBX-004", "Title", "Databricks workspaces are accessed through private endpoints", "Category", "Network security", "Service", "Azure Databricks", "Severity", "Low", "Description", "Checks Databricks workspaces for an approved private endpoint connection.", "Rationale", "Private endpoints keep workspace and back-end traffic on private networks and enable disabling public access.", "Remediation", "Create front-end and back-end private endpoints for the workspace.", "References", R.a("https://learn.microsoft.com/azure/databricks/security/network/classic/private-link"), "Frameworks", R.ht(["MCSB", "NS-2", "CIS", "2.1.11"], false), "Policy", R.ht(["258823f2-4595-4b52-b333-cc96192710d8", "Azure Databricks Workspaces should use private link"], false), "ResourceTypes", (S["databrickstype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $connections = @($Record.resource.properties.privateEndpointConnections) + @(Get-Child $Record 'privateEndpointConnections') | Where-Object { $_ -and $_.properties.privateLinkServiceConnectionState.status -eq 'Approved' }\n        $count = @($connections | ForEach-Object id | Sort-Object -Unique).Count\n        if ($count) { return New-Pass \"$count private endpoint(s)\" ([ordered]@{ approvedPrivateEndpoints = $count }) }\n        New-Fail 'No private endpoint' ([ordered]@{ approvedPrivateEndpoints = 0 })\n    " }, (S, O) => {
-        R.ln = F + 112;
+    R.ln = F + 93;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-DBX-004", "Title", "Databricks workspaces are accessed through private endpoints", "Category", "Network security", "Service", "Azure Databricks", "Severity", "Low", "Description", "Checks Databricks workspaces for an approved private endpoint connection.", "Rationale", "Private endpoints keep workspace and back-end traffic on private networks and enable disabling public access.", "Remediation", "Create front-end and back-end private endpoints for the workspace.", "References", R.a("https://learn.microsoft.com/azure/databricks/security/network/classic/private-link"), "Policy", R.ht(["258823f2-4595-4b52-b333-cc96192710d8", "Azure Databricks Workspaces should use private link"], false), "ResourceTypes", (S["databrickstype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $connections = @($Record.resource.properties.privateEndpointConnections) + @(Get-Child $Record 'privateEndpointConnections') | Where-Object { $_ -and $_.properties.privateLinkServiceConnectionState.status -eq 'Approved' }\n        $count = @($connections | ForEach-Object id | Sort-Object -Unique).Count\n        if ($count) { return New-Pass \"$count private endpoint(s)\" ([ordered]@{ approvedPrivateEndpoints = $count }) }\n        New-Fail 'No private endpoint' ([ordered]@{ approvedPrivateEndpoints = 0 })\n    " }, (S, O) => {
+        R.ln = F + 107;
         S["connections"] = R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.properties.privateLinkServiceConnectionState.status -eq 'Approved' " }, (S, O) => {
-            R.ln = F + 112;
+            R.ln = F + 107;
             R.e(O, (R.t((S["_"] ?? null)) && R.t(R.eq(R.m(R.m(R.m((S["_"] ?? null), "properties"), "privateLinkServiceConnectionState"), "status"), "Approved"))));
         })], R.pi(R.add(R.a(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "privateEndpointConnections")), R.cmd(S, "Get-Child", [(S["record"] ?? null), "privateEndpointConnections"], null)))));
-        R.ln = F + 113;
+        R.ln = F + 108;
         S["count"] = R.m(R.cmd(S, "Sort-Object", [R.np("Unique")], R.cmd(S, "ForEach-Object", ["id"], R.pi((S["connections"] ?? null)))), "Count");
-        R.ln = F + 114;
+        R.ln = F + 109;
         if (R.t((S["count"] ?? null))) {
-            R.ln = F + 114;
+            R.ln = F + 109;
             R.pa(O, R.cmd(S, "New-Pass", [("" + R.str((S["count"] ?? null)) + " private endpoint(s)"), (R.ht(["approvedPrivateEndpoints", (S["count"] ?? null)], true))], null));
             return;
         }
-        R.ln = F + 115;
+        R.ln = F + 110;
         R.pa(O, R.cmd(S, "New-Fail", ["No private endpoint", (R.ht(["approvedPrivateEndpoints", 0], true))], null));
     })], false)], null));
-    R.ln = F + 119;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-DBX-005", "Title", "Databricks diagnostic log delivery is configured", "Category", "Logging and threat detection", "Service", "Azure Databricks", "Severity", "Medium", "Description", "Checks Databricks workspaces for a diagnostic setting that exports resource logs.", "Rationale", "Databricks audit logs record logins, notebook and job activity, secret access and permission changes; without them misuse of the workspace goes unnoticed.", "Remediation", "Create a diagnostic setting with all log categories to a Log Analytics workspace (requires the Premium tier).", "References", R.a("https://learn.microsoft.com/azure/databricks/admin/account-settings/audit-log-delivery"), "Frameworks", R.ht(["MCSB", "LT-3", "CIS", "2.1.7", "ALZ", "Deploy-Diag-LogsCat"], false), "Policy", R.ht(["138ff14d-b687-4faa-a81c-898c91a87fa2", "Resource logs in Azure Databricks Workspaces should be enabled"], false), "ResourceTypes", (S["databrickstype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if ($null -eq $Record.diagnosticSettings) { return New-Unknown 'Diagnostic settings could not be read' }\n        if (Test-DiagnosticLogsEnabled -Settings $Record.diagnosticSettings) { return New-Pass 'Resource logs exported' }\n        New-Fail 'No diagnostic log delivery'\n    " }, (S, O) => {
-        R.ln = F + 134;
+    R.ln = F + 114;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-DBX-005", "Title", "Databricks diagnostic log delivery is configured", "Category", "Logging and threat detection", "Service", "Azure Databricks", "Severity", "Medium", "Description", "Checks Databricks workspaces for a diagnostic setting that exports resource logs.", "Rationale", "Databricks audit logs record logins, notebook and job activity, secret access and permission changes; without them misuse of the workspace goes unnoticed.", "Remediation", "Create a diagnostic setting with all log categories to a Log Analytics workspace (requires the Premium tier).", "References", R.a("https://learn.microsoft.com/azure/databricks/admin/account-settings/audit-log-delivery"), "Policy", R.ht(["138ff14d-b687-4faa-a81c-898c91a87fa2", "Resource logs in Azure Databricks Workspaces should be enabled"], false), "ResourceTypes", (S["databrickstype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if ($null -eq $Record.diagnosticSettings) { return New-Unknown 'Diagnostic settings could not be read' }\n        if (Test-DiagnosticLogsEnabled -Settings $Record.diagnosticSettings) { return New-Pass 'Resource logs exported' }\n        New-Fail 'No diagnostic log delivery'\n    " }, (S, O) => {
+        R.ln = F + 128;
         if (R.t(R.eq(null, R.m((S["record"] ?? null), "diagnosticSettings")))) {
-            R.ln = F + 134;
+            R.ln = F + 128;
             R.pa(O, R.cmd(S, "New-Unknown", ["Diagnostic settings could not be read"], null));
             return;
         }
-        R.ln = F + 135;
+        R.ln = F + 129;
         if (R.t(R.u(R.cmd(S, "Test-DiagnosticLogsEnabled", [R.np("Settings"), R.m((S["record"] ?? null), "diagnosticSettings")], null)))) {
-            R.ln = F + 135;
+            R.ln = F + 129;
             R.pa(O, R.cmd(S, "New-Pass", ["Resource logs exported"], null));
             return;
         }
-        R.ln = F + 136;
+        R.ln = F + 130;
         R.pa(O, R.cmd(S, "New-Fail", ["No diagnostic log delivery"], null));
     })], false)], null));
-    R.ln = F + 140;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-SYN-001", "Title", "Synapse workspaces use a managed virtual network with data exfiltration protection", "Category", "Network security", "Service", "Synapse Analytics", "Severity", "Medium", "Description", "Checks for the managed workspace virtual network with data exfiltration protection (outbound only to approved tenants).", "Rationale", "Without exfiltration protection, Spark and pipeline code can send workspace data to any external destination or tenant.", "Remediation", "Create the workspace with a managed virtual network and data exfiltration protection enabled (requires a new workspace), and list the approved tenants.", "References", R.a("https://learn.microsoft.com/azure/synapse-analytics/security/workspace-data-exfiltration-protection"), "Frameworks", R.ht(["MCSB", R.a([R.v("NS-2"), R.v("DP-2")]), "ALZ", "Enforce-GR-Synapse0"], false), "Policy", R.ht(["2d9dbfa3-927b-4cf0-9d0f-08747f971650", "Managed workspace virtual network on Azure Synapse workspaces should be enabled", "3484ce98-c0c5-4c83-994b-c5ac24785218", "Azure Synapse workspaces should allow outbound data traffic only to approved targets"], false), "ResourceTypes", R.a("Microsoft.Synapse/workspaces"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $p = $Record.resource.properties\n        $evidence = [ordered]@{ managedVirtualNetwork = $p.managedVirtualNetwork; preventDataExfiltration = [bool]$p.managedVirtualNetworkSettings.preventDataExfiltration }\n        if ($p.managedVirtualNetwork -and $p.managedVirtualNetworkSettings.preventDataExfiltration) { return New-Pass 'Managed virtual network with exfiltration protection' $evidence }\n        New-Fail $(if (-not $p.managedVirtualNetwork) { 'No managed virtual network' } else { 'Data exfiltration protection disabled' }) $evidence\n    " }, (S, O) => {
-        R.ln = F + 155;
+    R.ln = F + 134;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-SYN-001", "Title", "Synapse workspaces use a managed virtual network with data exfiltration protection", "Category", "Network security", "Service", "Synapse Analytics", "Severity", "Medium", "Description", "Checks for the managed workspace virtual network with data exfiltration protection (outbound only to approved tenants).", "Rationale", "Without exfiltration protection, Spark and pipeline code can send workspace data to any external destination or tenant.", "Remediation", "Create the workspace with a managed virtual network and data exfiltration protection enabled (requires a new workspace), and list the approved tenants.", "References", R.a("https://learn.microsoft.com/azure/synapse-analytics/security/workspace-data-exfiltration-protection"), "Policy", R.ht(["2d9dbfa3-927b-4cf0-9d0f-08747f971650", "Managed workspace virtual network on Azure Synapse workspaces should be enabled", "3484ce98-c0c5-4c83-994b-c5ac24785218", "Azure Synapse workspaces should allow outbound data traffic only to approved targets"], false), "ResourceTypes", R.a("Microsoft.Synapse/workspaces"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $p = $Record.resource.properties\n        $evidence = [ordered]@{ managedVirtualNetwork = $p.managedVirtualNetwork; preventDataExfiltration = [bool]$p.managedVirtualNetworkSettings.preventDataExfiltration }\n        if ($p.managedVirtualNetwork -and $p.managedVirtualNetworkSettings.preventDataExfiltration) { return New-Pass 'Managed virtual network with exfiltration protection' $evidence }\n        New-Fail $(if (-not $p.managedVirtualNetwork) { 'No managed virtual network' } else { 'Data exfiltration protection disabled' }) $evidence\n    " }, (S, O) => {
+        R.ln = F + 148;
         S["p"] = R.m(R.m((S["record"] ?? null), "resource"), "properties");
-        R.ln = F + 156;
+        R.ln = F + 149;
         S["evidence"] = R.ht(["managedVirtualNetwork", R.m((S["p"] ?? null), "managedVirtualNetwork"), "preventDataExfiltration", R.c("bool", R.m(R.m((S["p"] ?? null), "managedVirtualNetworkSettings"), "preventDataExfiltration"))], true);
-        R.ln = F + 157;
+        R.ln = F + 150;
         if ((R.t(R.m((S["p"] ?? null), "managedVirtualNetwork")) && R.t(R.m(R.m((S["p"] ?? null), "managedVirtualNetworkSettings"), "preventDataExfiltration")))) {
-            R.ln = F + 157;
+            R.ln = F + 150;
             R.pa(O, R.cmd(S, "New-Pass", ["Managed virtual network with exfiltration protection", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 158;
+        R.ln = F + 151;
         R.pa(O, R.cmd(S, "New-Fail", [(() => {
             const v1 = [];
-            R.ln = F + 158;
+            R.ln = F + 151;
             if (!R.t(R.m((S["p"] ?? null), "managedVirtualNetwork"))) {
-                R.ln = F + 158;
+                R.ln = F + 151;
                 R.e(v1, "No managed virtual network");
             } else {
-                R.ln = F + 158;
+                R.ln = F + 151;
                 R.e(v1, "Data exfiltration protection disabled");
             }
             return R.u(v1);
         })(), (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 162;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-ADF-001", "Title", "Data Factory linked services keep secrets in Key Vault", "Category", "Identity management", "Service", "Data Factory", "Severity", "Medium", "Description", "Finds linked services that store credentials in the factory (SecureString) instead of referencing Key Vault or using managed identity.", "Rationale", "Credentials stored in Data Factory are not centrally rotated or audited and are available to every factory contributor through the linked service.", "Remediation", "Use managed identity authentication where the connector supports it, otherwise store the secret in Key Vault and reference it with an AzureKeyVaultSecret.", "References", R.a("https://learn.microsoft.com/azure/data-factory/store-credentials-in-key-vault"), "Frameworks", R.ht(["MCSB", R.a([R.v("DP-6"), R.v("IM-8")]), "WAF", "SE:09", "ALZ", "Enforce-GR-DataFactory0"], false), "Policy", R.ht(["127ef6d7-242f-43b3-9eef-947faf1725d0", "Azure Data Factory linked services should use Key Vault for storing secrets"], false), "ResourceTypes", R.a("Microsoft.DataFactory/factories"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not (Test-ChildCollected $Record 'linkedservices')) { return New-Unknown 'Linked services could not be listed' }\n        $stored = @(Get-Child $Record 'linkedservices' | Where-Object { $_ -and (($_.properties.typeProperties | ConvertTo-Json -Depth 20 -Compress) -match '\"type\":\"SecureString\"') } | ForEach-Object name | Sort-Object)\n        $evidence = [ordered]@{ linkedServicesWithStoredSecrets = $stored }\n        if ($stored) { return New-Fail \"Linked service(s) with stored secrets: $($stored -join ', ')\" $evidence }\n        New-Pass 'No secrets stored in linked services' $evidence\n    " }, (S, O) => {
-        R.ln = F + 177;
+    R.ln = F + 155;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-ADF-001", "Title", "Data Factory linked services keep secrets in Key Vault", "Category", "Identity management", "Service", "Data Factory", "Severity", "Medium", "Description", "Finds linked services that store credentials in the factory (SecureString) instead of referencing Key Vault or using managed identity.", "Rationale", "Credentials stored in Data Factory are not centrally rotated or audited and are available to every factory contributor through the linked service.", "Remediation", "Use managed identity authentication where the connector supports it, otherwise store the secret in Key Vault and reference it with an AzureKeyVaultSecret.", "References", R.a("https://learn.microsoft.com/azure/data-factory/store-credentials-in-key-vault"), "Policy", R.ht(["127ef6d7-242f-43b3-9eef-947faf1725d0", "Azure Data Factory linked services should use Key Vault for storing secrets"], false), "ResourceTypes", R.a("Microsoft.DataFactory/factories"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not (Test-ChildCollected $Record 'linkedservices')) { return New-Unknown 'Linked services could not be listed' }\n        $stored = @(Get-Child $Record 'linkedservices' | Where-Object { $_ -and (($_.properties.typeProperties | ConvertTo-Json -Depth 20 -Compress) -match '\"type\":\"SecureString\"') } | ForEach-Object name | Sort-Object)\n        $evidence = [ordered]@{ linkedServicesWithStoredSecrets = $stored }\n        if ($stored) { return New-Fail \"Linked service(s) with stored secrets: $($stored -join ', ')\" $evidence }\n        New-Pass 'No secrets stored in linked services' $evidence\n    " }, (S, O) => {
+        R.ln = F + 169;
         if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "linkedservices"], null)))) {
-            R.ln = F + 177;
+            R.ln = F + 169;
             R.pa(O, R.cmd(S, "New-Unknown", ["Linked services could not be listed"], null));
             return;
         }
-        R.ln = F + 178;
+        R.ln = F + 170;
         S["stored"] = R.cmd(S, "Sort-Object", [], R.cmd(S, "ForEach-Object", ["name"], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and (($_.properties.typeProperties | ConvertTo-Json -Depth 20 -Compress) -match '\"type\":\"SecureString\"') " }, (S, O) => {
-            R.ln = F + 178;
+            R.ln = F + 170;
             R.e(O, (R.t((S["_"] ?? null)) && R.t(R.match(S, R.u(R.cmd(S, "ConvertTo-Json", [R.np("Depth"), 20, R.np("Compress")], R.pi(R.m(R.m((S["_"] ?? null), "properties"), "typeProperties")))), "\"type\":\"SecureString\""))));
         })], R.cmd(S, "Get-Child", [(S["record"] ?? null), "linkedservices"], null))));
-        R.ln = F + 179;
+        R.ln = F + 171;
         S["evidence"] = R.ht(["linkedServicesWithStoredSecrets", (S["stored"] ?? null)], true);
-        R.ln = F + 180;
+        R.ln = F + 172;
         if (R.t((S["stored"] ?? null))) {
-            R.ln = F + 180;
+            R.ln = F + 172;
             R.pa(O, R.cmd(S, "New-Fail", [("Linked service(s) with stored secrets: " + R.str(R.u(R.pi(R.join((S["stored"] ?? null), ", "))))), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 181;
+        R.ln = F + 173;
         R.pa(O, R.cmd(S, "New-Pass", ["No secrets stored in linked services", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 185;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-ADF-002", "Title", "Data Factory uses Git integration", "Category", "Posture and vulnerability management", "Service", "Data Factory", "Severity", "Low", "Description", "Checks for a Git repository configuration on data factories.", "Rationale", "Git integration gives version history, review and controlled promotion of pipeline changes, instead of direct live edits that are hard to audit.", "Remediation", "Connect the development factory to Azure DevOps or GitHub and deploy to production through CI/CD.", "References", R.a("https://learn.microsoft.com/azure/data-factory/source-control"), "Frameworks", R.ht(["MCSB", R.a([R.v("PV-2"), R.v("DS-6")])], false), "Policy", R.ht(["77d40665-3120-4348-b539-3192ec808307", "Azure Data Factory should use a Git repository for source control"], false), "ResourceTypes", R.a("Microsoft.DataFactory/factories"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $repo = $Record.resource.properties.repoConfiguration\n        if ($repo) { return New-Pass \"Git integration ($($repo.type))\" ([ordered]@{ repositoryType = $repo.type }) }\n        New-Fail 'No Git integration' ([ordered]@{ repositoryType = $null })\n    " }, (S, O) => {
-        R.ln = F + 200;
+    R.ln = F + 177;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-ADF-002", "Title", "Data Factory uses Git integration", "Category", "Posture and vulnerability management", "Service", "Data Factory", "Severity", "Low", "Description", "Checks for a Git repository configuration on data factories.", "Rationale", "Git integration gives version history, review and controlled promotion of pipeline changes, instead of direct live edits that are hard to audit.", "Remediation", "Connect the development factory to Azure DevOps or GitHub and deploy to production through CI/CD.", "References", R.a("https://learn.microsoft.com/azure/data-factory/source-control"), "Policy", R.ht(["77d40665-3120-4348-b539-3192ec808307", "Azure Data Factory should use a Git repository for source control"], false), "ResourceTypes", R.a("Microsoft.DataFactory/factories"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $repo = $Record.resource.properties.repoConfiguration\n        if ($repo) { return New-Pass \"Git integration ($($repo.type))\" ([ordered]@{ repositoryType = $repo.type }) }\n        New-Fail 'No Git integration' ([ordered]@{ repositoryType = $null })\n    " }, (S, O) => {
+        R.ln = F + 191;
         S["repo"] = R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "repoConfiguration");
-        R.ln = F + 201;
+        R.ln = F + 192;
         if (R.t((S["repo"] ?? null))) {
-            R.ln = F + 201;
+            R.ln = F + 192;
             R.pa(O, R.cmd(S, "New-Pass", [("Git integration (" + R.str(R.u(R.pi(R.m((S["repo"] ?? null), "type")))) + ")"), (R.ht(["repositoryType", R.m((S["repo"] ?? null), "type")], true))], null));
             return;
         }
-        R.ln = F + 202;
+        R.ln = F + 193;
         R.pa(O, R.cmd(S, "New-Fail", ["No Git integration", (R.ht(["repositoryType", null], true))], null));
+    })], false)], null));
+    R.ln = F + 197;
+    S["kustotype"] = R.a("Microsoft.Kusto/clusters");
+    R.ln = F + 199;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-ADX-001", "Title", "Azure Data Explorer clusters disable public network access", "Category", "Network security", "Service", "Azure Data Explorer", "Severity", "Medium", "Description", "Checks Azure Data Explorer clusters for disabled public network access and a SKU that supports private endpoints.", "Rationale", "A public cluster endpoint accepts queries and ingestion from anywhere on the Internet, protected by authentication alone. Private endpoints keep analytics data and queries on private networks.", "Remediation", "Create a private endpoint for the cluster (Standard or Basic tier), then set public network access to Disabled.", "References", R.a("https://learn.microsoft.com/azure/data-explorer/security-network-private-endpoint"), "ResourceTypes", (S["kustotype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $p = $Record.resource.properties\n        $evidence = [ordered]@{ publicNetworkAccess = $p.publicNetworkAccess; skuTier = $Record.resource.sku.tier }\n        if ([string]$Record.resource.sku.tier -notin 'Standard', 'Basic') { return New-Fail \"SKU tier $($Record.resource.sku.tier) does not support private endpoints\" $evidence }\n        if ($p.publicNetworkAccess -eq 'Disabled') { return New-Pass 'Public network access disabled' $evidence }\n        New-Fail \"Public network access $(if ($p.publicNetworkAccess) { $p.publicNetworkAccess } else { 'Enabled (default)' })\" $evidence\n    " }, (S, O) => {
+        R.ln = F + 212;
+        S["p"] = R.m(R.m((S["record"] ?? null), "resource"), "properties");
+        R.ln = F + 213;
+        S["evidence"] = R.ht(["publicNetworkAccess", R.m((S["p"] ?? null), "publicNetworkAccess"), "skuTier", R.m(R.m(R.m((S["record"] ?? null), "resource"), "sku"), "tier")], true);
+        R.ln = F + 214;
+        if (R.t(R.nin(R.c("string", R.m(R.m(R.m((S["record"] ?? null), "resource"), "sku"), "tier")), [R.v("Standard"), R.v("Basic")]))) {
+            R.ln = F + 214;
+            R.pa(O, R.cmd(S, "New-Fail", [("SKU tier " + R.str(R.u(R.pi(R.m(R.m(R.m((S["record"] ?? null), "resource"), "sku"), "tier")))) + " does not support private endpoints"), (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 215;
+        if (R.t(R.eq(R.m((S["p"] ?? null), "publicNetworkAccess"), "Disabled"))) {
+            R.ln = F + 215;
+            R.pa(O, R.cmd(S, "New-Pass", ["Public network access disabled", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 216;
+        R.pa(O, R.cmd(S, "New-Fail", [("Public network access " + R.str((() => {
+            const v2 = [];
+            R.ln = F + 216;
+            if (R.t(R.m((S["p"] ?? null), "publicNetworkAccess"))) {
+                R.ln = F + 216;
+                R.e(v2, R.m((S["p"] ?? null), "publicNetworkAccess"));
+            } else {
+                R.ln = F + 216;
+                R.e(v2, "Enabled (default)");
+            }
+            return R.u(v2);
+        })())), (S["evidence"] ?? null)], null));
+    })], false)], null));
+    R.ln = F + 220;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-ADX-002", "Title", "Azure Data Explorer clusters encrypt their disks", "Category", "Data protection", "Service", "Azure Data Explorer", "Severity", "Medium", "Description", "Checks Azure Data Explorer clusters for disk encryption, which encrypts the operating system and data disks (including the hot cache) of the cluster nodes.", "Rationale", "Storage encryption covers the persisted data only. The node disks hold the hot cache, a copy of the most queried data, and are not encrypted unless disk encryption is on.", "Remediation", "Enable disk encryption on the cluster (Security > Disk encryption).", "References", R.a("https://learn.microsoft.com/azure/data-explorer/cluster-encryption-disk"), "ResourceTypes", (S["kustotype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $evidence = [ordered]@{ enableDiskEncryption = $Record.resource.properties.enableDiskEncryption }\n        if ($Record.resource.properties.enableDiskEncryption -eq $true) { return New-Pass 'Disk encryption enabled' $evidence }\n        New-Fail 'Disk encryption disabled' $evidence\n    " }, (S, O) => {
+        R.ln = F + 233;
+        S["evidence"] = R.ht(["enableDiskEncryption", R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "enableDiskEncryption")], true);
+        R.ln = F + 234;
+        if (R.t(R.eq(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "enableDiskEncryption"), true))) {
+            R.ln = F + 234;
+            R.pa(O, R.cmd(S, "New-Pass", ["Disk encryption enabled", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 235;
+        R.pa(O, R.cmd(S, "New-Fail", ["Disk encryption disabled", (S["evidence"] ?? null)], null));
+    })], false)], null));
+    R.ln = F + 239;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-ADX-003", "Title", "Azure Data Explorer clusters use double encryption", "Category", "Data protection", "Service", "Azure Data Explorer", "Severity", "Low", "Description", "Checks Azure Data Explorer clusters for double encryption, which adds infrastructure encryption with a second algorithm and key under the service level encryption.", "Rationale", "Two independent layers of encryption protect the data if one encryption algorithm or key is compromised.", "Remediation", "Double encryption can only be enabled when a cluster is created: create a new cluster with double encryption and move the databases to it.", "References", R.a("https://learn.microsoft.com/azure/data-explorer/cluster-encryption-double"), "ResourceTypes", (S["kustotype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $evidence = [ordered]@{ enableDoubleEncryption = $Record.resource.properties.enableDoubleEncryption }\n        if ($Record.resource.properties.enableDoubleEncryption -eq $true) { return New-Pass 'Double encryption enabled' $evidence }\n        New-Fail 'Double encryption disabled' $evidence\n    " }, (S, O) => {
+        R.ln = F + 252;
+        S["evidence"] = R.ht(["enableDoubleEncryption", R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "enableDoubleEncryption")], true);
+        R.ln = F + 253;
+        if (R.t(R.eq(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "enableDoubleEncryption"), true))) {
+            R.ln = F + 253;
+            R.pa(O, R.cmd(S, "New-Pass", ["Double encryption enabled", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 254;
+        R.pa(O, R.cmd(S, "New-Fail", ["Double encryption disabled", (S["evidence"] ?? null)], null));
     })], false)], null));
 });

@@ -14,7 +14,6 @@ Add-AzTest @{
     Rationale     = 'Attackers delete backups before encrypting production data. Soft delete keeps deleted backup data recoverable for at least 14 days.'
     Remediation   = 'Enable soft delete and make it always-on so it cannot be disabled (vault Properties > Security settings > Soft delete).'
     References    = @('https://learn.microsoft.com/azure/backup/secure-by-default')
-    Frameworks    = @{ MCSB = 'BR-2'; WAF = 'SE:12' }
     Policy        = @{ '31b8092a-36b8-434b-9af7-5ec844364148' = 'Soft delete must be enabled for Recovery Services Vaults.'; '9798d31d-6028-4dee-8643-46102185c016' = 'Soft delete should be enabled for Backup Vaults' }
     ResourceTypes = $backupVaultTypes
     Evaluate      = {
@@ -39,7 +38,6 @@ Add-AzTest @{
     Rationale     = 'Immutability prevents recovery points from being deleted or their retention reduced before they expire, even by a compromised administrator.'
     Remediation   = 'Enable immutability on the vault and lock it once retention settings are final.'
     References    = @('https://learn.microsoft.com/azure/backup/backup-azure-immutable-vault-concept')
-    Frameworks    = @{ MCSB = 'BR-2'; WAF = 'SE:12' }
     Policy        = @{ 'd6f6f560-14b7-49a4-9fc8-d2c3a9807868' = 'Immutability must be enabled for Recovery Services vaults'; '2514263b-bc0d-4b06-ac3e-f262c0979018' = 'Immutability must be enabled for backup vaults' }
     ResourceTypes = $backupVaultTypes
     Evaluate      = {
@@ -61,7 +59,6 @@ Add-AzTest @{
     Rationale     = 'With Multi-User Authorization, destructive operations such as disabling soft delete or reducing retention need approval on a Resource Guard owned by another team or tenant.'
     Remediation   = 'Create a Resource Guard in a separate subscription or tenant and associate it with the vault.'
     References    = @('https://learn.microsoft.com/azure/backup/multi-user-authorization-concept')
-    Frameworks    = @{ MCSB = @('BR-2', 'PA-1') }
     Policy        = @{ 'c7031eab-0fc0-4cd9-acd0-4497bd66d91a' = 'Multi-User Authorization (MUA) must be enabled for Recovery Services Vaults.'; 'c58e083e-7982-4e24-afdc-be14d312389e' = 'Multi-User Authorization (MUA) must be enabled for Backup Vaults.' }
     ResourceTypes = $backupVaultTypes
     Evaluate      = {
@@ -84,7 +81,6 @@ Add-AzTest @{
     Rationale     = 'Geo-redundant backup storage (with cross region restore) keeps backups available after a regional disaster.'
     Remediation   = 'Set storage redundancy to geo-redundant before protecting the first item (it cannot be changed afterwards) and enable cross region restore.'
     References    = @('https://learn.microsoft.com/azure/backup/backup-create-recovery-services-vault#set-storage-redundancy')
-    Frameworks    = @{ MCSB = 'BR-1' }
     ResourceTypes = $backupVaultTypes
     Evaluate      = {
         param($Record)
@@ -109,7 +105,6 @@ Add-AzTest @{
     Rationale     = 'Cross subscription restore lets backup data be restored into another subscription, which an attacker with backup operator rights can use to exfiltrate data.'
     Remediation   = 'Disable cross subscription restore (or disable it permanently) unless it is a documented requirement.'
     References    = @('https://learn.microsoft.com/azure/backup/backup-azure-arm-restore-vms')
-    Frameworks    = @{ MCSB = @('BR-2', 'DP-2') }
     Policy        = @{ 'f19b0c83-716f-4b81-85e3-2dbf057c35d6' = 'Disable Cross Subscription Restore for Azure Recovery Services vaults'; '4d479a11-f2b5-4f0a-bb1e-d2332aa95cda' = 'Disable Cross Subscription Restore for Backup Vaults' }
     ResourceTypes = $backupVaultTypes
     Evaluate      = {
@@ -132,7 +127,6 @@ Add-AzTest @{
     Rationale     = 'Failing backups are only useful to know about before a restore is needed; alerts on job failures make backup monitoring part of daily operations.'
     Remediation   = "Enable 'Use Azure Monitor alerts for all job failures' in the vault monitoring settings and route alerts through an action group."
     References    = @('https://learn.microsoft.com/azure/backup/backup-azure-monitoring-built-in-monitor')
-    Frameworks    = @{ MCSB = 'BR-3'; WAF = 'SE:10' }
     ResourceTypes = $backupVaultTypes
     Evaluate      = {
         param($Record)
@@ -159,7 +153,6 @@ Add-AzTest @{
     Rationale     = 'Point-in-time restore depends on the backups the database service makes itself. Kept only in the primary region, they are lost together with the database in a regional outage or disaster.'
     Remediation   = 'Use geo-redundant (or geo-zone-redundant) backup storage on SQL databases and managed instances, enable geo-redundant backup on PostgreSQL and MySQL flexible servers (only possible when the server is created), and use geo-redundant periodic backup or a second region for Cosmos DB.'
     References    = @('https://learn.microsoft.com/azure/azure-sql/database/automated-backups-overview', 'https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-backup-restore', 'https://learn.microsoft.com/azure/cosmos-db/periodic-backup-storage-redundancy')
-    Frameworks    = @{ MCSB = 'BR-1' }
     ResourceTypes = @('Microsoft.Sql/servers/databases', 'Microsoft.Sql/managedInstances', 'Microsoft.DBforPostgreSQL/flexibleServers', 'Microsoft.DBforMySQL/flexibleServers', 'Microsoft.DocumentDB/databaseAccounts')
     Filter        = { param($Record) Test-UserDatabase $Record }
     Evaluate      = {
@@ -202,7 +195,6 @@ Add-AzTest @{
     Rationale     = 'Point-in-time restore covers at most 35 days. Recovering from corruption or an attack found later, or meeting a retention obligation, needs backups kept for months or years.'
     Remediation   = 'Configure long-term retention on the database (SQL server > Backups > Retention policies) with the weekly, monthly and yearly retention your recovery and retention requirements ask for.'
     References    = @('https://learn.microsoft.com/azure/azure-sql/database/long-term-retention-overview')
-    Frameworks    = @{ MCSB = 'BR-1' }
     Policy        = @{ 'd38fc420-0735-4ef3-ac11-c806f651a570' = 'Long-term geo-redundant backup should be enabled for Azure SQL Databases' }
     ResourceTypes = @('Microsoft.Sql/servers/databases')
     Filter        = { param($Record) Test-UserDatabase $Record }
@@ -230,7 +222,6 @@ Add-AzTest @{
     Rationale     = 'Geo-redundant backups can only be restored in the paired region at will when cross region restore is enabled; otherwise a restore after a regional disaster waits until Microsoft declares a failover of the region.'
     Remediation   = 'Enable cross region restore on the vault (Properties > Backup configuration). It cannot be disabled again once enabled.'
     References    = @('https://learn.microsoft.com/azure/backup/backup-create-recovery-services-vault#set-cross-region-restore')
-    Frameworks    = @{ MCSB = 'BR-1' }
     ResourceTypes = $backupVaultTypes
     Evaluate      = {
         param($Record)
@@ -294,7 +285,6 @@ Add-AzTest @{
     Rationale     = 'A backup that has never been restored is an assumption, not a recovery capability. Regular restore tests and disaster recovery drills show that the data, the procedure and the recovery time hold up. The activity log reaches back 90 days at most, so a test done earlier in the year is not visible here.'
     Remediation   = 'Restore a representative item from each vault to an isolated location on a schedule (at least yearly), run Site Recovery test failovers into an isolated network, and keep the results as evidence.'
     References    = @('https://learn.microsoft.com/azure/backup/backup-azure-arm-restore-vms', 'https://learn.microsoft.com/azure/site-recovery/azure-to-azure-tutorial-dr-drill')
-    Frameworks    = @{ MCSB = 'BR-4' }
     Requires      = @('activityLog/activityLog')
     ResourceTypes = $backupVaultTypes
     Evaluate      = {
@@ -354,7 +344,6 @@ Add-AzTest @{
     Rationale     = 'Backups restore data, but bringing a critical workload back in another region within its recovery time objective needs a replica that is ready to fail over. Not every machine needs one; the ones behind critical or important functions do.'
     Remediation   = 'Enable Site Recovery replication for the machines behind critical or important functions, choose a target region and network, and run test failovers regularly.'
     References    = @('https://learn.microsoft.com/azure/site-recovery/azure-to-azure-tutorial-enable-replication')
-    Frameworks    = @{ DORA = @('Art. 11', 'Art. 12', 'RTS Art. 26') }
     Policy        = @{ '0015ea4d-51ff-4ce3-8d8c-f3f8f0179a56' = 'Audit virtual machines without disaster recovery configured' }
     ResourceTypes = @('Microsoft.Compute/virtualMachines')
     Evaluate      = {
@@ -387,7 +376,6 @@ Add-AzTest @{
     Rationale     = 'A resource in a single availability zone is a single point of failure: a datacenter outage takes it down even though the region keeps running. Zone redundancy keeps it available without a failover. It is only possible in regions with availability zones.'
     Remediation   = 'Use zone-redundant storage (ZRS or GZRS), enable zone redundancy on databases, App Service plans (Premium v2, v3 or Isolated v2) and Cosmos DB regions, spread AKS node pools, scale sets, Application Gateways and firewalls over at least two zones, and use zone-redundant high availability for flexible servers.'
     References    = @('https://learn.microsoft.com/azure/reliability/availability-zones-overview')
-    Frameworks    = @{ ALZ = 'Audit-ZoneResiliency'; DORA = @('Art. 7', 'Art. 12') }
     ResourceTypes = $zoneTypes
     Filter        = { param($Record) (Test-UserDatabase $Record) -and -not ($Record.type -eq 'Microsoft.Web/serverfarms' -and [string]$Record.resource.sku.tier -in 'Free', 'Shared', 'Dynamic', 'FlexConsumption') }
     Evaluate      = {

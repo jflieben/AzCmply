@@ -23,7 +23,6 @@ Add-AzTest @{
     Rationale     = 'Without purge protection a deleted vault, key or secret can be permanently purged immediately, by mistake or by an attacker. Losing a key used for encryption at rest makes the data unrecoverable.'
     Remediation   = 'Enable purge protection (az keyvault update --enable-purge-protection true ...). It cannot be disabled afterwards.'
     References    = @('https://learn.microsoft.com/azure/key-vault/general/soft-delete-overview')
-    Frameworks    = @{ MCSB = @('DP-8', 'BR-2'); CIS = '8.3.5'; WAF = 'SE:09'; ALZ = 'Enforce-GR-KeyVault' }
     Defender      = @{ '4ed62ae4-5072-f9e7-8d94-51c76c48159a' = 'Key vaults should have deletion protection enabled'; '78211c00-15a9-336e-17c4-0b48613dadf4' = 'Key vaults should have soft delete enabled'; '7b4f60c5-48fd-b41c-9180-43783796f753' = 'Azure Key Vault Managed HSM should have purge protection enabled' }
     Policy        = @{ '0b60c0b2-2dc2-4e1c-b5c9-abbed971de53' = 'Key vaults should have deletion protection enabled'; '1e66c121-a66a-4b1f-9b83-0fd99bf0fc2d' = 'Key vaults should have soft delete enabled'; 'c39ba22d-4428-4149-b981-70acb31fc383' = 'Azure Key Vault Managed HSM should have purge protection enabled' }
     ResourceTypes = $vaultTypes
@@ -47,7 +46,6 @@ Add-AzTest @{
     Rationale     = 'Access policies cannot be scoped to individual keys or secrets, are not covered by PIM or deny assignments, and anyone with Contributor on the vault can grant themselves access. RBAC is the default from API version 2026-02-01.'
     Remediation   = 'Recreate the access policy permissions as Key Vault RBAC role assignments, then switch the permission model to Azure RBAC (az keyvault update --enable-rbac-authorization true ...).'
     References    = @('https://learn.microsoft.com/azure/key-vault/general/rbac-migration')
-    Frameworks    = @{ MCSB = @('PA-7', 'DP-8'); CIS = '8.3.6'; WAF = 'SE:05'; ALZ = 'Enforce-GR-KeyVault' }
     Policy        = @{ '12d4fa5e-1f9f-4c21-97a9-b99b3c6611b5' = 'Azure Key Vault should use RBAC permission model' }
     ResourceTypes = @('Microsoft.KeyVault/vaults')
     Evaluate      = {
@@ -69,7 +67,6 @@ Add-AzTest @{
     Rationale     = 'A public endpoint allows anyone with a stolen token or credential to reach the secrets from any network.'
     Remediation   = 'Create a private endpoint and set public network access to Disabled (az keyvault update --public-network-access Disabled ...).'
     References    = @('https://learn.microsoft.com/azure/key-vault/general/network-security')
-    Frameworks    = @{ MCSB = @('NS-2', 'DP-8'); CIS = '8.3.7'; WAF = 'SE:06'; ALZ = @('Enforce-GR-KeyVault', 'Deny-Public-Endpoints') }
     Defender      = @{ '52f7826a-ace7-3107-dd0d-4875853c1576' = 'Firewall should be enabled on Key Vault' }
     Policy        = @{ '405c5871-3e91-4644-8a63-58e19d68ff5b' = 'Azure Key Vault should disable public network access'; '19ea9d63-adee-4431-a95e-1913c6c1c75f' = '[Preview]: Azure Key Vault Managed HSM should disable public network access' }
     ResourceTypes = $vaultTypes
@@ -93,7 +90,6 @@ Add-AzTest @{
     Rationale     = 'Private endpoints keep secret retrieval on private networks and allow the public endpoint to be disabled.'
     Remediation   = 'Create a private endpoint for the vault with privatelink.vaultcore.azure.net DNS integration.'
     References    = @('https://learn.microsoft.com/azure/key-vault/general/private-link-service')
-    Frameworks    = @{ MCSB = @('NS-2', 'DP-8'); CIS = '8.3.8'; ALZ = 'Deploy-Private-DNS-Zones' }
     Defender      = @{ 'f6b59724-4a05-aa38-33e2-25f15eecf00b' = 'Azure Key Vaults should use private link' }
     Policy        = @{ 'a6abeaec-4d90-4a02-805f-6b26c4d3fbe9' = 'Azure Key Vaults should use private link'; '59fee2f4-d439-4f1b-9b9a-982e1474bfd8' = '[Preview]: Azure Key Vault Managed HSM should use private link' }
     ResourceTypes = $vaultTypes
@@ -108,10 +104,10 @@ Add-AzTest @{
 #CIS numbers expiry dates separately for RBAC and access policy vaults (keys 8.3.1 / 8.3.2, secrets 8.3.3 / 8.3.4),
 #so each permission model gets its own test and a control is never judged on vaults it does not cover
 $vaultExpiryTests = @(
-    @{ Id = 'AZ-KV-005'; Item = 'keys'; Noun = 'key'; Rbac = $true; Cis = '8.3.1' }
-    @{ Id = 'AZ-KV-010'; Item = 'keys'; Noun = 'key'; Rbac = $false; Cis = '8.3.2' }
-    @{ Id = 'AZ-KV-006'; Item = 'secrets'; Noun = 'secret'; Rbac = $true; Cis = '8.3.3' }
-    @{ Id = 'AZ-KV-011'; Item = 'secrets'; Noun = 'secret'; Rbac = $false; Cis = '8.3.4' }
+    @{ Id = 'AZ-KV-005'; Item = 'keys'; Noun = 'key'; Rbac = $true }
+    @{ Id = 'AZ-KV-010'; Item = 'keys'; Noun = 'key'; Rbac = $false }
+    @{ Id = 'AZ-KV-006'; Item = 'secrets'; Noun = 'secret'; Rbac = $true }
+    @{ Id = 'AZ-KV-011'; Item = 'secrets'; Noun = 'secret'; Rbac = $false }
 )
 
 foreach ($expiry in $vaultExpiryTests) {
@@ -139,7 +135,6 @@ foreach ($expiry in $vaultExpiryTests) {
         } else {
             @('https://learn.microsoft.com/azure/key-vault/secrets/tutorial-rotation')
         }
-        Frameworks  = @{ MCSB = 'DP-6'; CIS = $expiry.Cis; WAF = 'SE:09'; ALZ = 'Enforce-GR-KeyVault' }
         Defender    = if ($expiry.Item -eq 'keys') { @{ '1aabfa0d-7585-f9f5-1d92-ecb40291d9f2' = 'Key Vault keys should have an expiration date' } } else { $null }
         Policy      = if ($expiry.Item -eq 'keys') {
             @{ '152b15f7-8e1f-4c1f-ab71-8c010ba5dbc0' = 'Key Vault keys should have an expiration date' }
@@ -175,7 +170,6 @@ Add-AzTest @{
     Rationale   = 'Automatic rotation limits the amount of data protected by a single key version and removes the dependency on manual processes.'
     Remediation = 'Configure a key rotation policy (az keyvault key rotation-policy update ...) and let dependent services use versionless key URIs.'
     References  = @('https://learn.microsoft.com/azure/key-vault/keys/how-to-configure-key-rotation')
-    Frameworks  = @{ MCSB = 'DP-6'; CIS = '8.3.9' }
     Policy      = @{ 'd8cf8476-a2ec-4916-896e-992351803c44' = 'Keys should have a rotation policy ensuring that their rotation is scheduled within the specified number of days after creation.' }
     Run         = {
         foreach ($vault in (Get-AzResourceRecords -Type 'Microsoft.KeyVault/vaults')) {
@@ -201,7 +195,6 @@ Add-AzTest @{
     Rationale   = 'Long lived certificates increase the window in which a compromised private key can be abused and conflict with the 398 day (and shrinking) CA/Browser Forum limits for public TLS certificates.'
     Remediation = 'Set the certificate policy validity to 12 months or less (az keyvault certificate set-attributes / policy update) and automate renewal.'
     References  = @('https://learn.microsoft.com/azure/key-vault/certificates/overview-renew-certificate')
-    Frameworks  = @{ MCSB = 'DP-7'; CIS = '8.3.11'; ALZ = 'Enforce-GR-KeyVault' }
     Defender    = @{ 'fc84abc0-eee6-4758-8372-a7681965ca44' = 'Validity period of certificates stored in Azure Key Vault should not exceed 12 months' }
     Policy      = @{ '0a075868-4c26-42ef-914c-5bc007359560' = 'Certificates should have the specified maximum validity period' }
     Run         = {
@@ -233,7 +226,6 @@ Add-AzTest @{
     Rationale     = 'Full and purge permissions allow reading every secret and permanently destroying keys. Applications need only the individual operations they use.'
     Remediation   = 'Reduce each access policy to the required operations (for example get and list on secrets), or migrate the vault to Azure RBAC with narrowly scoped roles.'
     References    = @('https://learn.microsoft.com/azure/key-vault/general/assign-access-policy')
-    Frameworks    = @{ MCSB = @('PA-7', 'DP-8'); WAF = 'SE:05' }
     ResourceTypes = @('Microsoft.KeyVault/vaults')
     Evaluate      = {
         param($Record)

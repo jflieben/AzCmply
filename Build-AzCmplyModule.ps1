@@ -21,7 +21,7 @@
     .PARAMETER OutputPath
     Folder to build into. Default .\PSModule
     .PARAMETER ModuleVersion
-    Version for the manifest. Default: the VERSION file, falling back to the analyzer version in Analyze\Invoke-AzureAnalyze.ps1.
+    Version for the manifest and the components. Default: the VERSION file.
     .PARAMETER SkipValidation
     Skip importing the built module and analysing a generated fixture with it.
     .PARAMETER RunSelfTest
@@ -86,19 +86,10 @@ foreach ($component in $components) {
 }
 
 if (-not $ModuleVersion) {
-    #the VERSION file is the single source of truth for what gets published; the analyzer version is a fallback
-    $versionFile = Join-Path $PSScriptRoot 'VERSION'
-    if (Test-Path $versionFile) {
-        $ModuleVersion = (Get-Content $versionFile -Raw).Trim()
-        if ($ModuleVersion -notmatch '^\d+\.\d+\.\d+$') { throw "VERSION file must hold a three-part version (X.Y.Z), found '$ModuleVersion'" }
-        Write-Host "Module version $ModuleVersion (from VERSION)"
-    }
-    else {
-        $analyzer = Get-Content (Join-Path $PSScriptRoot 'Analyze\Invoke-AzureAnalyze.ps1') -Raw
-        if ($analyzer -notmatch "\`$analyzerVersion\s*=\s*'([\d.]+)'") { throw 'Could not read the analyzer version; pass -ModuleVersion' }
-        $ModuleVersion = $Matches[1]
-        Write-Host "Module version $ModuleVersion (from the analyzer)"
-    }
+    #the VERSION file is the single source of truth for every component and for what gets published
+    $ModuleVersion = (Get-Content (Join-Path $PSScriptRoot 'VERSION') -Raw).Trim()
+    if ($ModuleVersion -notmatch '^\d+\.\d+\.\d+$') { throw "VERSION file must hold a three-part version (X.Y.Z), found '$ModuleVersion'" }
+    Write-Host "Module version $ModuleVersion (from VERSION)"
 }
 
 function Get-ScriptSurface {
@@ -146,6 +137,8 @@ foreach ($folder in $payload) {
     }
 }
 Write-Host "Copied $copied component file(s) into $moduleRoot"
+#the components read their version from the VERSION file above their folder
+[System.IO.File]::WriteAllText((Join-Path $moduleRoot 'VERSION'), "$ModuleVersion`n")
 
 #a credential must never reach the module, whatever the exclusion patterns did
 foreach ($file in (Get-ChildItem $moduleRoot -Recurse -File)) {

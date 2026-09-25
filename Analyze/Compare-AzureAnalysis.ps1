@@ -90,7 +90,9 @@ $testChanges = foreach ($test in $new.tests) {
     }
 }
 
+#controls are only compared within the same version of a framework
 $controlChanges = foreach ($framework in $new.frameworks.PSObject.Properties.Name) {
+    if (-not $old.frameworks.$framework -or $old.frameworks.$framework.version -ne $new.frameworks.$framework.version) { continue }
     foreach ($control in $new.frameworks.$framework.controls.PSObject.Properties) {
         $previous = $old.frameworks.$framework.controls.($control.Name)
         if ($previous -and $previous.status -ne $control.Value.status) { [ordered]@{ framework = $framework; control = $control.Name; from = $previous.status; to = $control.Value.status } }

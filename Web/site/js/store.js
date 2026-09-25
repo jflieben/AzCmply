@@ -1,14 +1,17 @@
 //Analysis history in this browser (IndexedDB): the results.json of every run, which is all the report needs for its
 //trend and for the changes since the previous run. Raw ingestion data is not kept; it can be downloaded as a zip.
 const DB_NAME = 'azcmply';
+const DB_VERSION = 2;
 const STORE = 'analyses';
 
 function open() {
     return new Promise((resolve, reject) => {
-        const request = indexedDB.open(DB_NAME, 1);
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+        //a new database version starts with an empty history
         request.onupgradeneeded = () => {
-            const store = request.result.createObjectStore(STORE, { keyPath: 'id' });
-            store.createIndex('subscription', 'subscriptionKey');
+            const db = request.result;
+            if (db.objectStoreNames.contains(STORE)) { db.deleteObjectStore(STORE); }
+            db.createObjectStore(STORE, { keyPath: 'id' }).createIndex('subscription', 'subscriptionKey');
         };
         request.onsuccess = () => resolve(request.result);
         request.onerror = () => reject(request.error);
@@ -29,28 +32,23 @@ async function run(mode, action) {
 }
 
 //the summary of a results.json kept next to its text, so the history list does not parse every run
-export function summarize(resultsText) {
-    const results = JSON.parse(resultsText.replace(/^\uFEFF/, ''));
-    if (!results?.ingest?.subscriptionId || !results.summary || !Array.isArray(results.tests)) {
-        throw new Error('This is not a results.json of an AzCmply analysis.');
-    }
+function summarize(resultsText) {
+    const results = JSON.parse(resultsText);
     return {
         id: `${results.ingest.subscriptionId}|${results.ingest.startedAt}|${results.analyzedAt}`.toLowerCase(),
         subscriptionId: results.ingest.subscriptionId,
-        subscriptionKey: String(results.ingest.subscriptionId).toLowerCase(),
-        subscriptionName: results.ingest.subscriptionName ?? results.ingest.subscriptionId,
-        tenantId: results.ingest.tenantId ?? null,
+        subscriptionKey: results.ingest.subscriptionId.toLowerCase(),
+        subscriptionName: results.ingest.subscriptionName,
         startedAt: results.ingest.startedAt,
         analyzedAt: results.analyzedAt,
-        analyzerVersion: results.analyzer?.version ?? null,
-        testCount: results.analyzer?.tests ?? results.tests.length,
-        score: results.summary.postureScore ?? null,
+        testCount: results.analyzer.tests,
+        score: results.summary.postureScore,
         tests: results.summary.tests
     };
 }
 
 export async function saveAnalysis(resultsText, source) {
-    const entry = { ...summarize(resultsText), source, savedAt: new Date().toISOString(), resultsText };
+    const entry = { ...summarize(resultsText), source, resultsText };
     await run('readwrite', store => store.put(entry));
     return entry;
 }
@@ -58,7 +56,7 @@ export async function saveAnalysis(resultsText, source) {
 //all runs without their results text, newest first
 export async function listAnalyses() {
     const all = await run('readonly', store => store.getAll()) ?? [];
-    return all.map(({ resultsText, ...rest }) => rest).sort((a, b) => (b.startedAt ?? '').localeCompare(a.startedAt ?? '') || (b.analyzedAt ?? '').localeCompare(a.analyzedAt ?? ''));
+    return all.map(({ resultsText, ...rest }) => rest).sort((a, b) => b.startedAt.localeCompare(a.startedAt) || b.analyzedAt.localeCompare(a.analyzedAt));
 }
 
 export async function getAnalysis(id) { return run('readonly', store => store.get(id)); }

@@ -95,7 +95,7 @@ await evaluate(`(async () => {
     const store = await import('./js/store.js');
     await store.clearAnalyses();
     const run = (sub, name, day, score) => JSON.stringify({
-        schemaVersion: 2, analyzer: { version: '1.0.0', tests: 245 },
+        schemaVersion: 3, analyzer: { version: '0.9.4', tests: 289 },
         ingest: { folder: sub + day, subscriptionId: sub, subscriptionName: name, tenantId: 't', startedAt: '2026-09-' + day + 'T08:00:00Z' },
         analyzedAt: '2026-09-' + day + 'T08:05:00Z',
         summary: { postureScore: score, tests: { Pass: 100, Fail: 50, Unknown: 5, NotApplicable: 90, Error: 0 } }, tests: []

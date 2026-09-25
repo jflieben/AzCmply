@@ -303,8 +303,8 @@ export async function runIngest(options) {
                 const at = entry.indexOf('@');
                 const path = at < 0 ? entry : entry.slice(0, at);
                 const pinned = at < 0 ? null : entry.slice(at + 1);
-                //the master database does not support data masking and answers with a 500
-                if (typeKey === 'microsoft.sql/servers/databases' && /\/databases\/master$/i.test(item.id) && /^dataMaskingPolicies/i.test(path)) { continue; }
+                //the master database does not support data masking or classification and answers with a 500
+                if (typeKey === 'microsoft.sql/servers/databases' && /\/databases\/master$/i.test(item.id) && /^(dataMaskingPolicies|currentSensitivityLabels)/i.test(path)) { continue; }
                 record.children[path] = await childResource(item.id, item.type, path, pinned, cache, itemFailures);
             }
             for (const path of (plan.textContentMap[typeKey] ?? [])) {
@@ -472,6 +472,7 @@ export async function runIngest(options) {
         for (const id of groupIds) {
             groupRequests.set(`members|${id}`, `/groups/${id}/transitiveMembers?${memberSelect}&$top=999`);
             groupRequests.set(`owners|${id}`, `/groups/${id}/owners?${memberSelect}`);
+            groupRequests.set(`properties|${id}`, `/groups/${id}?$select=${plan.graphSelect.group}`);
         }
         const groupResults = groupRequests.size ? await graphBatch(groupRequests) : new Map();
         const groupRecords = [];
@@ -487,7 +488,7 @@ export async function runIngest(options) {
                     default: break;
                 }
             }
-            groupRecords.push({ id, transitiveMembers: members?.items ?? null, transitiveMembersError: members && members.statusCode >= 300 ? members.statusCode : null, owners: owners?.items ?? null });
+            groupRecords.push({ id, transitiveMembers: members?.items ?? null, transitiveMembersError: members && members.statusCode >= 300 ? members.statusCode : null, owners: owners?.items ?? null, properties: groupResults.get(`properties|${id}`)?.single ?? null });
         }
         write('identity/groups.json', groupRecords);
         out.groups = { status: 'ok', count: groupRecords.length };
@@ -582,6 +583,20 @@ export async function runIngest(options) {
         for (const [name, uri] of plan.graphDirectoryExports) {
             out[name] = await exportEndpoint(uri, `identity/${name}.json`, { resource: 'Graph' });
         }
+
+        //user members of the groups Conditional Access policies exclude, which is how emergency access accounts are usually excluded
+        if (['ok', 'partial'].includes(out.conditionalAccessPolicies?.status)) {
+            const policies = vfs.entry(`${root}/identity/conditionalAccessPolicies.json`)?.value ?? [];
+            const excludedGroupIds = [...new Set(policies.flatMap(policy => prop(policy, 'conditions.users.excludeGroups') ?? []).filter(Boolean))].sort();
+            const excludedRequests = new Map(excludedGroupIds.map(id => [id, `/groups/${id}/transitiveMembers/microsoft.graph.user?$select=${plan.graphSelect.member}&$top=999`]));
+            const excludedResults = excludedRequests.size ? await graphBatch(excludedRequests) : new Map();
+            const excludedGroups = excludedGroupIds.map(id => {
+                const members = excludedResults.get(id);
+                return { id, members: members?.items ?? null, membersError: members && members.statusCode >= 300 ? members.statusCode : null };
+            });
+            write('identity/conditionalAccessExcludedGroups.json', excludedGroups);
+            out.conditionalAccessExcludedGroups = { status: 'ok', count: excludedGroups.length };
+        }
         return out;
     }
 
@@ -623,7 +638,8 @@ export async function runIngest(options) {
         let done = 0;
         for (const [folderPart, name, path, apiVersion, method] of plan.subscriptionEndpoints) {
             const separator = path.includes('?') ? '&' : '?';
-            sections[`${folderPart}/${name}`] = await exportEndpoint(`/subscriptions/${subscriptionId}/${path}${separator}api-version=${apiVersion}`, `${folderPart}/${name}.json`, { method: method ?? 'GET', principalTarget: principalIds });
+            const base = path.startsWith('/') ? path : `/subscriptions/${subscriptionId}/${path}`;
+            sections[`${folderPart}/${name}`] = await exportEndpoint(`${base}${separator}api-version=${apiVersion}`, `${folderPart}/${name}.json`, { method: method ?? 'GET', principalTarget: principalIds });
             progress({ phase: 'subscription', done: ++done, total: plan.subscriptionEndpoints.length });
         }
 

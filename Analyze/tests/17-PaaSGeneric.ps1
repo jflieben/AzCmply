@@ -5,9 +5,10 @@ $genericPublicExclusions = @(
     'Microsoft.Storage/storageAccounts', 'Microsoft.KeyVault/vaults', 'Microsoft.KeyVault/managedHSMs', 'Microsoft.Sql/servers', 'Microsoft.Sql/managedInstances',
     'Microsoft.DocumentDB/databaseAccounts', 'Microsoft.ContainerRegistry/registries', 'Microsoft.CognitiveServices/accounts',
     'Microsoft.MachineLearningServices/workspaces', 'Microsoft.Databricks/workspaces', 'Microsoft.Web/sites', 'Microsoft.Web/sites/slots',
-    'Microsoft.Compute/disks', 'Microsoft.Compute/snapshots', 'Microsoft.ContainerService/managedClusters'
+    'Microsoft.Compute/disks', 'Microsoft.Compute/snapshots', 'Microsoft.ContainerService/managedClusters', 'Microsoft.BotService/botServices', 'Microsoft.Kusto/clusters',
+    'Microsoft.DesktopVirtualization/hostPools', 'Microsoft.DesktopVirtualization/workspaces'
 )
-$genericLocalAuthExclusions = @('Microsoft.DocumentDB/databaseAccounts', 'Microsoft.CognitiveServices/accounts', 'Microsoft.MachineLearningServices/workspaces/computes')
+$genericLocalAuthExclusions = @('Microsoft.DocumentDB/databaseAccounts', 'Microsoft.CognitiveServices/accounts', 'Microsoft.MachineLearningServices/workspaces/computes', 'Microsoft.BotService/botServices')
 $genericTlsExclusions = @('Microsoft.Storage/storageAccounts', 'Microsoft.Sql/servers', 'Microsoft.Sql/managedInstances', 'Microsoft.Web/sites', 'Microsoft.Web/sites/slots', 'Microsoft.Network/applicationGateways')
 
 function Get-PropertyCaseInsensitive {
@@ -34,7 +35,6 @@ Add-AzTest @{
     Rationale   = 'Publicly reachable PaaS endpoints depend on keys and tokens alone; private endpoints remove Internet exposure and data exfiltration paths.'
     Remediation = 'Create private endpoints (with private DNS zones) and set public network access to Disabled, or secure the resource with a network security perimeter.'
     References  = @('https://learn.microsoft.com/azure/private-link/private-endpoint-overview')
-    Frameworks  = @{ MCSB = 'NS-2'; WAF = 'SE:06'; ALZ = @('Deny-Public-Endpoints', 'Deploy-Private-DNS-Zones') }
     Run         = {
         foreach ($record in (Get-AzResourceRecords)) {
             if (Test-TypeExcluded $record $genericPublicExclusions) { continue }
@@ -66,7 +66,6 @@ Add-AzTest @{
     Rationale   = 'Access keys and SAS tokens are shared secrets that are not tied to an identity, bypass RBAC and Conditional Access and are hard to rotate or trace.'
     Remediation = 'Move clients to Microsoft Entra ID (managed identities with data plane RBAC roles), then disable local authentication on the resource.'
     References  = @('https://learn.microsoft.com/azure/service-bus-messaging/disable-local-authentication')
-    Frameworks  = @{ MCSB = @('IM-1', 'IM-3'); WAF = 'SE:05'; ALZ = @('Enforce-GR-ServiceBus0', 'Enforce-GR-EventHub0', 'Enforce-GR-EventGrid0', 'Enforce-GR-Automation0') }
     Run         = {
         foreach ($record in (Get-AzResourceRecords)) {
             if (Test-TypeExcluded $record $genericLocalAuthExclusions) { continue }
@@ -98,7 +97,6 @@ Add-AzTest @{
     Rationale   = 'TLS 1.0 and 1.1 have known weaknesses and are being retired across Azure; the minimum version should be enforced on every endpoint.'
     Remediation = 'Set the minimum TLS version of the resource to 1.2 (or 1.3 where supported).'
     References  = @('https://learn.microsoft.com/azure/security/fundamentals/encryption-overview')
-    Frameworks  = @{ MCSB = @('DP-3', 'NS-8'); WAF = 'SE:07'; ALZ = 'Enforce-TLS-SSL-Q225' }
     Run         = {
         foreach ($record in (Get-AzResourceRecords)) {
             if (Test-TypeExcluded $record $genericTlsExclusions) { continue }

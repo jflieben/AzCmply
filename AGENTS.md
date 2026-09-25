@@ -27,15 +27,25 @@ These are not style preferences; breaking them makes the tool state something un
 - A test may only report `Pass` or `Fail` on data it actually read. Reach ingestion data through `Requires`
   (sections) and `Test-ChildCollected` (child resources); anything read without one of those can turn missing
   data into a clean bill of health. Report `New-Unknown` with the reason instead.
-- A framework control may only be tagged on a test that covers exactly what that control asks for. Where a
-  benchmark numbers variants separately, split the test rather than tagging both ids on one, otherwise a
-  control is reported as failing because of resources it does not cover.
-- Framework catalogs are reproductions of their source, not paraphrases. Control ids, titles and mappings are
-  copied as published, including inconsistencies, and `retrieved` records when that was last checked.
-- The one exception is a `crosswalk` framework (DORA): the article titles are copied as published, but the mapping
-  is JSolve's own (`mappings.DORA` on the MCSB controls) and must say so wherever it is shown. Only articles with a
-  technical Azure side belong in its catalog. A test tags DORA directly only when it is a resilience check with no
-  fitting MCSB control; that is also the only case in which a test may go without an MCSB control.
+- Frameworks are peers, each with its own catalog in `Analyze\catalog\frameworks` (one file per framework; a new
+  version replaces it). The catalog holds every control of the framework and, per control, the tests that evidence
+  it; tests carry no framework tags. No framework is reached through another one.
+- A control may only list a test that addresses what the control asks for. Where a benchmark numbers variants
+  separately, split the test rather than listing one test under both, otherwise a control is reported as failing
+  because of resources it does not cover.
+- `coverage` is `full` only when the tests check everything about the control that Azure configuration can show;
+  anything less is `partial`. A control without a test is `manual` when it concerns the Azure environment (or the
+  Entra settings that affect it) and `notApplicable` when it does not (people, physical security, organization-wide
+  governance, end-user devices, software development). Only controls with tests are scored.
+- Framework catalogs reproduce their source: control ids and titles as published, including inconsistencies, and
+  `retrieved` records when that was last checked. Where the text is licensed (CIS Controls, SOC 2, PCI DSS) only the id
+  and the name of its control, series or principal requirement are listed.
+- `mapping` says who decided which tests evidence a control: `native` for frameworks that describe Azure checks
+  themselves (MCSB, CIS Azure, WAF, ALZ), `jsolve` for the others. A JSolve mapping is JSolve's assessment and must
+  say so wherever it is shown. The AzCmplyCustom framework holds JSolve's own controls (AZC-nn) for requirements no
+  other framework covers; its tests map to no other framework. Bump its version when its controls change.
+- AzCmply is an automated technical assessment, not an audit. The disclaimer in the README, the page footer and the
+  report says so and stays wherever framework results are shown.
 - `Unknown` is a coverage gap, never progress. A finding that goes from `Fail` to `Unknown` between runs is
   `lostVisibility` in the comparison, never `resolved`.
 - A portal link is only rendered for a resource id the Azure portal really has a page for. A link that lands on an
@@ -53,7 +63,7 @@ where tests, analysis, comparison and report are written.
 
 - `Web\Convert-AzCmplyToWeb.ps1` converts `Analyze\lib`, `Analyze\tests`, `Invoke-AzureAnalyze.ps1`,
   `Compare-AzureAnalysis.ps1` and `Report\New-AzureSecurityReport.ps1` to JavaScript in `Web\site\generated`, copies the
-  framework catalog, extracts the ingestion's collection maps (`ingest-plan.js`) and bundles the demo fixture. It is
+  framework catalogs, extracts the ingestion's collection maps (`ingest-plan.js`) and bundles the demo fixture. It is
   idempotent. Run it after every change to those files, the collection maps, the fixture or anything in `Web\site`, and
   commit its output: it also stamps the build id (version plus a hash of every file the page loads) into
   `Web\site\index.html`, which `js\boot.js` uses to fetch a new upload past the browser cache (the jsolve.nl host caches

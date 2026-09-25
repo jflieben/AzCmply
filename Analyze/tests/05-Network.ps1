@@ -32,7 +32,6 @@ Add-AzTest @{
     Rationale     = 'RDP exposed to the Internet is continuously brute forced and has a history of pre-authentication vulnerabilities; it is one of the most common initial access vectors.'
     Remediation   = 'Remove or restrict the rule to known source addresses, and use Azure Bastion or just-in-time VM access for administration.'
     References    = @('https://learn.microsoft.com/azure/bastion/bastion-overview')
-    Frameworks    = @{ MCSB = @('NS-1', 'NS-3'); CIS = '7.1'; WAF = 'SE:06'; ALZ = 'Deny-MgmtPorts-Internet' }
     Policy        = $managementPortPolicy
     ResourceTypes = @('Microsoft.Network/networkSecurityGroups')
     Evaluate      = { param($Record) Test-NsgPorts -Record $Record -Ports 3389 -Label 'RDP' }
@@ -48,7 +47,6 @@ Add-AzTest @{
     Rationale     = 'SSH exposed to the Internet is continuously brute forced and exposes the host to SSH vulnerabilities.'
     Remediation   = 'Remove or restrict the rule to known source addresses, and use Azure Bastion or just-in-time VM access for administration.'
     References    = @('https://learn.microsoft.com/azure/bastion/bastion-overview')
-    Frameworks    = @{ MCSB = @('NS-1', 'NS-3'); CIS = '7.2'; WAF = 'SE:06'; ALZ = 'Deny-MgmtPorts-Internet' }
     Policy        = $managementPortPolicy
     ResourceTypes = @('Microsoft.Network/networkSecurityGroups')
     Evaluate      = { param($Record) Test-NsgPorts -Record $Record -Ports 22 -Label 'SSH' }
@@ -63,20 +61,18 @@ Add-AzTest @{
     Description   = 'Finds inbound allow rules for UDP (or any protocol) from any source that are not overridden by a higher priority deny rule for all ports.'
     Rationale     = 'Internet facing UDP services (DNS, NTP, SNMP, SSDP, CLDAP, memcached) are abused for reflection and amplification DDoS attacks and expose services that are rarely meant to be public.'
     Remediation   = 'Remove the UDP allow rules or restrict them to the required source addresses and ports.'
-    Frameworks    = @{ MCSB = @('NS-1', 'NS-8'); CIS = '7.3'; WAF = 'SE:06' }
     ResourceTypes = @('Microsoft.Network/networkSecurityGroups')
     Evaluate      = {
         param($Record)
         $rules = @(@($Record.resource.properties.securityRules) + @($Record.resource.properties.defaultSecurityRules) | Where-Object { $_ -and $_.properties.direction -eq 'Inbound' } | Sort-Object { [int]$_.properties.priority })
         $exposing = [System.Collections.Generic.List[string]]::new()
-        $blockedAll = $false
         foreach ($rule in $rules) {
             $p = $rule.properties
             if ($p.protocol -notin '*', 'Udp') { continue }
             $sources = @($p.sourceAddressPrefix) + @($p.sourceAddressPrefixes) | Where-Object { $_ }
             if (-not ($sources | Where-Object { Test-InternetSource $_ })) { continue }
             $ranges = @($p.destinationPortRange) + @($p.destinationPortRanges) | Where-Object { $_ }
-            if ($p.access -eq 'Deny' -and $ranges -contains '*') { $blockedAll = $true; break }
+            if ($p.access -eq 'Deny' -and $ranges -contains '*') { break }
             if ($p.access -eq 'Allow') { $exposing.Add("$($rule.name) ($($ranges -join ','))") }
         }
         $evidence = Get-NsgAssociation $Record.resource
@@ -95,7 +91,6 @@ Add-AzTest @{
     Description   = 'Evaluates the inbound rules of each network security group for TCP 80 and 443 from any source.'
     Rationale     = 'Web ports opened directly on virtual machines bypass a web application firewall and are often opened wider than the application requires. Each exposure should be deliberate.'
     Remediation   = 'Publish web applications through Application Gateway or Front Door with WAF and restrict the NSG to their source addresses, or document and accept the direct exposure.'
-    Frameworks    = @{ MCSB = @('NS-1', 'NS-6'); CIS = '7.4'; WAF = 'SE:06' }
     ResourceTypes = @('Microsoft.Network/networkSecurityGroups')
     Evaluate      = { param($Record) Test-NsgPorts -Record $Record -Ports 80, 443 -Label 'HTTP(S)' }
 }
@@ -109,7 +104,6 @@ Add-AzTest @{
     Description   = 'Evaluates the inbound rules of each network security group for high risk TCP ports from any source: FTP (20, 21), Telnet (23), RPC/NetBIOS/SMB (135, 139, 445), LDAP (389, 636), SQL Server (1433, 1434), Oracle (1521), MySQL (3306), PostgreSQL (5432), WinRM (5985, 5986), Redis (6379), Elasticsearch (9200, 9300), memcached (11211) and MongoDB (27017).'
     Rationale     = 'These services are not designed for Internet exposure; exposed instances are found by scanners within minutes and are a leading cause of data breaches and ransomware.'
     Remediation   = 'Remove the rules or restrict them to specific source addresses; reach these services through private endpoints, VPN or Bastion.'
-    Frameworks    = @{ MCSB = @('NS-1', 'NS-8'); WAF = 'SE:06' }
     ResourceTypes = @('Microsoft.Network/networkSecurityGroups')
     Evaluate      = { param($Record) Test-NsgPorts -Record $Record -Ports 20, 21, 23, 135, 139, 389, 445, 636, 1433, 1434, 1521, 3306, 5432, 5985, 5986, 6379, 9200, 9300, 11211, 27017 -Label 'High risk ports' }
 }
@@ -128,7 +122,6 @@ Add-AzTest @{
     Rationale   = 'Without an NSG a subnet has no layer 4 filtering: every resource in it can be reached from the whole virtual network (and peered networks), which enables lateral movement.'
     Remediation = 'Associate an NSG with each subnet (az network vnet subnet update --network-security-group <nsg> ...) and deny subnet creation without NSG through Azure Policy.'
     References  = @('https://learn.microsoft.com/azure/virtual-network/network-security-groups-overview')
-    Frameworks  = @{ MCSB = 'NS-1'; CIS = '7.11'; WAF = 'SE:04'; ALZ = 'Deny-Subnet-Without-Nsg' }
     Policy      = @{ 'e71308d3-144b-4262-b144-efdc3cc90517' = 'Subnets should be associated with a Network Security Group' }
     Run         = {
         foreach ($vnet in (Get-AzResourceRecords -Type 'Microsoft.Network/virtualNetworks')) {
@@ -152,7 +145,6 @@ Add-AzTest @{
     Rationale   = 'Default outbound access gives virtual machines an implicit, unmanaged public IP for egress that bypasses egress filtering and logging. Microsoft is retiring it in favor of explicit outbound methods.'
     Remediation = 'Configure an explicit outbound path (Azure Firewall or NAT Gateway) and set defaultOutboundAccess to false on the subnet (az network vnet subnet update --default-outbound-access false ...).'
     References  = @('https://learn.microsoft.com/azure/virtual-network/ip-services/default-outbound-access')
-    Frameworks  = @{ MCSB = @('NS-1', 'NS-3'); WAF = 'SE:06'; ALZ = 'Enforce-Subnet-Private' }
     Policy      = @{ '7bca8353-aa3b-429b-904a-9229c4385837' = 'Subnets should be private' }
     Run         = {
         foreach ($vnet in (Get-AzResourceRecords -Type 'Microsoft.Network/virtualNetworks')) {
@@ -174,7 +166,6 @@ Add-AzTest @{
     Description   = 'Finds network interfaces with a public IP address in any IP configuration.'
     Rationale     = 'A public IP address on a VM network interface exposes the machine directly to the Internet, where a single NSG mistake is enough for compromise. Ingress should pass through a load balancer, gateway or firewall.'
     Remediation   = 'Remove the public IP address from the network interface and publish services through Application Gateway, Front Door, a load balancer or Azure Firewall; administer through Bastion.'
-    Frameworks    = @{ MCSB = @('NS-1', 'NS-2'); WAF = 'SE:06'; ALZ = @('Deny-Public-IP-On-NIC', 'Deny-Public-IP') }
     Policy        = @{ '83a86a26-fd1f-447c-b59d-e51f44264114' = 'Network interfaces should not have public IPs' }
     ResourceTypes = @('Microsoft.Network/networkInterfaces')
     Evaluate      = {
@@ -195,7 +186,6 @@ Add-AzTest @{
     Description   = 'Finds network interfaces with IP forwarding enabled.'
     Rationale     = 'IP forwarding lets a VM route traffic that is not addressed to it, which can bypass network segmentation. Only network virtual appliances need it.'
     Remediation   = 'Disable IP forwarding (az network nic update --ip-forwarding false ...) on all interfaces that are not network virtual appliances.'
-    Frameworks    = @{ MCSB = 'NS-3'; ALZ = 'Deny-IP-forwarding' }
     Policy        = @{ 'bd352bd5-2853-4985-bf0d-73806b4a5744' = 'IP Forwarding on your virtual machine should be disabled' }
     ResourceTypes = @('Microsoft.Network/networkInterfaces')
     Evaluate      = {
@@ -216,7 +206,6 @@ Add-AzTest @{
     Rationale     = 'Basic infrastructure protection does not tune mitigation to your applications or provide attack telemetry, cost protection and rapid response support.'
     Remediation   = 'Associate a DDoS protection plan (one plan can protect many virtual networks across subscriptions), or use DDoS IP Protection on individual public IP addresses.'
     References    = @('https://learn.microsoft.com/azure/ddos-protection/ddos-protection-overview')
-    Frameworks    = @{ MCSB = 'NS-5'; CIS = '8.5'; ALZ = 'Enable-DDoS-VNET' }
     Policy        = @{ '94de2ad3-e0c1-4caf-ad78-5d47bbc83d3d' = 'Virtual networks should be protected by Azure DDoS Protection'; 'a7aca53f-2ed4-4466-a25e-0b45ade68efd' = 'Azure DDoS Protection should be enabled' }
     ResourceTypes = @('Microsoft.Network/virtualNetworks')
     Evaluate      = {
@@ -238,7 +227,6 @@ Add-AzTest @{
     Rationale   = 'Bastion provides RDP and SSH over TLS through the Azure control plane with Entra authentication, removing the need to expose management ports or public IP addresses.'
     Remediation = 'Deploy Azure Bastion (Standard or Premium, or a shared Bastion in a hub network peered with this subscription) and remove direct management access.'
     References  = @('https://learn.microsoft.com/azure/bastion/bastion-overview')
-    Frameworks  = @{ MCSB = @('NS-1', 'PA-6'); CIS = '8.4.1' }
     Requires    = @('subscription/resources')
     Run         = {
         $resources = @(Get-IngestData 'subscription/resources' | Where-Object { $_ })
@@ -261,7 +249,6 @@ Add-AzTest @{
     Rationale     = 'A WAF blocks common web attacks (OWASP top 10, bots, known CVE exploits) before they reach the application.'
     Remediation   = 'Upgrade to the WAF_v2 SKU and associate a WAF policy in Prevention mode; migrate legacy WAF configurations to WAF policies.'
     References    = @('https://learn.microsoft.com/azure/web-application-firewall/ag/ag-overview')
-    Frameworks    = @{ MCSB = 'NS-6'; CIS = '7.10'; WAF = 'SE:06'; ALZ = 'Audit-AppGW-WAF' }
     Policy        = @{ '564feb30-bf6a-4854-b4bb-0d2d2d1e6c66' = 'Web Application Firewall (WAF) should be enabled for Application Gateway' }
     ResourceTypes = @('Microsoft.Network/applicationGateways')
     Evaluate      = {
@@ -283,7 +270,6 @@ Add-AzTest @{
     Rationale     = 'TLS 1.0 and 1.1 have known weaknesses and are retired across Azure; the listener policy should not negotiate them.'
     Remediation   = 'Set the SSL policy to AppGwSslPolicy20220101 or AppGwSslPolicy20220101S (or CustomV2 with minimum TLSv1_2).'
     References    = @('https://learn.microsoft.com/azure/application-gateway/application-gateway-ssl-policy-overview')
-    Frameworks    = @{ MCSB = @('DP-3', 'NS-8'); CIS = '7.12'; ALZ = 'Enforce-TLS-SSL-Q225' }
     Policy        = @{ '6313cbe8-6fb7-451b-a9e3-3f23b59843ca' = 'Azure Application Gateway should be running TLS version 1.2 or newer' }
     ResourceTypes = @('Microsoft.Network/applicationGateways')
     Evaluate      = {
@@ -310,7 +296,6 @@ Add-AzTest @{
     Description   = 'Checks the enableHttp2 setting of Application Gateways.'
     Rationale     = 'CIS recommends HTTP/2 on Application Gateway for its protocol efficiencies and header handling improvements over HTTP/1.1.'
     Remediation   = 'Enable HTTP/2 on the gateway (az network application-gateway update --http2 Enabled ...).'
-    Frameworks    = @{ MCSB = 'NS-8'; CIS = '7.13' }
     ResourceTypes = @('Microsoft.Network/applicationGateways')
     Evaluate      = {
         param($Record)
@@ -332,7 +317,6 @@ Add-AzTest @{
     Rationale     = 'A WAF in Detection mode or disabled only logs attacks; it does not stop them.'
     Remediation   = 'After tuning exclusions in Detection mode, switch the policy to Prevention mode and keep it enabled.'
     References    = @('https://learn.microsoft.com/azure/web-application-firewall/ag/policy-overview')
-    Frameworks    = @{ MCSB = 'NS-6'; WAF = 'SE:06' }
     Policy        = @{ '12430be1-6cc8-4527-a9a8-e3d38f250096' = 'Web Application Firewall (WAF) should use the specified mode for Application Gateway'; '425bea59-a659-4cbb-8d31-34499bd030b8' = 'Web Application Firewall (WAF) should use the specified mode for Azure Front Door Service' }
     ResourceTypes = $wafPolicyTypes
     Evaluate      = {
@@ -354,7 +338,6 @@ Add-AzTest @{
     Description   = 'Checks Application Gateway and Front Door WAF policies for request body inspection.'
     Rationale     = 'Without request body inspection, attacks carried in POST bodies (SQL injection, XSS, deserialization payloads) are not evaluated by the WAF.'
     Remediation   = 'Enable request body inspection in the WAF policy settings.'
-    Frameworks    = @{ MCSB = 'NS-6'; CIS = '7.14' }
     Policy        = @{ 'ca85ef9a-741d-461d-8b7a-18c2da82c666' = 'Azure Web Application Firewall on Azure Application Gateway should have request body inspection enabled'; '4598f028-de1f-4694-8751-84dceb5f86b9' = 'Azure Web Application Firewall on Azure Front Door should have request body inspection enabled' }
     ResourceTypes = $wafPolicyTypes
     Evaluate      = {
@@ -375,7 +358,6 @@ Add-AzTest @{
     Description   = 'Checks Application Gateway and Front Door WAF policies for the Microsoft bot manager managed rule set.'
     Rationale     = 'The bot manager rule set blocks known malicious bots and scanners based on Microsoft threat intelligence.'
     Remediation   = 'Add the Microsoft_BotManagerRuleSet managed rule set to the WAF policy.'
-    Frameworks    = @{ MCSB = 'NS-6'; CIS = '7.15' }
     ResourceTypes = $wafPolicyTypes
     Evaluate      = {
         param($Record)
@@ -396,7 +378,6 @@ Add-AzTest @{
     Rationale     = 'Front Door publishes applications to the Internet; without a WAF policy, web attacks pass straight to the origin.'
     Remediation   = 'Create a WAF policy in Prevention mode and associate it with all Front Door domains through a security policy.'
     References    = @('https://learn.microsoft.com/azure/web-application-firewall/afds/afds-overview')
-    Frameworks    = @{ MCSB = 'NS-6'; WAF = 'SE:06' }
     Policy        = @{ '055aa869-bc98-4af8-bafc-23f1ab6ffe2c' = 'Azure Web Application Firewall should be enabled for Azure Front Door entry-points' }
     ResourceTypes = @('Microsoft.Cdn/profiles', 'Microsoft.Network/frontDoors')
     Evaluate      = {
@@ -426,7 +407,6 @@ Add-AzTest @{
     Rationale     = 'Threat intelligence based filtering blocks traffic to and from known malicious IP addresses and domains, such as command and control servers.'
     Remediation   = "Set the threat intelligence mode to 'Alert and deny' in the firewall policy (az network firewall policy update --threat-intel-mode Deny ...)."
     References    = @('https://learn.microsoft.com/azure/firewall/threat-intel')
-    Frameworks    = @{ MCSB = 'NS-3'; WAF = 'SE:06' }
     Policy        = @{ 'da79a7e2-8aa1-45ed-af81-ba050c153564' = 'Azure Firewall Policy should enable Threat Intelligence'; '7c591a93-c34c-464c-94ac-8f9f9a46e3d6' = 'Azure Firewall Standard - Classic Rules should enable Threat Intelligence' }
     ResourceTypes = @('Microsoft.Network/firewallPolicies', 'Microsoft.Network/azureFirewalls')
     Evaluate      = {
@@ -449,7 +429,6 @@ Add-AzTest @{
     Rationale     = 'Signature based IDPS detects and blocks exploits, malware and command and control traffic, including in TLS inspected flows.'
     Remediation   = 'Upgrade to Azure Firewall Premium and set IDPS to Alert and deny in the firewall policy.'
     References    = @('https://learn.microsoft.com/azure/firewall/premium-features')
-    Frameworks    = @{ MCSB = 'NS-4'; WAF = 'SE:06' }
     Policy        = @{ '8c19196d-7fd7-45b2-a9b4-7288f47c769a' = 'Azure Firewall Standard should be upgraded to Premium for next generation protection' }
     ResourceTypes = @('Microsoft.Network/firewallPolicies')
     Evaluate      = {
@@ -472,7 +451,6 @@ Add-AzTest @{
     Rationale     = 'Entra authentication applies MFA, Conditional Access and central account lifecycle to VPN users; certificate and RADIUS authentication do not.'
     Remediation   = 'Configure point-to-site with Azure Active Directory (Entra ID) authentication only and remove certificate and RADIUS authentication.'
     References    = @('https://learn.microsoft.com/azure/vpn-gateway/openvpn-azure-ad-tenant')
-    Frameworks    = @{ MCSB = @('IM-1', 'IM-6'); CIS = '7.9' }
     Policy        = @{ '21a6bc25-125e-4d13-b82d-2e19b7208ab7' = 'VPN gateways should use only Azure Active Directory (Azure AD) authentication for point-to-site users' }
     ResourceTypes = @('Microsoft.Network/virtualNetworkGateways')
     Evaluate      = {
@@ -513,7 +491,6 @@ Add-AzTest @{
     Rationale   = 'When an Azure resource is deleted but DNS still points to its name, an attacker can create a resource with the same name and take over the subdomain (phishing, cookie theft, bypassing allow lists).'
     Remediation = 'Delete DNS records that point to removed resources, and remove DNS records before (not after) deprovisioning resources. For each Unknown target, confirm that the name is still owned by your organization. Use alias records where possible, because those can be verified automatically.'
     References  = @('https://learn.microsoft.com/azure/security/fundamentals/subdomain-takeover')
-    Frameworks  = @{ MCSB = 'NS-10'; WAF = 'SE:08' }
     Run         = {
         $zones = @(Get-AzResourceRecords -Type 'Microsoft.Network/dnszones')
         if (-not $zones) { return New-SubscriptionFinding (New-NotApplicable 'No public DNS zones') }
@@ -553,7 +530,6 @@ Add-AzTest @{
     Rationale     = 'Just-in-time access keeps management ports closed and opens them to a requesting address for a limited time after an authorized, audited request, which removes the permanent exposure that scanners and brute force rely on.'
     Remediation   = "Enable just-in-time VM access in Defender for Cloud (Workload protections > Just-in-time VM access) for these machines, or remove the Internet facing management rule from the network security group."
     References    = @('https://learn.microsoft.com/azure/defender-for-cloud/just-in-time-access-usage')
-    Frameworks    = @{ MCSB = @('NS-1', 'PA-6'); WAF = 'SE:06' }
     Policy        = @{ 'b0f33259-77d7-4c9e-aac6-3aabcfae693c' = 'Management ports of virtual machines should be protected with just-in-time network access control' }
     Requires      = @('defender/jitNetworkAccessPolicies')
     ResourceTypes = @('Microsoft.Compute/virtualMachines')
@@ -586,5 +562,147 @@ Add-AzTest @{
         $evidence = [ordered]@{ exposedPorts = @($exposed.Keys); allowingRules = @($exposed.Values | Sort-Object -Unique); jitPolicy = [bool]$covered }
         if ($covered) { return New-Pass 'Just-in-time access policy covers this machine' $evidence }
         New-Fail "Management port(s) $($exposed.Keys -join ', ') open to the Internet without a just-in-time policy" $evidence
+    }
+}
+
+function Test-FirewallLogged {
+    #true when a diagnostic setting sends all logs, or one of the categories, of an Azure Firewall to a destination
+    param($Record, [string[]]$Categories)
+    foreach ($setting in @($Record.diagnosticSettings | Where-Object { $_ })) {
+        $p = $setting.properties
+        if (-not ($p.workspaceId -or $p.storageAccountId -or $p.eventHubAuthorizationRuleId -or $p.marketplacePartnerId)) { continue }
+        if (@($p.logs | Where-Object { $_ -and $_.enabled -and ($_.categoryGroup -eq 'allLogs' -or $_.category -in $Categories) }).Count) { return $true }
+    }
+    return $false
+}
+
+Add-AzTest @{
+    Id            = 'AZ-NET-024'
+    Title         = 'Azure Firewall logs application and network rule traffic'
+    Category      = 'Logging and threat detection'
+    Service       = 'Azure Firewall'
+    Severity      = 'Medium'
+    Description   = 'Checks that Azure Firewalls send application rule logs (the requested FQDNs and URLs) and network rule logs, in the legacy or the resource specific categories, through a diagnostic setting.'
+    Rationale     = 'The firewall is where outbound web requests and network flows of the workloads behind it are visible. Without these logs, command and control traffic, data exfiltration and the scope of a compromise cannot be traced.'
+    Remediation   = 'Create a diagnostic setting on the firewall that sends the allLogs category group, or at least the application and network rule categories (preferably the resource specific AZFWApplicationRule and AZFWNetworkRule), to a Log Analytics workspace.'
+    References    = @('https://learn.microsoft.com/azure/firewall/monitor-firewall')
+    ResourceTypes = @('Microsoft.Network/azureFirewalls')
+    Evaluate      = {
+        param($Record)
+        if ($null -eq $Record.diagnosticSettings) { return New-Unknown 'Diagnostic settings could not be read' }
+        $evidence = [ordered]@{
+            diagnosticSettings = @($Record.diagnosticSettings | Where-Object { $_ } | ForEach-Object name | Sort-Object)
+            applicationRules   = Test-FirewallLogged $Record @('AzureFirewallApplicationRule', 'AZFWApplicationRule')
+            networkRules       = Test-FirewallLogged $Record @('AzureFirewallNetworkRule', 'AZFWNetworkRule')
+        }
+        $missing = @()
+        if (-not $evidence.applicationRules) { $missing += 'application rule' }
+        if (-not $evidence.networkRules) { $missing += 'network rule' }
+        if ($missing) { return New-Fail "No $($missing -join ' or ') logs" $evidence }
+        New-Pass 'Application and network rule traffic is logged' $evidence
+    }
+}
+
+function Get-FirewallDnsProxy {
+    #whether an Azure Firewall proxies DNS; $null when its firewall policy could not be read
+    param($Record)
+    $p = $Record.resource.properties
+    if ($p.firewallPolicy.id) {
+        $policy = Get-AzResourceRecord $p.firewallPolicy.id
+        if (-not $policy) { return $null }
+        return [bool]$policy.resource.properties.dnsSettings.enableProxy
+    }
+    return ([string]$p.additionalProperties.'Network.DNS.EnableProxy' -eq 'true')
+}
+
+Add-AzTest @{
+    Id            = 'AZ-NET-025'
+    Title         = 'DNS queries from virtual networks are logged'
+    Category      = 'Logging and threat detection'
+    Service       = 'Azure DNS'
+    Severity      = 'Low'
+    Description   = 'Checks for every virtual network that its DNS queries are logged: by a DNS security policy with a diagnostic setting linked to the network, or by an Azure Firewall in this subscription that the network uses as DNS proxy and that logs DNS queries. Custom DNS servers are reported as unknown.'
+    Rationale     = 'DNS queries show which domains workloads resolve, including command and control domains, DNS tunneling and lookups of exfiltration targets. Azure-provided DNS keeps no query log unless a DNS security policy or a logging DNS proxy is in the path.'
+    Remediation   = 'Link a DNS security policy to the virtual networks and send its logs to a Log Analytics workspace, or point the networks to an Azure Firewall with DNS proxy enabled and DNS query logs (AZFWDnsQuery) turned on.'
+    References    = @('https://learn.microsoft.com/azure/dns/dns-security-policy', 'https://learn.microsoft.com/azure/firewall/dns-settings')
+    ResourceTypes = @('Microsoft.Network/virtualNetworks')
+    Evaluate      = {
+        param($Record)
+        $vnetId = $Record.id.ToLowerInvariant()
+        $policyLinks = @(foreach ($policy in (Get-AzResourceRecords -Type 'Microsoft.Network/dnsResolverPolicies')) {
+                if (-not (Test-ChildCollected $policy 'virtualNetworkLinks')) { [pscustomobject]@{ Policy = $policy; Linked = $null }; continue }
+                if (@(Get-Child $policy 'virtualNetworkLinks' | Where-Object { $_ -and ([string]$_.properties.virtualNetwork.id).ToLowerInvariant() -eq $vnetId }).Count) { [pscustomobject]@{ Policy = $policy; Linked = $true } }
+            })
+        $linked = @($policyLinks | Where-Object { $_.Linked } | ForEach-Object Policy)
+        $servers = @($Record.resource.properties.dhcpOptions.dnsServers | Where-Object { $_ })
+        $evidence = [ordered]@{ dnsServers = $(if ($servers) { $servers } else { 'Azure-provided' }); dnsSecurityPolicies = @($linked | ForEach-Object { $_.resource.name } | Sort-Object) }
+        $logging = @($linked | Where-Object { $null -ne $_.diagnosticSettings -and (Test-DiagnosticLogsEnabled -Settings $_.diagnosticSettings) })
+        if ($logging) { return New-Pass "DNS security policy '$($logging[0].resource.name)' logs the DNS queries" $evidence }
+        if ($servers) {
+            foreach ($firewall in (Get-AzResourceRecords -Type 'Microsoft.Network/azureFirewalls')) {
+                $addresses = @($firewall.resource.properties.ipConfigurations | ForEach-Object { $_.properties.privateIPAddress }) + @($firewall.resource.properties.hubIPAddresses.privateIPAddress)
+                if (-not @($servers | Where-Object { $_ -in $addresses }).Count) { continue }
+                $proxy = Get-FirewallDnsProxy $firewall
+                $evidence.firewall = $firewall.resource.name
+                if ($null -eq $proxy -or $null -eq $firewall.diagnosticSettings) { return New-Unknown "The DNS proxy or logging settings of Azure Firewall '$($firewall.resource.name)' could not be read" $evidence }
+                if (-not $proxy) { return New-Fail "Uses Azure Firewall '$($firewall.resource.name)' as DNS server, but its DNS proxy is off" $evidence }
+                if (Test-FirewallLogged $firewall @('AzureFirewallDnsProxy', 'AZFWDnsQuery')) { return New-Pass "Azure Firewall '$($firewall.resource.name)' proxies and logs the DNS queries" $evidence }
+                return New-Fail "Azure Firewall '$($firewall.resource.name)' proxies the DNS queries without logging them" $evidence
+            }
+            return New-Unknown "Custom DNS servers $($servers -join ', '); whether they log queries cannot be read from Azure" $evidence
+        }
+        if ($linked | Where-Object { $null -eq $_.diagnosticSettings }) { return New-Unknown 'The diagnostic settings of the linked DNS security policy could not be read' $evidence }
+        if ($linked) { return New-Fail "DNS security policy '$($linked[0].resource.name)' sends no logs" $evidence }
+        if ($policyLinks | Where-Object { $null -eq $_.Linked }) { return New-Unknown 'No DNS security policy logs the queries of this network; the links of some policies could not be read' $evidence }
+        New-Fail 'Azure-provided DNS without a DNS security policy that logs the queries' $evidence
+    }
+}
+
+#service tags with addresses that any Azure customer can make send traffic (Tenable TRA-2024-19, plus AzureCloud and
+#AppService, which hold whole shared platforms). AzureFrontDoor.Backend is AZ-APP-010: it is safe with the Front Door id check.
+$sharedServiceTags = @('AzureCloud', 'AppService', 'ActionGroup', 'ApiManagement', 'ApplicationInsightsAvailability', 'AzureContainerRegistry',
+    'AzureDevOps', 'AzureLoadTestingInstanceProvisioning', 'AzureMachineLearning', 'ChaosStudio', 'DataFactory', 'LogicApps', 'VideoIndexer')
+
+Add-AzTest @{
+    Id            = 'AZ-NET-026'
+    Title         = 'Network security groups do not trust shared Azure service tags'
+    Category      = 'Network security'
+    Service       = 'Network security groups'
+    Severity      = 'Medium'
+    Description   = 'Finds inbound allow rules whose source is AzureCloud, AppService, or the service tag of a service that any Azure customer can make send requests (ActionGroup, ApiManagement, ApplicationInsightsAvailability, AzureContainerRegistry, AzureDevOps, AzureLoadTestingInstanceProvisioning, AzureMachineLearning, ChaosStudio, DataFactory, LogicApps, VideoIndexer), including their regional variants.'
+    Rationale     = 'These tags hold the addresses of platforms shared by all Azure customers. Anyone can create a Logic App, an availability test or a pipeline that sends requests from those addresses, so a rule that allows the tag admits every Azure tenant, not only your own services. Tenable demonstrated this for ten service tags in 2024; Microsoft documented it as expected behavior.'
+    Remediation   = 'Allow the private addresses, private endpoints or managed identities of your own resources instead, or keep the tag only where the service also authenticates the caller (for example with a key, a token or a header that identifies your instance).'
+    References    = @('https://www.tenable.com/security/research/tra-2024-19', 'https://learn.microsoft.com/azure/virtual-network/service-tags-overview', 'https://learn.microsoft.com/azure/virtual-network/ip-based-access-control-list-overview')
+    ResourceTypes = @('Microsoft.Network/networkSecurityGroups')
+    Evaluate      = {
+        param($Record)
+        $trusting = @(foreach ($rule in @($Record.resource.properties.securityRules | Where-Object { $_ -and $_.properties.direction -eq 'Inbound' -and $_.properties.access -eq 'Allow' })) {
+                $sources = @(@($rule.properties.sourceAddressPrefix) + @($rule.properties.sourceAddressPrefixes) | Where-Object { $_ })
+                $tags = @($sources | Where-Object { ([string]$_ -split '\.')[0] -in $sharedServiceTags })
+                if ($tags) { "$($rule.name): $($tags -join ', ')" }
+            })
+        $evidence = [ordered]@{ rules = @($trusting | Sort-Object) }
+        if ($trusting) { return New-Fail "Inbound traffic allowed from shared service tags ($($evidence.rules -join '; '))" $evidence }
+        New-Pass 'No inbound rule trusts a shared service tag' $evidence
+    }
+}
+
+Add-AzTest @{
+    Id            = 'AZ-NET-027'
+    Title         = 'Azure Bastion shareable links are disabled'
+    Category      = 'Privileged access'
+    Service       = 'Azure Bastion'
+    Severity      = 'Medium'
+    Description   = 'Checks Azure Bastion hosts for the shareable link feature.'
+    Rationale     = 'A shareable link opens the RDP or SSH sign-in of a virtual machine to anyone who has the link, without signing in to Azure. Conditional Access, MFA, PIM and Azure roles do not apply to that path; only the local credentials of the machine stand between the link and the machine, and links are easily forwarded or leaked.'
+    Remediation   = 'Delete the existing shareable links and turn off Shareable Link in the Bastion configuration. Give administrators access through the Azure portal or the native client, with an Azure role and Conditional Access.'
+    References    = @('https://learn.microsoft.com/azure/bastion/shareable-link')
+    ResourceTypes = @('Microsoft.Network/bastionHosts')
+    Evaluate      = {
+        param($Record)
+        $p = $Record.resource.properties
+        $evidence = [ordered]@{ sku = $Record.resource.sku.name; enableShareableLink = [bool]$p.enableShareableLink }
+        if ($p.enableShareableLink) { return New-Fail 'Shareable links are enabled' $evidence }
+        New-Pass 'Shareable links are disabled' $evidence
     }
 }

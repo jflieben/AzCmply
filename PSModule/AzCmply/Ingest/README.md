@@ -40,8 +40,8 @@ Missing permissions do not stop the run. Each failed call is listed in `failures
 manifest.json          run metadata, caller identity, counts, status per section, failure totals
 failures.json          every failed request: category, statusCode, errorCode, message, uri, context
 index.json             one entry per resource group and resource: id, type, file, apiVersion, status
-subscription/          subscription, providers, resourceGroups, resources (list), locks, deployments,
-                       deploymentStacks, Lighthouse, blueprints, activity log diagnostic settings, ...
+subscription/          subscription, subscriptionPolicies (tenant transfer policy), providers, resourceGroups, resources (list), locks, deployments,
+                       deploymentStacks, Lighthouse, blueprints, activity log diagnostic settings, budgets, serialConsole, ...
 rbac/                  roleAssignments, roleDefinitions, denyAssignments, PIM schedules/instances/requests,
                        roleManagementPolicies (+Assignments)
 policy/                policyAssignments, policyDefinitions, policySetDefinitions, policyExemptions, policyStatesSummary, attestations, remediations
@@ -52,7 +52,8 @@ resources/<Namespace>/<type>/<name>_<hash>.json
 resourceGraph/<table>.json   Azure Resource Graph rows scoped to the subscription
 activityLog/activityLog.json
 identity/              directoryObjects, users, groups, servicePrincipals, apiServicePrincipals,
-                       directoryRole*, conditionalAccessPolicies, securityDefaults, unresolvedPrincipalIds, organization
+                       directoryRole*, conditionalAccessPolicies, conditionalAccessExcludedGroups, securityDefaults,
+                       unresolvedPrincipalIds, organization
 ```
 
 Collections are JSON arrays of the raw API objects. Values are written exactly as returned (no date conversion).
@@ -72,10 +73,11 @@ A resource file:
 
 A child that is `null` failed or is not configured (e.g. Sentinel not enabled); its reason is in `failures`. An empty array means the call succeeded and nothing exists.
 
-Graph files: `groups.json` holds per group `transitiveMembers` and `owners`. `servicePrincipals.json` holds per service principal its `appRoleAssignments` (API permissions), `oauth2PermissionGrants`, `owners`, backing `application` with credentials, `applicationOwners` and `applicationFederatedIdentityCredentials`. `apiServicePrincipals.json` resolves app role ids to names. `unresolvedPrincipalIds.json` lists referenced ids that no longer exist (orphaned assignments) or belong to other tenants.
+Graph files: `groups.json` holds per group `transitiveMembers`, `owners` and `properties` (role-assignable, dynamic membership, on-premises sync). `servicePrincipals.json` holds per service principal its `appRoleAssignments` (API permissions), `oauth2PermissionGrants`, `owners`, backing `application` with credentials, `applicationOwners` and `applicationFederatedIdentityCredentials`. `apiServicePrincipals.json` resolves app role ids to names. `conditionalAccessExcludedGroups.json` holds the user members of every group a Conditional Access policy excludes (`members`, or `membersError` with the status code). `unresolvedPrincipalIds.json` lists referenced ids that no longer exist (orphaned assignments) or belong to other tenants.
 
 ## Notes
 
 - The output can contain sensitive values: deployment parameters and outputs, unencrypted automation variables, runbook source, container environment variables, logic app definitions.
 - Not collected: anything needing more than Reader (list keys, app settings, connection strings, effective NSG rules) and data plane content.
+- A `subscriptionEndpoints` path that starts with `/` is read from the root (tenant level, e.g. the subscription transfer policy) instead of below the subscription.
 - To collect more, add paths to `$childResourceMap` (`'path'`, `'path@apiVersion'` or `'collection/*/child'`) or rows to `$subscriptionEndpoints`.

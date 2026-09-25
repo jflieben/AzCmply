@@ -86,9 +86,7 @@ $severityOrder = @{ Critical = 0; High = 1; Medium = 2; Low = 3; Informational =
 $severityLevel = @{ Critical = 4; High = 3; Medium = 2; Low = 1; Informational = 0 }
 $statusLabels = @{ Fail = 'Fail'; Error = 'Error'; Unknown = 'Unknown'; Pass = 'Pass'; NotApplicable = 'Not applicable'; NotAssessed = 'Not assessed' }
 $statusIcons = @{ Fail = '&#10005;'; Error = '!'; Unknown = '?'; Pass = '&#10003;'; NotApplicable = '&#8211;'; NotAssessed = '&#8211;' }
-$primaryFrameworks = @('MCSB', 'CIS', 'WAF', 'ALZ')
-#fallbacks for analyses made before framework metadata was added (schemaVersion 1)
-$fallbackShortNames = @{ MCSB = 'MCSB v2'; CIS = 'CIS Azure 6.0.0'; WAF = 'WAF security'; ALZ = 'ALZ policies' }
+$auditDisclaimer = 'AzCmply is an automated technical assessment of Azure configuration, not an audit or a certification. It does not establish compliance with any framework or regulation and does not replace an assessment by an accredited auditor, certification body or supervisory authority. Framework names and control identifiers show where results relate to their requirements; the frameworks belong to their publishers.'
 
 function New-StatusBadge {
     param([string]$Status, [string]$Label)
@@ -390,55 +388,82 @@ $notEvaluated = @($tests | Where-Object { $_.status -in 'Unknown', 'Error' })
 $categories = @($tests | ForEach-Object category | Sort-Object -Unique)
 $findingTotals = $results.summary.findings
 
-#framework metadata, with fallbacks for older analyses
-$frameworkKeys = @($primaryFrameworks | Where-Object { $results.frameworks.$_ }) + @($results.frameworks.PSObject.Properties.Name | Where-Object { $_ -notin $primaryFrameworks } | Sort-Object)
+#frameworks with every control and its result
 $frameworks = [ordered]@{}
-foreach ($key in $frameworkKeys) {
+foreach ($key in @($results.frameworks.PSObject.Properties.Name)) {
     $fw = $results.frameworks.$key
-    $controls = @($fw.controls.PSObject.Properties)
-    $buckets = Get-Buckets @($controls | ForEach-Object { $_.Value.status })
-    $derived = if ($fw.kind) { $fw.kind -eq 'derived' } else { $key -notin $primaryFrameworks }
+    $controls = [System.Collections.Generic.List[object]]::new()
+    foreach ($property in @($fw.controls.PSObject.Properties)) {
+        $item = $property.Value
+        $controls.Add([pscustomobject]@{ Id = $property.Name; Title = $item.title; Status = $item.status; Applicability = $item.applicability; Coverage = $item.coverage; Tests = @($item.tests | Where-Object { $_ }); Url = $item.url; Assessment = $item.assessment })
+    }
+    $automated = @($controls | Where-Object Applicability -eq 'automated')
+    $buckets = Get-Buckets @($automated | ForEach-Object Status)
+    $scoredControls = $buckets.Fail + $buckets.Pass
     $frameworks[$key] = [pscustomobject]@{
-        Key       = $key
-        Slug      = Get-Slug $key
-        Label     = $(if ($fw.shortName) { $fw.shortName } elseif ($fallbackShortNames[$key]) { $fallbackShortNames[$key] } else { $key })
-        Name      = $fw.name
-        Version   = $(if ($fw.version -and $fw.version -ne 'derived from MCSB v2 mappings') { $fw.version } else { $null })
-        Publisher = $fw.publisher
-        Url       = $fw.url
-        Download  = $fw.download
-        Access    = $fw.access
-        Retrieved = $fw.retrieved
-        Note      = $fw.note
-        Kind      = $fw.kind
-        Derived   = $derived
-        Buckets   = $buckets
-        Assessed  = $buckets.Fail + $buckets.Unknown + $buckets.Pass
-        Coverage  = $fw.coverage
-        Controls  = $controls
+        Key        = $key
+        Slug       = Get-Slug $key
+        Label      = $fw.shortName
+        Name       = $fw.name
+        Version    = $fw.version
+        Publisher  = $fw.publisher
+        Url        = $fw.url
+        Download   = $fw.download
+        Retrieved  = $fw.retrieved
+        Note       = $fw.note
+        Mapping    = $fw.mapping
+        Buckets    = $buckets
+        Automated  = $automated.Count
+        Full       = @($automated | Where-Object Coverage -eq 'full').Count
+        Partial    = @($automated | Where-Object Coverage -eq 'partial').Count
+        Manual     = @($controls | Where-Object Applicability -eq 'manual').Count
+        OutOfScope = @($controls | Where-Object Applicability -eq 'notApplicable').Count
+        Score      = $(if ($scoredControls) { [math]::Round(100 * $buckets.Pass / $scoredControls, 1) } else { $null })
+        Controls   = $controls
     }
 }
-$mcsbControls = $results.frameworks.MCSB.controls
 
 function Get-ControlLink {
     #control id linked to its source documentation when the analysis has a url for it
-    param([string]$Framework, [string]$Id, [string]$Url)
-    if (-not $Url -and $results.frameworks.$Framework.controls.$Id) { $Url = $results.frameworks.$Framework.controls.$Id.url }
+    param([string]$Id, [string]$Url)
     if ($Url) { return (New-ExternalLink -Url $Url -Text $Id -Class 'mono') }
     return "<span class=""mono"">$(Enc $Id)</span>"
 }
 
-function Get-DerivedTags {
-    #derived tags are plain ids (schemaVersion 1) or objects with id, version and via
+function Get-CoverageText {
+    #'58 of 88 controls that concern Azure have tests (3 full, 55 partial); 30 need manual evidence; 65 outside Azure scope'
+    param($Framework)
+    $relevant = $Framework.Automated + $Framework.Manual
+    $text = "$($Framework.Automated) of $relevant controls that concern Azure have tests"
+    if ($Framework.Full + $Framework.Partial) { $text += " ($($Framework.Full) full, $($Framework.Partial) partial)" }
+    if ($Framework.Manual) { $text += "; $($Framework.Manual) need manual evidence" }
+    if ($Framework.OutOfScope) { $text += "; $($Framework.OutOfScope) outside Azure scope" }
+    return $text
+}
+
+function Get-MappingLabel {
+    param([string]$Mapping)
+    if ($Mapping -eq 'jsolve') { return 'Mapped by JSolve' }
+    return 'The framework''s own Azure checks'
+}
+
+function Get-TestControls {
+    #the framework controls a test evidences, in framework order
     param($Test)
-    $result = foreach ($property in @($Test.frameworks.derived.PSObject.Properties)) {
-        foreach ($item in @($property.Value)) {
-            if ($null -eq $item) { continue }
-            if ($item -is [string]) { [pscustomobject]@{ Framework = $property.Name; Id = $item; Via = @() } }
-            else { [pscustomobject]@{ Framework = $property.Name; Id = $item.id; Via = @($item.via) } }
+    $entries = foreach ($key in $frameworks.Keys) {
+        foreach ($tag in @($Test.frameworks.$key | Where-Object { $_ })) {
+            [pscustomobject]@{
+                Framework   = $key
+                Id          = $tag.id
+                Title       = $tag.title
+                Coverage    = $tag.coverage
+                Level       = $tag.level
+                Criticality = $tag.criticality
+                Url         = $tag.url
+            }
         }
     }
-    return $result
+    return @($entries)
 }
 
 #rating bands for the posture score, used for the current score and for every point on the trend
@@ -631,7 +656,6 @@ td.rank { color: var(--muted); font-variant-numeric: tabular-nums; width: 32px; 
 .row-label { font-size: 14px; }
 .row-label a { color: var(--ink); text-decoration: none; }
 .row-label a:hover { text-decoration: underline; }
-.row-label .ver { display: block; font-size: 12px; color: var(--muted); }
 .row-note { display: block; font-size: 12px; color: var(--muted); }
 .row-value { font-size: 13px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
 .row-extra { font-size: 13px; text-align: right; }
@@ -655,7 +679,6 @@ td.rank { color: var(--muted); font-variant-numeric: tabular-nums; width: 32px; 
 .table-view > summary, details.more > summary { cursor: pointer; color: var(--link); font-size: 13px; width: fit-content; }
 .table-view table { margin-top: 8px; }
 .two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
-.group-label { font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin: 20px 0 6px; }
 
 /* framework cards */
 .fw-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-bottom: 16px; }
@@ -663,12 +686,13 @@ td.rank { color: var(--muted); font-variant-numeric: tabular-nums; width: 32px; 
 .fw-head { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
 .fw-head h3 { margin: 0; font-size: 18px; }
 .fw-name { font-size: 13px; color: var(--ink-2); margin-top: 2px; }
-.ver-chip { font-size: 12px; font-weight: 500; white-space: nowrap; border: 1px solid var(--border); background: var(--surface-2); border-radius: 999px; padding: 2px 10px; color: var(--ink-2); }
+.ver-chip { font-size: 12px; font-weight: 500; max-width: 50%; text-align: right; border: 1px solid var(--border); background: var(--surface-2); border-radius: 12px; padding: 2px 10px; color: var(--ink-2); }
 .fw-figure { display: flex; align-items: baseline; gap: 8px; }
 .fw-figure .big { font-size: 30px; font-weight: 700; line-height: 1; }
 .fw-figure .of { font-size: 13px; color: var(--ink-2); }
 .fwcard .track { border-left: 0; padding: 0; }
 .fw-stats { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--ink-2); }
+.fw-cov { margin: 0; font-size: 13px; color: var(--ink-2); }
 .fw-stats span { display: inline-flex; align-items: center; gap: 6px; }
 .fw-stats b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
 .fw-foot { margin-top: auto; padding-top: 12px; border-top: 1px solid var(--grid); display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 16px; font-size: 13px; color: var(--ink-2); }
@@ -923,7 +947,7 @@ if ($comparison -or $trendPoints.Count -ge 2) {
 }
 $sections.Add(@('priorities', 'Priorities', $failingCriticalHigh.Count))
 $sections.Add(@('domains', 'Security domains', $categories.Count))
-$sections.Add(@('frameworks', 'Frameworks', $frameworks.Count))
+$sections.Add(@('frameworks', 'Frameworks', @($frameworks.Values).Count))
 $sections.Add(@('tests', 'Test results', $tests.Count))
 $sections.Add(@('sources', 'Scope and sources', $null))
 $sectionNumber = @{}
@@ -947,7 +971,7 @@ function Add-SectionHead {
 
 #region executive summary
 
-Add-SectionHead -Id 'summary' -Heading 'Executive summary' -Subtitle "Security posture of the subscription on $(Enc (Format-Date $subscription.startedAt -DateOnly)), measured against $($frameworks.Count) frameworks and benchmarks."
+Add-SectionHead -Id 'summary' -Heading 'Executive summary' -Subtitle "Security posture of the subscription on $(Enc (Format-Date $subscription.startedAt -DateOnly)), measured against $(@($frameworks.Values).Count) frameworks and benchmarks."
 Add '<div class="card exec"><div class="score"><div class="caption">Posture score</div>'
 if ($null -ne $score) {
     $circumference = 2 * [math]::PI * 76
@@ -1018,13 +1042,13 @@ Add '</div></section>'
 
 #region changes since baseline
 
-if ($comparison -or $trendPoints.Count -ge 2) {
+#history sets the baseline, so a trend always comes with a comparison
+if ($comparison) {
     $logicChanged = @($comparison.tests.changed | Where-Object { $_.logicChanged })
-    #older comparisons have no lostVisibility list; treat it as empty rather than failing to render
-    $lostVisibility = @($comparison.lostVisibility | Where-Object { $_ })
+    $lostVisibility = @($comparison.lostVisibility)
     $scored = @($trendPoints | Where-Object { $null -ne $_.Score })
     $heading = if ($scored.Count -ge 2) { 'Trend and changes' } else { 'Changes since the previous analysis' }
-    $subtitle = if ($comparison) { "Compared with data collected on $(Enc (Format-Date $comparison.baseline.ingestStartedAt)). Findings are matched on test and resource." } else { '' }
+    $subtitle = "Compared with data collected on $(Enc (Format-Date $comparison.baseline.ingestStartedAt)). Findings are matched on test and resource."
     if ($scored.Count -ge 2) {
         $movement = [math]::Round([double]$scored[-1].Score - [double]$scored[0].Score, 1)
         $direction = if ($movement -gt 0) { "up $(Format-Number $movement) point(s)" } elseif ($movement -lt 0) { "down $(Format-Number ([math]::Abs($movement))) point(s)" } else { 'unchanged' }
@@ -1063,10 +1087,6 @@ if ($comparison -or $trendPoints.Count -ge 2) {
         Add '</tbody></table></div></details></div>'
     }
 
-    if (-not $comparison) { Add '</section>' }
-}
-
-if ($comparison) {
     Add '<div class="card"><div class="kpis" style="margin-top:0;border-top:0">'
     foreach ($kpi in @(
             , @('New failures', $comparison.counts.newFailures, 'failing now, not before')
@@ -1091,8 +1111,7 @@ if ($comparison) {
         Add "<div class=""card""><h3>$(Enc $list[0]) <span class=""muted"" style=""font-weight:400"">$($items.Count) findings in $($groups.Count) tests</span></h3><div class=""scroll""><table class=""chg""><thead><tr><th>Severity</th><th>Test</th><th class=""num"">Findings</th><th>Resources</th></tr></thead><tbody>"
         foreach ($group in ($groups | Select-Object -First 25)) {
             $shown = New-ResourceNameList -Findings $group.Group -Max 4
-            $testTitle = if ($testsById[$group.Name]) { $testsById[$group.Name].title } else { $group.Name }
-            Add "<tr><td>$(New-SeverityChip $group.Group[0].severity)</td><td><a href=""#$(Enc $group.Name)"">$(Enc $testTitle)</a><span class=""tid"">$(Enc $group.Name)</span></td><td class=""num"">$($group.Count)</td><td>$shown</td></tr>"
+            Add "<tr><td>$(New-SeverityChip $group.Group[0].severity)</td><td><a href=""#$(Enc $group.Name)"">$(Enc $testsById[$group.Name].title)</a><span class=""tid"">$(Enc $group.Name)</span></td><td class=""num"">$($group.Count)</td><td>$shown</td></tr>"
         }
         Add '</tbody></table></div>'
         if ($groups.Count -gt 25) { Add "<p class=""note"">And $($groups.Count - 25) more tests, listed with their findings below.</p>" }
@@ -1142,77 +1161,70 @@ Add '</div></section>'
 
 #region frameworks
 
-Add-SectionHead -Id 'frameworks' -Heading 'Framework compliance' -Subtitle 'Each control takes the worst result of the tests mapped to it. Bars show the share of assessed controls; controls without a test are not assessed. Versions and sources are listed with each framework.'
+Add-SectionHead -Id 'frameworks' -Heading 'Framework results' -Subtitle 'Every framework with all its controls. A control with tests takes the worst result of them: full means the tests check everything about the control that Azure configuration can show, partial that the control asks more. Controls without a test need manual evidence or are outside Azure scope.'
+Add "<p class=""note"" style=""margin:-8px 0 16px"">$(Enc $auditDisclaimer)</p>"
 Add $legend
 Add '<div class="fw-grid">'
-foreach ($fw in @($frameworks.Values | Where-Object { -not $_.Derived })) {
-    $total = $fw.Assessed
+foreach ($fw in $frameworks.Values) {
     Add "<article class=""card fwcard""><div class=""fw-head""><div><h3>$(Enc $fw.Label)</h3><div class=""fw-name"">$(Enc $fw.Name)</div></div>"
     if ($fw.Version) { Add "<span class=""ver-chip"" title=""Version"">$(Enc $fw.Version)</span>" }
     Add '</div>'
-    Add "<div class=""fw-figure""><span class=""big"">$($fw.Buckets.Fail)</span><span class=""of"">of $total assessed controls failing</span></div>"
-    Add (New-StackBar -Buckets $fw.Buckets -Scale $total -Label $fw.Label -Unit 'controls')
-    Add "<div class=""fw-stats""><span><i class=""sw b-fail""></i><b>$($fw.Buckets.Fail)</b> failing</span><span><i class=""sw b-unknown""></i><b>$($fw.Buckets.Unknown)</b> unknown</span><span><i class=""sw b-pass""></i><b>$($fw.Buckets.Pass)</b> passing</span><span><b>$($fw.Buckets.NotApplicable)</b> not applicable</span></div>"
-    if ($fw.Kind -eq 'crosswalk') { Add '<p class="note" style="margin:0">Crosswalk by JSolve B.V. via MCSB v2, technical articles only. A mapping means the configuration contributes to an article, not that the article is met.</p>' }
-    $coverage = if ($fw.Coverage) { "Assessed $($fw.Coverage.assessed) of $($fw.Coverage.controls) controls" } else { '' }
-    $footMeta = @($(if ($fw.Publisher) { "<span>$(Enc $fw.Publisher)</span>" }), $(if ($coverage) { "<span>$(Enc $coverage)</span>" })) | Where-Object { $_ }
-    $footLinks = @($(if ($fw.Url) { New-ExternalLink -Url $fw.Url -Text 'Source' }), "<a href=""#fw-$($fw.Slug)"">Controls</a>") | Where-Object { $_ }
+    if ($fw.Controls.Count) {
+        $total = $fw.Buckets.Fail + $fw.Buckets.Unknown + $fw.Buckets.Pass
+        Add "<div class=""fw-figure""><span class=""big"">$($fw.Buckets.Fail)</span><span class=""of"">of $total controls with a result failing</span></div>"
+        Add (New-StackBar -Buckets $fw.Buckets -Scale $total -Label $fw.Label -Unit 'controls')
+        Add "<div class=""fw-stats""><span><i class=""sw b-fail""></i><b>$($fw.Buckets.Fail)</b> failing</span><span><i class=""sw b-unknown""></i><b>$($fw.Buckets.Unknown)</b> unknown</span><span><i class=""sw b-pass""></i><b>$($fw.Buckets.Pass)</b> passing</span><span><b>$($fw.Buckets.NotApplicable)</b> not applicable</span></div>"
+        Add "<p class=""fw-cov"">$(Enc (Get-CoverageText $fw))</p>"
+    } else {
+        Add "<p class=""fw-cov"">$(Enc $fw.Note)</p>"
+    }
+    $footMeta = @($(if ($fw.Publisher) { "<span>$(Enc $fw.Publisher)</span>" }), $(if ($fw.Controls.Count) { "<span>$(Enc (Get-MappingLabel $fw.Mapping))</span>" })) | Where-Object { $_ }
+    $footLinks = @($(if ($fw.Url) { New-ExternalLink -Url $fw.Url -Text 'Source' }), $(if ($fw.Controls.Count) { "<a href=""#fw-$($fw.Slug)"">Controls</a>" })) | Where-Object { $_ }
     Add "<div class=""fw-foot""><span>$($footMeta -join '')</span><span>$($footLinks -join '')</span></div></article>"
 }
 Add '</div>'
-
-$derivedFrameworks = @($frameworks.Values | Where-Object { $_.Derived })
-if ($derivedFrameworks.Count) {
-    Add '<div class="card" role="group" aria-label="Derived framework results"><h3>Derived frameworks</h3>'
-    Add '<p class="note">These results follow from the control mappings that Microsoft publishes in MCSB v2: a test maps to a framework through the MCSB controls it implements. A mapping means Azure features can fully or partially address a requirement, not that the requirement is met.</p>'
-    foreach ($fw in $derivedFrameworks) {
-        $versionHtml = if ($fw.Version) { '<span class="ver">{0}</span>' -f (Enc $fw.Version) } else { '' }
-        $labelHtml = "<a href=""#fw-$($fw.Slug)"">$(Enc $fw.Label)</a>$versionHtml"
-        $source = if ($fw.Url) { New-ExternalLink -Url $fw.Url -Text 'Source' } else { '' }
-        Add (New-ChartRow -LabelHtml $labelHtml -Buckets $fw.Buckets -Scale $fw.Assessed -Label $fw.Label -Unit 'controls' -Extra $source)
-    }
-    Add (New-TableView -FirstColumn 'Framework' -Rows @($frameworks.Values) -WithNotAssessed)
-    Add '</div>'
-}
+Add (New-TableView -FirstColumn 'Framework' -Rows @($frameworks.Values) -WithNotAssessed)
 
 Add '<h3 style="margin-top:32px">Controls per framework</h3>'
-foreach ($fw in $frameworks.Values) {
-    Add "<details class=""fw"" id=""fw-$($fw.Slug)""><summary><span class=""t"">$(Enc $fw.Label)</span><span class=""muted"">$(Enc $fw.Name)</span><span class=""c"">$($fw.Buckets.Fail) failing of $($fw.Assessed) assessed</span></summary>"
+foreach ($fw in @($frameworks.Values)) {
+    $total = $fw.Buckets.Fail + $fw.Buckets.Unknown + $fw.Buckets.Pass
+    Add "<details class=""fw"" id=""fw-$($fw.Slug)""><summary><span class=""t"">$(Enc $fw.Label)</span><span class=""muted"">$(Enc $fw.Name)</span><span class=""c"">$($fw.Buckets.Fail) failing of $total with a result</span></summary>"
     Add '<dl class="fw-meta">'
     foreach ($item in @(
             , @('Version', $fw.Version)
             , @('Publisher', $fw.Publisher)
-            , @('Access', $fw.Access)
-            , @('Coverage', $(if ($fw.Coverage) { "$($fw.Coverage.assessed) of $($fw.Coverage.controls) controls assessed" }))
+            , @('Mapping', (Get-MappingLabel $fw.Mapping))
+            , @('Coverage', (Get-CoverageText $fw))
         )) { if ($item[1]) { Add "<div><dt>$(Enc $item[0])</dt><dd>$(Enc $item[1])</dd></div>" } }
     $sourceLinks = @($(if ($fw.Url) { New-ExternalLink -Url $fw.Url -Text 'Source documentation' }), $(if ($fw.Download) { New-ExternalLink -Url $fw.Download -Text 'Download' })) | Where-Object { $_ }
     if ($sourceLinks) { Add "<div><dt>Source</dt><dd>$($sourceLinks -join ' &middot; ')</dd></div>" }
     Add '</dl>'
     if ($fw.Note) { Add "<p class=""fw-note"">$(Enc $fw.Note)</p>" }
-    $head = if ($fw.Derived) { '<th>Control</th><th>Result</th><th>Via MCSB v2</th><th>Tests</th>' } elseif ($fw.Kind -eq 'crosswalk') { '<th>Control</th><th>Title</th><th>Result</th><th>Via MCSB v2</th><th>Tests</th>' } else { '<th>Control</th><th>Title</th><th>Result</th><th>Tests</th>' }
-    Add "<div class=""fw-table scroll""><table><thead><tr>$head</tr></thead><tbody>"
-    foreach ($control in $fw.Controls) {
-        $item = $control.Value
-        $testIds = @($item.tests)
-        $testLinks = @($testIds | ForEach-Object { '<a href="#{0}">{0}</a>' -f (Enc $_) })
-        $links = ($testLinks | Select-Object -First 8) -join ', '
-        if ($testLinks.Count -gt 8) {
-            $rest = ($testLinks | Select-Object -Skip 8) -join ', '
-            $links += "<details class=""more-links""><summary>$($testLinks.Count - 8) more</summary>$rest</details>"
+    $automated = @($fw.Controls | Where-Object Applicability -eq 'automated')
+    if ($automated.Count) {
+        Add '<div class="fw-table scroll"><table><thead><tr><th>Control</th><th>Title</th><th>Result</th><th>Coverage</th><th>Tests</th></tr></thead><tbody>'
+        foreach ($control in $automated) {
+            $testLinks = @($control.Tests | ForEach-Object { '<a href="#{0}">{0}</a>' -f (Enc $_) })
+            $links = ($testLinks | Select-Object -First 8) -join ', '
+            if ($testLinks.Count -gt 8) {
+                $rest = ($testLinks | Select-Object -Skip 8) -join ', '
+                $links += "<details class=""more-links""><summary>$($testLinks.Count - 8) more</summary>$rest</details>"
+            }
+            Add "<tr><td style=""white-space:nowrap"">$(Get-ControlLink -Id $control.Id -Url $control.Url)</td><td>$(Enc $control.Title)</td><td>$(New-StatusBadge $control.Status)</td><td>$(Enc $control.Coverage)</td><td class=""links"">$links</td></tr>"
         }
-        $idHtml = Get-ControlLink -Framework $fw.Key -Id $control.Name -Url $item.url
-        if ($fw.Derived) {
-            $via = (@($item.via) | Where-Object { $_ } | ForEach-Object { Get-ControlLink -Framework 'MCSB' -Id $_ }) -join ', '
-            Add "<tr><td>$idHtml</td><td>$(New-StatusBadge $item.status)</td><td class=""links"">$via</td><td class=""links"">$links</td></tr>"
-        } elseif ($fw.Kind -eq 'crosswalk') {
-            $via = (@($item.via) | Where-Object { $_ } | ForEach-Object { Get-ControlLink -Framework 'MCSB' -Id $_ }) -join ', '
-            Add "<tr><td style=""white-space:nowrap"">$idHtml</td><td>$(Enc $item.title)</td><td>$(New-StatusBadge $item.status)</td><td class=""links"">$via</td><td class=""links"">$links</td></tr>"
-        } else {
-            $manual = if ($item.assessment -eq 'Manual') { ' <span class="note">(manual in CIS)</span>' } else { '' }
-            Add "<tr><td style=""white-space:nowrap"">$idHtml</td><td>$(Enc $item.title)$manual</td><td>$(New-StatusBadge $item.status)</td><td class=""links"">$links</td></tr>"
-        }
+        Add '</tbody></table></div>'
     }
-    Add '</tbody></table></div></details>'
+    $manual = @($fw.Controls | Where-Object Applicability -eq 'manual')
+    if ($manual.Count) {
+        Add "<details class=""more"" style=""margin-top:10px""><summary>$($manual.Count) controls that need manual evidence</summary><div class=""fw-table scroll""><table><thead><tr><th>Control</th><th>Title</th></tr></thead><tbody>"
+        foreach ($control in $manual) {
+            $remark = if ($control.Assessment -eq 'Manual') { " <span class='note'>(manual in CIS)</span>" } else { '' }
+            Add "<tr><td style=""white-space:nowrap"">$(Get-ControlLink -Id $control.Id -Url $control.Url)</td><td>$(Enc $control.Title)$remark</td></tr>"
+        }
+        Add '</tbody></table></div></details>'
+    }
+    if ($fw.OutOfScope) { Add "<p class=""note"" style=""margin:10px 0 0"">$($fw.OutOfScope) controls do not concern the Azure environment (people, physical security, organization-wide governance, end-user devices, software development) and are not listed.</p>" }
+    Add '</details>'
 }
 Add '</section>'
 
@@ -1225,7 +1237,7 @@ Add '<div class="filters" role="search"><div class="frow"><input type="search" i
 Add '<select id="f-category" aria-label="Domain"><option value="">All domains</option>'
 foreach ($category in $categories) { Add "<option value=""$(Enc $category)"">$(Enc $category)</option>" }
 Add '</select><select id="f-framework" aria-label="Framework"><option value="">All frameworks</option>'
-foreach ($fw in $frameworks.Values) { Add "<option value=""$($fw.Slug)"">$(Enc $fw.Label)</option>" }
+foreach ($fw in @($frameworks.Values)) { Add "<option value=""$($fw.Slug)"">$(Enc $fw.Label)</option>" }
 Add '</select><button type="button" id="f-reset" class="btn">Show all</button></div><div class="frow"><div class="chips" role="group" aria-label="Result">'
 foreach ($status in 'Fail', 'Error', 'Unknown', 'Pass', 'NotApplicable') {
     $count = @($tests | Where-Object status -eq $status).Count
@@ -1241,17 +1253,9 @@ foreach ($severity in 'Critical', 'High', 'Medium', 'Low', 'Informational') {
 Add '</div><span class="count" id="f-count"></span></div></div><div class="test-list">'
 
 foreach ($test in $tests) {
-    $primaryTags = @(foreach ($key in $primaryFrameworks) { foreach ($tag in @($test.frameworks.$key)) { if ($tag) { [pscustomobject]@{ Framework = $key; Tag = $tag } } } })
-    #crosswalk tags (DORA) are listed with the direct mappings, with their title and the MCSB controls they come through
-    $derivedTags = @()
-    foreach ($tag in @(Get-DerivedTags $test)) {
-        if ($frameworks.Contains($tag.Framework) -and $frameworks[$tag.Framework].Kind -eq 'crosswalk') {
-            $control = $results.frameworks.($tag.Framework).controls.($tag.Id)
-            $primaryTags += [pscustomobject]@{ Framework = $tag.Framework; Tag = [pscustomobject]@{ id = $tag.Id; title = $control.title; via = @($tag.Via) } }
-        } else { $derivedTags += $tag }
-    }
-    $testFrameworks = @(@($primaryTags | ForEach-Object Framework) + @($derivedTags | ForEach-Object Framework) | Sort-Object -Unique | ForEach-Object { if ($_ -and $frameworks.Contains($_)) { $frameworks[$_].Slug } })
-    $searchText = (@($test.id, $test.title, $test.service, $test.category) + @($primaryTags | ForEach-Object { $_.Tag.id }) + @($derivedTags | ForEach-Object Id) + @($test.findings | ForEach-Object resourceName) | Where-Object { $_ }) -join ' '
+    $testTags = @(Get-TestControls $test)
+    $testFrameworks = @($frameworks.Keys | Where-Object { @($testTags | ForEach-Object Framework) -contains $_ } | ForEach-Object { $frameworks[$_].Slug })
+    $searchText = (@($test.id, $test.title, $test.service, $test.category) + @($testTags | ForEach-Object Id) + @($test.findings | ForEach-Object resourceName) | Where-Object { $_ }) -join ' '
     $evaluatedCount = $test.counts.Pass + $test.counts.Fail + $test.counts.Unknown
     $countsText = switch ($test.status) {
         'Fail' { "$($test.counts.Fail) of $evaluatedCount failing" }
@@ -1286,29 +1290,16 @@ foreach ($test in $tests) {
     }
     Add '</div></div>'
 
-    #framework mappings with version and source per control
-    if ($primaryTags.Count) {
-        Add '<h4 class="sp">Framework mappings</h4><div class="scroll"><table class="map-table"><thead><tr><th>Framework</th><th>Version</th><th>Control</th><th>Title</th></tr></thead><tbody>'
-        foreach ($entry in $primaryTags) {
+    #the framework controls this test evidences, with version and source
+    if ($testTags.Count) {
+        Add '<h4 class="sp">Framework controls</h4><div class="scroll"><table class="map-table"><thead><tr><th>Framework</th><th>Version</th><th>Control</th><th>Title</th><th>Coverage</th></tr></thead><tbody>'
+        foreach ($entry in $testTags) {
             $fw = $frameworks[$entry.Framework]
-            $version = if ($entry.Tag.version) { $entry.Tag.version } else { $fw.Version }
-            $extra = @($(if ($entry.Tag.criticality) { $entry.Tag.criticality }), $(if ($entry.Tag.level) { "Level $($entry.Tag.level -replace '^L', '')" }), $(if (@($entry.Tag.via | Where-Object { $_ }).Count) { "via MCSB $(@($entry.Tag.via | Where-Object { $_ }) -join ', ')" })) | Where-Object { $_ }
+            $extra = @($(if ($entry.Criticality) { $entry.Criticality }), $(if ($entry.Level) { "Level $($entry.Level -replace '^L', '')" })) | Where-Object { $_ }
             $extraHtml = if ($extra) { " <span class=""muted"">($(Enc ($extra -join ', ')))</span>" } else { '' }
-            Add "<tr><td class=""fwl""><a href=""#fw-$($fw.Slug)"">$(Enc $fw.Label)</a></td><td class=""fwv"">$(Enc $version)</td><td style=""white-space:nowrap"">$(Get-ControlLink -Framework $entry.Framework -Id $entry.Tag.id -Url $entry.Tag.url)</td><td>$(Enc $entry.Tag.title)$extraHtml</td></tr>"
+            Add "<tr><td class=""fwl""><a href=""#fw-$($fw.Slug)"">$(Enc $fw.Label)</a></td><td class=""fwv"">$(Enc $fw.Version)</td><td style=""white-space:nowrap"">$(Get-ControlLink -Id $entry.Id -Url $entry.Url)</td><td>$(Enc $entry.Title)$extraHtml</td><td>$(Enc $entry.Coverage)</td></tr>"
         }
         Add '</tbody></table></div>'
-    }
-    if ($derivedTags.Count) {
-        $groups = @($derivedTags | Group-Object Framework | Sort-Object Name)
-        Add "<details class=""more"" style=""margin-top:10px""><summary>Derived mappings to $($groups.Count) frameworks, via MCSB v2</summary><div class=""scroll""><table class=""map-table""><thead><tr><th>Framework</th><th>Version</th><th>Controls</th><th>Via MCSB v2</th></tr></thead><tbody>"
-        foreach ($group in $groups) {
-            $fw = $frameworks[$group.Name]
-            $label = if ($fw) { "<a href=""#fw-$($fw.Slug)"">$(Enc $fw.Label)</a>" } else { Enc $group.Name }
-            $source = if ($fw.Url) { " $(New-ExternalLink -Url $fw.Url -Text 'source')" } else { '' }
-            $via = (@($group.Group | ForEach-Object { $_.Via } | Where-Object { $_ } | Sort-Object -Unique) | ForEach-Object { Get-ControlLink -Framework 'MCSB' -Id $_ }) -join ', '
-            Add "<tr><td class=""fwl"">$label</td><td class=""fwv"">$(Enc $fw.Version)$source</td><td class=""mono"">$(Enc (($group.Group.Id) -join ', '))</td><td class=""links"">$via</td></tr>"
-        }
-        Add '</tbody></table></div></details>'
     }
 
     $findings = @($test.findings | Sort-Object { $statusOrder[$_.status] }, resourceName)
@@ -1363,26 +1354,26 @@ foreach ($item in @(
         , @('Unknown', 'Unknown', 'The data needed was not collected, for example because of a missing permission.')
         , @('Error', 'Error', 'The test could not run; see the test for details.')
         , @('NotApplicable', 'Not applicable', 'No resources of this kind in the subscription.')
-        , @('NotAssessed', 'Not assessed', 'A framework control that no test covers; review it separately.')
+        , @('NotAssessed', 'Not assessed', 'A framework control without a test that ran: it needs manual evidence, or its tests were not part of this analysis.')
     )) { Add "<dt>$(New-StatusBadge -Status $item[0] -Label $item[1])</dt><dd>$(Enc $item[2])</dd>" }
 Add '</dl></div></div>'
 
-Add '<div class="card flush scroll" style="margin-top:16px"><table class="src-table"><thead><tr><th>Framework</th><th>Version</th><th>Publisher</th><th>Mapping</th><th>Access</th><th>Source</th></tr></thead><tbody>'
+Add '<div class="card flush scroll" style="margin-top:16px"><table class="src-table"><thead><tr><th>Framework</th><th>Version</th><th>Publisher</th><th>Mapping</th><th>Source</th></tr></thead><tbody>'
 foreach ($fw in $frameworks.Values) {
-    $mapping = if ($fw.Derived) { 'Derived via MCSB v2' } elseif ($fw.Kind -eq 'crosswalk') { 'JSolve crosswalk via MCSB v2' } else { 'Direct' }
+    $mapping = Get-MappingLabel $fw.Mapping
     $links = @($(if ($fw.Url) { New-ExternalLink -Url $fw.Url -Text 'Documentation' }), $(if ($fw.Download) { New-ExternalLink -Url $fw.Download -Text 'Download' })) | Where-Object { $_ }
     $retrieved = if ($fw.Retrieved) { "<div class=""muted"" style=""font-size:12px"">checked $(Enc $fw.Retrieved)</div>" } else { '' }
-    Add "<tr><td><a href=""#fw-$($fw.Slug)""><b>$(Enc $fw.Label)</b></a><div class=""muted"" style=""font-size:12px"">$(Enc $fw.Name)</div></td><td>$(Enc $fw.Version)</td><td>$(Enc $fw.Publisher)</td><td>$(Enc $mapping)</td><td>$(Enc $fw.Access)</td><td style=""white-space:nowrap"">$($links -join '<br>')$retrieved</td></tr>"
+    Add "<tr><td><a href=""#fw-$($fw.Slug)""><b>$(Enc $fw.Label)</b></a><div class=""muted"" style=""font-size:12px"">$(Enc $fw.Name)</div></td><td>$(Enc $fw.Version)</td><td>$(Enc $fw.Publisher)</td><td>$(Enc $mapping)</td><td style=""white-space:nowrap"">$($links -join '<br>')$retrieved</td></tr>"
 }
 Add '</tbody></table></div>'
 Add '<p class="note" style="margin-top:16px">Resource names are links to the Azure portal wherever the portal has a page for the resource. A name without a link has no page to open: either the portal addresses that object differently, or it has no page for a single object of that kind.</p>'
-Add '<p class="note" style="margin-top:16px">Results reflect the configuration at the time the data was collected, read with Reader access and Microsoft Graph read permissions. Mappings to industry frameworks show where Azure configuration contributes to a requirement; they are not a compliance attestation. This report describes weaknesses in the environment in detail: treat it as confidential.</p>'
+Add "<p class=""note"" style=""margin-top:16px"">Results reflect the configuration at the time the data was collected, read with Reader access and Microsoft Graph read permissions. $(Enc $auditDisclaimer) This report describes weaknesses in the environment in detail: treat it as confidential.</p>"
 Add '</section>'
 
 #endregion
 
 Add '</main></div>'
-Add "<footer class=""foot""><span>$(Enc $Title), $(Enc $heading)</span><span>Generated $(Enc (Format-Date $results.analyzedAt)) from $(Enc $subscription.folder)</span><span class=""made""><img src=""$jsolveMark"" alt="""" width=""32"" height=""22"">AzCmply by $(New-ExternalLink -Url 'https://www.jsolve.nl' -Text 'JSolve B.V.')</span></footer>"
+Add "<footer class=""foot""><span>$(Enc $Title), $(Enc $heading)</span><span>Generated $(Enc (Format-Date $results.analyzedAt)) from $(Enc $subscription.folder)</span><span class=""made""><img src=""$jsolveMark"" alt="""" width=""32"" height=""22"">AzCmply by $(New-ExternalLink -Url 'https://www.jsolve.nl' -Text 'JSolve B.V.') &middot; $(New-ExternalLink -Url 'https://github.com/jflieben/AzCmply#readme' -Text 'Documentation')</span></footer>"
 Add '<div id="tip" role="tooltip" hidden></div>'
 Add "<script>$script</script></body></html>"
 

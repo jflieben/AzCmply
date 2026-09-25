@@ -146,55 +146,59 @@ export default R.script("/app/Analyze/Compare-AzureAnalysis.ps1", { params: [{ n
         }
     }
     S["testchanges"] = R.u(v8);
-    R.ln = F + 93;
+    R.ln = F + 94;
     const v10 = [];
-    R.ln = F + 93;
+    R.ln = F + 94;
     for (const it11 of R.fi(R.m(R.m(R.m(R.m((S["new"] ?? null), "frameworks"), "PSObject"), "Properties"), "Name"))) {
         S["framework"] = it11;
-        R.ln = F + 94;
+        R.ln = F + 95;
+        if ((!R.t(R.m(R.m((S["old"] ?? null), "frameworks"), R.str((S["framework"] ?? null)))) || R.t(R.ne(R.m(R.m(R.m((S["old"] ?? null), "frameworks"), R.str((S["framework"] ?? null))), "version"), R.m(R.m(R.m((S["new"] ?? null), "frameworks"), R.str((S["framework"] ?? null))), "version"))))) {
+            continue;
+        }
+        R.ln = F + 96;
         for (const it12 of R.fi(R.m(R.m(R.m(R.m(R.m((S["new"] ?? null), "frameworks"), R.str((S["framework"] ?? null))), "controls"), "PSObject"), "Properties"))) {
             S["control"] = it12;
-            R.ln = F + 95;
+            R.ln = F + 97;
             S["previous"] = R.m(R.m(R.m(R.m((S["old"] ?? null), "frameworks"), R.str((S["framework"] ?? null))), "controls"), R.str((R.m((S["control"] ?? null), "Name"))));
-            R.ln = F + 96;
+            R.ln = F + 98;
             if ((R.t((S["previous"] ?? null)) && R.t(R.ne(R.m((S["previous"] ?? null), "status"), R.m(R.m((S["control"] ?? null), "Value"), "status"))))) {
-                R.ln = F + 96;
+                R.ln = F + 98;
                 R.e(v10, R.ht(["framework", (S["framework"] ?? null), "control", R.m((S["control"] ?? null), "Name"), "from", R.m((S["previous"] ?? null), "status"), "to", R.m(R.m((S["control"] ?? null), "Value"), "status")], true));
             }
         }
     }
     S["controlchanges"] = R.u(v10);
-    R.ln = F + 100;
+    R.ln = F + 102;
     S["comparison"] = R.ht(["baseline", R.ht(["folder", R.m(R.m((S["old"] ?? null), "ingest"), "folder"), "ingestStartedAt", R.m(R.m((S["old"] ?? null), "ingest"), "startedAt"), "analyzerVersion", R.m(R.m((S["old"] ?? null), "analyzer"), "version"), "postureScore", R.m(R.m((S["old"] ?? null), "summary"), "postureScore")], true), "current", R.ht(["folder", R.m(R.m((S["new"] ?? null), "ingest"), "folder"), "ingestStartedAt", R.m(R.m((S["new"] ?? null), "ingest"), "startedAt"), "analyzerVersion", R.m(R.m((S["new"] ?? null), "analyzer"), "version"), "postureScore", R.m(R.m((S["new"] ?? null), "summary"), "postureScore")], true), "scoreDelta", (() => {
         const v13 = [];
-        R.ln = F + 103;
+        R.ln = F + 105;
         if ((R.t(R.ne(null, R.m(R.m((S["old"] ?? null), "summary"), "postureScore"))) && R.t(R.ne(null, R.m(R.m((S["new"] ?? null), "summary"), "postureScore"))))) {
-            R.ln = F + 103;
+            R.ln = F + 105;
             R.e(v13, R.sc("math", "Round", [R.sub(R.m(R.m((S["new"] ?? null), "summary"), "postureScore"), R.m(R.m((S["old"] ?? null), "summary"), "postureScore")), 1]));
         } else {
-            R.ln = F + 103;
+            R.ln = F + 105;
             R.e(v13, null);
         }
         return R.u(v13);
     })(), "counts", R.ht(["newFailures", R.m((S["newfailures"] ?? null), "Count"), "resolved", R.m((S["resolved"] ?? null), "Count"), "stillFailing", R.m((S["stillfailing"] ?? null), "Count"), "lostVisibility", R.m((S["lostvisibility"] ?? null), "Count"), "otherChanges", R.m((S["otherchanges"] ?? null), "Count")], true), "tests", R.ht(["changed", R.a((S["testchanges"] ?? null)), "added", R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -notin $oldTestIds " }, (S, O) => {
-        R.ln = F + 105;
+        R.ln = F + 107;
         R.e(O, R.nin((S["_"] ?? null), (S["oldtestids"] ?? null)));
     })], R.pi((S["newtestids"] ?? null))), "removed", R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -notin $newTestIds " }, (S, O) => {
-        R.ln = F + 105;
+        R.ln = F + 107;
         R.e(O, R.nin((S["_"] ?? null), (S["newtestids"] ?? null)));
     })], R.pi((S["oldtestids"] ?? null)))], true), "frameworks", R.a((S["controlchanges"] ?? null)), "newFailures", R.a((S["newfailures"] ?? null)), "resolved", R.a((S["resolved"] ?? null)), "stillFailing", R.a((S["stillfailing"] ?? null)), "lostVisibility", R.a((S["lostvisibility"] ?? null)), "otherChanges", R.a((S["otherchanges"] ?? null))], true);
-    R.ln = F + 114;
+    R.ln = F + 116;
     if (R.t((S["outputpath"] ?? null))) {
-        R.ln = F + 115;
+        R.ln = F + 117;
         R.e(O, R.sc("System.IO.File", "WriteAllText", [(S["outputpath"] ?? null), R.add((R.rep(R.u(R.cmd(S, "ConvertTo-Json", [R.np("Depth"), 20], R.pi((S["comparison"] ?? null)))), [R.v("\r\n"), R.v("\n")])), "\n"), R.sc("System.Text.UTF8Encoding", "new", [false])]));
     }
-    R.ln = F + 117;
+    R.ln = F + 119;
     R.pa(O, R.cmd(S, "Write-Host", [("Posture score " + R.str(R.u(R.pi(R.m(R.m((S["old"] ?? null), "summary"), "postureScore")))) + " -> " + R.str(R.u(R.pi(R.m(R.m((S["new"] ?? null), "summary"), "postureScore")))) + " (" + R.str(R.u(R.pi(R.m((S["comparison"] ?? null), "scoreDelta")))) + "). New failures: " + R.str(R.u(R.pi(R.m((S["newfailures"] ?? null), "Count")))) + ", resolved: " + R.str(R.u(R.pi(R.m((S["resolved"] ?? null), "Count")))) + ", still failing: " + R.str(R.u(R.pi(R.m((S["stillfailing"] ?? null), "Count")))) + ", lost visibility: " + R.str(R.u(R.pi(R.m((S["lostvisibility"] ?? null), "Count")))) + ", other changes: " + R.str(R.u(R.pi(R.m((S["otherchanges"] ?? null), "Count")))))], null));
-    R.ln = F + 118;
+    R.ln = F + 120;
     if (R.t(R.m((S["lostvisibility"] ?? null), "Count"))) {
-        R.ln = F + 118;
+        R.ln = F + 120;
         R.pa(O, R.cmd(S, "Write-Warning", [("" + R.str(R.u(R.pi(R.m((S["lostvisibility"] ?? null), "Count")))) + " finding(s) went from Fail to Unknown: the data needed to judge them was not collected this time, so the score is not comparable.")], null));
     }
-    R.ln = F + 119;
+    R.ln = F + 121;
     R.e(O, R.c("pscustomobject", (S["comparison"] ?? null)));
 });

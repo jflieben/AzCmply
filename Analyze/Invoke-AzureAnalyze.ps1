@@ -4,12 +4,11 @@
     Runs the Azure security test suite against an ingestion made by Invoke-AzureIngest.ps1.
     .DESCRIPTION
     Every test in tests\*.ps1 evaluates one security requirement and produces a finding per evaluated resource.
-    Tests are tagged with the controls they implement (Microsoft cloud security benchmark v2, CIS Microsoft Azure
-    Foundations Benchmark 6.0.0, Well-Architected Framework security pillar, Azure landing zone policy assignments);
-    NIST SP 800-53, PCI DSS, CIS Controls, NIST CSF, ISO 27001 and SOC 2 tags are derived from the MCSB mappings.
+    Each framework has its own catalog in catalog\frameworks: every control of the framework, and per control the tests
+    that evidence it (full or partial), or whether it needs manual evidence or does not concern Azure.
 
     Output (in <OutputPath>\<FolderName>):
-    - results.json   everything: tests with descriptions, remediation, framework tags, status and findings, rollups per framework control
+    - results.json   everything: tests with descriptions, remediation, framework controls, status and findings, results per framework control
     - tests.csv      one row per test
     - findings.csv   one row per finding
     Output is sorted and contains no timestamps except 'analyzedAt', so runs can be diffed (see Compare-AzureAnalysis.ps1).
@@ -43,8 +42,10 @@ Param(
 )
 
 $ErrorActionPreference = 'Stop'
-$analyzerVersion = '1.0.0'
-$schemaVersion = 2
+#all components share the version in the VERSION file at the repository or module root
+$versionFile = if ($PSScriptRoot) { Join-Path (Split-Path $PSScriptRoot -Parent) 'VERSION' }
+$analyzerVersion = if ($versionFile -and (Test-Path $versionFile)) { (Get-Content -Path $versionFile -Raw).Trim() } else { 'unknown' }
+$schemaVersion = 3
 
 . (Join-Path $PSScriptRoot 'lib\AnalyzeCore.ps1')
 
@@ -108,8 +109,21 @@ if ($resolvedIngest -match '\.zip$') {
 
 try {
     Initialize-Ingest -Path $ingestRoot
-    $script:Catalog = Get-Content -Path (Join-Path $PSScriptRoot 'catalog\frameworks.json') -Raw | ConvertFrom-Json -AsHashtable
+    $script:Catalog = Import-FrameworkCatalogs -Path (Join-Path $PSScriptRoot 'catalog\frameworks')
     foreach ($file in (Get-ChildItem -Path (Join-Path $PSScriptRoot 'tests') -Filter '*.ps1' | Sort-Object Name)) { . $file.FullName }
+    Test-FrameworkCatalogs
+
+    #test id > the framework controls it evidences, in framework and control order
+    $testControls = @{}
+    foreach ($framework in $script:Catalog.Keys) {
+        foreach ($id in @($script:Catalog[$framework].controls.Keys | Sort-Object { Get-NaturalKey $_ })) {
+            $control = $script:Catalog[$framework].controls[$id]
+            foreach ($mappedTest in @($control.tests | Where-Object { $_ })) {
+                if (-not $testControls.ContainsKey($mappedTest)) { $testControls[$mappedTest] = [System.Collections.Generic.List[object]]::new() }
+                $testControls[$mappedTest].Add(@($framework, $id, $control))
+            }
+        }
+    }
 
     $selected = @($script:Tests | Where-Object {
             $id = $_.Id
@@ -174,42 +188,16 @@ try {
         $duplicates = @($sortedFindings | Group-Object { $_.resourceId.ToLowerInvariant() } | Where-Object Count -gt 1)
         if ($duplicates.Count) { Write-Warning "$($test.Id): duplicate findings for $($duplicates[0].Name)" }
 
-        #framework tags, derived tags from MCSB mappings
+        #the framework controls this test evidences, per framework
         $frameworkTags = [ordered]@{}
-        foreach ($framework in 'MCSB', 'CIS', 'WAF', 'ALZ') {
-            if (-not $test.Frameworks[$framework]) { continue }
-            $frameworkTags[$framework] = @(@($test.Frameworks[$framework]) | Sort-Object { Get-NaturalKey $_ } | ForEach-Object {
-                    $control = $script:Catalog[$framework].controls[$_]
-                    $tag = [ordered]@{ id = $_; title = $control.title; version = $script:Catalog[$framework].version }
-                    if ($control.level) { $tag.level = $control.level }
-                    if ($control.criticality) { $tag.criticality = $control.criticality }
-                    if ($control.url) { $tag.url = $control.url }
-                    $tag
-                })
+        foreach ($entry in @($testControls[$test.Id])) {
+            if (-not $entry) { continue }
+            $framework, $id, $control = $entry
+            $tag = [ordered]@{ id = $id; title = $control.title; coverage = $control.coverage }
+            foreach ($field in 'level', 'criticality', 'url') { if ($control[$field]) { $tag[$field] = $control[$field] } }
+            if (-not $frameworkTags.Contains($framework)) { $frameworkTags[$framework] = [System.Collections.Generic.List[object]]::new() }
+            $frameworkTags[$framework].Add($tag)
         }
-        #derived: framework > control id > the MCSB controls it comes from; crosswalk tags set on the test itself have none
-        $derived = @{}
-        foreach ($framework in @($test.Frameworks.Keys | Where-Object { $script:Catalog[$_].kind -eq 'crosswalk' } | Sort-Object)) {
-            $derived[$framework] = @{}
-            foreach ($id in @($test.Frameworks[$framework])) { $derived[$framework][$id] = [System.Collections.Generic.HashSet[string]]::new() }
-        }
-        foreach ($control in @($test.Frameworks.MCSB | Where-Object { $_ })) {
-            foreach ($mapping in $script:Catalog.MCSB.controls[$control].mappings.GetEnumerator()) {
-                if (-not $derived.ContainsKey($mapping.Key)) { $derived[$mapping.Key] = @{} }
-                foreach ($id in @($mapping.Value)) {
-                    if (-not $id) { continue }
-                    if (-not $derived[$mapping.Key].ContainsKey($id)) { $derived[$mapping.Key][$id] = [System.Collections.Generic.HashSet[string]]::new() }
-                    $null = $derived[$mapping.Key][$id].Add($control)
-                }
-            }
-        }
-        $derivedTags = [ordered]@{}
-        foreach ($key in ($derived.Keys | Sort-Object)) {
-            $derivedTags[$key] = @($derived[$key].Keys | Sort-Object { Get-NaturalKey $_ } | ForEach-Object {
-                    [ordered]@{ id = $_; version = $script:Catalog[$key].version; via = @($derived[$key][$_] | Sort-Object { Get-NaturalKey $_ }) }
-                })
-        }
-        $frameworkTags.derived = $derivedTags
 
         $testResults.Add([ordered]@{
                 id                      = $test.Id
@@ -255,50 +243,53 @@ try {
     }
     $score = if ($weightTotal -gt 0) { [math]::Round(100 * $weightScore / $weightTotal, 1) } else { $null }
 
-    $rollups = [ordered]@{}
-    foreach ($result in $testResults) {
-        $entries = [System.Collections.Generic.List[object]]::new()
-        foreach ($framework in 'MCSB', 'CIS', 'WAF', 'ALZ') { foreach ($tag in @($result.frameworks[$framework])) { if ($tag) { $entries.Add(@($framework, $tag.id, $tag.title, $null)) } } }
-        foreach ($derivedFramework in $result.frameworks.derived.Keys) { foreach ($tag in $result.frameworks.derived[$derivedFramework]) { $entries.Add(@($derivedFramework, $tag.id, $null, $tag.via)) } }
-        foreach ($entry in $entries) {
-            $framework, $id, $title, $via = $entry
-            if (-not $rollups.Contains($framework)) { $rollups[$framework] = @{} }
-            if (-not $rollups[$framework].ContainsKey($id)) { $rollups[$framework][$id] = [ordered]@{ title = $title; status = 'NotApplicable'; tests = [System.Collections.Generic.List[string]]::new(); via = [System.Collections.Generic.HashSet[string]]::new() } }
-            $rollups[$framework][$id].tests.Add($result.id)
-            foreach ($mcsb in @($via)) { if ($mcsb) { $null = $rollups[$framework][$id].via.Add($mcsb) } }
-            $rollups[$framework][$id].status = Get-WorstStatus @($rollups[$framework][$id].status, $result.status)
-        }
-    }
-    #catalog controls without any test are listed as NotAssessed so coverage gaps are visible;
-    #without this a framework would report every control it happens to cover as its whole scope
-    $crosswalks = @($script:Catalog.Keys | Where-Object { $script:Catalog[$_].kind -eq 'crosswalk' } | Sort-Object)
-    foreach ($framework in @('MCSB', 'CIS', 'WAF', 'ALZ') + $crosswalks) {
-        if (-not $rollups.Contains($framework)) { $rollups[$framework] = @{} }
-        foreach ($id in $script:Catalog[$framework].controls.Keys) {
-            if (-not $rollups[$framework].ContainsKey($id)) {
-                $rollups[$framework][$id] = [ordered]@{ title = $script:Catalog[$framework].controls[$id].title; status = 'NotAssessed'; tests = [System.Collections.Generic.List[string]]::new(); via = $null }
-            }
-        }
-    }
+    #every control of every framework: the worst result of its tests that ran, or NotAssessed. Controls that need manual
+    #evidence or do not concern Azure are listed too, so a framework is never reduced to the controls a test covers
+    $statusById = @{}
+    foreach ($result in $testResults) { $statusById[$result.id] = $result.status }
     $frameworkRollups = [ordered]@{}
-    foreach ($framework in ($rollups.Keys | Sort-Object { @('MCSB', 'CIS', 'WAF', 'ALZ').IndexOf($_) -lt 0 }, { $_ })) {
-        $controls = [ordered]@{}
-        foreach ($id in ($rollups[$framework].Keys | Sort-Object { Get-NaturalKey $_ })) {
-            $item = $rollups[$framework][$id]
-            $catalogControl = if ($script:Catalog.Contains($framework) -and $script:Catalog[$framework].controls) { $script:Catalog[$framework].controls[$id] } else { $null }
-            $title = if ($item.title) { $item.title } elseif ($catalogControl.title) { $catalogControl.title } else { $null }
-            $controls[$id] = [ordered]@{ title = $title; status = $item.status; tests = @($item.tests | Sort-Object { Get-NaturalKey $_ }) }
-            if (-not $controls[$id].title) { $controls[$id].Remove('title') }
-            if ($catalogControl.assessment -eq 'Manual') { $controls[$id].assessment = 'Manual' }
-            if ($catalogControl.url) { $controls[$id].url = $catalogControl.url }
-            if ($item.via -and $item.via.Count) { $controls[$id].via = @($item.via | Sort-Object { Get-NaturalKey $_ }) }
-        }
-        #framework metadata from the catalog: version, publisher, source documentation
+    foreach ($framework in $script:Catalog.Keys) {
         $meta = $script:Catalog[$framework]
-        $assessed = @($controls.Values | Where-Object { $_.status -ne 'NotAssessed' }).Count
-        $rollup = [ordered]@{ name = $framework }
-        if ($meta) { foreach ($key in $meta.Keys) { if ($key -ne 'controls') { $rollup[$key] = $meta[$key] } } }
-        $rollup.coverage = [ordered]@{ controls = $controls.Count; assessed = $assessed; notAssessed = $controls.Count - $assessed }
+        $controls = [ordered]@{}
+        $count = [ordered]@{ automated = 0; full = 0; partial = 0; manual = 0; notApplicable = 0 }
+        $results = [ordered]@{ Pass = 0; Fail = 0; Unknown = 0; NotApplicable = 0; Error = 0; NotAssessed = 0 }
+        foreach ($id in @($meta.controls.Keys | Sort-Object { Get-NaturalKey $_ })) {
+            $control = $meta.controls[$id]
+            $mappedTests = @($control.tests | Where-Object { $_ })
+            $ran = @($mappedTests | Where-Object { $statusById.ContainsKey($_) } | Sort-Object { Get-NaturalKey $_ })
+            $item = [ordered]@{ title = $control.title }
+            if ($mappedTests.Count) {
+                $item.applicability = 'automated'
+                $item.coverage = $control.coverage
+                $item.status = if ($ran.Count) { Get-WorstStatus @($ran | ForEach-Object { $statusById[$_] }) } else { 'NotAssessed' }
+                $count.automated++
+                $count[$control.coverage]++
+                $results[$item.status]++
+            } else {
+                $item.applicability = $control.applicability
+                $item.status = 'NotAssessed'
+                $count[$control.applicability]++
+            }
+            $item.tests = $ran
+            foreach ($field in 'assessment', 'level', 'criticality', 'url') { if ($control[$field]) { $item[$field] = $control[$field] } }
+            if (-not $item.title) { $item.Remove('title') }
+            $controls[$id] = $item
+        }
+        #metadata from the catalog: version, publisher, source, how the tests were mapped
+        $rollup = [ordered]@{}
+        foreach ($key in 'key', 'name', 'shortName', 'version', 'publisher', 'type', 'url', 'download', 'retrieved', 'mapping', 'note') { if ($meta[$key]) { $rollup[$key] = $meta[$key] } }
+        #the framework score counts automated controls with a result; manual and not applicable controls are reported apart
+        $evaluated = $results.Pass + $results.Fail
+        $rollup.coverage = [ordered]@{
+            controls      = $controls.Count
+            automated     = $count.automated
+            full          = $count.full
+            partial       = $count.partial
+            manual        = $count.manual
+            notApplicable = $count.notApplicable
+            results       = $results
+            score         = $(if ($evaluated) { [math]::Round(100 * $results.Pass / $evaluated, 1) } else { $null })
+        }
         $rollup.controls = $controls
         $frameworkRollups[$framework] = $rollup
     }
@@ -336,7 +327,7 @@ try {
     Write-TextFile -Path (Join-Path $resultFolder 'results.json') -Content (($results | ConvertTo-Json -Depth 50) + "`n")
 
     $testRows = $testResults | ForEach-Object {
-        [pscustomobject]@{ testId = $_.id; version = $_.version; title = $_.title; category = $_.category; service = $_.service; severity = $_.severity; status = $_.status; pass = $_.counts.Pass; fail = $_.counts.Fail; unknown = $_.counts.Unknown; notApplicable = $_.counts.NotApplicable; mcsb = (@($_.frameworks.MCSB | ForEach-Object id) -join ' '); cis = (@($_.frameworks.CIS | ForEach-Object id) -join ' '); statusReason = $_.statusReason }
+        [pscustomobject]@{ testId = $_.id; version = $_.version; title = $_.title; category = $_.category; service = $_.service; severity = $_.severity; status = $_.status; pass = $_.counts.Pass; fail = $_.counts.Fail; unknown = $_.counts.Unknown; notApplicable = $_.counts.NotApplicable; controls = (@(foreach ($framework in $_.frameworks.Keys) { foreach ($tag in $_.frameworks[$framework]) { "$framework $($tag.id)" } }) -join '; '); statusReason = $_.statusReason }
     }
     Write-TextFile -Path (Join-Path $resultFolder 'tests.csv') -Content (($testRows | ConvertTo-Csv -NoTypeInformation -UseQuotes AsNeeded) -join "`n")
     $findingRows = foreach ($result in $testResults) {

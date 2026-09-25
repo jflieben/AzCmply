@@ -102,11 +102,6 @@ export function translate(pattern, ignoreCase, multiline = false, singleline = f
     return entry;
 }
 
-export function toRegExp(pattern, ignoreCase = true, global = false) {
-    const t = translate(pattern, ignoreCase);
-    return new RegExp(t.source, t.flags + (global ? 'g' : ''));
-}
-
 //all matches, advancing past empty matches like .NET
 export function matchAll(input, pattern, ignoreCase) {
     const t = translate(pattern, ignoreCase);

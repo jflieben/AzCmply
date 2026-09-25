@@ -15,8 +15,8 @@
 <title>AzCmply</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 1l6 2.5v4c0 3.5-2.6 6.3-6 7.5-3.4-1.2-6-4-6-7.5v-4z' fill='%23256abf'/%3E%3C/svg%3E">
 <!-- ?v= is the build id Convert-AzCmplyToWeb.ps1 stamps here, so an upload always loads its own files -->
-<link rel="stylesheet" href="css/app.css?v=0.9.4-db5769cba1">
-<script type="module" src="js/boot.js?v=0.9.4-db5769cba1"></script>
+<link rel="stylesheet" href="css/app.css?v=1.0.0-d8f4961a0e">
+<script type="module" src="js/boot.js?v=1.0.0-d8f4961a0e"></script>
 <!-- Google Analytics (GDPR Compliant) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-20PYJ8S2G7"></script>
 <script>
@@ -53,7 +53,7 @@
 <main>
   <section class="hero" id="assess">
     <h1>Azure security assessment, in your browser</h1>
-    <p class="lead">Checks a subscription against the Microsoft cloud security benchmark, CIS Microsoft Azure Foundations, the Well-Architected Framework and Azure landing zone policies, with the same tests as the <a href="https://www.powershellgallery.com/packages/AzCmply" target="_blank" rel="noopener noreferrer">AzCmply PowerShell module</a>, and maps the results to DORA, ISO 27001, NIST, PCI DSS and SOC 2. Read only. The data goes from the Microsoft APIs to this page and nowhere else.</p>
+    <p class="lead">Checks a subscription against the Microsoft cloud security benchmark, CIS Microsoft Azure Foundations, the Well-Architected Framework, Azure landing zone policies and JSolve's own checks for Azure attack paths, basically a web version of the <a href="https://www.powershellgallery.com/packages/AzCmply" target="_blank" rel="noopener noreferrer">AzCmply PowerShell module</a>. The results are also mapped to CIS Controls, DORA, ISO 27001, NIST CSF, NIST SP 800-53, PCI DSS, SOC 2 and CMMC. Read only. Assessment data goes from the Microsoft APIs to this page and nowhere else.
     <div class="banner" id="banner" role="status" hidden></div>
   </section>
 
@@ -186,6 +186,7 @@
 
 <footer class="foot">
   <p>Everything runs in this browser: it signs in with your account, reads the subscription through Microsoft's own APIs and keeps the results here. No server of ours sees your data. Visits are counted with Google Analytics in privacy mode, without cookies and without anything the page reads from Azure.</p>
+  <p>AzCmply is an automated technical assessment of Azure configuration, not an audit or a certification. It does not establish compliance with any framework or regulation and does not replace an assessment by an accredited auditor, certification body or supervisory authority.</p>
   <div class="maker">
     <img src="img/jsolve-mark.png" alt="" width="41" height="28">
     <p>AzCmply by Jos Lieben / <a href="https://www.jsolve.nl" target="_blank" rel="noopener noreferrer">JSolve B.V.</a> Free for non-commercial use; <a href="https://jsolve.nl/commercial-use.html" target="_blank" rel="noopener noreferrer">commercial use requires a license</a>.</p>

@@ -4,7 +4,7 @@
     Collects all security relevant data of an Azure subscription into a folder of JSON files for offline analysis.
     .DESCRIPTION
     Uses REST only (no Az modules) and only read operations; no keys or secrets are listed. Collects:
-    - Subscription, resource groups, providers, locks, deployments (incl. parameters/outputs), deployment stacks, Lighthouse delegations
+    - Subscription, subscription transfer policy, resource groups, providers, locks, deployments (incl. parameters/outputs), deployment stacks, Lighthouse delegations
     - RBAC: role assignments/definitions, deny assignments, classic administrators, PIM schedules, requests and policies
     - Azure Policy: assignments, definitions, initiatives, exemptions, compliance summary, attestations, remediations
     - Defender for Cloud: plans, contacts, settings, assessments, alerts, secure score, JIT policies, workflow automations,
@@ -14,7 +14,8 @@
     - Azure Resource Graph tables scoped to the subscription (incl. change history, patch and guest configuration state)
     - Activity log
     - Entra ID: every principal referenced by the above, group members and owners, service principal/application credentials,
-      owners, API permissions and federated credentials, directory role assignments, Conditional Access policies and security defaults
+      owners, API permissions and federated credentials, directory role assignments, Conditional Access policies (and members of
+      the groups they exclude) and security defaults
 
     Output can contain sensitive values (deployment outputs, unencrypted automation variables, container environment variables, etc).
     .PARAMETER SubscriptionId
@@ -103,7 +104,9 @@ Param(
 
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
-$scriptVersion = '1.0.0'
+#all components share the version in the VERSION file at the repository or module root
+$versionFile = if ($PSScriptRoot) { Join-Path (Split-Path $PSScriptRoot -Parent) 'VERSION' }
+$scriptVersion = if ($versionFile -and (Test-Path $versionFile)) { (Get-Content -Path $versionFile -Raw).Trim() } else { 'unknown' }
 $schemaVersion = 1
 $authMethod = $PSCmdlet.ParameterSetName
 
@@ -133,6 +136,7 @@ $resourceListExpand = 'createdTime,changedTime,provisioningState'
 $graphSelect = [ordered]@{
     member = 'id,displayName,userPrincipalName,userType,accountEnabled,onPremisesSyncEnabled,appId,servicePrincipalType,appOwnerOrganizationId'
     user   = 'id,displayName,userPrincipalName,mail,userType,accountEnabled,creationType,externalUserState,onPremisesSyncEnabled,onPremisesSamAccountName,createdDateTime,lastPasswordChangeDateTime'
+    group  = 'id,displayName,isAssignableToRole,groupTypes,membershipRule,onPremisesSyncEnabled,securityEnabled'
     owner  = 'id,displayName,userPrincipalName,appId'
     api    = 'id,appId,displayName,appRoles,oauth2PermissionScopes'
 }
@@ -144,9 +148,13 @@ $graphDirectoryExports = @(
     ,@('securityDefaults', '/v1.0/policies/identitySecurityDefaultsEnforcementPolicy')
 )
 
-#subscription scoped endpoints: output folder, file name, path below /subscriptions/{id}/, api version, method
+#subscription scoped endpoints: output folder, file name, path below /subscriptions/{id}/ (from the root when it starts
+#with /), api version, method
 $subscriptionEndpoints = @(
+    ,@('subscription', 'subscriptionPolicies', '/providers/Microsoft.Subscription/policies/default', '2021-10-01')
     ,@('subscription', 'locks', 'providers/Microsoft.Authorization/locks', '2020-05-01')
+    ,@('subscription', 'serialConsole', 'providers/Microsoft.SerialConsole/consoleServices/default', '2023-01-01')
+    ,@('subscription', 'budgets', 'providers/Microsoft.Consumption/budgets', '2023-11-01')
     ,@('subscription', 'deployments', 'providers/Microsoft.Resources/deployments', '2026-06-01')
     ,@('subscription', 'deploymentStacks', 'providers/Microsoft.Resources/deploymentStacks', '2025-07-01')
     ,@('subscription', 'lighthouseRegistrationDefinitions', 'providers/Microsoft.ManagedServices/registrationDefinitions', '2022-10-01')
@@ -208,6 +216,7 @@ $resourceGroupEndpoints = @(
 #latest stable version of the child type is used. 'a/*/b' lists collection a, then b below each item of a.
 $diagnosticSettingsPath = 'providers/Microsoft.Insights/diagnosticSettings@2021-05-01-preview'
 $threatProtectionPath = 'providers/Microsoft.Security/advancedThreatProtectionSettings/current@2019-01-01'
+$dataCollectionRuleAssociationsPath = 'providers/Microsoft.Insights/dataCollectionRuleAssociations@2022-06-01'
 $kubernetesConfigPaths = @('providers/Microsoft.KubernetesConfiguration/extensions@2023-05-01', 'providers/Microsoft.KubernetesConfiguration/fluxConfigurations@2023-05-01')
 $webSiteChildren = @('config/web', 'config/authsettingsV2', 'config/logs', 'basicPublishingCredentialsPolicies', 'hostNameBindings', 'virtualNetworkConnections', 'privateEndpointConnections', 'sourcecontrols/web', 'functions')
 $serviceBusLikeChildren = @('authorizationRules', 'networkRuleSets/default', 'disasterRecoveryConfigs', 'privateEndpointConnections')
@@ -231,7 +240,8 @@ $childResourceMap = @{
     )
     'microsoft.sql/servers/databases'                  = @(
         'transparentDataEncryption', 'auditingSettings', 'extendedAuditingSettings', 'securityAlertPolicies', 'advancedThreatProtectionSettings',
-        'vulnerabilityAssessments', 'dataMaskingPolicies/Default', 'backupShortTermRetentionPolicies', 'backupLongTermRetentionPolicies', 'ledgerDigestUploads'
+        'vulnerabilityAssessments', 'dataMaskingPolicies/Default', 'dataMaskingPolicies/Default/rules', 'currentSensitivityLabels', 'backupShortTermRetentionPolicies',
+        'backupLongTermRetentionPolicies', 'ledgerDigestUploads'
     )
     'microsoft.sql/managedinstances'                   = @(
         'administrators', 'azureADOnlyAuthentications', 'encryptionProtector', 'keys', 'securityAlertPolicies', 'advancedThreatProtectionSettings',
@@ -272,11 +282,12 @@ $childResourceMap = @{
     'microsoft.dbformysql/flexibleservers'             = $flexibleServerChildren
     'microsoft.dbforpostgresql/servers'                = $singleServerChildren
     'microsoft.dbformysql/servers'                     = $singleServerChildren
-    'microsoft.compute/virtualmachines'                = @('instanceView', 'extensions')
-    'microsoft.hybridcompute/machines'                 = @('extensions')
-    'microsoft.compute/virtualmachinescalesets'        = @('extensions', 'virtualMachines')
+    'microsoft.compute/virtualmachines'                = @('instanceView', 'extensions', $dataCollectionRuleAssociationsPath)
+    'microsoft.hybridcompute/machines'                 = @('extensions', $dataCollectionRuleAssociationsPath)
+    'microsoft.compute/virtualmachinescalesets'        = @('extensions', 'virtualMachines', $dataCollectionRuleAssociationsPath)
     'microsoft.network/firewallpolicies'               = @('ruleCollectionGroups')
     'microsoft.network/dnszones'                       = @('recordsets')
+    'microsoft.network/dnsresolverpolicies'            = @('virtualNetworkLinks')
     'microsoft.network/privatednszones'                = @('virtualNetworkLinks', 'ALL')
     'microsoft.network/expressroutecircuits'           = @('authorizations', 'peerings')
     'microsoft.network/virtualhubs'                    = @('hubVirtualNetworkConnections', 'routingIntent', 'hubRouteTables')
@@ -749,8 +760,8 @@ function Export-ResourceDetail {
         $cache = @{}
         foreach ($entry in $childResourceMap[$typeKey]) {
             $path, $pinnedVersion = $entry.Split('@', 2)
-            #the master database does not support data masking and answers with a 500
-            if ($typeKey -eq 'microsoft.sql/servers/databases' -and $Item.Id -match '/databases/master$' -and $path -like 'dataMaskingPolicies*') { continue }
+            #the master database does not support data masking or classification and answers with a 500
+            if ($typeKey -eq 'microsoft.sql/servers/databases' -and $Item.Id -match '/databases/master$' -and $path -match '^(dataMaskingPolicies|currentSensitivityLabels)') { continue }
             $record.children[$path] = Get-ChildResource -ParentId $Item.Id -ParentType $Item.Type -Path $path -ApiVersion $pinnedVersion -Cache $cache -Failures $failures
         }
         foreach ($path in $textContentMap[$typeKey]) {
@@ -1074,13 +1085,15 @@ function Export-EntraData {
         . $addObjects $lookup.Objects
     }
 
-    #groups: transitive members and owners; service principal members and owners are enriched below as well
+    #groups: transitive members, owners and the properties that decide who can change membership; service principal
+    #members and owners are enriched below as well
     Write-Log "Graph: $($groupIds.Count) groups"
     $memberSelect = "`$select=$($graphSelect.member)"
     $groupRequests = [ordered]@{}
     foreach ($id in $groupIds) {
         $groupRequests["members|$id"] = "/groups/$id/transitiveMembers?$memberSelect&`$top=999"
         $groupRequests["owners|$id"] = "/groups/$id/owners?$memberSelect"
+        $groupRequests["properties|$id"] = "/groups/$id`?`$select=$($graphSelect.group)"
     }
     $groupResults = if ($groupRequests.Count) { Invoke-GraphBatch -Requests $groupRequests } else { @{} }
     $groupRecords = [System.Collections.Generic.List[object]]::new()
@@ -1101,6 +1114,7 @@ function Export-EntraData {
                 transitiveMembers      = $members.Items
                 transitiveMembersError = if ($members.StatusCode -ge 300) { $members.StatusCode } else { $null }
                 owners                 = $owners.Items
+                properties             = $groupResults["properties|$id"].Single
             })
     }
     Write-JsonFile -Path (Join-Path $Folder 'groups.json') -Value $groupRecords
@@ -1211,6 +1225,21 @@ function Export-EntraData {
         $name, $uri = $export
         $sections[$name] = Export-Endpoint -Uri $uri -Resource Graph -Path (Join-Path $Folder "$name.json")
     }
+
+    #user members of the groups Conditional Access policies exclude, which is how emergency access accounts are usually excluded
+    if ($sections.conditionalAccessPolicies.status -in 'ok', 'partial') {
+        $policies = Get-Content -LiteralPath (Join-Path $Folder 'conditionalAccessPolicies.json') -Raw | ConvertFrom-Json
+        $excludedGroupIds = @($policies | ForEach-Object { $_.conditions.users.excludeGroups } | Where-Object { $_ } | Sort-Object -Unique)
+        $excludedRequests = [ordered]@{}
+        foreach ($id in $excludedGroupIds) { $excludedRequests[$id] = "/groups/$id/transitiveMembers/microsoft.graph.user?`$select=$($graphSelect.member)&`$top=999" }
+        $excludedResults = if ($excludedRequests.Count) { Invoke-GraphBatch -Requests $excludedRequests } else { @{} }
+        $excludedGroups = @(foreach ($id in $excludedGroupIds) {
+                $members = $excludedResults[$id]
+                [ordered]@{ id = $id; members = $members.Items; membersError = if ($members.StatusCode -ge 300) { $members.StatusCode } else { $null } }
+            })
+        Write-JsonFile -Path (Join-Path $Folder 'conditionalAccessExcludedGroups.json') -Value $excludedGroups
+        $sections.conditionalAccessExcludedGroups = [ordered]@{ status = 'ok'; count = $excludedGroups.Count }
+    }
     return $sections
 }
 
@@ -1277,7 +1306,8 @@ try {
     foreach ($endpoint in $subscriptionEndpoints) {
         $folder, $name, $path, $apiVersion, $method = $endpoint
         $separator = if ($path.Contains('?')) { '&' } else { '?' }
-        $sections["$folder/$name"] = Export-Endpoint -Uri "/subscriptions/$SubscriptionId/$path$($separator)api-version=$apiVersion" -Method ($method ?? 'GET') -Path (Join-Path $runFolder "$folder/$name.json") -PrincipalTarget $principalIds
+        $base = if ($path.StartsWith('/')) { $path } else { "/subscriptions/$SubscriptionId/$path" }
+        $sections["$folder/$name"] = Export-Endpoint -Uri "$base$($separator)api-version=$apiVersion" -Method ($method ?? 'GET') -Path (Join-Path $runFolder "$folder/$name.json") -PrincipalTarget $principalIds
     }
 
     $resourceGroups = Invoke-AzPaged -Uri "/subscriptions/$SubscriptionId/resourcegroups?api-version=$($coreApiVersions.resourceGroups)" -Context 'resourceGroups'

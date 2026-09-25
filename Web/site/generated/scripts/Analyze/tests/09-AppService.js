@@ -19,291 +19,417 @@ export default R.script("/app/Analyze/tests/09-AppService.ps1", { params: [], ad
         return;
     });
     R.ln = F + 12;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-APP-001", "Title", "App Service apps are only accessible over HTTPS", "Category", "Data protection", "Service", "App Service", "Severity", "High", "Description", "Checks the 'HTTPS Only' setting of web apps, function apps and slots.", "Rationale", "Without HTTPS Only, clients can use plain HTTP, exposing session cookies, tokens and data to interception and manipulation.", "Remediation", "Enable HTTPS Only (az webapp update --https-only true ...).", "References", R.a("https://learn.microsoft.com/azure/app-service/configure-ssl-bindings#enforce-https"), "Frameworks", R.ht(["MCSB", "DP-3", "WAF", "SE:07", "ALZ", R.a([R.v("Enforce-TLS-SSL-Q225"), R.v("Enforce-GR-AppServices0")])], false), "Defender", R.ht(["1b351b29-41ca-6df5-946c-c190a56be5fe", "Web Application should only be accessible over HTTPS", "cb0acdc6-0846-fd48-debe-9905af151b6d", "Function App should only be accessible over HTTPS"], false), "Policy", R.ht(["a4af4a39-4135-47fb-b175-47fbdf85311d", "App Service apps should only be accessible over HTTPS", "6d555dd1-86f2-4f1c-8ed7-5abae7c6cbab", "Function apps should only be accessible over HTTPS"], false), "ResourceTypes", (S["sitetypes"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $value = [bool]$Record.resource.properties.httpsOnly\n        if ($value) { return New-Pass 'HTTPS only' ([ordered]@{ httpsOnly = $true }) }\n        New-Fail 'HTTP allowed' ([ordered]@{ httpsOnly = $false })\n    " }, (S, O) => {
-        R.ln = F + 28;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-APP-001", "Title", "App Service apps are only accessible over HTTPS", "Category", "Data protection", "Service", "App Service", "Severity", "High", "Description", "Checks the 'HTTPS Only' setting of web apps, function apps and slots.", "Rationale", "Without HTTPS Only, clients can use plain HTTP, exposing session cookies, tokens and data to interception and manipulation.", "Remediation", "Enable HTTPS Only (az webapp update --https-only true ...).", "References", R.a("https://learn.microsoft.com/azure/app-service/configure-ssl-bindings#enforce-https"), "Defender", R.ht(["1b351b29-41ca-6df5-946c-c190a56be5fe", "Web Application should only be accessible over HTTPS", "cb0acdc6-0846-fd48-debe-9905af151b6d", "Function App should only be accessible over HTTPS"], false), "Policy", R.ht(["a4af4a39-4135-47fb-b175-47fbdf85311d", "App Service apps should only be accessible over HTTPS", "6d555dd1-86f2-4f1c-8ed7-5abae7c6cbab", "Function apps should only be accessible over HTTPS"], false), "ResourceTypes", (S["sitetypes"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $value = [bool]$Record.resource.properties.httpsOnly\n        if ($value) { return New-Pass 'HTTPS only' ([ordered]@{ httpsOnly = $true }) }\n        New-Fail 'HTTP allowed' ([ordered]@{ httpsOnly = $false })\n    " }, (S, O) => {
+        R.ln = F + 27;
         S["value"] = R.c("bool", R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "httpsOnly"));
-        R.ln = F + 29;
+        R.ln = F + 28;
         if (R.t((S["value"] ?? null))) {
-            R.ln = F + 29;
+            R.ln = F + 28;
             R.pa(O, R.cmd(S, "New-Pass", ["HTTPS only", (R.ht(["httpsOnly", true], true))], null));
             return;
         }
-        R.ln = F + 30;
+        R.ln = F + 29;
         R.pa(O, R.cmd(S, "New-Fail", ["HTTP allowed", (R.ht(["httpsOnly", false], true))], null));
     })], false)], null));
-    R.ln = F + 34;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-APP-002", "Title", "App Service apps require TLS 1.2 or higher", "Category", "Data protection", "Service", "App Service", "Severity", "High", "Description", "Checks the minimum TLS version of the app and of its SCM (Kudu) site.", "Rationale", "TLS 1.0 and 1.1 have known weaknesses; the SCM site handles deployment credentials and code and needs the same protection as the app.", "Remediation", "Set the minimum inbound TLS version and SCM minimum TLS version to 1.2 or 1.3 (az webapp config set --min-tls-version 1.2 ...).", "References", R.a("https://learn.microsoft.com/azure/app-service/overview-tls"), "Frameworks", R.ht(["MCSB", R.a([R.v("DP-3"), R.v("NS-8")]), "WAF", "SE:07", "ALZ", R.a([R.v("Enforce-TLS-SSL-Q225"), R.v("Enforce-GR-AppServices0")])], false), "Defender", R.ht(["2a54c352-7ca4-4bae-ad46-47ecd9595bd2", "TLS should be updated to the latest version for web apps", "15be5f3c-e0a4-c0fa-fbff-8e50339b4b22", "TLS should be updated to the latest version for function apps"], false), "Policy", R.ht(["f0e6e85b-9b9f-4a4b-b67b-f730d42f1b0b", "App Service apps should use the latest TLS version"], false), "ResourceTypes", (S["sitetypes"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $config = Get-SiteConfig $Record\n        if (-not $config) { return New-Unknown 'Site configuration could not be read' }\n        $evidence = [ordered]@{ minTlsVersion = $config.minTlsVersion; scmMinTlsVersion = $config.scmMinTlsVersion }\n        $problems = @()\n        if (-not (Test-VersionAtLeast $config.minTlsVersion '1.2')) { $problems += \"app minimum TLS $($config.minTlsVersion)\" }\n        if ($config.scmMinTlsVersion -and -not (Test-VersionAtLeast $config.scmMinTlsVersion '1.2')) { $problems += \"SCM minimum TLS $($config.scmMinTlsVersion)\" }\n        if ($problems) { return New-Fail ($problems -join ', ') $evidence }\n        New-Pass \"Minimum TLS $($config.minTlsVersion)\" $evidence\n    " }, (S, O) => {
-        R.ln = F + 50;
+    R.ln = F + 33;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-APP-002", "Title", "App Service apps require TLS 1.2 or higher", "Category", "Data protection", "Service", "App Service", "Severity", "High", "Description", "Checks the minimum TLS version of the app and of its SCM (Kudu) site.", "Rationale", "TLS 1.0 and 1.1 have known weaknesses; the SCM site handles deployment credentials and code and needs the same protection as the app.", "Remediation", "Set the minimum inbound TLS version and SCM minimum TLS version to 1.2 or 1.3 (az webapp config set --min-tls-version 1.2 ...).", "References", R.a("https://learn.microsoft.com/azure/app-service/overview-tls"), "Defender", R.ht(["2a54c352-7ca4-4bae-ad46-47ecd9595bd2", "TLS should be updated to the latest version for web apps", "15be5f3c-e0a4-c0fa-fbff-8e50339b4b22", "TLS should be updated to the latest version for function apps"], false), "Policy", R.ht(["f0e6e85b-9b9f-4a4b-b67b-f730d42f1b0b", "App Service apps should use the latest TLS version"], false), "ResourceTypes", (S["sitetypes"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $config = Get-SiteConfig $Record\n        if (-not $config) { return New-Unknown 'Site configuration could not be read' }\n        $evidence = [ordered]@{ minTlsVersion = $config.minTlsVersion; scmMinTlsVersion = $config.scmMinTlsVersion }\n        $problems = @()\n        if (-not (Test-VersionAtLeast $config.minTlsVersion '1.2')) { $problems += \"app minimum TLS $($config.minTlsVersion)\" }\n        if ($config.scmMinTlsVersion -and -not (Test-VersionAtLeast $config.scmMinTlsVersion '1.2')) { $problems += \"SCM minimum TLS $($config.scmMinTlsVersion)\" }\n        if ($problems) { return New-Fail ($problems -join ', ') $evidence }\n        New-Pass \"Minimum TLS $($config.minTlsVersion)\" $evidence\n    " }, (S, O) => {
+        R.ln = F + 48;
         S["config"] = R.u(R.cmd(S, "Get-SiteConfig", [(S["record"] ?? null)], null));
-        R.ln = F + 51;
+        R.ln = F + 49;
         if (!R.t((S["config"] ?? null))) {
-            R.ln = F + 51;
+            R.ln = F + 49;
             R.pa(O, R.cmd(S, "New-Unknown", ["Site configuration could not be read"], null));
             return;
         }
-        R.ln = F + 52;
+        R.ln = F + 50;
         S["evidence"] = R.ht(["minTlsVersion", R.m((S["config"] ?? null), "minTlsVersion"), "scmMinTlsVersion", R.m((S["config"] ?? null), "scmMinTlsVersion")], true);
-        R.ln = F + 53;
+        R.ln = F + 51;
         S["problems"] = [];
-        R.ln = F + 54;
+        R.ln = F + 52;
         if (!R.t(R.u(R.cmd(S, "Test-VersionAtLeast", [R.m((S["config"] ?? null), "minTlsVersion"), "1.2"], null)))) {
-            R.ln = F + 54;
+            R.ln = F + 52;
             S["problems"] = R.add(S["problems"] ?? null, ("app minimum TLS " + R.str(R.u(R.pi(R.m((S["config"] ?? null), "minTlsVersion"))))));
         }
-        R.ln = F + 55;
+        R.ln = F + 53;
         if ((R.t(R.m((S["config"] ?? null), "scmMinTlsVersion")) && !R.t(R.u(R.cmd(S, "Test-VersionAtLeast", [R.m((S["config"] ?? null), "scmMinTlsVersion"), "1.2"], null))))) {
-            R.ln = F + 55;
+            R.ln = F + 53;
             S["problems"] = R.add(S["problems"] ?? null, ("SCM minimum TLS " + R.str(R.u(R.pi(R.m((S["config"] ?? null), "scmMinTlsVersion"))))));
         }
-        R.ln = F + 56;
+        R.ln = F + 54;
         if (R.t((S["problems"] ?? null))) {
-            R.ln = F + 56;
+            R.ln = F + 54;
             R.pa(O, R.cmd(S, "New-Fail", [(R.join((S["problems"] ?? null), ", ")), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 57;
+        R.ln = F + 55;
         R.pa(O, R.cmd(S, "New-Pass", [("Minimum TLS " + R.str(R.u(R.pi(R.m((S["config"] ?? null), "minTlsVersion"))))), (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 61;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-APP-003", "Title", "App Service apps disable FTP or require FTPS", "Category", "Data protection", "Service", "App Service", "Severity", "High", "Description", "Checks that the FTP state is Disabled or FtpsOnly.", "Rationale", "Plain FTP sends deployment credentials and code in clear text.", "Remediation", "Set the FTP state to Disabled (preferred) or FtpsOnly (az webapp config set --ftps-state Disabled ...).", "References", R.a("https://learn.microsoft.com/azure/app-service/deploy-ftp#enforce-ftps"), "Frameworks", R.ht(["MCSB", R.a([R.v("DP-3"), R.v("NS-8")]), "WAF", "SE:08", "ALZ", "Enforce-GR-AppServices0"], false), "Defender", R.ht(["19beaa2a-a126-b4dd-6d35-617f6cc83fca", "FTPS should be required in web apps", "972a6579-f38f-c0b9-1b4b-a5bbeba3ab5b", "FTPS should be required in function apps"], false), "Policy", R.ht(["4d24b6d4-5e53-4a4f-a7f4-618fa573ee4b", "App Service apps should require FTPS only", "399b2637-a50f-4f95-96f8-3a145476eb15", "Function apps should require FTPS only"], false), "ResourceTypes", (S["sitetypes"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $config = Get-SiteConfig $Record\n        if (-not $config) { return New-Unknown 'Site configuration could not be read' }\n        $evidence = [ordered]@{ ftpsState = $config.ftpsState }\n        if ($config.ftpsState -in 'Disabled', 'FtpsOnly') { return New-Pass \"FTP state $($config.ftpsState)\" $evidence }\n        New-Fail \"FTP state $($config.ftpsState)\" $evidence\n    " }, (S, O) => {
-        R.ln = F + 77;
+    R.ln = F + 59;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-APP-003", "Title", "App Service apps disable FTP or require FTPS", "Category", "Data protection", "Service", "App Service", "Severity", "High", "Description", "Checks that the FTP state is Disabled or FtpsOnly.", "Rationale", "Plain FTP sends deployment credentials and code in clear text.", "Remediation", "Set the FTP state to Disabled (preferred) or FtpsOnly (az webapp config set --ftps-state Disabled ...).", "References", R.a("https://learn.microsoft.com/azure/app-service/deploy-ftp#enforce-ftps"), "Defender", R.ht(["19beaa2a-a126-b4dd-6d35-617f6cc83fca", "FTPS should be required in web apps", "972a6579-f38f-c0b9-1b4b-a5bbeba3ab5b", "FTPS should be required in function apps"], false), "Policy", R.ht(["4d24b6d4-5e53-4a4f-a7f4-618fa573ee4b", "App Service apps should require FTPS only", "399b2637-a50f-4f95-96f8-3a145476eb15", "Function apps should require FTPS only"], false), "ResourceTypes", (S["sitetypes"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $config = Get-SiteConfig $Record\n        if (-not $config) { return New-Unknown 'Site configuration could not be read' }\n        $evidence = [ordered]@{ ftpsState = $config.ftpsState }\n        if ($config.ftpsState -in 'Disabled', 'FtpsOnly') { return New-Pass \"FTP state $($config.ftpsState)\" $evidence }\n        New-Fail \"FTP state $($config.ftpsState)\" $evidence\n    " }, (S, O) => {
+        R.ln = F + 74;
         S["config"] = R.u(R.cmd(S, "Get-SiteConfig", [(S["record"] ?? null)], null));
-        R.ln = F + 78;
+        R.ln = F + 75;
         if (!R.t((S["config"] ?? null))) {
-            R.ln = F + 78;
+            R.ln = F + 75;
             R.pa(O, R.cmd(S, "New-Unknown", ["Site configuration could not be read"], null));
             return;
         }
-        R.ln = F + 79;
+        R.ln = F + 76;
         S["evidence"] = R.ht(["ftpsState", R.m((S["config"] ?? null), "ftpsState")], true);
-        R.ln = F + 80;
+        R.ln = F + 77;
         if (R.t(R.in(R.m((S["config"] ?? null), "ftpsState"), [R.v("Disabled"), R.v("FtpsOnly")]))) {
-            R.ln = F + 80;
+            R.ln = F + 77;
             R.pa(O, R.cmd(S, "New-Pass", [("FTP state " + R.str(R.u(R.pi(R.m((S["config"] ?? null), "ftpsState"))))), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 81;
+        R.ln = F + 78;
         R.pa(O, R.cmd(S, "New-Fail", [("FTP state " + R.str(R.u(R.pi(R.m((S["config"] ?? null), "ftpsState"))))), (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 85;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-APP-004", "Title", "App Service basic authentication for FTP and SCM is disabled", "Category", "Identity management", "Service", "App Service", "Severity", "Medium", "Description", "Checks the basic publishing credentials policies (ftp and scm) of apps and slots.", "Rationale", "Basic authentication uses publishing profile passwords that are not bound to a user, bypass MFA and Conditional Access, and are easily leaked through publish profiles.", "Remediation", "Disable 'SCM Basic Auth Publishing Credentials' and 'FTP Basic Auth Publishing Credentials' and deploy with Entra authenticated methods (GitHub Actions OIDC, az webapp deploy).", "References", R.a("https://learn.microsoft.com/azure/app-service/configure-basic-auth-disable"), "Frameworks", R.ht(["MCSB", R.a([R.v("IM-1"), R.v("IM-3")]), "WAF", "SE:05", "ALZ", "Enforce-GR-AppServices0"], false), "Policy", R.ht(["871b205b-57cf-4e1e-a234-492616998bf7", "App Service apps should have local authentication methods disabled for FTP deployments", "aede300b-d67f-480a-ae26-4b3dfb1a1fdc", "App Service apps should have local authentication methods disabled for SCM site deployments"], false), "ResourceTypes", (S["sitetypes"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not (Test-ChildCollected $Record 'basicPublishingCredentialsPolicies')) { return New-Unknown 'Basic publishing credential policies could not be read' }\n        $allowed = @(Get-Child $Record 'basicPublishingCredentialsPolicies' | Where-Object { $_ -and $_.properties.allow -ne $false } | ForEach-Object name | Sort-Object)\n        $evidence = [ordered]@{ basicAuthAllowed = $allowed }\n        if ($allowed) { return New-Fail \"Basic authentication allowed for $($allowed -join ', ')\" $evidence }\n        New-Pass 'Basic authentication disabled for FTP and SCM' $evidence\n    " }, (S, O) => {
-        R.ln = F + 100;
+    R.ln = F + 82;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-APP-004", "Title", "App Service basic authentication for FTP and SCM is disabled", "Category", "Identity management", "Service", "App Service", "Severity", "Medium", "Description", "Checks the basic publishing credentials policies (ftp and scm) of apps and slots.", "Rationale", "Basic authentication uses publishing profile passwords that are not bound to a user, bypass MFA and Conditional Access, and are easily leaked through publish profiles.", "Remediation", "Disable 'SCM Basic Auth Publishing Credentials' and 'FTP Basic Auth Publishing Credentials' and deploy with Entra authenticated methods (GitHub Actions OIDC, az webapp deploy).", "References", R.a("https://learn.microsoft.com/azure/app-service/configure-basic-auth-disable"), "Policy", R.ht(["871b205b-57cf-4e1e-a234-492616998bf7", "App Service apps should have local authentication methods disabled for FTP deployments", "aede300b-d67f-480a-ae26-4b3dfb1a1fdc", "App Service apps should have local authentication methods disabled for SCM site deployments"], false), "ResourceTypes", (S["sitetypes"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not (Test-ChildCollected $Record 'basicPublishingCredentialsPolicies')) { return New-Unknown 'Basic publishing credential policies could not be read' }\n        $allowed = @(Get-Child $Record 'basicPublishingCredentialsPolicies' | Where-Object { $_ -and $_.properties.allow -ne $false } | ForEach-Object name | Sort-Object)\n        $evidence = [ordered]@{ basicAuthAllowed = $allowed }\n        if ($allowed) { return New-Fail \"Basic authentication allowed for $($allowed -join ', ')\" $evidence }\n        New-Pass 'Basic authentication disabled for FTP and SCM' $evidence\n    " }, (S, O) => {
+        R.ln = F + 96;
         if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "basicPublishingCredentialsPolicies"], null)))) {
-            R.ln = F + 100;
+            R.ln = F + 96;
             R.pa(O, R.cmd(S, "New-Unknown", ["Basic publishing credential policies could not be read"], null));
             return;
         }
-        R.ln = F + 101;
+        R.ln = F + 97;
         S["allowed"] = R.cmd(S, "Sort-Object", [], R.cmd(S, "ForEach-Object", ["name"], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.properties.allow -ne $false " }, (S, O) => {
-            R.ln = F + 101;
+            R.ln = F + 97;
             R.e(O, (R.t((S["_"] ?? null)) && R.t(R.ne(R.m(R.m((S["_"] ?? null), "properties"), "allow"), false))));
         })], R.cmd(S, "Get-Child", [(S["record"] ?? null), "basicPublishingCredentialsPolicies"], null))));
-        R.ln = F + 102;
+        R.ln = F + 98;
         S["evidence"] = R.ht(["basicAuthAllowed", (S["allowed"] ?? null)], true);
-        R.ln = F + 103;
+        R.ln = F + 99;
         if (R.t((S["allowed"] ?? null))) {
-            R.ln = F + 103;
+            R.ln = F + 99;
             R.pa(O, R.cmd(S, "New-Fail", [("Basic authentication allowed for " + R.str(R.u(R.pi(R.join((S["allowed"] ?? null), ", "))))), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 104;
+        R.ln = F + 100;
         R.pa(O, R.cmd(S, "New-Pass", ["Basic authentication disabled for FTP and SCM", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 108;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-APP-005", "Title", "Remote debugging is turned off", "Category", "Posture and vulnerability management", "Service", "App Service", "Severity", "Medium", "Description", "Checks the remote debugging setting of apps and slots.", "Rationale", "Remote debugging opens additional inbound ports and debugging endpoints; it should only be on temporarily during troubleshooting.", "Remediation", "Turn off remote debugging (az webapp config set --remote-debugging-enabled false ...).", "Frameworks", R.ht(["MCSB", R.a([R.v("PV-2"), R.v("NS-8")]), "WAF", "SE:08", "ALZ", "Enforce-GR-AppServices0"], false), "Defender", R.ht(["64b8637e-4e1d-76a9-0fc9-c1e487a97ed8", "Remote debugging should be turned off for Web Applications", "093c685b-56dd-13a3-8ed5-887a001837a2", "Remote debugging should be turned off for Function App"], false), "Policy", R.ht(["cb510bfd-1cba-4d9f-a230-cb0976f4bb71", "App Service apps should have remote debugging turned off", "0e60b895-3786-45da-8377-9c6b4b6ac5f9", "Function apps should have remote debugging turned off"], false), "ResourceTypes", (S["sitetypes"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $config = Get-SiteConfig $Record\n        if (-not $config) { return New-Unknown 'Site configuration could not be read' }\n        $evidence = [ordered]@{ remoteDebuggingEnabled = [bool]$config.remoteDebuggingEnabled; remoteDebuggingVersion = $config.remoteDebuggingVersion }\n        if ($config.remoteDebuggingEnabled) { return New-Fail 'Remote debugging enabled' $evidence }\n        New-Pass 'Remote debugging off' $evidence\n    " }, (S, O) => {
-        R.ln = F + 123;
+    R.ln = F + 104;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-APP-005", "Title", "Remote debugging is turned off", "Category", "Posture and vulnerability management", "Service", "App Service", "Severity", "Medium", "Description", "Checks the remote debugging setting of apps and slots.", "Rationale", "Remote debugging opens additional inbound ports and debugging endpoints; it should only be on temporarily during troubleshooting.", "Remediation", "Turn off remote debugging (az webapp config set --remote-debugging-enabled false ...).", "Defender", R.ht(["64b8637e-4e1d-76a9-0fc9-c1e487a97ed8", "Remote debugging should be turned off for Web Applications", "093c685b-56dd-13a3-8ed5-887a001837a2", "Remote debugging should be turned off for Function App"], false), "Policy", R.ht(["cb510bfd-1cba-4d9f-a230-cb0976f4bb71", "App Service apps should have remote debugging turned off", "0e60b895-3786-45da-8377-9c6b4b6ac5f9", "Function apps should have remote debugging turned off"], false), "ResourceTypes", (S["sitetypes"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $config = Get-SiteConfig $Record\n        if (-not $config) { return New-Unknown 'Site configuration could not be read' }\n        $evidence = [ordered]@{ remoteDebuggingEnabled = [bool]$config.remoteDebuggingEnabled; remoteDebuggingVersion = $config.remoteDebuggingVersion }\n        if ($config.remoteDebuggingEnabled) { return New-Fail 'Remote debugging enabled' $evidence }\n        New-Pass 'Remote debugging off' $evidence\n    " }, (S, O) => {
+        R.ln = F + 118;
         S["config"] = R.u(R.cmd(S, "Get-SiteConfig", [(S["record"] ?? null)], null));
-        R.ln = F + 124;
+        R.ln = F + 119;
         if (!R.t((S["config"] ?? null))) {
-            R.ln = F + 124;
+            R.ln = F + 119;
             R.pa(O, R.cmd(S, "New-Unknown", ["Site configuration could not be read"], null));
             return;
         }
-        R.ln = F + 125;
+        R.ln = F + 120;
         S["evidence"] = R.ht(["remoteDebuggingEnabled", R.c("bool", R.m((S["config"] ?? null), "remoteDebuggingEnabled")), "remoteDebuggingVersion", R.m((S["config"] ?? null), "remoteDebuggingVersion")], true);
-        R.ln = F + 126;
+        R.ln = F + 121;
         if (R.t(R.m((S["config"] ?? null), "remoteDebuggingEnabled"))) {
-            R.ln = F + 126;
+            R.ln = F + 121;
             R.pa(O, R.cmd(S, "New-Fail", ["Remote debugging enabled", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 127;
+        R.ln = F + 122;
         R.pa(O, R.cmd(S, "New-Pass", ["Remote debugging off", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 131;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-APP-006", "Title", "App Service apps use a managed identity", "Category", "Identity management", "Service", "App Service", "Severity", "Low", "Description", "Checks that apps and slots have a system or user assigned managed identity.", "Rationale", "Apps without a managed identity typically hold connection strings, keys or client secrets in their configuration to reach other services.", "Remediation", "Enable a managed identity (az webapp identity assign ...), grant it RBAC roles on the target services and remove stored credentials.", "References", R.a("https://learn.microsoft.com/azure/app-service/overview-managed-identity"), "Frameworks", R.ht(["MCSB", "IM-3", "WAF", "SE:09"], false), "Defender", R.ht(["4a3d7cd3-f17c-637a-1ffc-614a01dd03cf", "Managed identity should be enabled on web apps", "23aa9cbe-c2fb-6a2f-6c97-885a6d48c4d1", "Managed identity should be enabled on function apps"], false), "Policy", R.ht(["2b9ad585-36bc-4615-b300-fd4435808332", "App Service apps should use managed identity"], false), "ResourceTypes", (S["sitetypes"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $type = $Record.resource.identity.type\n        $evidence = [ordered]@{ identityType = $type }\n        if ($type -and $type -ne 'None') { return New-Pass \"Managed identity ($type)\" $evidence }\n        New-Fail 'No managed identity' $evidence\n    " }, (S, O) => {
-        R.ln = F + 147;
+    R.ln = F + 126;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-APP-006", "Title", "App Service apps use a managed identity", "Category", "Identity management", "Service", "App Service", "Severity", "Low", "Description", "Checks that apps and slots have a system or user assigned managed identity.", "Rationale", "Apps without a managed identity typically hold connection strings, keys or client secrets in their configuration to reach other services.", "Remediation", "Enable a managed identity (az webapp identity assign ...), grant it RBAC roles on the target services and remove stored credentials.", "References", R.a("https://learn.microsoft.com/azure/app-service/overview-managed-identity"), "Defender", R.ht(["4a3d7cd3-f17c-637a-1ffc-614a01dd03cf", "Managed identity should be enabled on web apps", "23aa9cbe-c2fb-6a2f-6c97-885a6d48c4d1", "Managed identity should be enabled on function apps"], false), "Policy", R.ht(["2b9ad585-36bc-4615-b300-fd4435808332", "App Service apps should use managed identity"], false), "ResourceTypes", (S["sitetypes"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $type = $Record.resource.identity.type\n        $evidence = [ordered]@{ identityType = $type }\n        if ($type -and $type -ne 'None') { return New-Pass \"Managed identity ($type)\" $evidence }\n        New-Fail 'No managed identity' $evidence\n    " }, (S, O) => {
+        R.ln = F + 141;
         S["type"] = R.m(R.m(R.m((S["record"] ?? null), "resource"), "identity"), "type");
-        R.ln = F + 148;
+        R.ln = F + 142;
         S["evidence"] = R.ht(["identityType", (S["type"] ?? null)], true);
-        R.ln = F + 149;
+        R.ln = F + 143;
         if ((R.t((S["type"] ?? null)) && R.t(R.ne((S["type"] ?? null), "None")))) {
-            R.ln = F + 149;
+            R.ln = F + 143;
             R.pa(O, R.cmd(S, "New-Pass", [("Managed identity (" + R.str((S["type"] ?? null)) + ")"), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 150;
+        R.ln = F + 144;
         R.pa(O, R.cmd(S, "New-Fail", ["No managed identity", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 154;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-APP-007", "Title", "CORS does not allow every origin", "Category", "Posture and vulnerability management", "Service", "App Service", "Severity", "Low", "Description", "Checks the CORS allowed origins of apps and slots for the wildcard '*'.", "Rationale", "A wildcard CORS policy lets any website call the API from a victim browser and read responses, weakening protections against cross-site data theft.", "Remediation", "Replace * with the specific origins that need access (az webapp cors remove --allowed-origins * ...).", "References", R.a("https://learn.microsoft.com/azure/app-service/app-service-web-tutorial-rest-api#add-cors-functionality"), "Frameworks", R.ht(["MCSB", "PV-2", "WAF", "SE:08"], false), "Defender", R.ht(["df4d1739-47f0-60c7-1706-3731fea6ab03", "CORS should not allow every resource to access Web Applications", "7b3d4796-9400-2904-692b-4a5ede7f0a1e", "CORS should not allow every resource to access Function Apps"], false), "Policy", R.ht(["5744710e-cc2f-4ee8-8809-3b11e89f4bc9", "App Service apps should not have CORS configured to allow every resource to access your apps"], false), "ResourceTypes", (S["sitetypes"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $config = Get-SiteConfig $Record\n        if (-not $config) { return New-Unknown 'Site configuration could not be read' }\n        $origins = @($config.cors.allowedOrigins | Where-Object { $_ })\n        $evidence = [ordered]@{ allowedOrigins = $origins; supportCredentials = [bool]$config.cors.supportCredentials }\n        if ($origins -contains '*') { return New-Fail 'CORS allows every origin' $evidence }\n        New-Pass $(if ($origins) { \"CORS limited to $($origins.Count) origin(s)\" } else { 'No CORS origins configured' }) $evidence\n    " }, (S, O) => {
-        R.ln = F + 170;
+    R.ln = F + 148;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-APP-007", "Title", "CORS does not allow every origin", "Category", "Posture and vulnerability management", "Service", "App Service", "Severity", "Low", "Description", "Checks the CORS allowed origins of apps and slots for the wildcard '*'.", "Rationale", "A wildcard CORS policy lets any website call the API from a victim browser and read responses, weakening protections against cross-site data theft.", "Remediation", "Replace * with the specific origins that need access (az webapp cors remove --allowed-origins * ...).", "References", R.a("https://learn.microsoft.com/azure/app-service/app-service-web-tutorial-rest-api#add-cors-functionality"), "Defender", R.ht(["df4d1739-47f0-60c7-1706-3731fea6ab03", "CORS should not allow every resource to access Web Applications", "7b3d4796-9400-2904-692b-4a5ede7f0a1e", "CORS should not allow every resource to access Function Apps"], false), "Policy", R.ht(["5744710e-cc2f-4ee8-8809-3b11e89f4bc9", "App Service apps should not have CORS configured to allow every resource to access your apps"], false), "ResourceTypes", (S["sitetypes"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $config = Get-SiteConfig $Record\n        if (-not $config) { return New-Unknown 'Site configuration could not be read' }\n        $origins = @($config.cors.allowedOrigins | Where-Object { $_ })\n        $evidence = [ordered]@{ allowedOrigins = $origins; supportCredentials = [bool]$config.cors.supportCredentials }\n        if ($origins -contains '*') { return New-Fail 'CORS allows every origin' $evidence }\n        New-Pass $(if ($origins) { \"CORS limited to $($origins.Count) origin(s)\" } else { 'No CORS origins configured' }) $evidence\n    " }, (S, O) => {
+        R.ln = F + 163;
         S["config"] = R.u(R.cmd(S, "Get-SiteConfig", [(S["record"] ?? null)], null));
-        R.ln = F + 171;
+        R.ln = F + 164;
         if (!R.t((S["config"] ?? null))) {
-            R.ln = F + 171;
+            R.ln = F + 164;
             R.pa(O, R.cmd(S, "New-Unknown", ["Site configuration could not be read"], null));
             return;
         }
-        R.ln = F + 172;
+        R.ln = F + 165;
         S["origins"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 172;
+            R.ln = F + 165;
             R.e(O, (S["_"] ?? null));
         })], R.pi(R.m(R.m((S["config"] ?? null), "cors"), "allowedOrigins")));
-        R.ln = F + 173;
+        R.ln = F + 166;
         S["evidence"] = R.ht(["allowedOrigins", (S["origins"] ?? null), "supportCredentials", R.c("bool", R.m(R.m((S["config"] ?? null), "cors"), "supportCredentials"))], true);
-        R.ln = F + 174;
+        R.ln = F + 167;
         if (R.t(R.cont((S["origins"] ?? null), "*"))) {
-            R.ln = F + 174;
+            R.ln = F + 167;
             R.pa(O, R.cmd(S, "New-Fail", ["CORS allows every origin", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 175;
+        R.ln = F + 168;
         R.pa(O, R.cmd(S, "New-Pass", [(() => {
             const v1 = [];
-            R.ln = F + 175;
+            R.ln = F + 168;
             if (R.t((S["origins"] ?? null))) {
-                R.ln = F + 175;
+                R.ln = F + 168;
                 R.e(v1, ("CORS limited to " + R.str(R.u(R.pi(R.m((S["origins"] ?? null), "Count")))) + " origin(s)"));
             } else {
-                R.ln = F + 175;
+                R.ln = F + 168;
                 R.e(v1, "No CORS origins configured");
             }
             return R.u(v1);
         })(), (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 179;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-APP-008", "Title", "App Service apps restrict public network access", "Category", "Network security", "Service", "App Service", "Severity", "Low", "Description", "Checks that apps disable public network access or deny access by default with access restrictions. Internet facing apps should be published through Front Door or Application Gateway with WAF.", "Rationale", "An app that is reachable directly from the Internet bypasses the WAF and any network controls in front of it; internal apps should not be public at all.", "Remediation", "Disable public network access and use private endpoints for internal apps; for public apps restrict inbound access to the Front Door or Application Gateway (service tag and X-Azure-FDID header).", "References", R.a("https://learn.microsoft.com/azure/app-service/app-service-ip-restrictions"), "Frameworks", R.ht(["MCSB", "NS-2", "WAF", "SE:06", "ALZ", "Deny-Public-Endpoints"], false), "Policy", R.ht(["1b5ef780-c53c-4a64-87f3-bb9c8c8094ba", "App Service apps should disable public network access", "969ac98b-88a8-449f-883c-2e9adb123127", "Function apps should disable public network access"], false), "ResourceTypes", (S["sitetypes"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $config = Get-SiteConfig $Record\n        $access = if ($Record.resource.properties.publicNetworkAccess) { $Record.resource.properties.publicNetworkAccess } else { $config.publicNetworkAccess }\n        $restrictions = @($config.ipSecurityRestrictions | Where-Object { $_ -and $_.action -eq 'Allow' -and $_.ipAddress -ne 'Any' })\n        $evidence = [ordered]@{ publicNetworkAccess = $access; defaultAction = $config.ipSecurityRestrictionsDefaultAction; allowRules = $restrictions.Count }\n        if ($access -eq 'Disabled') { return New-Pass 'Public network access disabled' $evidence }\n        if ($config.ipSecurityRestrictionsDefaultAction -eq 'Deny' -or $restrictions) { return New-Pass 'Access restrictions limit inbound traffic' $evidence }\n        New-Fail 'Reachable from any network' $evidence\n    " }, (S, O) => {
-        R.ln = F + 194;
+    R.ln = F + 172;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-APP-008", "Title", "App Service apps restrict public network access", "Category", "Network security", "Service", "App Service", "Severity", "Low", "Description", "Checks that apps disable public network access or deny access by default with access restrictions. Internet facing apps should be published through Front Door or Application Gateway with WAF.", "Rationale", "An app that is reachable directly from the Internet bypasses the WAF and any network controls in front of it; internal apps should not be public at all.", "Remediation", "Disable public network access and use private endpoints for internal apps; for public apps restrict inbound access to the Front Door or Application Gateway (service tag and X-Azure-FDID header).", "References", R.a("https://learn.microsoft.com/azure/app-service/app-service-ip-restrictions"), "Policy", R.ht(["1b5ef780-c53c-4a64-87f3-bb9c8c8094ba", "App Service apps should disable public network access", "969ac98b-88a8-449f-883c-2e9adb123127", "Function apps should disable public network access"], false), "ResourceTypes", (S["sitetypes"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $config = Get-SiteConfig $Record\n        $access = if ($Record.resource.properties.publicNetworkAccess) { $Record.resource.properties.publicNetworkAccess } else { $config.publicNetworkAccess }\n        $restrictions = @($config.ipSecurityRestrictions | Where-Object { $_ -and $_.action -eq 'Allow' -and $_.ipAddress -ne 'Any' })\n        $evidence = [ordered]@{ publicNetworkAccess = $access; defaultAction = $config.ipSecurityRestrictionsDefaultAction; allowRules = $restrictions.Count }\n        if ($access -eq 'Disabled') { return New-Pass 'Public network access disabled' $evidence }\n        if ($config.ipSecurityRestrictionsDefaultAction -eq 'Deny' -or $restrictions) { return New-Pass 'Access restrictions limit inbound traffic' $evidence }\n        New-Fail 'Reachable from any network' $evidence\n    " }, (S, O) => {
+        R.ln = F + 186;
         S["config"] = R.u(R.cmd(S, "Get-SiteConfig", [(S["record"] ?? null)], null));
-        R.ln = F + 195;
+        R.ln = F + 187;
         const v2 = [];
-        R.ln = F + 195;
+        R.ln = F + 187;
         if (R.t(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "publicNetworkAccess"))) {
-            R.ln = F + 195;
+            R.ln = F + 187;
             R.e(v2, R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "publicNetworkAccess"));
         } else {
-            R.ln = F + 195;
+            R.ln = F + 187;
             R.e(v2, R.m((S["config"] ?? null), "publicNetworkAccess"));
         }
         S["access"] = R.u(v2);
-        R.ln = F + 196;
+        R.ln = F + 188;
         S["restrictions"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.action -eq 'Allow' -and $_.ipAddress -ne 'Any' " }, (S, O) => {
-            R.ln = F + 196;
+            R.ln = F + 188;
             R.e(O, ((R.t((S["_"] ?? null)) && R.t(R.eq(R.m((S["_"] ?? null), "action"), "Allow"))) && R.t(R.ne(R.m((S["_"] ?? null), "ipAddress"), "Any"))));
         })], R.pi(R.m((S["config"] ?? null), "ipSecurityRestrictions")));
-        R.ln = F + 197;
+        R.ln = F + 189;
         S["evidence"] = R.ht(["publicNetworkAccess", (S["access"] ?? null), "defaultAction", R.m((S["config"] ?? null), "ipSecurityRestrictionsDefaultAction"), "allowRules", R.m((S["restrictions"] ?? null), "Count")], true);
-        R.ln = F + 198;
+        R.ln = F + 190;
         if (R.t(R.eq((S["access"] ?? null), "Disabled"))) {
-            R.ln = F + 198;
+            R.ln = F + 190;
             R.pa(O, R.cmd(S, "New-Pass", ["Public network access disabled", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 199;
+        R.ln = F + 191;
         if ((R.t(R.eq(R.m((S["config"] ?? null), "ipSecurityRestrictionsDefaultAction"), "Deny")) || R.t((S["restrictions"] ?? null)))) {
-            R.ln = F + 199;
+            R.ln = F + 191;
             R.pa(O, R.cmd(S, "New-Pass", ["Access restrictions limit inbound traffic", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 200;
+        R.ln = F + 192;
         R.pa(O, R.cmd(S, "New-Fail", ["Reachable from any network", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 204;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-APP-009", "Version", 2, "Title", "HTTP triggered functions do not allow anonymous access", "Category", "Identity management", "Service", "Azure Functions", "Severity", "Low", "Description", "Finds HTTP triggered functions with authLevel 'anonymous'.", "Rationale", "Anonymous functions accept calls from anyone who knows the URL. Unless the function authenticates callers itself (for example webhook signatures or App Service authentication), it is an open endpoint.", "Remediation", "Use authLevel 'function' or enable App Service authentication (Easy Auth) with Entra ID, and validate signatures for webhooks.", "References", R.a("https://learn.microsoft.com/azure/azure-functions/security-concepts#authorization-scopes-function-level"), "Frameworks", R.ht(["MCSB", R.a([R.v("IM-7"), R.v("IM-5")]), "WAF", "SE:05"], false), "ResourceTypes", (S["sitetypes"] ?? null), "Filter", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) [string]$Record.resource.kind -match 'functionapp' " }, (S, O) => {
-        R.ln = F + 217;
+    R.ln = F + 196;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-APP-009", "Version", 2, "Title", "HTTP triggered functions do not allow anonymous access", "Category", "Identity management", "Service", "Azure Functions", "Severity", "Low", "Description", "Finds HTTP triggered functions with authLevel 'anonymous'.", "Rationale", "Anonymous functions accept calls from anyone who knows the URL. Unless the function authenticates callers itself (for example webhook signatures or App Service authentication), it is an open endpoint.", "Remediation", "Use authLevel 'function' or enable App Service authentication (Easy Auth) with Entra ID, and validate signatures for webhooks.", "References", R.a("https://learn.microsoft.com/azure/azure-functions/security-concepts#authorization-scopes-function-level"), "ResourceTypes", (S["sitetypes"] ?? null), "Filter", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) [string]$Record.resource.kind -match 'functionapp' " }, (S, O) => {
+        R.ln = F + 208;
         R.e(O, R.match(S, R.c("string", R.m(R.m((S["record"] ?? null), "resource"), "kind")), "functionapp"));
     }), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not (Test-ChildCollected $Record 'functions')) { return New-Unknown 'Functions could not be listed' }\n        if (-not (Test-ChildCollected $Record 'config/authsettingsV2')) { return New-Unknown 'App Service authentication settings could not be read' }\n        $auth = (Get-Child $Record 'config/authsettingsV2').properties\n        $enforced = [bool]$auth.platform.enabled -and $auth.globalValidation.requireAuthentication -eq $true\n        $excluded = @($auth.globalValidation.excludedPaths | Where-Object { $_ } | ForEach-Object { $_.TrimEnd('/').ToLowerInvariant() })\n        $anonymous = foreach ($function in @(Get-Child $Record 'functions' | Where-Object { $_ -and -not $_.properties.isDisabled })) {\n            $trigger = @($function.properties.config.bindings) | Where-Object { $_.type -eq 'httpTrigger' -and $_.authLevel -eq 'anonymous' } | Select-Object -First 1\n            if (-not $trigger) { continue }\n            $name = ($function.name -split '/')[-1]\n            $route = \"/api/$(if ($trigger.route) { $trigger.route } else { $name })\".ToLowerInvariant()\n            [pscustomobject]@{ Name = $name; Unprotected = (-not $enforced) -or [bool]($excluded | Where-Object { $route -eq $_ -or $route.StartsWith(\"$_/\") }) }\n        }\n        $unprotected = @($anonymous | Where-Object Unprotected | ForEach-Object Name | Sort-Object)\n        $evidence = [ordered]@{ anonymousFunctions = @($anonymous | ForEach-Object Name | Sort-Object); appServiceAuthenticationRequired = $enforced; excludedPaths = $excluded; unprotectedFunctions = $unprotected }\n        if ($unprotected) { return New-Fail \"Anonymous HTTP function(s) reachable without authentication: $($unprotected -join ', ')\" $evidence }\n        if ($anonymous) { return New-Pass 'Anonymous functions are behind required App Service authentication' $evidence }\n        New-Pass 'No anonymous HTTP functions' $evidence\n    " }, (S, O) => {
-        R.ln = F + 220;
+        R.ln = F + 211;
         if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "functions"], null)))) {
-            R.ln = F + 220;
+            R.ln = F + 211;
             R.pa(O, R.cmd(S, "New-Unknown", ["Functions could not be listed"], null));
             return;
         }
-        R.ln = F + 221;
+        R.ln = F + 212;
         if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "config/authsettingsV2"], null)))) {
-            R.ln = F + 221;
+            R.ln = F + 212;
             R.pa(O, R.cmd(S, "New-Unknown", ["App Service authentication settings could not be read"], null));
             return;
         }
-        R.ln = F + 222;
+        R.ln = F + 213;
         S["auth"] = R.m(R.u(R.cmd(S, "Get-Child", [(S["record"] ?? null), "config/authsettingsV2"], null)), "properties");
-        R.ln = F + 223;
+        R.ln = F + 214;
         S["enforced"] = (R.t(R.c("bool", R.m(R.m((S["auth"] ?? null), "platform"), "enabled"))) && R.t(R.eq(R.m(R.m((S["auth"] ?? null), "globalValidation"), "requireAuthentication"), true)));
-        R.ln = F + 224;
+        R.ln = F + 215;
         S["excluded"] = R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " $_.TrimEnd('/').ToLowerInvariant() " }, (S, O) => {
-            R.ln = F + 224;
+            R.ln = F + 215;
             R.e(O, R.im(R.im((S["_"] ?? null), "TrimEnd", ["/"]), "ToLowerInvariant", []));
         })], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 224;
+            R.ln = F + 215;
             R.e(O, (S["_"] ?? null));
         })], R.pi(R.m(R.m((S["auth"] ?? null), "globalValidation"), "excludedPaths"))));
-        R.ln = F + 225;
+        R.ln = F + 216;
         const v3 = [];
-        R.ln = F + 225;
+        R.ln = F + 216;
         for (const it4 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and -not $_.properties.isDisabled " }, (S, O) => {
-            R.ln = F + 225;
+            R.ln = F + 216;
             R.e(O, (R.t((S["_"] ?? null)) && !R.t(R.m(R.m((S["_"] ?? null), "properties"), "isDisabled"))));
         })], R.cmd(S, "Get-Child", [(S["record"] ?? null), "functions"], null)))) {
             S["function"] = it4;
-            R.ln = F + 226;
+            R.ln = F + 217;
             S["trigger"] = R.u(R.cmd(S, "Select-Object", [R.np("First"), 1], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.type -eq 'httpTrigger' -and $_.authLevel -eq 'anonymous' " }, (S, O) => {
-                R.ln = F + 226;
+                R.ln = F + 217;
                 R.e(O, (R.t(R.eq(R.m((S["_"] ?? null), "type"), "httpTrigger")) && R.t(R.eq(R.m((S["_"] ?? null), "authLevel"), "anonymous"))));
             })], R.pi(R.a(R.m(R.m(R.m((S["function"] ?? null), "properties"), "config"), "bindings"))))));
-            R.ln = F + 227;
+            R.ln = F + 218;
             if (!R.t((S["trigger"] ?? null))) {
                 continue;
             }
-            R.ln = F + 228;
+            R.ln = F + 219;
             S["name"] = R.i((R.split(R.m((S["function"] ?? null), "name"), "/")), -1);
-            R.ln = F + 229;
+            R.ln = F + 220;
             S["route"] = R.im(("/api/" + R.str((() => {
                 const v5 = [];
-                R.ln = F + 229;
+                R.ln = F + 220;
                 if (R.t(R.m((S["trigger"] ?? null), "route"))) {
-                    R.ln = F + 229;
+                    R.ln = F + 220;
                     R.e(v5, R.m((S["trigger"] ?? null), "route"));
                 } else {
-                    R.ln = F + 229;
+                    R.ln = F + 220;
                     R.e(v5, (S["name"] ?? null));
                 }
                 return R.u(v5);
             })())), "ToLowerInvariant", []);
-            R.ln = F + 230;
+            R.ln = F + 221;
             R.e(v3, R.pso(["Name", (S["name"] ?? null), "Unprotected", (!R.t((S["enforced"] ?? null)) || R.t(R.c("bool", R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $route -eq $_ -or $route.StartsWith(\"$_/\") " }, (S, O) => {
-                R.ln = F + 230;
+                R.ln = F + 221;
                 R.e(O, (R.t(R.eq((S["route"] ?? null), (S["_"] ?? null))) || R.t(R.im((S["route"] ?? null), "StartsWith", [("" + R.str((S["_"] ?? null)) + "/")]))));
             })], R.pi((S["excluded"] ?? null)))))))]));
         }
         S["anonymous"] = R.u(v3);
-        R.ln = F + 232;
+        R.ln = F + 223;
         S["unprotected"] = R.cmd(S, "Sort-Object", [], R.cmd(S, "ForEach-Object", ["Name"], R.cmd(S, "Where-Object", ["Unprotected"], R.pi((S["anonymous"] ?? null)))));
-        R.ln = F + 233;
+        R.ln = F + 224;
         S["evidence"] = R.ht(["anonymousFunctions", R.cmd(S, "Sort-Object", [], R.cmd(S, "ForEach-Object", ["Name"], R.pi((S["anonymous"] ?? null)))), "appServiceAuthenticationRequired", (S["enforced"] ?? null), "excludedPaths", (S["excluded"] ?? null), "unprotectedFunctions", (S["unprotected"] ?? null)], true);
-        R.ln = F + 234;
+        R.ln = F + 225;
         if (R.t((S["unprotected"] ?? null))) {
-            R.ln = F + 234;
+            R.ln = F + 225;
             R.pa(O, R.cmd(S, "New-Fail", [("Anonymous HTTP function(s) reachable without authentication: " + R.str(R.u(R.pi(R.join((S["unprotected"] ?? null), ", "))))), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 235;
+        R.ln = F + 226;
         if (R.t((S["anonymous"] ?? null))) {
-            R.ln = F + 235;
+            R.ln = F + 226;
             R.pa(O, R.cmd(S, "New-Pass", ["Anonymous functions are behind required App Service authentication", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 236;
+        R.ln = F + 227;
         R.pa(O, R.cmd(S, "New-Pass", ["No anonymous HTTP functions", (S["evidence"] ?? null)], null));
+    })], false)], null));
+    R.ln = F + 231;
+    R.def(S, "Test-SiteRestricted", { params: [{ n: "Rules", t: null, pos: null }, { n: "DefaultAction", t: "string", pos: null }], adv: 0, h: "f0d9ee4137c27f7b" }, (S, O) => {
+        R.ln = F + 234;
+        if (R.t(R.eq((S["defaultaction"] ?? null), "Deny"))) {
+            R.ln = F + 234;
+            R.e(O, true);
+            return;
+        }
+        R.ln = F + 235;
+        R.e(O, R.c("bool", R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.action -eq 'Allow' -and $_.ipAddress -ne 'Any' " }, (S, O) => {
+            R.ln = F + 235;
+            R.e(O, ((R.t((S["_"] ?? null)) && R.t(R.eq(R.m((S["_"] ?? null), "action"), "Allow"))) && R.t(R.ne(R.m((S["_"] ?? null), "ipAddress"), "Any"))));
+        })], R.pi((S["rules"] ?? null))), "Count")));
+        return;
+    });
+    R.ln = F + 238;
+    R.def(S, "Get-HeaderValues", { params: [{ n: "Headers", t: null, pos: null }, { n: "Name", t: "string", pos: null }], adv: 0, h: "76fc6fb8202bf29f" }, (S, O) => {
+        R.ln = F + 241;
+        for (const it6 of R.fi(R.a(R.m(R.m((S["headers"] ?? null), "PSObject"), "Properties")))) {
+            S["header"] = it6;
+            R.ln = F + 241;
+            if (R.t(R.eq(R.m((S["header"] ?? null), "Name"), (S["name"] ?? null)))) {
+                R.ln = F + 241;
+                R.e(O, R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+                    R.ln = F + 241;
+                    R.e(O, (S["_"] ?? null));
+                })], R.pi(R.m((S["header"] ?? null), "Value"))));
+            }
+        }
+    });
+    R.ln = F + 244;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-APP-010", "Title", "App Service access restrictions for Front Door check the Front Door id", "Category", "Network security", "Service", "App Service", "Severity", "High", "Description", "For App Service apps and slots with an access restriction that allows the AzureFrontDoor.Backend service tag, on the app or on its deployment (SCM) site, checks that the rule also requires the X-Azure-FDID header of your own Front Door profile.", "Rationale", "The AzureFrontDoor.Backend addresses are shared by every Front Door customer. Without the X-Azure-FDID check anyone can create a Front Door profile, point it at the app and reach it around the Web Application Firewall, rules and authentication of your own Front Door.", "Remediation", "Add the X-Azure-FDID header with the id of your Front Door profile to the rule (az webapp config access-restriction add --service-tag AzureFrontDoor.Backend --http-header x-azure-fdid=<profile id> ...).", "References", R.a([R.v("https://learn.microsoft.com/azure/app-service/app-service-ip-restrictions#restrict-access-to-a-specific-azure-front-door-instance"), R.v("https://learn.microsoft.com/azure/frontdoor/origin-security")]), "ResourceTypes", R.a([R.v("Microsoft.Web/sites"), R.v("Microsoft.Web/sites/slots")]), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not (Test-ChildCollected $Record 'config/web')) { return New-Unknown 'The site configuration could not be read' }\n        $config = Get-SiteConfig $Record\n        $frontDoorRules = @(@($config.ipSecurityRestrictions) + @($config.scmIpSecurityRestrictions) | Where-Object { $_ -and $_.action -eq 'Allow' -and [string]$_.ipAddress -like 'AzureFrontDoor.Backend*' })\n        if (-not $frontDoorRules) { return $null }\n        $unchecked = @($frontDoorRules | Where-Object { -not @(Get-HeaderValues $_.headers 'x-azure-fdid').Count } | ForEach-Object { $_.name } | Sort-Object -Unique)\n        $evidence = [ordered]@{ frontDoorRules = @($frontDoorRules | ForEach-Object { $_.name } | Sort-Object -Unique); withoutFrontDoorId = $unchecked }\n        if ($unchecked) { return New-Fail \"Rule(s) $($unchecked -join ', ') admit every Front Door profile\" $evidence }\n        New-Pass 'Every Front Door rule checks the Front Door id' $evidence\n    " }, (S, O) => {
+        R.ln = F + 257;
+        if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "config/web"], null)))) {
+            R.ln = F + 257;
+            R.pa(O, R.cmd(S, "New-Unknown", ["The site configuration could not be read"], null));
+            return;
+        }
+        R.ln = F + 258;
+        S["config"] = R.u(R.cmd(S, "Get-SiteConfig", [(S["record"] ?? null)], null));
+        R.ln = F + 259;
+        S["frontdoorrules"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.action -eq 'Allow' -and [string]$_.ipAddress -like 'AzureFrontDoor.Backend*' " }, (S, O) => {
+            R.ln = F + 259;
+            R.e(O, ((R.t((S["_"] ?? null)) && R.t(R.eq(R.m((S["_"] ?? null), "action"), "Allow"))) && R.t(R.like(R.c("string", R.m((S["_"] ?? null), "ipAddress")), "AzureFrontDoor.Backend*"))));
+        })], R.pi(R.add(R.a(R.m((S["config"] ?? null), "ipSecurityRestrictions")), R.a(R.m((S["config"] ?? null), "scmIpSecurityRestrictions")))));
+        R.ln = F + 260;
+        if (!R.t((S["frontdoorrules"] ?? null))) {
+            R.ln = F + 260;
+            R.e(O, null);
+            return;
+        }
+        R.ln = F + 261;
+        S["unchecked"] = R.cmd(S, "Sort-Object", [R.np("Unique")], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " $_.name " }, (S, O) => {
+            R.ln = F + 261;
+            R.e(O, R.m((S["_"] ?? null), "name"));
+        })], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " -not @(Get-HeaderValues $_.headers 'x-azure-fdid').Count " }, (S, O) => {
+            R.ln = F + 261;
+            R.e(O, !R.t(R.m(R.cmd(S, "Get-HeaderValues", [R.m((S["_"] ?? null), "headers"), "x-azure-fdid"], null), "Count")));
+        })], R.pi((S["frontdoorrules"] ?? null)))));
+        R.ln = F + 262;
+        S["evidence"] = R.ht(["frontDoorRules", R.cmd(S, "Sort-Object", [R.np("Unique")], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " $_.name " }, (S, O) => {
+            R.ln = F + 262;
+            R.e(O, R.m((S["_"] ?? null), "name"));
+        })], R.pi((S["frontdoorrules"] ?? null)))), "withoutFrontDoorId", (S["unchecked"] ?? null)], true);
+        R.ln = F + 263;
+        if (R.t((S["unchecked"] ?? null))) {
+            R.ln = F + 263;
+            R.pa(O, R.cmd(S, "New-Fail", [("Rule(s) " + R.str(R.u(R.pi(R.join((S["unchecked"] ?? null), ", ")))) + " admit every Front Door profile"), (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 264;
+        R.pa(O, R.cmd(S, "New-Pass", ["Every Front Door rule checks the Front Door id", (S["evidence"] ?? null)], null));
+    })], false)], null));
+    R.ln = F + 268;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-APP-011", "Title", "App Service deployment sites are not more open than the app", "Category", "Network security", "Service", "App Service", "Severity", "High", "Description", "For App Service apps and slots whose own access is restricted, checks that the deployment (SCM, Kudu) site uses the same restrictions or has its own. Apps without public network access pass; apps reachable from any network are AZ-APP-008.", "Rationale", "The deployment site deploys code, opens a console on the app and shows its environment, including connection strings and keys. When the app is restricted to a Front Door, a gateway or office addresses but the deployment site is not, stolen credentials and tokens reach the deployment site from anywhere, around the network controls of the app.", "Remediation", "Turn on 'Use main site rules' for the deployment site (scmIpSecurityRestrictionsUseMain), or add access restrictions to it that admit only your build agents and administrators.", "References", R.a("https://learn.microsoft.com/azure/app-service/app-service-ip-restrictions#restrict-access-to-an-scm-site"), "ResourceTypes", R.a([R.v("Microsoft.Web/sites"), R.v("Microsoft.Web/sites/slots")]), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not (Test-ChildCollected $Record 'config/web')) { return New-Unknown 'The site configuration could not be read' }\n        $config = Get-SiteConfig $Record\n        $access = if ($Record.resource.properties.publicNetworkAccess) { $Record.resource.properties.publicNetworkAccess } else { $config.publicNetworkAccess }\n        $evidence = [ordered]@{ publicNetworkAccess = $access; scmUsesMainRules = [bool]$config.scmIpSecurityRestrictionsUseMain; scmDefaultAction = $config.scmIpSecurityRestrictionsDefaultAction; scmAllowRules = @($config.scmIpSecurityRestrictions | Where-Object { $_ -and $_.action -eq 'Allow' -and $_.ipAddress -ne 'Any' }).Count }\n        if ($access -eq 'Disabled') { return New-Pass 'Public network access disabled' $evidence }\n        if (-not (Test-SiteRestricted $config.ipSecurityRestrictions $config.ipSecurityRestrictionsDefaultAction)) { return New-NotApplicable 'The app itself is reachable from any network (AZ-APP-008)' $evidence }\n        if ($config.scmIpSecurityRestrictionsUseMain) { return New-Pass 'The deployment site uses the access restrictions of the app' $evidence }\n        if (Test-SiteRestricted $config.scmIpSecurityRestrictions $config.scmIpSecurityRestrictionsDefaultAction) { return New-Pass 'The deployment site has its own access restrictions' $evidence }\n        New-Fail 'The app is restricted, but its deployment site is reachable from any network' $evidence\n    " }, (S, O) => {
+        R.ln = F + 281;
+        if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "config/web"], null)))) {
+            R.ln = F + 281;
+            R.pa(O, R.cmd(S, "New-Unknown", ["The site configuration could not be read"], null));
+            return;
+        }
+        R.ln = F + 282;
+        S["config"] = R.u(R.cmd(S, "Get-SiteConfig", [(S["record"] ?? null)], null));
+        R.ln = F + 283;
+        const v7 = [];
+        R.ln = F + 283;
+        if (R.t(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "publicNetworkAccess"))) {
+            R.ln = F + 283;
+            R.e(v7, R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "publicNetworkAccess"));
+        } else {
+            R.ln = F + 283;
+            R.e(v7, R.m((S["config"] ?? null), "publicNetworkAccess"));
+        }
+        S["access"] = R.u(v7);
+        R.ln = F + 284;
+        S["evidence"] = R.ht(["publicNetworkAccess", (S["access"] ?? null), "scmUsesMainRules", R.c("bool", R.m((S["config"] ?? null), "scmIpSecurityRestrictionsUseMain")), "scmDefaultAction", R.m((S["config"] ?? null), "scmIpSecurityRestrictionsDefaultAction"), "scmAllowRules", R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.action -eq 'Allow' -and $_.ipAddress -ne 'Any' " }, (S, O) => {
+            R.ln = F + 284;
+            R.e(O, ((R.t((S["_"] ?? null)) && R.t(R.eq(R.m((S["_"] ?? null), "action"), "Allow"))) && R.t(R.ne(R.m((S["_"] ?? null), "ipAddress"), "Any"))));
+        })], R.pi(R.m((S["config"] ?? null), "scmIpSecurityRestrictions"))), "Count")], true);
+        R.ln = F + 285;
+        if (R.t(R.eq((S["access"] ?? null), "Disabled"))) {
+            R.ln = F + 285;
+            R.pa(O, R.cmd(S, "New-Pass", ["Public network access disabled", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 286;
+        if (!R.t(R.u(R.cmd(S, "Test-SiteRestricted", [R.m((S["config"] ?? null), "ipSecurityRestrictions"), R.m((S["config"] ?? null), "ipSecurityRestrictionsDefaultAction")], null)))) {
+            R.ln = F + 286;
+            R.pa(O, R.cmd(S, "New-NotApplicable", ["The app itself is reachable from any network (AZ-APP-008)", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 287;
+        if (R.t(R.m((S["config"] ?? null), "scmIpSecurityRestrictionsUseMain"))) {
+            R.ln = F + 287;
+            R.pa(O, R.cmd(S, "New-Pass", ["The deployment site uses the access restrictions of the app", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 288;
+        if (R.t(R.u(R.cmd(S, "Test-SiteRestricted", [R.m((S["config"] ?? null), "scmIpSecurityRestrictions"), R.m((S["config"] ?? null), "scmIpSecurityRestrictionsDefaultAction")], null)))) {
+            R.ln = F + 288;
+            R.pa(O, R.cmd(S, "New-Pass", ["The deployment site has its own access restrictions", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 289;
+        R.pa(O, R.cmd(S, "New-Fail", ["The app is restricted, but its deployment site is reachable from any network", (S["evidence"] ?? null)], null));
     })], false)], null));
 });

@@ -59,7 +59,6 @@ export class VFS {
 
     writeText(path, text, mtime) { this.put(path, { kind: 'text', text: String(text), mtime }); }
     writeJson(path, value, mtime) { this.put(path, { kind: 'json', value, mtime }); }
-    writeBytes(path, bytes, mtime) { this.put(path, { kind: 'bytes', bytes, mtime }); }
     registerScript(path, module) { this.put(path, { kind: 'script', module, text: '' }); }
 
     entry(path) { return this.files.get(this.key(path)) ?? null; }
@@ -73,7 +72,6 @@ export class VFS {
         switch (e.kind) {
             case 'text': return e.text;
             case 'json': return toJson(e.value, { depth: 1000 });
-            case 'bytes': return new TextDecoder('utf-8').decode(e.bytes);
             default: return e.text ?? '';
         }
     }

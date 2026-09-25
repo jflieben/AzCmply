@@ -23,16 +23,11 @@ class PsToJs {
     [int]$TempCounter = 0
     [System.Collections.Generic.Stack[JsFrame]]$Frames
     [System.Collections.Generic.HashSet[string]]$KnownCommands
-    [System.Collections.Generic.HashSet[string]]$UsedCommands
 
     static [string[]]$RuntimeCmdlets = @(
         'ForEach-Object', 'Where-Object', 'Sort-Object', 'Group-Object', 'Select-Object', 'Measure-Object', 'ConvertTo-Json',
         'ConvertFrom-Json', 'ConvertTo-Csv', 'Join-Path', 'Split-Path', 'Resolve-Path', 'Test-Path', 'Get-ChildItem', 'Get-Content',
-        'Set-Content', 'New-Item', 'Remove-Item', 'Expand-Archive', 'Get-Location', 'Get-Command', 'Write-Host', 'Write-Warning',
-        'Write-Verbose', 'Write-Debug', 'Write-Information', 'Write-Progress', 'Write-Output', 'Write-Error', 'Out-Null', 'Out-String',
-        'Start-Sleep', 'Get-Date', 'Set-StrictMode', 'Set-Location',
-        '%', 'foreach', '?', 'where', 'sort', 'group', 'select', 'measure', 'gci', 'ls', 'dir', 'gc', 'cat', 'echo', 'write', 'rm', 'del',
-        'ni', 'pwd', 'gl', 'sleep', 'rvpa', 'gcm'
+        'New-Item', 'Remove-Item', 'Expand-Archive', 'Get-Location', 'Get-Command', 'Write-Host', 'Write-Warning', 'Out-Null', '%', '?'
     )
 
     #automatic variables that have no meaning in the browser runtime; using one stops the conversion
@@ -41,7 +36,6 @@ class PsToJs {
     PsToJs([System.Collections.Generic.HashSet[string]]$knownCommands) {
         $this.Frames = [System.Collections.Generic.Stack[JsFrame]]::new()
         $this.KnownCommands = $knownCommands
-        $this.UsedCommands = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
     }
 
     #region output helpers
@@ -574,7 +568,6 @@ class PsToJs {
             if (-not $this.KnownCommands.Contains($name) -and $name -notin [PsToJs]::RuntimeCmdlets) {
                 $this.Fail($ast, "command '$name' is not defined in the converted scripts and not implemented by the runtime")
             }
-            [void]$this.UsedCommands.Add($name)
             $js = "R.cmd(S, $([PsToJs]::Q($name)), $argumentsJs, $inputJs)"
         } else {
             $target = $elements[0]

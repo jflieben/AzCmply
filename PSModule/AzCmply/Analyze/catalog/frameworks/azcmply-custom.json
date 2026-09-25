@@ -1,0 +1,24 @@
+{
+  "key": "AzCmplyCustom",
+  "order": 13,
+  "name": "AzCmply custom controls",
+  "shortName": "AzCmply Custom",
+  "version": "2026.09",
+  "publisher": "JSolve B.V.",
+  "type": "custom",
+  "url": "https://jsolve.nl",
+  "retrieved": "2026-09-24",
+  "mapping": "native",
+  "note": "Controls by JSolve B.V. for Azure attack paths that none of the other frameworks covers, based on published attack research and breaches. Each control is checked by the tests listed with it.",
+  "controls": {
+    "AZC-01": {"title":"Network rules do not trust addresses that other Azure customers share","coverage":"full","tests":["AZ-APP-010","AZ-NET-026"]},
+    "AZC-02": {"title":"No access path bypasses the network controls of a workload (deployment sites, Bastion shareable links, serial console)","coverage":"full","tests":["AZ-APP-011","AZ-NET-027","AZ-VM-014"]},
+    "AZC-03": {"title":"Managed identities have no rights beyond the resource group of their resource","coverage":"partial","tests":["AZ-IAM-031"]},
+    "AZC-04": {"title":"Groups with privileged Azure access can only be changed by privileged administrators","coverage":"full","tests":["AZ-IAM-032"]},
+    "AZC-05": {"title":"Data roles are granted on the resources that hold the data, not on subscriptions or above","coverage":"full","tests":["AZ-IAM-033"]},
+    "AZC-06": {"title":"Storage firewalls only admit resources of the own tenant","coverage":"full","tests":["AZ-STG-027"]},
+    "AZC-07": {"title":"Published APIs authenticate every caller with a subscription key or a validated token","coverage":"full","tests":["AZ-APIM-008"]},
+    "AZC-08": {"title":"Unexpected cost reaches the owners of a subscription","coverage":"full","tests":["AZ-GOV-014"]},
+    "AZC-09": {"title":"Takeover actions raise an alert (role assignments, removed locks, run command)","coverage":"full","tests":["AZ-LOG-027","AZ-LOG-028","AZ-LOG-029"]}
+  }
+}

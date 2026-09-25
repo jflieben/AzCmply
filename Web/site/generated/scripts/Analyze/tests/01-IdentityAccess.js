@@ -34,584 +34,584 @@ export default R.script("/app/Analyze/tests/01-IdentityAccess.ps1", { params: []
         return;
     });
     R.ln = F + 43;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-IAM-001", "Title", "The subscription has between 2 and 3 owners", "Category", "Privileged access", "Service", "Azure RBAC", "Severity", "High", "Description", "Counts the principals assigned the Owner role directly on the subscription.", "Rationale", "A single owner is a single point of failure for administration; more than three owners widens the group that can take full control of the subscription, including granting access to others.", "Remediation", "Keep two or three Owner assignments on the subscription, preferably PIM eligible groups. Remove extra owners (az role assignment delete --role Owner --assignee <principal> --scope /subscriptions/<id>) or add a second one.", "References", R.a("https://learn.microsoft.com/azure/role-based-access-control/best-practices"), "Frameworks", R.ht(["MCSB", "PA-1", "CIS", "5.7", "WAF", "SE:05"], false), "Defender", R.ht(["6f90a6d6-d4d6-0794-0ec1-98fa77878c2e", "A maximum of 3 owners should be designated for subscriptions", "2c79b4af-f830-b61e-92b9-63dfa30f16e4", "There should be more than one owner assigned to subscriptions"], false), "Policy", R.ht(["4f11b553-d42e-4e3a-89be-32ca364cad4c", "A maximum of 3 owners should be designated for your subscription", "09024ccc-0c5f-475e-9457-b7c0d9ed487b", "There should be more than one owner assigned to your subscription"], false), "Requires", R.a("rbac/roleAssignments"), "Run", R.sb({ params: [], adv: 0, text: "\n        $scope = Get-SubscriptionScope\n        $owners = @(Get-ActiveRoleAssignments | Where-Object { (Get-RoleDefinitionGuid $_.properties.roleDefinitionId) -eq $ownerRoleId })\n        $direct = @($owners | Where-Object { $_.properties.scope -eq $scope } | ForEach-Object { $_.properties.principalId } | Sort-Object -Unique)\n        $inherited = @($owners | Where-Object { (Get-ScopeLevel $_.properties.scope) -in 'root', 'managementGroup' } | ForEach-Object { $_.properties.principalId } | Sort-Object -Unique)\n        $evidence = [ordered]@{ ownerCount = $direct.Count; owners = @($direct | ForEach-Object { Get-PrincipalLabel $_ } | Sort-Object); inheritedOwners = @($inherited | ForEach-Object { Get-PrincipalLabel $_ } | Sort-Object) }\n        if ($direct.Count -lt 2) { return New-SubscriptionFinding (New-Fail \"$($direct.Count) owner(s) assigned on the subscription, at least 2 are needed\" $evidence) }\n        if ($direct.Count -gt 3) { return New-SubscriptionFinding (New-Fail \"$($direct.Count) owners assigned on the subscription, at most 3 are recommended\" $evidence) }\n        New-SubscriptionFinding (New-Pass \"$($direct.Count) owners assigned on the subscription\" $evidence)\n    " }, (S, O) => {
-        R.ln = F + 58;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-IAM-001", "Title", "The subscription has between 2 and 3 owners", "Category", "Privileged access", "Service", "Azure RBAC", "Severity", "High", "Description", "Counts the principals assigned the Owner role directly on the subscription.", "Rationale", "A single owner is a single point of failure for administration; more than three owners widens the group that can take full control of the subscription, including granting access to others.", "Remediation", "Keep two or three Owner assignments on the subscription, preferably PIM eligible groups. Remove extra owners (az role assignment delete --role Owner --assignee <principal> --scope /subscriptions/<id>) or add a second one.", "References", R.a("https://learn.microsoft.com/azure/role-based-access-control/best-practices"), "Defender", R.ht(["6f90a6d6-d4d6-0794-0ec1-98fa77878c2e", "A maximum of 3 owners should be designated for subscriptions", "2c79b4af-f830-b61e-92b9-63dfa30f16e4", "There should be more than one owner assigned to subscriptions"], false), "Policy", R.ht(["4f11b553-d42e-4e3a-89be-32ca364cad4c", "A maximum of 3 owners should be designated for your subscription", "09024ccc-0c5f-475e-9457-b7c0d9ed487b", "There should be more than one owner assigned to your subscription"], false), "Requires", R.a("rbac/roleAssignments"), "Run", R.sb({ params: [], adv: 0, text: "\n        $scope = Get-SubscriptionScope\n        $owners = @(Get-ActiveRoleAssignments | Where-Object { (Get-RoleDefinitionGuid $_.properties.roleDefinitionId) -eq $ownerRoleId })\n        $direct = @($owners | Where-Object { $_.properties.scope -eq $scope } | ForEach-Object { $_.properties.principalId } | Sort-Object -Unique)\n        $inherited = @($owners | Where-Object { (Get-ScopeLevel $_.properties.scope) -in 'root', 'managementGroup' } | ForEach-Object { $_.properties.principalId } | Sort-Object -Unique)\n        $evidence = [ordered]@{ ownerCount = $direct.Count; owners = @($direct | ForEach-Object { Get-PrincipalLabel $_ } | Sort-Object); inheritedOwners = @($inherited | ForEach-Object { Get-PrincipalLabel $_ } | Sort-Object) }\n        if ($direct.Count -lt 2) { return New-SubscriptionFinding (New-Fail \"$($direct.Count) owner(s) assigned on the subscription, at least 2 are needed\" $evidence) }\n        if ($direct.Count -gt 3) { return New-SubscriptionFinding (New-Fail \"$($direct.Count) owners assigned on the subscription, at most 3 are recommended\" $evidence) }\n        New-SubscriptionFinding (New-Pass \"$($direct.Count) owners assigned on the subscription\" $evidence)\n    " }, (S, O) => {
+        R.ln = F + 57;
         S["scope"] = R.u(R.cmd(S, "Get-SubscriptionScope", [], null));
-        R.ln = F + 59;
+        R.ln = F + 58;
         S["owners"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " (Get-RoleDefinitionGuid $_.properties.roleDefinitionId) -eq $ownerRoleId " }, (S, O) => {
-            R.ln = F + 59;
+            R.ln = F + 58;
             R.e(O, R.eq(R.u(R.cmd(S, "Get-RoleDefinitionGuid", [R.m(R.m((S["_"] ?? null), "properties"), "roleDefinitionId")], null)), (S["ownerroleid"] ?? null)));
         })], R.cmd(S, "Get-ActiveRoleAssignments", [], null));
-        R.ln = F + 60;
+        R.ln = F + 59;
         S["direct"] = R.cmd(S, "Sort-Object", [R.np("Unique")], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " $_.properties.principalId " }, (S, O) => {
-            R.ln = F + 60;
+            R.ln = F + 59;
             R.e(O, R.m(R.m((S["_"] ?? null), "properties"), "principalId"));
         })], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.properties.scope -eq $scope " }, (S, O) => {
-            R.ln = F + 60;
+            R.ln = F + 59;
             R.e(O, R.eq(R.m(R.m((S["_"] ?? null), "properties"), "scope"), (S["scope"] ?? null)));
         })], R.pi((S["owners"] ?? null)))));
-        R.ln = F + 61;
+        R.ln = F + 60;
         S["inherited"] = R.cmd(S, "Sort-Object", [R.np("Unique")], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " $_.properties.principalId " }, (S, O) => {
-            R.ln = F + 61;
+            R.ln = F + 60;
             R.e(O, R.m(R.m((S["_"] ?? null), "properties"), "principalId"));
         })], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " (Get-ScopeLevel $_.properties.scope) -in 'root', 'managementGroup' " }, (S, O) => {
-            R.ln = F + 61;
+            R.ln = F + 60;
             R.e(O, R.in(R.u(R.cmd(S, "Get-ScopeLevel", [R.m(R.m((S["_"] ?? null), "properties"), "scope")], null)), [R.v("root"), R.v("managementGroup")]));
         })], R.pi((S["owners"] ?? null)))));
-        R.ln = F + 62;
+        R.ln = F + 61;
         S["evidence"] = R.ht(["ownerCount", R.m((S["direct"] ?? null), "Count"), "owners", R.cmd(S, "Sort-Object", [], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " Get-PrincipalLabel $_ " }, (S, O) => {
-            R.ln = F + 62;
+            R.ln = F + 61;
             R.pa(O, R.cmd(S, "Get-PrincipalLabel", [(S["_"] ?? null)], null));
         })], R.pi((S["direct"] ?? null)))), "inheritedOwners", R.cmd(S, "Sort-Object", [], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " Get-PrincipalLabel $_ " }, (S, O) => {
-            R.ln = F + 62;
+            R.ln = F + 61;
             R.pa(O, R.cmd(S, "Get-PrincipalLabel", [(S["_"] ?? null)], null));
         })], R.pi((S["inherited"] ?? null))))], true);
-        R.ln = F + 63;
+        R.ln = F + 62;
         if (R.t(R.lt(R.m((S["direct"] ?? null), "Count"), 2))) {
-            R.ln = F + 63;
+            R.ln = F + 62;
             R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Fail", [("" + R.str(R.u(R.pi(R.m((S["direct"] ?? null), "Count")))) + " owner(s) assigned on the subscription, at least 2 are needed"), (S["evidence"] ?? null)], null))], null));
             return;
         }
-        R.ln = F + 64;
+        R.ln = F + 63;
         if (R.t(R.gt(R.m((S["direct"] ?? null), "Count"), 3))) {
-            R.ln = F + 64;
+            R.ln = F + 63;
             R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Fail", [("" + R.str(R.u(R.pi(R.m((S["direct"] ?? null), "Count")))) + " owners assigned on the subscription, at most 3 are recommended"), (S["evidence"] ?? null)], null))], null));
             return;
         }
-        R.ln = F + 65;
+        R.ln = F + 64;
         R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Pass", [("" + R.str(R.u(R.pi(R.m((S["direct"] ?? null), "Count")))) + " owners assigned on the subscription"), (S["evidence"] ?? null)], null))], null));
     })], false)], null));
-    R.ln = F + 69;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-IAM-002", "Title", "Users and groups do not hold standing privileged role assignments", "Category", "Privileged access", "Service", "Azure RBAC", "Severity", "High", "Description", "Checks active assignments of Owner, Contributor, User Access Administrator, Role Based Access Control Administrator and custom roles that can assign roles, held by users or groups, for permanent (non PIM activated, non expiring) assignments.", "Rationale", "Standing privileged access is available to an attacker the moment an account is compromised. Just-in-time activation through Privileged Identity Management limits the exposure window and adds MFA, justification and approval.", "Remediation", "Convert permanent privileged assignments for users and groups to PIM eligible assignments (Privileged Identity Management > Azure resources > Assignments > Update to eligible), and remove the permanent active assignment.", "References", R.a("https://learn.microsoft.com/entra/id-governance/privileged-identity-management/pim-resource-roles-assign-roles"), "Frameworks", R.ht(["MCSB", "PA-2", "WAF", "SE:05"], false), "Requires", R.a("rbac/roleAssignmentScheduleInstances"), "Run", R.sb({ params: [], adv: 0, text: "\n        $instances = @(Get-IngestData 'rbac/roleAssignmentScheduleInstances' | Where-Object { $_ -and $_.properties.principalType -in 'User', 'Group' -and (Test-RolePrivileged $_.properties.roleDefinitionId) })\n        $seen = @{}\n        $findings = foreach ($instance in $instances) {\n            $p = $instance.properties\n            $id = if ($p.originRoleAssignmentId) { $p.originRoleAssignmentId } else { $instance.id }\n            if ($seen.ContainsKey($id.ToLowerInvariant())) { continue }\n            $seen[$id.ToLowerInvariant()] = $true\n            $evidence = [ordered]@{ principal = Get-PrincipalLabel $p.principalId; principalType = $p.principalType; role = Get-RoleName $p.roleDefinitionId; scope = $p.scope; assignmentType = $p.assignmentType; endDateTime = Format-UtcDate $p.endDateTime }\n            $result = if ($p.assignmentType -eq 'Assigned' -and -not $p.endDateTime) { New-Fail \"Permanent $($evidence.role) assignment for $($evidence.principal)\" $evidence }\n            elseif ($p.assignmentType -eq 'Activated') { New-Pass \"Just-in-time activated $($evidence.role) assignment\" $evidence }\n            else { New-Pass \"Time bound $($evidence.role) assignment ending $($evidence.endDateTime)\" $evidence }\n            New-Finding -ResourceId $id -ResourceType 'Microsoft.Authorization/roleAssignments' -ResourceName \"$($evidence.role): $($evidence.principal)\" -Result $result\n        }\n        if (-not $findings) { return New-SubscriptionFinding (New-Pass 'No active privileged role assignments for users or groups') }\n        $findings\n    " }, (S, O) => {
-        R.ln = F + 82;
+    R.ln = F + 68;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-IAM-002", "Title", "Users and groups do not hold standing privileged role assignments", "Category", "Privileged access", "Service", "Azure RBAC", "Severity", "High", "Description", "Checks active assignments of Owner, Contributor, User Access Administrator, Role Based Access Control Administrator and custom roles that can assign roles, held by users or groups, for permanent (non PIM activated, non expiring) assignments.", "Rationale", "Standing privileged access is available to an attacker the moment an account is compromised. Just-in-time activation through Privileged Identity Management limits the exposure window and adds MFA, justification and approval.", "Remediation", "Convert permanent privileged assignments for users and groups to PIM eligible assignments (Privileged Identity Management > Azure resources > Assignments > Update to eligible), and remove the permanent active assignment.", "References", R.a("https://learn.microsoft.com/entra/id-governance/privileged-identity-management/pim-resource-roles-assign-roles"), "Requires", R.a("rbac/roleAssignmentScheduleInstances"), "Run", R.sb({ params: [], adv: 0, text: "\n        $instances = @(Get-IngestData 'rbac/roleAssignmentScheduleInstances' | Where-Object { $_ -and $_.properties.principalType -in 'User', 'Group' -and (Test-RolePrivileged $_.properties.roleDefinitionId) })\n        $seen = @{}\n        $findings = foreach ($instance in $instances) {\n            $p = $instance.properties\n            $id = if ($p.originRoleAssignmentId) { $p.originRoleAssignmentId } else { $instance.id }\n            if ($seen.ContainsKey($id.ToLowerInvariant())) { continue }\n            $seen[$id.ToLowerInvariant()] = $true\n            $evidence = [ordered]@{ principal = Get-PrincipalLabel $p.principalId; principalType = $p.principalType; role = Get-RoleName $p.roleDefinitionId; scope = $p.scope; assignmentType = $p.assignmentType; endDateTime = Format-UtcDate $p.endDateTime }\n            $result = if ($p.assignmentType -eq 'Assigned' -and -not $p.endDateTime) { New-Fail \"Permanent $($evidence.role) assignment for $($evidence.principal)\" $evidence }\n            elseif ($p.assignmentType -eq 'Activated') { New-Pass \"Just-in-time activated $($evidence.role) assignment\" $evidence }\n            else { New-Pass \"Time bound $($evidence.role) assignment ending $($evidence.endDateTime)\" $evidence }\n            New-Finding -ResourceId $id -ResourceType 'Microsoft.Authorization/roleAssignments' -ResourceName \"$($evidence.role): $($evidence.principal)\" -Result $result\n        }\n        if (-not $findings) { return New-SubscriptionFinding (New-Pass 'No active privileged role assignments for users or groups') }\n        $findings\n    " }, (S, O) => {
+        R.ln = F + 80;
         S["instances"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.properties.principalType -in 'User', 'Group' -and (Test-RolePrivileged $_.properties.roleDefinitionId) " }, (S, O) => {
-            R.ln = F + 82;
+            R.ln = F + 80;
             R.e(O, ((R.t((S["_"] ?? null)) && R.t(R.in(R.m(R.m((S["_"] ?? null), "properties"), "principalType"), [R.v("User"), R.v("Group")]))) && R.t(R.u(R.cmd(S, "Test-RolePrivileged", [R.m(R.m((S["_"] ?? null), "properties"), "roleDefinitionId")], null)))));
         })], R.cmd(S, "Get-IngestData", ["rbac/roleAssignmentScheduleInstances"], null));
-        R.ln = F + 83;
+        R.ln = F + 81;
         S["seen"] = R.ht([], false);
-        R.ln = F + 84;
+        R.ln = F + 82;
         const v1 = [];
-        R.ln = F + 84;
+        R.ln = F + 82;
         for (const it2 of R.fi((S["instances"] ?? null))) {
             S["instance"] = it2;
-            R.ln = F + 85;
+            R.ln = F + 83;
             S["p"] = R.m((S["instance"] ?? null), "properties");
-            R.ln = F + 86;
+            R.ln = F + 84;
             const v3 = [];
-            R.ln = F + 86;
+            R.ln = F + 84;
             if (R.t(R.m((S["p"] ?? null), "originRoleAssignmentId"))) {
-                R.ln = F + 86;
+                R.ln = F + 84;
                 R.e(v3, R.m((S["p"] ?? null), "originRoleAssignmentId"));
             } else {
-                R.ln = F + 86;
+                R.ln = F + 84;
                 R.e(v3, R.m((S["instance"] ?? null), "id"));
             }
             S["id"] = R.u(v3);
-            R.ln = F + 87;
+            R.ln = F + 85;
             if (R.t(R.im((S["seen"] ?? null), "ContainsKey", [R.im((S["id"] ?? null), "ToLowerInvariant", [])]))) {
                 continue;
             }
-            R.ln = F + 88;
+            R.ln = F + 86;
             R.si((S["seen"] ?? null), R.im((S["id"] ?? null), "ToLowerInvariant", []), true);
-            R.ln = F + 89;
+            R.ln = F + 87;
             S["evidence"] = R.ht(["principal", R.u(R.cmd(S, "Get-PrincipalLabel", [R.m((S["p"] ?? null), "principalId")], null)), "principalType", R.m((S["p"] ?? null), "principalType"), "role", R.u(R.cmd(S, "Get-RoleName", [R.m((S["p"] ?? null), "roleDefinitionId")], null)), "scope", R.m((S["p"] ?? null), "scope"), "assignmentType", R.m((S["p"] ?? null), "assignmentType"), "endDateTime", R.u(R.cmd(S, "Format-UtcDate", [R.m((S["p"] ?? null), "endDateTime")], null))], true);
-            R.ln = F + 90;
+            R.ln = F + 88;
             const v4 = [];
-            R.ln = F + 90;
+            R.ln = F + 88;
             if ((R.t(R.eq(R.m((S["p"] ?? null), "assignmentType"), "Assigned")) && !R.t(R.m((S["p"] ?? null), "endDateTime")))) {
-                R.ln = F + 90;
+                R.ln = F + 88;
                 R.pa(v4, R.cmd(S, "New-Fail", [("Permanent " + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "role")))) + " assignment for " + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "principal"))))), (S["evidence"] ?? null)], null));
             } else if (R.t(R.eq(R.m((S["p"] ?? null), "assignmentType"), "Activated"))) {
-                R.ln = F + 91;
+                R.ln = F + 89;
                 R.pa(v4, R.cmd(S, "New-Pass", [("Just-in-time activated " + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "role")))) + " assignment"), (S["evidence"] ?? null)], null));
             } else {
-                R.ln = F + 92;
+                R.ln = F + 90;
                 R.pa(v4, R.cmd(S, "New-Pass", [("Time bound " + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "role")))) + " assignment ending " + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "endDateTime"))))), (S["evidence"] ?? null)], null));
             }
             S["result"] = R.u(v4);
-            R.ln = F + 93;
+            R.ln = F + 91;
             R.pa(v1, R.cmd(S, "New-Finding", [R.np("ResourceId"), (S["id"] ?? null), R.np("ResourceType"), "Microsoft.Authorization/roleAssignments", R.np("ResourceName"), ("" + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "role")))) + ": " + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "principal"))))), R.np("Result"), (S["result"] ?? null)], null));
         }
         S["findings"] = R.u(v1);
-        R.ln = F + 95;
+        R.ln = F + 93;
         if (!R.t((S["findings"] ?? null))) {
-            R.ln = F + 95;
+            R.ln = F + 93;
             R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Pass", ["No active privileged role assignments for users or groups"], null))], null));
             return;
         }
-        R.ln = F + 96;
+        R.ln = F + 94;
         R.e(O, (S["findings"] ?? null));
     })], false)], null));
-    R.ln = F + 100;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-IAM-003", "Title", "Workload identities do not hold privileged roles at subscription scope or above", "Category", "Privileged access", "Service", "Azure RBAC", "Severity", "High", "Description", "Finds service principals and managed identities with Owner, Contributor, User Access Administrator, Role Based Access Control Administrator or equivalent custom roles at tenant root, management group or subscription scope.", "Rationale", "Workload identities cannot use MFA or PIM. A leaked credential, a compromised pipeline or a compromised resource with such an identity gives an attacker control over every resource in the subscription.", "Remediation", "Scope workload identity assignments to the resource groups or resources they manage and use the least privileged built-in role. Replace Owner/User Access Administrator with Role Based Access Control Administrator with conditions where the identity must assign roles.", "References", R.a("https://learn.microsoft.com/azure/role-based-access-control/best-practices"), "Frameworks", R.ht(["MCSB", R.a([R.v("PA-7"), R.v("IM-3")]), "WAF", "SE:05"], false), "Requires", R.a("rbac/roleAssignments"), "Run", R.sb({ params: [], adv: 0, text: "\n        $assignments = @(Get-ActiveRoleAssignments | Where-Object { $_.properties.principalType -eq 'ServicePrincipal' -and (Test-RolePrivileged $_.properties.roleDefinitionId) })\n        if (-not $assignments) { return New-SubscriptionFinding (New-Pass 'No privileged role assignments for workload identities') }\n        foreach ($assignment in $assignments) {\n            $evidence = Get-AssignmentEvidence $assignment\n            $evidence.scopeLevel = Get-ScopeLevel $assignment.properties.scope\n            $result = if ($evidence.scopeLevel -in 'root', 'managementGroup', 'subscription') { New-Fail \"$($evidence.principal) has $($evidence.role) at $($evidence.scopeLevel) scope\" $evidence } else { New-Pass \"$($evidence.role) limited to $($evidence.scopeLevel) scope\" $evidence }\n            New-Finding -ResourceId $assignment.id -ResourceType $assignment.type -ResourceName \"$($evidence.role): $($evidence.principal)\" -Result $result\n        }\n    " }, (S, O) => {
-        R.ln = F + 113;
+    R.ln = F + 98;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-IAM-003", "Title", "Workload identities do not hold privileged roles at subscription scope or above", "Category", "Privileged access", "Service", "Azure RBAC", "Severity", "High", "Description", "Finds service principals and managed identities with Owner, Contributor, User Access Administrator, Role Based Access Control Administrator or equivalent custom roles at tenant root, management group or subscription scope.", "Rationale", "Workload identities cannot use MFA or PIM. A leaked credential, a compromised pipeline or a compromised resource with such an identity gives an attacker control over every resource in the subscription.", "Remediation", "Scope workload identity assignments to the resource groups or resources they manage and use the least privileged built-in role. Replace Owner/User Access Administrator with Role Based Access Control Administrator with conditions where the identity must assign roles.", "References", R.a("https://learn.microsoft.com/azure/role-based-access-control/best-practices"), "Requires", R.a("rbac/roleAssignments"), "Run", R.sb({ params: [], adv: 0, text: "\n        $assignments = @(Get-ActiveRoleAssignments | Where-Object { $_.properties.principalType -eq 'ServicePrincipal' -and (Test-RolePrivileged $_.properties.roleDefinitionId) })\n        if (-not $assignments) { return New-SubscriptionFinding (New-Pass 'No privileged role assignments for workload identities') }\n        foreach ($assignment in $assignments) {\n            $evidence = Get-AssignmentEvidence $assignment\n            $evidence.scopeLevel = Get-ScopeLevel $assignment.properties.scope\n            $result = if ($evidence.scopeLevel -in 'root', 'managementGroup', 'subscription') { New-Fail \"$($evidence.principal) has $($evidence.role) at $($evidence.scopeLevel) scope\" $evidence } else { New-Pass \"$($evidence.role) limited to $($evidence.scopeLevel) scope\" $evidence }\n            New-Finding -ResourceId $assignment.id -ResourceType $assignment.type -ResourceName \"$($evidence.role): $($evidence.principal)\" -Result $result\n        }\n    " }, (S, O) => {
+        R.ln = F + 110;
         S["assignments"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.properties.principalType -eq 'ServicePrincipal' -and (Test-RolePrivileged $_.properties.roleDefinitionId) " }, (S, O) => {
-            R.ln = F + 113;
+            R.ln = F + 110;
             R.e(O, (R.t(R.eq(R.m(R.m((S["_"] ?? null), "properties"), "principalType"), "ServicePrincipal")) && R.t(R.u(R.cmd(S, "Test-RolePrivileged", [R.m(R.m((S["_"] ?? null), "properties"), "roleDefinitionId")], null)))));
         })], R.cmd(S, "Get-ActiveRoleAssignments", [], null));
-        R.ln = F + 114;
+        R.ln = F + 111;
         if (!R.t((S["assignments"] ?? null))) {
-            R.ln = F + 114;
+            R.ln = F + 111;
             R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Pass", ["No privileged role assignments for workload identities"], null))], null));
             return;
         }
-        R.ln = F + 115;
+        R.ln = F + 112;
         for (const it5 of R.fi((S["assignments"] ?? null))) {
             S["assignment"] = it5;
-            R.ln = F + 116;
+            R.ln = F + 113;
             S["evidence"] = R.u(R.cmd(S, "Get-AssignmentEvidence", [(S["assignment"] ?? null)], null));
-            R.ln = F + 117;
+            R.ln = F + 114;
             R.sm((S["evidence"] ?? null), "scopeLevel", R.u(R.cmd(S, "Get-ScopeLevel", [R.m(R.m((S["assignment"] ?? null), "properties"), "scope")], null)));
-            R.ln = F + 118;
+            R.ln = F + 115;
             const v6 = [];
-            R.ln = F + 118;
+            R.ln = F + 115;
             if (R.t(R.in(R.m((S["evidence"] ?? null), "scopeLevel"), [R.v("root"), R.v("managementGroup"), R.v("subscription")]))) {
-                R.ln = F + 118;
+                R.ln = F + 115;
                 R.pa(v6, R.cmd(S, "New-Fail", [("" + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "principal")))) + " has " + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "role")))) + " at " + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "scopeLevel")))) + " scope"), (S["evidence"] ?? null)], null));
             } else {
-                R.ln = F + 118;
+                R.ln = F + 115;
                 R.pa(v6, R.cmd(S, "New-Pass", [("" + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "role")))) + " limited to " + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "scopeLevel")))) + " scope"), (S["evidence"] ?? null)], null));
             }
             S["result"] = R.u(v6);
-            R.ln = F + 119;
+            R.ln = F + 116;
             R.pa(O, R.cmd(S, "New-Finding", [R.np("ResourceId"), R.m((S["assignment"] ?? null), "id"), R.np("ResourceType"), R.m((S["assignment"] ?? null), "type"), R.np("ResourceName"), ("" + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "role")))) + ": " + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "principal"))))), R.np("Result"), (S["result"] ?? null)], null));
         }
     })], false)], null));
-    R.ln = F + 124;
+    R.ln = F + 121;
     S["guesttest"] = R.sb({ params: [{ n: "WriteRoles", t: "bool", pos: null }], adv: 0, text: "\n    param([bool]$WriteRoles)\n    $findings = foreach ($assignment in (Get-ActiveRoleAssignments | Where-Object { $_.properties.principalType -in 'User', 'Group' })) {\n        if ((Test-RoleCanWrite $assignment.properties.roleDefinitionId) -ne $WriteRoles) { continue }\n        $evidence = Get-AssignmentEvidence $assignment\n        #without the principals behind the assignment, \"no guests\" cannot be distinguished from \"unknown\"\n        if (-not (Test-AssignmentUsersResolved $assignment)) {\n            New-Finding -ResourceId $assignment.id -ResourceType $assignment.type -ResourceName \"$($evidence.role): $($evidence.principal)\" -Result (New-Unknown \"The $($assignment.properties.principalType.ToLowerInvariant()) behind this assignment could not be resolved in the directory\" $evidence)\n            continue\n        }\n        $guests = @(Get-AssignmentUsers $assignment | Where-Object { Test-GuestUser $_ })\n        if (-not $guests) { continue }\n        $evidence.guests = @($guests | ForEach-Object { \"$($_.displayName) ($($_.userPrincipalName))\" } | Sort-Object -Unique)\n        New-Finding -ResourceId $assignment.id -ResourceType $assignment.type -ResourceName \"$($evidence.role): $($evidence.principal)\" -Result (New-Fail \"Guest account(s) $($evidence.guests -join ', ') hold $($evidence.role) on $($evidence.scope)\" $evidence)\n    }\n    if (-not $findings) { return New-SubscriptionFinding (New-Pass 'No guest accounts with such role assignments') }\n    $findings\n" }, (S, O) => {
-        R.ln = F + 126;
+        R.ln = F + 123;
         const v7 = [];
-        R.ln = F + 126;
+        R.ln = F + 123;
         for (const it8 of R.fi(R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.properties.principalType -in 'User', 'Group' " }, (S, O) => {
-            R.ln = F + 126;
+            R.ln = F + 123;
             R.e(O, R.in(R.m(R.m((S["_"] ?? null), "properties"), "principalType"), [R.v("User"), R.v("Group")]));
         })], R.cmd(S, "Get-ActiveRoleAssignments", [], null))))) {
             S["assignment"] = it8;
-            R.ln = F + 127;
+            R.ln = F + 124;
             if (R.t(R.ne(R.u(R.cmd(S, "Test-RoleCanWrite", [R.m(R.m((S["assignment"] ?? null), "properties"), "roleDefinitionId")], null)), (S["writeroles"] ?? null)))) {
                 continue;
             }
-            R.ln = F + 128;
+            R.ln = F + 125;
             S["evidence"] = R.u(R.cmd(S, "Get-AssignmentEvidence", [(S["assignment"] ?? null)], null));
-            R.ln = F + 130;
+            R.ln = F + 127;
             if (!R.t(R.u(R.cmd(S, "Test-AssignmentUsersResolved", [(S["assignment"] ?? null)], null)))) {
-                R.ln = F + 131;
+                R.ln = F + 128;
                 R.pa(v7, R.cmd(S, "New-Finding", [R.np("ResourceId"), R.m((S["assignment"] ?? null), "id"), R.np("ResourceType"), R.m((S["assignment"] ?? null), "type"), R.np("ResourceName"), ("" + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "role")))) + ": " + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "principal"))))), R.np("Result"), R.u(R.cmd(S, "New-Unknown", [("The " + R.str(R.u(R.pi(R.im(R.m(R.m((S["assignment"] ?? null), "properties"), "principalType"), "ToLowerInvariant", [])))) + " behind this assignment could not be resolved in the directory"), (S["evidence"] ?? null)], null))], null));
                 continue;
             }
-            R.ln = F + 134;
+            R.ln = F + 131;
             S["guests"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " Test-GuestUser $_ " }, (S, O) => {
-                R.ln = F + 134;
+                R.ln = F + 131;
                 R.pa(O, R.cmd(S, "Test-GuestUser", [(S["_"] ?? null)], null));
             })], R.cmd(S, "Get-AssignmentUsers", [(S["assignment"] ?? null)], null));
-            R.ln = F + 135;
+            R.ln = F + 132;
             if (!R.t((S["guests"] ?? null))) {
                 continue;
             }
-            R.ln = F + 136;
+            R.ln = F + 133;
             R.sm((S["evidence"] ?? null), "guests", R.cmd(S, "Sort-Object", [R.np("Unique")], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " \"$($_.displayName) ($($_.userPrincipalName))\" " }, (S, O) => {
-                R.ln = F + 136;
+                R.ln = F + 133;
                 R.e(O, ("" + R.str(R.u(R.pi(R.m((S["_"] ?? null), "displayName")))) + " (" + R.str(R.u(R.pi(R.m((S["_"] ?? null), "userPrincipalName")))) + ")"));
             })], R.pi((S["guests"] ?? null)))));
-            R.ln = F + 137;
+            R.ln = F + 134;
             R.pa(v7, R.cmd(S, "New-Finding", [R.np("ResourceId"), R.m((S["assignment"] ?? null), "id"), R.np("ResourceType"), R.m((S["assignment"] ?? null), "type"), R.np("ResourceName"), ("" + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "role")))) + ": " + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "principal"))))), R.np("Result"), R.u(R.cmd(S, "New-Fail", [("Guest account(s) " + R.str(R.u(R.pi(R.join(R.m((S["evidence"] ?? null), "guests"), ", ")))) + " hold " + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "role")))) + " on " + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "scope"))))), (S["evidence"] ?? null)], null))], null));
         }
         S["findings"] = R.u(v7);
-        R.ln = F + 139;
+        R.ln = F + 136;
         if (!R.t((S["findings"] ?? null))) {
-            R.ln = F + 139;
+            R.ln = F + 136;
             R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Pass", ["No guest accounts with such role assignments"], null))], null));
             return;
         }
-        R.ln = F + 140;
+        R.ln = F + 137;
         R.e(O, (S["findings"] ?? null));
     });
-    R.ln = F + 143;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-IAM-004", "Version", 2, "Title", "Guest accounts do not have owner or write permissions", "Category", "Privileged access", "Service", "Azure RBAC", "Severity", "High", "Description", "Finds external (guest) users that hold a role with write, delete or action permissions, directly or through group membership.", "Rationale", "Guest accounts are governed by another organization: their credential hygiene, MFA and offboarding are outside your control, and they are a common path for unmonitored access.", "Remediation", "Remove the role assignment or the guest from the group. Where external administration is required, use PIM eligible assignments with approval and access reviews, or Azure Lighthouse for managed service providers.", "References", R.a("https://learn.microsoft.com/entra/id-governance/manage-guest-access-with-access-reviews"), "Frameworks", R.ht(["MCSB", R.a([R.v("PA-4"), R.v("PA-1")]), "CIS", "5.3.2", "WAF", "SE:05"], false), "Defender", R.ht(["20606e75-05c4-48c0-9d97-add6daa2109a", "Guest accounts with owner permissions on Azure resources should be removed", "0354476c-a12a-4fcc-a79d-f0ab7ffffdbb", "Guest accounts with write permissions on Azure resources should be removed"], false), "Policy", R.ht(["339353f6-2387-4a45-abe4-7f529d121046", "Guest accounts with owner permissions on Azure resources should be removed", "94e1c2ac-cbbe-4cac-a2b5-389c812dee87", "Guest accounts with write permissions on Azure resources should be removed"], false), "Requires", R.a([R.v("rbac/roleAssignments"), R.v("rbac/roleDefinitions"), R.v("identity/directoryObjects"), R.v("identity/users"), R.v("identity/groups")]), "Run", R.sb({ params: [], adv: 0, text: " & $guestTest $true " }, (S, O) => {
-        R.ln = F + 158;
+    R.ln = F + 140;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-IAM-004", "Version", 2, "Title", "Guest accounts do not have owner or write permissions", "Category", "Privileged access", "Service", "Azure RBAC", "Severity", "High", "Description", "Finds external (guest) users that hold a role with write, delete or action permissions, directly or through group membership.", "Rationale", "Guest accounts are governed by another organization: their credential hygiene, MFA and offboarding are outside your control, and they are a common path for unmonitored access.", "Remediation", "Remove the role assignment or the guest from the group. Where external administration is required, use PIM eligible assignments with approval and access reviews, or Azure Lighthouse for managed service providers.", "References", R.a("https://learn.microsoft.com/entra/id-governance/manage-guest-access-with-access-reviews"), "Defender", R.ht(["20606e75-05c4-48c0-9d97-add6daa2109a", "Guest accounts with owner permissions on Azure resources should be removed", "0354476c-a12a-4fcc-a79d-f0ab7ffffdbb", "Guest accounts with write permissions on Azure resources should be removed"], false), "Policy", R.ht(["339353f6-2387-4a45-abe4-7f529d121046", "Guest accounts with owner permissions on Azure resources should be removed", "94e1c2ac-cbbe-4cac-a2b5-389c812dee87", "Guest accounts with write permissions on Azure resources should be removed"], false), "Requires", R.a([R.v("rbac/roleAssignments"), R.v("rbac/roleDefinitions"), R.v("identity/directoryObjects"), R.v("identity/users"), R.v("identity/groups")]), "Run", R.sb({ params: [], adv: 0, text: " & $guestTest $true " }, (S, O) => {
+        R.ln = F + 154;
         R.pa(O, R.inv(S, (S["guesttest"] ?? null), [true], null, false));
     })], false)], null));
-    R.ln = F + 161;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-IAM-005", "Version", 2, "Title", "Guest accounts do not have read permissions", "Category", "Privileged access", "Service", "Azure RBAC", "Severity", "Medium", "Description", "Finds external (guest) users that hold read-only roles, directly or through group membership.", "Rationale", "Read access exposes configuration, network layout and sometimes data to accounts managed by another organization, which helps attackers plan further steps.", "Remediation", "Remove guest read access that is no longer needed and review remaining guest access periodically with access reviews.", "References", R.a("https://learn.microsoft.com/entra/id-governance/manage-guest-access-with-access-reviews"), "Frameworks", R.ht(["MCSB", "PA-4", "CIS", "5.3.2"], false), "Defender", R.ht(["422107c6-5b9a-46a6-bb1d-26ef1cc52d65", "Guest accounts with read permissions on Azure resources should be removed"], false), "Policy", R.ht(["e9ac8f8e-ce22-4355-8f04-99b911d6be52", "Guest accounts with read permissions on Azure resources should be removed"], false), "Requires", R.a([R.v("rbac/roleAssignments"), R.v("rbac/roleDefinitions"), R.v("identity/directoryObjects"), R.v("identity/users"), R.v("identity/groups")]), "Run", R.sb({ params: [], adv: 0, text: " & $guestTest $false " }, (S, O) => {
-        R.ln = F + 176;
+    R.ln = F + 157;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-IAM-005", "Version", 2, "Title", "Guest accounts do not have read permissions", "Category", "Privileged access", "Service", "Azure RBAC", "Severity", "Medium", "Description", "Finds external (guest) users that hold read-only roles, directly or through group membership.", "Rationale", "Read access exposes configuration, network layout and sometimes data to accounts managed by another organization, which helps attackers plan further steps.", "Remediation", "Remove guest read access that is no longer needed and review remaining guest access periodically with access reviews.", "References", R.a("https://learn.microsoft.com/entra/id-governance/manage-guest-access-with-access-reviews"), "Defender", R.ht(["422107c6-5b9a-46a6-bb1d-26ef1cc52d65", "Guest accounts with read permissions on Azure resources should be removed"], false), "Policy", R.ht(["e9ac8f8e-ce22-4355-8f04-99b911d6be52", "Guest accounts with read permissions on Azure resources should be removed"], false), "Requires", R.a([R.v("rbac/roleAssignments"), R.v("rbac/roleDefinitions"), R.v("identity/directoryObjects"), R.v("identity/users"), R.v("identity/groups")]), "Run", R.sb({ params: [], adv: 0, text: " & $guestTest $false " }, (S, O) => {
+        R.ln = F + 171;
         R.pa(O, R.inv(S, (S["guesttest"] ?? null), [false], null, false));
     })], false)], null));
-    R.ln = F + 179;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-IAM-006", "Version", 2, "Title", "Disabled accounts do not hold role assignments", "Category", "Privileged access", "Service", "Azure RBAC", "Severity", "High", "Description", "Finds disabled user accounts that still have Azure role assignments, directly or through group membership.", "Rationale", "Access of disabled (often departed) users lingers until someone re-enables the account, which attackers and insiders abuse. Role assignments should follow the account lifecycle.", "Remediation", "Remove role assignments and group memberships of disabled accounts as part of the leaver process.", "Frameworks", R.ht(["MCSB", R.a([R.v("PA-4"), R.v("PA-3")]), "CIS", "5.3.5"], false), "Defender", R.ht(["050ac097-3dda-4d24-ab6d-82568e7a50cf", "Disabled accounts with owner permissions on Azure resources should be removed"], false), "Policy", R.ht(["0cfea604-3201-4e14-88fc-fae4c427a6c5", "Blocked accounts with owner permissions on Azure resources should be removed", "8d7e1fde-fe26-4b5f-8108-f8e432cbc2be", "Blocked accounts with read and write permissions on Azure resources should be removed"], false), "Requires", R.a([R.v("rbac/roleAssignments"), R.v("rbac/roleDefinitions"), R.v("identity/users"), R.v("identity/groups")]), "Run", R.sb({ params: [], adv: 0, text: "\n        $findings = foreach ($assignment in (Get-ActiveRoleAssignments | Where-Object { $_.properties.principalType -in 'User', 'Group' })) {\n            $evidence = Get-AssignmentEvidence $assignment\n            if (-not (Test-AssignmentUsersResolved $assignment)) {\n                New-Finding -ResourceId $assignment.id -ResourceType $assignment.type -ResourceName \"$($evidence.role): $($evidence.principal)\" -Result (New-Unknown \"The $($assignment.properties.principalType.ToLowerInvariant()) behind this assignment could not be resolved in the directory\" $evidence)\n                continue\n            }\n            $disabled = @(Get-AssignmentUsers $assignment | Where-Object { $_.accountEnabled -eq $false })\n            if (-not $disabled) { continue }\n            $evidence.disabledUsers = @($disabled | ForEach-Object { \"$($_.displayName) ($($_.userPrincipalName))\" } | Sort-Object -Unique)\n            New-Finding -ResourceId $assignment.id -ResourceType $assignment.type -ResourceName \"$($evidence.role): $($evidence.principal)\" -Result (New-Fail \"Disabled account(s) $($evidence.disabledUsers -join ', ') hold $($evidence.role)\" $evidence)\n        }\n        if (-not $findings) { return New-SubscriptionFinding (New-Pass 'No disabled accounts with role assignments') }\n        $findings\n    " }, (S, O) => {
-        R.ln = F + 194;
+    R.ln = F + 174;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-IAM-006", "Version", 2, "Title", "Disabled accounts do not hold role assignments", "Category", "Privileged access", "Service", "Azure RBAC", "Severity", "High", "Description", "Finds disabled user accounts that still have Azure role assignments, directly or through group membership.", "Rationale", "Access of disabled (often departed) users lingers until someone re-enables the account, which attackers and insiders abuse. Role assignments should follow the account lifecycle.", "Remediation", "Remove role assignments and group memberships of disabled accounts as part of the leaver process.", "Defender", R.ht(["050ac097-3dda-4d24-ab6d-82568e7a50cf", "Disabled accounts with owner permissions on Azure resources should be removed"], false), "Policy", R.ht(["0cfea604-3201-4e14-88fc-fae4c427a6c5", "Blocked accounts with owner permissions on Azure resources should be removed", "8d7e1fde-fe26-4b5f-8108-f8e432cbc2be", "Blocked accounts with read and write permissions on Azure resources should be removed"], false), "Requires", R.a([R.v("rbac/roleAssignments"), R.v("rbac/roleDefinitions"), R.v("identity/users"), R.v("identity/groups")]), "Run", R.sb({ params: [], adv: 0, text: "\n        $findings = foreach ($assignment in (Get-ActiveRoleAssignments | Where-Object { $_.properties.principalType -in 'User', 'Group' })) {\n            $evidence = Get-AssignmentEvidence $assignment\n            if (-not (Test-AssignmentUsersResolved $assignment)) {\n                New-Finding -ResourceId $assignment.id -ResourceType $assignment.type -ResourceName \"$($evidence.role): $($evidence.principal)\" -Result (New-Unknown \"The $($assignment.properties.principalType.ToLowerInvariant()) behind this assignment could not be resolved in the directory\" $evidence)\n                continue\n            }\n            $disabled = @(Get-AssignmentUsers $assignment | Where-Object { $_.accountEnabled -eq $false })\n            if (-not $disabled) { continue }\n            $evidence.disabledUsers = @($disabled | ForEach-Object { \"$($_.displayName) ($($_.userPrincipalName))\" } | Sort-Object -Unique)\n            New-Finding -ResourceId $assignment.id -ResourceType $assignment.type -ResourceName \"$($evidence.role): $($evidence.principal)\" -Result (New-Fail \"Disabled account(s) $($evidence.disabledUsers -join ', ') hold $($evidence.role)\" $evidence)\n        }\n        if (-not $findings) { return New-SubscriptionFinding (New-Pass 'No disabled accounts with role assignments') }\n        $findings\n    " }, (S, O) => {
+        R.ln = F + 188;
         const v9 = [];
-        R.ln = F + 194;
+        R.ln = F + 188;
         for (const it10 of R.fi(R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.properties.principalType -in 'User', 'Group' " }, (S, O) => {
-            R.ln = F + 194;
+            R.ln = F + 188;
             R.e(O, R.in(R.m(R.m((S["_"] ?? null), "properties"), "principalType"), [R.v("User"), R.v("Group")]));
         })], R.cmd(S, "Get-ActiveRoleAssignments", [], null))))) {
             S["assignment"] = it10;
-            R.ln = F + 195;
+            R.ln = F + 189;
             S["evidence"] = R.u(R.cmd(S, "Get-AssignmentEvidence", [(S["assignment"] ?? null)], null));
-            R.ln = F + 196;
+            R.ln = F + 190;
             if (!R.t(R.u(R.cmd(S, "Test-AssignmentUsersResolved", [(S["assignment"] ?? null)], null)))) {
-                R.ln = F + 197;
+                R.ln = F + 191;
                 R.pa(v9, R.cmd(S, "New-Finding", [R.np("ResourceId"), R.m((S["assignment"] ?? null), "id"), R.np("ResourceType"), R.m((S["assignment"] ?? null), "type"), R.np("ResourceName"), ("" + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "role")))) + ": " + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "principal"))))), R.np("Result"), R.u(R.cmd(S, "New-Unknown", [("The " + R.str(R.u(R.pi(R.im(R.m(R.m((S["assignment"] ?? null), "properties"), "principalType"), "ToLowerInvariant", [])))) + " behind this assignment could not be resolved in the directory"), (S["evidence"] ?? null)], null))], null));
                 continue;
             }
-            R.ln = F + 200;
+            R.ln = F + 194;
             S["disabled"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.accountEnabled -eq $false " }, (S, O) => {
-                R.ln = F + 200;
+                R.ln = F + 194;
                 R.e(O, R.eq(R.m((S["_"] ?? null), "accountEnabled"), false));
             })], R.cmd(S, "Get-AssignmentUsers", [(S["assignment"] ?? null)], null));
-            R.ln = F + 201;
+            R.ln = F + 195;
             if (!R.t((S["disabled"] ?? null))) {
                 continue;
             }
-            R.ln = F + 202;
+            R.ln = F + 196;
             R.sm((S["evidence"] ?? null), "disabledUsers", R.cmd(S, "Sort-Object", [R.np("Unique")], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " \"$($_.displayName) ($($_.userPrincipalName))\" " }, (S, O) => {
-                R.ln = F + 202;
+                R.ln = F + 196;
                 R.e(O, ("" + R.str(R.u(R.pi(R.m((S["_"] ?? null), "displayName")))) + " (" + R.str(R.u(R.pi(R.m((S["_"] ?? null), "userPrincipalName")))) + ")"));
             })], R.pi((S["disabled"] ?? null)))));
-            R.ln = F + 203;
+            R.ln = F + 197;
             R.pa(v9, R.cmd(S, "New-Finding", [R.np("ResourceId"), R.m((S["assignment"] ?? null), "id"), R.np("ResourceType"), R.m((S["assignment"] ?? null), "type"), R.np("ResourceName"), ("" + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "role")))) + ": " + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "principal"))))), R.np("Result"), R.u(R.cmd(S, "New-Fail", [("Disabled account(s) " + R.str(R.u(R.pi(R.join(R.m((S["evidence"] ?? null), "disabledUsers"), ", ")))) + " hold " + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "role"))))), (S["evidence"] ?? null)], null))], null));
         }
         S["findings"] = R.u(v9);
-        R.ln = F + 205;
+        R.ln = F + 199;
         if (!R.t((S["findings"] ?? null))) {
-            R.ln = F + 205;
+            R.ln = F + 199;
             R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Pass", ["No disabled accounts with role assignments"], null))], null));
             return;
         }
-        R.ln = F + 206;
+        R.ln = F + 200;
         R.e(O, (S["findings"] ?? null));
     })], false)], null));
-    R.ln = F + 210;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-IAM-007", "Title", "No role assignments for deleted principals", "Category", "Privileged access", "Service", "Azure RBAC", "Severity", "Low", "Description", "Finds active and eligible role assignments whose principal no longer exists in the directory (\"Identity not found\"). Soft deleted principals are named from the Entra recycle bin.", "Rationale", "Orphaned assignments hide the real access picture, and a restored principal (within 30 days) silently regains its access.", "Remediation", "Delete the orphaned role assignments (Access control (IAM) > Role assignments, filter on Identity not found). Assignments inherited from the tenant root or a management group must be removed at that scope.", "Frameworks", R.ht(["MCSB", R.a([R.v("PA-4"), R.v("PA-3")])], false), "Requires", R.a([R.v("rbac/roleAssignments"), R.v("identity/directoryObjects"), R.v("identity/unresolvedPrincipalIds")]), "Run", R.sb({ params: [], adv: 0, text: "\n        $unresolved = @{}\n        foreach ($id in @(Get-IngestData 'identity/unresolvedPrincipalIds')) { if ($id) { $unresolved[$id.ToLowerInvariant()] = $true } }\n        $deleted = @{}\n        foreach ($object in @(Get-IngestData 'identity/deletedPrincipals')) { if ($object) { $deleted[$object.id.ToLowerInvariant()] = $object } }\n        $candidates = @(Get-ActiveRoleAssignments) + @(Get-IngestData 'rbac/roleEligibilitySchedules' | Where-Object { $_ })\n        $findings = foreach ($assignment in $candidates) {\n            $principalId = ([string]$assignment.properties.principalId).ToLowerInvariant()\n            if (-not $unresolved.ContainsKey($principalId) -or $assignment.properties.principalType -eq 'ForeignGroup') { continue }\n            $evidence = Get-AssignmentEvidence $assignment\n            $evidence.kind = if ($assignment.type -match 'Eligibility') { 'eligible' } else { 'active' }\n            $object = $deleted[$principalId]\n            if ($object) {\n                $evidence.deletedPrincipal = $object.displayName\n                $evidence.deletedDateTime = Format-UtcDate $object.deletedDateTime\n                $detail = \"$($evidence.role) assignment for deleted principal $($object.displayName) (deleted $($evidence.deletedDateTime))\"\n            } else {\n                $detail = \"$($evidence.role) assignment for principal $principalId that no longer exists\"\n            }\n            New-Finding -ResourceId $assignment.id -ResourceType $assignment.type -ResourceName \"$($evidence.role): $principalId\" -Result (New-Fail $detail $evidence)\n        }\n        if (-not $findings) { return New-SubscriptionFinding (New-Pass 'No role assignments for deleted principals') }\n        $findings\n    " }, (S, O) => {
-        R.ln = F + 222;
+    R.ln = F + 204;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-IAM-007", "Title", "No role assignments for deleted principals", "Category", "Privileged access", "Service", "Azure RBAC", "Severity", "Low", "Description", "Finds active and eligible role assignments whose principal no longer exists in the directory (\"Identity not found\"). Soft deleted principals are named from the Entra recycle bin.", "Rationale", "Orphaned assignments hide the real access picture, and a restored principal (within 30 days) silently regains its access.", "Remediation", "Delete the orphaned role assignments (Access control (IAM) > Role assignments, filter on Identity not found). Assignments inherited from the tenant root or a management group must be removed at that scope.", "Requires", R.a([R.v("rbac/roleAssignments"), R.v("identity/directoryObjects"), R.v("identity/unresolvedPrincipalIds")]), "Run", R.sb({ params: [], adv: 0, text: "\n        $unresolved = @{}\n        foreach ($id in @(Get-IngestData 'identity/unresolvedPrincipalIds')) { if ($id) { $unresolved[$id.ToLowerInvariant()] = $true } }\n        $deleted = @{}\n        foreach ($object in @(Get-IngestData 'identity/deletedPrincipals')) { if ($object) { $deleted[$object.id.ToLowerInvariant()] = $object } }\n        $candidates = @(Get-ActiveRoleAssignments) + @(Get-IngestData 'rbac/roleEligibilitySchedules' | Where-Object { $_ })\n        $findings = foreach ($assignment in $candidates) {\n            $principalId = ([string]$assignment.properties.principalId).ToLowerInvariant()\n            if (-not $unresolved.ContainsKey($principalId) -or $assignment.properties.principalType -eq 'ForeignGroup') { continue }\n            $evidence = Get-AssignmentEvidence $assignment\n            $evidence.kind = if ($assignment.type -match 'Eligibility') { 'eligible' } else { 'active' }\n            $object = $deleted[$principalId]\n            if ($object) {\n                $evidence.deletedPrincipal = $object.displayName\n                $evidence.deletedDateTime = Format-UtcDate $object.deletedDateTime\n                $detail = \"$($evidence.role) assignment for deleted principal $($object.displayName) (deleted $($evidence.deletedDateTime))\"\n            } else {\n                $detail = \"$($evidence.role) assignment for principal $principalId that no longer exists\"\n            }\n            New-Finding -ResourceId $assignment.id -ResourceType $assignment.type -ResourceName \"$($evidence.role): $principalId\" -Result (New-Fail $detail $evidence)\n        }\n        if (-not $findings) { return New-SubscriptionFinding (New-Pass 'No role assignments for deleted principals') }\n        $findings\n    " }, (S, O) => {
+        R.ln = F + 215;
         S["unresolved"] = R.ht([], false);
-        R.ln = F + 223;
+        R.ln = F + 216;
         for (const it11 of R.fi(R.cmd(S, "Get-IngestData", ["identity/unresolvedPrincipalIds"], null))) {
             S["id"] = it11;
-            R.ln = F + 223;
+            R.ln = F + 216;
             if (R.t((S["id"] ?? null))) {
-                R.ln = F + 223;
+                R.ln = F + 216;
                 R.si((S["unresolved"] ?? null), R.im((S["id"] ?? null), "ToLowerInvariant", []), true);
             }
         }
-        R.ln = F + 224;
+        R.ln = F + 217;
         S["deleted"] = R.ht([], false);
-        R.ln = F + 225;
+        R.ln = F + 218;
         for (const it12 of R.fi(R.cmd(S, "Get-IngestData", ["identity/deletedPrincipals"], null))) {
             S["object"] = it12;
-            R.ln = F + 225;
+            R.ln = F + 218;
             if (R.t((S["object"] ?? null))) {
-                R.ln = F + 225;
+                R.ln = F + 218;
                 R.si((S["deleted"] ?? null), R.im(R.m((S["object"] ?? null), "id"), "ToLowerInvariant", []), (S["object"] ?? null));
             }
         }
-        R.ln = F + 226;
+        R.ln = F + 219;
         S["candidates"] = R.add(R.cmd(S, "Get-ActiveRoleAssignments", [], null), R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 226;
+            R.ln = F + 219;
             R.e(O, (S["_"] ?? null));
         })], R.cmd(S, "Get-IngestData", ["rbac/roleEligibilitySchedules"], null)));
-        R.ln = F + 227;
+        R.ln = F + 220;
         const v13 = [];
-        R.ln = F + 227;
+        R.ln = F + 220;
         for (const it14 of R.fi((S["candidates"] ?? null))) {
             S["assignment"] = it14;
-            R.ln = F + 228;
+            R.ln = F + 221;
             S["principalid"] = R.im((R.c("string", R.m(R.m((S["assignment"] ?? null), "properties"), "principalId"))), "ToLowerInvariant", []);
-            R.ln = F + 229;
+            R.ln = F + 222;
             if ((!R.t(R.im((S["unresolved"] ?? null), "ContainsKey", [(S["principalid"] ?? null)])) || R.t(R.eq(R.m(R.m((S["assignment"] ?? null), "properties"), "principalType"), "ForeignGroup")))) {
                 continue;
             }
-            R.ln = F + 230;
+            R.ln = F + 223;
             S["evidence"] = R.u(R.cmd(S, "Get-AssignmentEvidence", [(S["assignment"] ?? null)], null));
-            R.ln = F + 231;
+            R.ln = F + 224;
             const v15 = [];
-            R.ln = F + 231;
+            R.ln = F + 224;
             if (R.t(R.match(S, R.m((S["assignment"] ?? null), "type"), "Eligibility"))) {
-                R.ln = F + 231;
+                R.ln = F + 224;
                 R.e(v15, "eligible");
             } else {
-                R.ln = F + 231;
+                R.ln = F + 224;
                 R.e(v15, "active");
             }
             R.sm((S["evidence"] ?? null), "kind", R.u(v15));
-            R.ln = F + 232;
+            R.ln = F + 225;
             S["object"] = R.i((S["deleted"] ?? null), (S["principalid"] ?? null));
-            R.ln = F + 233;
+            R.ln = F + 226;
             if (R.t((S["object"] ?? null))) {
-                R.ln = F + 234;
+                R.ln = F + 227;
                 R.sm((S["evidence"] ?? null), "deletedPrincipal", R.m((S["object"] ?? null), "displayName"));
-                R.ln = F + 235;
+                R.ln = F + 228;
                 R.sm((S["evidence"] ?? null), "deletedDateTime", R.u(R.cmd(S, "Format-UtcDate", [R.m((S["object"] ?? null), "deletedDateTime")], null)));
-                R.ln = F + 236;
+                R.ln = F + 229;
                 S["detail"] = ("" + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "role")))) + " assignment for deleted principal " + R.str(R.u(R.pi(R.m((S["object"] ?? null), "displayName")))) + " (deleted " + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "deletedDateTime")))) + ")");
             } else {
-                R.ln = F + 238;
+                R.ln = F + 231;
                 S["detail"] = ("" + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "role")))) + " assignment for principal " + R.str((S["principalid"] ?? null)) + " that no longer exists");
             }
-            R.ln = F + 240;
+            R.ln = F + 233;
             R.pa(v13, R.cmd(S, "New-Finding", [R.np("ResourceId"), R.m((S["assignment"] ?? null), "id"), R.np("ResourceType"), R.m((S["assignment"] ?? null), "type"), R.np("ResourceName"), ("" + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "role")))) + ": " + R.str((S["principalid"] ?? null))), R.np("Result"), R.u(R.cmd(S, "New-Fail", [(S["detail"] ?? null), (S["evidence"] ?? null)], null))], null));
         }
         S["findings"] = R.u(v13);
-        R.ln = F + 242;
+        R.ln = F + 235;
         if (!R.t((S["findings"] ?? null))) {
-            R.ln = F + 242;
+            R.ln = F + 235;
             R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Pass", ["No role assignments for deleted principals"], null))], null));
             return;
         }
-        R.ln = F + 243;
+        R.ln = F + 236;
         R.e(O, (S["findings"] ?? null));
     })], false)], null));
-    R.ln = F + 247;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-IAM-008", "Title", "No custom roles grant subscription administrator permissions", "Category", "Privileged access", "Service", "Azure RBAC", "Severity", "Medium", "Description", "Checks custom role definitions for the wildcard action (*), which equals Owner.", "Rationale", "Custom roles with all actions hide Owner level access behind an unfamiliar name, bypass reviews that focus on built-in privileged roles and violate least privilege.", "Remediation", "Replace wildcard custom roles with built-in roles or custom roles that list only the required actions, then delete the wildcard role.", "References", R.a("https://learn.microsoft.com/azure/role-based-access-control/custom-roles"), "Frameworks", R.ht(["MCSB", "PA-7", "CIS", "5.4"], false), "Policy", R.ht(["a451c1ef-c6ca-483d-87ed-f49761e3ffb5", "Audit usage of custom RBAC roles"], false), "Requires", R.a("rbac/roleDefinitions"), "Run", R.sb({ params: [], adv: 0, text: "\n        $custom = @(Get-IngestData 'rbac/roleDefinitions' | Where-Object { $_ -and $_.properties.type -eq 'CustomRole' })\n        if (-not $custom) { return New-SubscriptionFinding (New-Pass 'No custom role definitions') }\n        foreach ($role in $custom) {\n            $actions = @($role.properties.permissions | ForEach-Object { $_.actions } | Where-Object { $_ })\n            $evidence = [ordered]@{ roleName = $role.properties.roleName; assignableScopes = @($role.properties.assignableScopes); wildcardActions = @($actions | Where-Object { $_ -eq '*' }) }\n            $result = if ($actions -contains '*') { New-Fail \"Custom role '$($role.properties.roleName)' allows all actions (*)\" $evidence } else { New-Pass \"Custom role '$($role.properties.roleName)' lists specific actions\" $evidence }\n            New-Finding -ResourceId $role.id -ResourceType $role.type -ResourceName $role.properties.roleName -Result $result\n        }\n    " }, (S, O) => {
-        R.ln = F + 261;
+    R.ln = F + 240;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-IAM-008", "Title", "No custom roles grant subscription administrator permissions", "Category", "Privileged access", "Service", "Azure RBAC", "Severity", "Medium", "Description", "Checks custom role definitions for the wildcard action (*), which equals Owner.", "Rationale", "Custom roles with all actions hide Owner level access behind an unfamiliar name, bypass reviews that focus on built-in privileged roles and violate least privilege.", "Remediation", "Replace wildcard custom roles with built-in roles or custom roles that list only the required actions, then delete the wildcard role.", "References", R.a("https://learn.microsoft.com/azure/role-based-access-control/custom-roles"), "Policy", R.ht(["a451c1ef-c6ca-483d-87ed-f49761e3ffb5", "Audit usage of custom RBAC roles"], false), "Requires", R.a("rbac/roleDefinitions"), "Run", R.sb({ params: [], adv: 0, text: "\n        $custom = @(Get-IngestData 'rbac/roleDefinitions' | Where-Object { $_ -and $_.properties.type -eq 'CustomRole' })\n        if (-not $custom) { return New-SubscriptionFinding (New-Pass 'No custom role definitions') }\n        foreach ($role in $custom) {\n            $actions = @($role.properties.permissions | ForEach-Object { $_.actions } | Where-Object { $_ })\n            $evidence = [ordered]@{ roleName = $role.properties.roleName; assignableScopes = @($role.properties.assignableScopes); wildcardActions = @($actions | Where-Object { $_ -eq '*' }) }\n            $result = if ($actions -contains '*') { New-Fail \"Custom role '$($role.properties.roleName)' allows all actions (*)\" $evidence } else { New-Pass \"Custom role '$($role.properties.roleName)' lists specific actions\" $evidence }\n            New-Finding -ResourceId $role.id -ResourceType $role.type -ResourceName $role.properties.roleName -Result $result\n        }\n    " }, (S, O) => {
+        R.ln = F + 253;
         S["custom"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.properties.type -eq 'CustomRole' " }, (S, O) => {
-            R.ln = F + 261;
+            R.ln = F + 253;
             R.e(O, (R.t((S["_"] ?? null)) && R.t(R.eq(R.m(R.m((S["_"] ?? null), "properties"), "type"), "CustomRole"))));
         })], R.cmd(S, "Get-IngestData", ["rbac/roleDefinitions"], null));
-        R.ln = F + 262;
+        R.ln = F + 254;
         if (!R.t((S["custom"] ?? null))) {
-            R.ln = F + 262;
+            R.ln = F + 254;
             R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Pass", ["No custom role definitions"], null))], null));
             return;
         }
-        R.ln = F + 263;
+        R.ln = F + 255;
         for (const it16 of R.fi((S["custom"] ?? null))) {
             S["role"] = it16;
-            R.ln = F + 264;
+            R.ln = F + 256;
             S["actions"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                R.ln = F + 264;
+                R.ln = F + 256;
                 R.e(O, (S["_"] ?? null));
             })], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " $_.actions " }, (S, O) => {
-                R.ln = F + 264;
+                R.ln = F + 256;
                 R.e(O, R.m((S["_"] ?? null), "actions"));
             })], R.pi(R.m(R.m((S["role"] ?? null), "properties"), "permissions"))));
-            R.ln = F + 265;
+            R.ln = F + 257;
             S["evidence"] = R.ht(["roleName", R.m(R.m((S["role"] ?? null), "properties"), "roleName"), "assignableScopes", R.a(R.m(R.m((S["role"] ?? null), "properties"), "assignableScopes")), "wildcardActions", R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -eq '*' " }, (S, O) => {
-                R.ln = F + 265;
+                R.ln = F + 257;
                 R.e(O, R.eq((S["_"] ?? null), "*"));
             })], R.pi((S["actions"] ?? null)))], true);
-            R.ln = F + 266;
+            R.ln = F + 258;
             const v17 = [];
-            R.ln = F + 266;
+            R.ln = F + 258;
             if (R.t(R.cont((S["actions"] ?? null), "*"))) {
-                R.ln = F + 266;
+                R.ln = F + 258;
                 R.pa(v17, R.cmd(S, "New-Fail", [("Custom role '" + R.str(R.u(R.pi(R.m(R.m((S["role"] ?? null), "properties"), "roleName")))) + "' allows all actions (*)"), (S["evidence"] ?? null)], null));
             } else {
-                R.ln = F + 266;
+                R.ln = F + 258;
                 R.pa(v17, R.cmd(S, "New-Pass", [("Custom role '" + R.str(R.u(R.pi(R.m(R.m((S["role"] ?? null), "properties"), "roleName")))) + "' lists specific actions"), (S["evidence"] ?? null)], null));
             }
             S["result"] = R.u(v17);
-            R.ln = F + 267;
+            R.ln = F + 259;
             R.pa(O, R.cmd(S, "New-Finding", [R.np("ResourceId"), R.m((S["role"] ?? null), "id"), R.np("ResourceType"), R.m((S["role"] ?? null), "type"), R.np("ResourceName"), R.m(R.m((S["role"] ?? null), "properties"), "roleName"), R.np("Result"), (S["result"] ?? null)], null));
         }
     })], false)], null));
-    R.ln = F + 272;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-IAM-009", "Title", "No privileged role assignments at tenant root scope", "Category", "Privileged access", "Service", "Azure RBAC", "Severity", "Critical", "Description", "Finds privileged role assignments (for example User Access Administrator created by 'Elevate access') at the tenant root scope '/', which apply to every subscription and management group.", "Rationale", "Root scope privileged access controls all Azure resources in the tenant. Elevated access is meant for break-glass situations and must be removed right after use.", "Remediation", "Remove the assignment at '/' (a Global Administrator can remove elevated access under Entra ID > Properties > Access management for Azure resources). Assign roles at management group or subscription scope instead.", "References", R.a("https://learn.microsoft.com/azure/role-based-access-control/elevate-access-global-admin"), "Frameworks", R.ht(["MCSB", R.a([R.v("PA-1"), R.v("PA-7")]), "CIS", "5.3.3", "WAF", "SE:05"], false), "Requires", R.a("rbac/roleAssignments"), "Run", R.sb({ params: [], adv: 0, text: "\n        $root = @(Get-ActiveRoleAssignments | Where-Object { $_.properties.scope -eq '/' })\n        $findings = foreach ($assignment in $root) {\n            if (-not (Test-RolePrivileged $assignment.properties.roleDefinitionId)) { continue }\n            $evidence = Get-AssignmentEvidence $assignment\n            New-Finding -ResourceId $assignment.id -ResourceType $assignment.type -ResourceName \"$($evidence.role): $($evidence.principal)\" -Result (New-Fail \"$($evidence.principal) has $($evidence.role) at tenant root scope\" $evidence)\n        }\n        if (-not $findings) { return New-SubscriptionFinding (New-Pass \"No privileged role assignments at '/' ($($root.Count) non privileged)\") }\n        $findings\n    " }, (S, O) => {
-        R.ln = F + 285;
+    R.ln = F + 264;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-IAM-009", "Title", "No privileged role assignments at tenant root scope", "Category", "Privileged access", "Service", "Azure RBAC", "Severity", "Critical", "Description", "Finds privileged role assignments (for example User Access Administrator created by 'Elevate access') at the tenant root scope '/', which apply to every subscription and management group.", "Rationale", "Root scope privileged access controls all Azure resources in the tenant. Elevated access is meant for break-glass situations and must be removed right after use.", "Remediation", "Remove the assignment at '/' (a Global Administrator can remove elevated access under Entra ID > Properties > Access management for Azure resources). Assign roles at management group or subscription scope instead.", "References", R.a("https://learn.microsoft.com/azure/role-based-access-control/elevate-access-global-admin"), "Requires", R.a("rbac/roleAssignments"), "Run", R.sb({ params: [], adv: 0, text: "\n        $root = @(Get-ActiveRoleAssignments | Where-Object { $_.properties.scope -eq '/' })\n        $findings = foreach ($assignment in $root) {\n            if (-not (Test-RolePrivileged $assignment.properties.roleDefinitionId)) { continue }\n            $evidence = Get-AssignmentEvidence $assignment\n            New-Finding -ResourceId $assignment.id -ResourceType $assignment.type -ResourceName \"$($evidence.role): $($evidence.principal)\" -Result (New-Fail \"$($evidence.principal) has $($evidence.role) at tenant root scope\" $evidence)\n        }\n        if (-not $findings) { return New-SubscriptionFinding (New-Pass \"No privileged role assignments at '/' ($($root.Count) non privileged)\") }\n        $findings\n    " }, (S, O) => {
+        R.ln = F + 276;
         S["root"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.properties.scope -eq '/' " }, (S, O) => {
-            R.ln = F + 285;
+            R.ln = F + 276;
             R.e(O, R.eq(R.m(R.m((S["_"] ?? null), "properties"), "scope"), "/"));
         })], R.cmd(S, "Get-ActiveRoleAssignments", [], null));
-        R.ln = F + 286;
+        R.ln = F + 277;
         const v18 = [];
-        R.ln = F + 286;
+        R.ln = F + 277;
         for (const it19 of R.fi((S["root"] ?? null))) {
             S["assignment"] = it19;
-            R.ln = F + 287;
+            R.ln = F + 278;
             if (!R.t(R.u(R.cmd(S, "Test-RolePrivileged", [R.m(R.m((S["assignment"] ?? null), "properties"), "roleDefinitionId")], null)))) {
                 continue;
             }
-            R.ln = F + 288;
+            R.ln = F + 279;
             S["evidence"] = R.u(R.cmd(S, "Get-AssignmentEvidence", [(S["assignment"] ?? null)], null));
-            R.ln = F + 289;
+            R.ln = F + 280;
             R.pa(v18, R.cmd(S, "New-Finding", [R.np("ResourceId"), R.m((S["assignment"] ?? null), "id"), R.np("ResourceType"), R.m((S["assignment"] ?? null), "type"), R.np("ResourceName"), ("" + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "role")))) + ": " + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "principal"))))), R.np("Result"), R.u(R.cmd(S, "New-Fail", [("" + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "principal")))) + " has " + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "role")))) + " at tenant root scope"), (S["evidence"] ?? null)], null))], null));
         }
         S["findings"] = R.u(v18);
-        R.ln = F + 291;
+        R.ln = F + 282;
         if (!R.t((S["findings"] ?? null))) {
-            R.ln = F + 291;
+            R.ln = F + 282;
             R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Pass", [("No privileged role assignments at '/' (" + R.str(R.u(R.pi(R.m((S["root"] ?? null), "Count")))) + " non privileged)")], null))], null));
             return;
         }
-        R.ln = F + 292;
+        R.ln = F + 283;
         R.e(O, (S["findings"] ?? null));
     })], false)], null));
-    R.ln = F + 296;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-IAM-010", "Title", "Subscription roles are assigned to groups rather than individual users", "Category", "Privileged access", "Service", "Azure RBAC", "Severity", "Low", "Description", "Finds role assignments made directly to user accounts at subscription scope.", "Rationale", "Direct user assignments are hard to review and are often forgotten when people change roles. Group based (and PIM for Groups) assignments make access reviews and lifecycle management manageable.", "Remediation", "Create role based groups, assign the role to the group and replace the direct user assignment by group membership.", "References", R.a("https://learn.microsoft.com/azure/role-based-access-control/best-practices"), "Frameworks", R.ht(["MCSB", "PA-7", "WAF", "SE:05"], false), "Requires", R.a("rbac/roleAssignments"), "Run", R.sb({ params: [], adv: 0, text: "\n        $scope = Get-SubscriptionScope\n        $direct = @(Get-ActiveRoleAssignments | Where-Object { $_.properties.scope -eq $scope -and $_.properties.principalType -eq 'User' })\n        if (-not $direct) { return New-SubscriptionFinding (New-Pass 'No direct user assignments at subscription scope') }\n        foreach ($assignment in $direct) {\n            $evidence = Get-AssignmentEvidence $assignment\n            New-Finding -ResourceId $assignment.id -ResourceType $assignment.type -ResourceName \"$($evidence.role): $($evidence.principal)\" -Result (New-Fail \"$($evidence.role) assigned directly to $($evidence.principal)\" $evidence)\n        }\n    " }, (S, O) => {
-        R.ln = F + 309;
+    R.ln = F + 287;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-IAM-010", "Title", "Subscription roles are assigned to groups rather than individual users", "Category", "Privileged access", "Service", "Azure RBAC", "Severity", "Low", "Description", "Finds role assignments made directly to user accounts at subscription scope.", "Rationale", "Direct user assignments are hard to review and are often forgotten when people change roles. Group based (and PIM for Groups) assignments make access reviews and lifecycle management manageable.", "Remediation", "Create role based groups, assign the role to the group and replace the direct user assignment by group membership.", "References", R.a("https://learn.microsoft.com/azure/role-based-access-control/best-practices"), "Requires", R.a("rbac/roleAssignments"), "Run", R.sb({ params: [], adv: 0, text: "\n        $scope = Get-SubscriptionScope\n        $direct = @(Get-ActiveRoleAssignments | Where-Object { $_.properties.scope -eq $scope -and $_.properties.principalType -eq 'User' })\n        if (-not $direct) { return New-SubscriptionFinding (New-Pass 'No direct user assignments at subscription scope') }\n        foreach ($assignment in $direct) {\n            $evidence = Get-AssignmentEvidence $assignment\n            New-Finding -ResourceId $assignment.id -ResourceType $assignment.type -ResourceName \"$($evidence.role): $($evidence.principal)\" -Result (New-Fail \"$($evidence.role) assigned directly to $($evidence.principal)\" $evidence)\n        }\n    " }, (S, O) => {
+        R.ln = F + 299;
         S["scope"] = R.u(R.cmd(S, "Get-SubscriptionScope", [], null));
-        R.ln = F + 310;
+        R.ln = F + 300;
         S["direct"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.properties.scope -eq $scope -and $_.properties.principalType -eq 'User' " }, (S, O) => {
-            R.ln = F + 310;
+            R.ln = F + 300;
             R.e(O, (R.t(R.eq(R.m(R.m((S["_"] ?? null), "properties"), "scope"), (S["scope"] ?? null))) && R.t(R.eq(R.m(R.m((S["_"] ?? null), "properties"), "principalType"), "User"))));
         })], R.cmd(S, "Get-ActiveRoleAssignments", [], null));
-        R.ln = F + 311;
+        R.ln = F + 301;
         if (!R.t((S["direct"] ?? null))) {
-            R.ln = F + 311;
+            R.ln = F + 301;
             R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Pass", ["No direct user assignments at subscription scope"], null))], null));
             return;
         }
-        R.ln = F + 312;
+        R.ln = F + 302;
         for (const it20 of R.fi((S["direct"] ?? null))) {
             S["assignment"] = it20;
-            R.ln = F + 313;
+            R.ln = F + 303;
             S["evidence"] = R.u(R.cmd(S, "Get-AssignmentEvidence", [(S["assignment"] ?? null)], null));
-            R.ln = F + 314;
+            R.ln = F + 304;
             R.pa(O, R.cmd(S, "New-Finding", [R.np("ResourceId"), R.m((S["assignment"] ?? null), "id"), R.np("ResourceType"), R.m((S["assignment"] ?? null), "type"), R.np("ResourceName"), ("" + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "role")))) + ": " + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "principal"))))), R.np("Result"), R.u(R.cmd(S, "New-Fail", [("" + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "role")))) + " assigned directly to " + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "principal"))))), (S["evidence"] ?? null)], null))], null));
         }
     })], false)], null));
-    R.ln = F + 319;
+    R.ln = F + 309;
     R.def(S, "Get-RolePolicies", { params: [], adv: 0, h: "7a82ea2f6777c837" }, (S, O) => {
-        R.ln = F + 321;
+        R.ln = F + 311;
         S["roleids"] = R.a([R.v("8e3af657-a8ff-443c-a75c-2fe8c4bcb635"), R.v("b24988ac-6180-42a0-ab88-20f7382dd24c"), R.v("18d7d88d-d35e-4fb5-a5c3-7773c20a72d9"), R.v("f58310d9-a9f6-439a-9e8d-f62e7b41a168")]);
-        R.ln = F + 322;
+        R.ln = F + 312;
         S["scope"] = R.u(R.cmd(S, "Get-SubscriptionScope", [], null));
-        R.ln = F + 323;
+        R.ln = F + 313;
         for (const it21 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.properties.scope -eq $scope " }, (S, O) => {
-            R.ln = F + 323;
+            R.ln = F + 313;
             R.e(O, (R.t((S["_"] ?? null)) && R.t(R.eq(R.m(R.m((S["_"] ?? null), "properties"), "scope"), (S["scope"] ?? null)))));
         })], R.cmd(S, "Get-IngestData", ["rbac/roleManagementPolicyAssignments"], null)))) {
             S["assignment"] = it21;
-            R.ln = F + 324;
+            R.ln = F + 314;
             S["roleguid"] = R.u(R.cmd(S, "Get-RoleDefinitionGuid", [R.m(R.m((S["assignment"] ?? null), "properties"), "roleDefinitionId")], null));
-            R.ln = F + 325;
+            R.ln = F + 315;
             if (R.t(R.nin((S["roleguid"] ?? null), (S["roleids"] ?? null)))) {
                 continue;
             }
-            R.ln = F + 326;
+            R.ln = F + 316;
             R.e(O, R.pso(["RoleId", (S["roleguid"] ?? null), "RoleName", R.u(R.cmd(S, "Get-RoleName", [R.m(R.m((S["assignment"] ?? null), "properties"), "roleDefinitionId")], null)), "Id", R.m((S["assignment"] ?? null), "id"), "Rules", R.a(R.m(R.m((S["assignment"] ?? null), "properties"), "effectiveRules"))]));
         }
     });
-    R.ln = F + 330;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-IAM-011", "Title", "PIM activation of privileged roles requires MFA, justification and a short duration", "Category", "Privileged access", "Service", "Privileged Identity Management", "Severity", "Medium", "Description", "Checks the Privileged Identity Management settings of Owner, Contributor, User Access Administrator and Role Based Access Control Administrator on the subscription: MFA (or an authentication context) and justification on activation, a maximum activation of 8 hours, and approval for Owner, User Access Administrator and Role Based Access Control Administrator.", "Rationale", "Eligible assignments only reduce risk when activation is protected. Without MFA and approval, a stolen session can activate the role; long activations recreate standing access.", "Remediation", "In Privileged Identity Management > Azure resources > <subscription> > Settings, edit each role: require Azure MFA or a Conditional Access authentication context, require justification, set the maximum activation duration to 8 hours or less, and require approval for roles that can grant access.", "References", R.a("https://learn.microsoft.com/entra/id-governance/privileged-identity-management/pim-resource-roles-configure-role-settings"), "Frameworks", R.ht(["MCSB", R.a([R.v("PA-2"), R.v("PA-6")]), "WAF", "SE:05"], false), "Requires", R.a("rbac/roleManagementPolicyAssignments"), "Run", R.sb({ params: [], adv: 0, text: "\n        foreach ($policy in @(Get-RolePolicies)) {\n            $rules = @{}\n            foreach ($rule in $policy.Rules) { $rules[$rule.id] = $rule }\n            $enablement = @($rules['Enablement_EndUser_Assignment'].enabledRules)\n            $authContext = [bool]$rules['AuthenticationContext_EndUser_Assignment'].isEnabled\n            $duration = ConvertFrom-IsoDuration $rules['Expiration_EndUser_Assignment'].maximumDuration\n            $approval = [bool]$rules['Approval_EndUser_Assignment'].setting.isApprovalRequired\n            $needsApproval = $policy.RoleId -ne 'b24988ac-6180-42a0-ab88-20f7382dd24c'\n            $problems = @()\n            if (-not ($enablement -contains 'MultiFactorAuthentication' -or $authContext)) { $problems += 'no MFA or authentication context' }\n            if ($enablement -notcontains 'Justification') { $problems += 'no justification' }\n            if (-not $duration -or $duration.TotalHours -gt 8) { $problems += \"maximum activation $($rules['Expiration_EndUser_Assignment'].maximumDuration)\" }\n            if ($needsApproval -and -not $approval) { $problems += 'no approval' }\n            $evidence = [ordered]@{ role = $policy.RoleName; activationRequirements = $enablement; authenticationContext = $authContext; maximumDuration = $rules['Expiration_EndUser_Assignment'].maximumDuration; approvalRequired = $approval }\n            $result = if ($problems) { New-Fail \"$($policy.RoleName) activation: $($problems -join ', ')\" $evidence } else { New-Pass \"$($policy.RoleName) activation is protected\" $evidence }\n            New-Finding -ResourceId $policy.Id -ResourceType 'Microsoft.Authorization/roleManagementPolicyAssignments' -ResourceName $policy.RoleName -Result $result\n        }\n    " }, (S, O) => {
-        R.ln = F + 343;
+    R.ln = F + 320;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-IAM-011", "Title", "PIM activation of privileged roles requires MFA, justification and a short duration", "Category", "Privileged access", "Service", "Privileged Identity Management", "Severity", "Medium", "Description", "Checks the Privileged Identity Management settings of Owner, Contributor, User Access Administrator and Role Based Access Control Administrator on the subscription: MFA (or an authentication context) and justification on activation, a maximum activation of 8 hours, and approval for Owner, User Access Administrator and Role Based Access Control Administrator.", "Rationale", "Eligible assignments only reduce risk when activation is protected. Without MFA and approval, a stolen session can activate the role; long activations recreate standing access.", "Remediation", "In Privileged Identity Management > Azure resources > <subscription> > Settings, edit each role: require Azure MFA or a Conditional Access authentication context, require justification, set the maximum activation duration to 8 hours or less, and require approval for roles that can grant access.", "References", R.a("https://learn.microsoft.com/entra/id-governance/privileged-identity-management/pim-resource-roles-configure-role-settings"), "Requires", R.a("rbac/roleManagementPolicyAssignments"), "Run", R.sb({ params: [], adv: 0, text: "\n        foreach ($policy in @(Get-RolePolicies)) {\n            $rules = @{}\n            foreach ($rule in $policy.Rules) { $rules[$rule.id] = $rule }\n            $enablement = @($rules['Enablement_EndUser_Assignment'].enabledRules)\n            $authContext = [bool]$rules['AuthenticationContext_EndUser_Assignment'].isEnabled\n            $duration = ConvertFrom-IsoDuration $rules['Expiration_EndUser_Assignment'].maximumDuration\n            $approval = [bool]$rules['Approval_EndUser_Assignment'].setting.isApprovalRequired\n            $needsApproval = $policy.RoleId -ne 'b24988ac-6180-42a0-ab88-20f7382dd24c'\n            $problems = @()\n            if (-not ($enablement -contains 'MultiFactorAuthentication' -or $authContext)) { $problems += 'no MFA or authentication context' }\n            if ($enablement -notcontains 'Justification') { $problems += 'no justification' }\n            if (-not $duration -or $duration.TotalHours -gt 8) { $problems += \"maximum activation $($rules['Expiration_EndUser_Assignment'].maximumDuration)\" }\n            if ($needsApproval -and -not $approval) { $problems += 'no approval' }\n            $evidence = [ordered]@{ role = $policy.RoleName; activationRequirements = $enablement; authenticationContext = $authContext; maximumDuration = $rules['Expiration_EndUser_Assignment'].maximumDuration; approvalRequired = $approval }\n            $result = if ($problems) { New-Fail \"$($policy.RoleName) activation: $($problems -join ', ')\" $evidence } else { New-Pass \"$($policy.RoleName) activation is protected\" $evidence }\n            New-Finding -ResourceId $policy.Id -ResourceType 'Microsoft.Authorization/roleManagementPolicyAssignments' -ResourceName $policy.RoleName -Result $result\n        }\n    " }, (S, O) => {
+        R.ln = F + 332;
         for (const it22 of R.fi(R.cmd(S, "Get-RolePolicies", [], null))) {
             S["policy"] = it22;
-            R.ln = F + 344;
+            R.ln = F + 333;
             S["rules"] = R.ht([], false);
-            R.ln = F + 345;
+            R.ln = F + 334;
             for (const it23 of R.fi(R.m((S["policy"] ?? null), "Rules"))) {
                 S["rule"] = it23;
-                R.ln = F + 345;
+                R.ln = F + 334;
                 R.si((S["rules"] ?? null), R.m((S["rule"] ?? null), "id"), (S["rule"] ?? null));
             }
-            R.ln = F + 346;
+            R.ln = F + 335;
             S["enablement"] = R.a(R.m(R.i((S["rules"] ?? null), "Enablement_EndUser_Assignment"), "enabledRules"));
-            R.ln = F + 347;
+            R.ln = F + 336;
             S["authcontext"] = R.c("bool", R.m(R.i((S["rules"] ?? null), "AuthenticationContext_EndUser_Assignment"), "isEnabled"));
-            R.ln = F + 348;
+            R.ln = F + 337;
             S["duration"] = R.u(R.cmd(S, "ConvertFrom-IsoDuration", [R.m(R.i((S["rules"] ?? null), "Expiration_EndUser_Assignment"), "maximumDuration")], null));
-            R.ln = F + 349;
+            R.ln = F + 338;
             S["approval"] = R.c("bool", R.m(R.m(R.i((S["rules"] ?? null), "Approval_EndUser_Assignment"), "setting"), "isApprovalRequired"));
-            R.ln = F + 350;
+            R.ln = F + 339;
             S["needsapproval"] = R.ne(R.m((S["policy"] ?? null), "RoleId"), "b24988ac-6180-42a0-ab88-20f7382dd24c");
-            R.ln = F + 351;
+            R.ln = F + 340;
             S["problems"] = [];
-            R.ln = F + 352;
+            R.ln = F + 341;
             if (!(R.t(R.cont((S["enablement"] ?? null), "MultiFactorAuthentication")) || R.t((S["authcontext"] ?? null)))) {
-                R.ln = F + 352;
+                R.ln = F + 341;
                 S["problems"] = R.add(S["problems"] ?? null, "no MFA or authentication context");
             }
-            R.ln = F + 353;
+            R.ln = F + 342;
             if (R.t(R.ncont((S["enablement"] ?? null), "Justification"))) {
-                R.ln = F + 353;
+                R.ln = F + 342;
                 S["problems"] = R.add(S["problems"] ?? null, "no justification");
             }
-            R.ln = F + 354;
+            R.ln = F + 343;
             if ((!R.t((S["duration"] ?? null)) || R.t(R.gt(R.m((S["duration"] ?? null), "TotalHours"), 8)))) {
-                R.ln = F + 354;
+                R.ln = F + 343;
                 S["problems"] = R.add(S["problems"] ?? null, ("maximum activation " + R.str(R.u(R.pi(R.m(R.i((S["rules"] ?? null), "Expiration_EndUser_Assignment"), "maximumDuration"))))));
             }
-            R.ln = F + 355;
+            R.ln = F + 344;
             if ((R.t((S["needsapproval"] ?? null)) && !R.t((S["approval"] ?? null)))) {
-                R.ln = F + 355;
+                R.ln = F + 344;
                 S["problems"] = R.add(S["problems"] ?? null, "no approval");
             }
-            R.ln = F + 356;
+            R.ln = F + 345;
             S["evidence"] = R.ht(["role", R.m((S["policy"] ?? null), "RoleName"), "activationRequirements", (S["enablement"] ?? null), "authenticationContext", (S["authcontext"] ?? null), "maximumDuration", R.m(R.i((S["rules"] ?? null), "Expiration_EndUser_Assignment"), "maximumDuration"), "approvalRequired", (S["approval"] ?? null)], true);
-            R.ln = F + 357;
+            R.ln = F + 346;
             const v24 = [];
-            R.ln = F + 357;
+            R.ln = F + 346;
             if (R.t((S["problems"] ?? null))) {
-                R.ln = F + 357;
+                R.ln = F + 346;
                 R.pa(v24, R.cmd(S, "New-Fail", [("" + R.str(R.u(R.pi(R.m((S["policy"] ?? null), "RoleName")))) + " activation: " + R.str(R.u(R.pi(R.join((S["problems"] ?? null), ", "))))), (S["evidence"] ?? null)], null));
             } else {
-                R.ln = F + 357;
+                R.ln = F + 346;
                 R.pa(v24, R.cmd(S, "New-Pass", [("" + R.str(R.u(R.pi(R.m((S["policy"] ?? null), "RoleName")))) + " activation is protected"), (S["evidence"] ?? null)], null));
             }
             S["result"] = R.u(v24);
-            R.ln = F + 358;
+            R.ln = F + 347;
             R.pa(O, R.cmd(S, "New-Finding", [R.np("ResourceId"), R.m((S["policy"] ?? null), "Id"), R.np("ResourceType"), "Microsoft.Authorization/roleManagementPolicyAssignments", R.np("ResourceName"), R.m((S["policy"] ?? null), "RoleName"), R.np("Result"), (S["result"] ?? null)], null));
         }
     })], false)], null));
-    R.ln = F + 363;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-IAM-012", "Title", "PIM does not allow permanent active assignment of privileged roles", "Category", "Privileged access", "Service", "Privileged Identity Management", "Severity", "Medium", "Description", "Checks that the PIM settings of Owner, Contributor, User Access Administrator and Role Based Access Control Administrator on the subscription require active assignments to expire.", "Rationale", "When permanent active assignment is allowed, administrators can bypass just-in-time activation and create standing privileged access.", "Remediation", "In the PIM role settings, under Assignment, clear 'Allow permanent active assignment' and set an expiry (for example 15 days) for active assignments.", "References", R.a("https://learn.microsoft.com/entra/id-governance/privileged-identity-management/pim-resource-roles-configure-role-settings"), "Frameworks", R.ht(["MCSB", "PA-2"], false), "Requires", R.a("rbac/roleManagementPolicyAssignments"), "Run", R.sb({ params: [], adv: 0, text: "\n        foreach ($policy in @(Get-RolePolicies)) {\n            $rule = $policy.Rules | Where-Object { $_.id -eq 'Expiration_Admin_Assignment' } | Select-Object -First 1\n            $evidence = [ordered]@{ role = $policy.RoleName; isExpirationRequired = [bool]$rule.isExpirationRequired; maximumDuration = $rule.maximumDuration }\n            $result = if ($rule.isExpirationRequired) { New-Pass \"Active $($policy.RoleName) assignments expire after $($rule.maximumDuration)\" $evidence } else { New-Fail \"Permanent active $($policy.RoleName) assignments are allowed\" $evidence }\n            New-Finding -ResourceId $policy.Id -ResourceType 'Microsoft.Authorization/roleManagementPolicyAssignments' -ResourceName $policy.RoleName -Result $result\n        }\n    " }, (S, O) => {
-        R.ln = F + 376;
+    R.ln = F + 352;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-IAM-012", "Title", "PIM does not allow permanent active assignment of privileged roles", "Category", "Privileged access", "Service", "Privileged Identity Management", "Severity", "Medium", "Description", "Checks that the PIM settings of Owner, Contributor, User Access Administrator and Role Based Access Control Administrator on the subscription require active assignments to expire.", "Rationale", "When permanent active assignment is allowed, administrators can bypass just-in-time activation and create standing privileged access.", "Remediation", "In the PIM role settings, under Assignment, clear 'Allow permanent active assignment' and set an expiry (for example 15 days) for active assignments.", "References", R.a("https://learn.microsoft.com/entra/id-governance/privileged-identity-management/pim-resource-roles-configure-role-settings"), "Requires", R.a("rbac/roleManagementPolicyAssignments"), "Run", R.sb({ params: [], adv: 0, text: "\n        foreach ($policy in @(Get-RolePolicies)) {\n            $rule = $policy.Rules | Where-Object { $_.id -eq 'Expiration_Admin_Assignment' } | Select-Object -First 1\n            $evidence = [ordered]@{ role = $policy.RoleName; isExpirationRequired = [bool]$rule.isExpirationRequired; maximumDuration = $rule.maximumDuration }\n            $result = if ($rule.isExpirationRequired) { New-Pass \"Active $($policy.RoleName) assignments expire after $($rule.maximumDuration)\" $evidence } else { New-Fail \"Permanent active $($policy.RoleName) assignments are allowed\" $evidence }\n            New-Finding -ResourceId $policy.Id -ResourceType 'Microsoft.Authorization/roleManagementPolicyAssignments' -ResourceName $policy.RoleName -Result $result\n        }\n    " }, (S, O) => {
+        R.ln = F + 364;
         for (const it25 of R.fi(R.cmd(S, "Get-RolePolicies", [], null))) {
             S["policy"] = it25;
-            R.ln = F + 377;
+            R.ln = F + 365;
             S["rule"] = R.u(R.cmd(S, "Select-Object", [R.np("First"), 1], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.id -eq 'Expiration_Admin_Assignment' " }, (S, O) => {
-                R.ln = F + 377;
+                R.ln = F + 365;
                 R.e(O, R.eq(R.m((S["_"] ?? null), "id"), "Expiration_Admin_Assignment"));
             })], R.pi(R.m((S["policy"] ?? null), "Rules")))));
-            R.ln = F + 378;
+            R.ln = F + 366;
             S["evidence"] = R.ht(["role", R.m((S["policy"] ?? null), "RoleName"), "isExpirationRequired", R.c("bool", R.m((S["rule"] ?? null), "isExpirationRequired")), "maximumDuration", R.m((S["rule"] ?? null), "maximumDuration")], true);
-            R.ln = F + 379;
+            R.ln = F + 367;
             const v26 = [];
-            R.ln = F + 379;
+            R.ln = F + 367;
             if (R.t(R.m((S["rule"] ?? null), "isExpirationRequired"))) {
-                R.ln = F + 379;
+                R.ln = F + 367;
                 R.pa(v26, R.cmd(S, "New-Pass", [("Active " + R.str(R.u(R.pi(R.m((S["policy"] ?? null), "RoleName")))) + " assignments expire after " + R.str(R.u(R.pi(R.m((S["rule"] ?? null), "maximumDuration"))))), (S["evidence"] ?? null)], null));
             } else {
-                R.ln = F + 379;
+                R.ln = F + 367;
                 R.pa(v26, R.cmd(S, "New-Fail", [("Permanent active " + R.str(R.u(R.pi(R.m((S["policy"] ?? null), "RoleName")))) + " assignments are allowed"), (S["evidence"] ?? null)], null));
             }
             S["result"] = R.u(v26);
-            R.ln = F + 380;
+            R.ln = F + 368;
             R.pa(O, R.cmd(S, "New-Finding", [R.np("ResourceId"), R.m((S["policy"] ?? null), "Id"), R.np("ResourceType"), "Microsoft.Authorization/roleManagementPolicyAssignments", R.np("ResourceName"), R.m((S["policy"] ?? null), "RoleName"), R.np("Result"), (S["result"] ?? null)], null));
         }
     })], false)], null));
-    R.ln = F + 385;
+    R.ln = F + 373;
     R.def(S, "Get-AzureWorkloadIdentities", { params: [], adv: 0, h: "c76663bd5dd04d94" }, (S, O) => {
-        R.ln = F + 387;
+        R.ln = F + 375;
         S["access"] = R.u(R.cmd(S, "Get-PrincipalAccessMap", [], null));
-        R.ln = F + 388;
+        R.ln = F + 376;
         for (const it27 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 388;
+            R.ln = F + 376;
             R.e(O, (S["_"] ?? null));
         })], R.cmd(S, "Get-IngestData", ["identity/servicePrincipals"], null)))) {
             S["record"] = it27;
-            R.ln = F + 389;
+            R.ln = F + 377;
             S["principal"] = R.u(R.cmd(S, "Get-Principal", [R.m((S["record"] ?? null), "id")], null));
-            R.ln = F + 390;
+            R.ln = F + 378;
             if ((!R.t((S["principal"] ?? null)) || R.t(R.eq(R.m((S["principal"] ?? null), "servicePrincipalType"), "ManagedIdentity")))) {
                 continue;
             }
-            R.ln = F + 391;
+            R.ln = F + 379;
             S["assignments"] = R.i((S["access"] ?? null), R.im(R.m((S["record"] ?? null), "id"), "ToLowerInvariant", []));
-            R.ln = F + 392;
+            R.ln = F + 380;
             if (!R.t((S["assignments"] ?? null))) {
                 continue;
             }
-            R.ln = F + 393;
+            R.ln = F + 381;
             R.e(O, R.pso(["Record", (S["record"] ?? null), "Principal", (S["principal"] ?? null), "Assignments", R.a((S["assignments"] ?? null))]));
         }
     });
-    R.ln = F + 397;
+    R.ln = F + 385;
     R.def(S, "Get-WorkloadCredentials", { params: [{ n: "Identity", t: null, pos: null }, { n: "Kind", t: "string", pos: null, vs: ["password", "key", "all"], def: S => "all" }], adv: 0, h: "b3a3daab2054a1a6" }, (S, O) => {
-        R.ln = F + 400;
+        R.ln = F + 388;
         S["sources"] = R.a([R.v(R.ht(["owner", "servicePrincipal", "object", R.m((S["identity"] ?? null), "Principal")], false)), R.v(R.ht(["owner", "application", "object", R.m(R.m((S["identity"] ?? null), "Record"), "application")], false))]);
-        R.ln = F + 401;
+        R.ln = F + 389;
         for (const it28 of R.fi((S["sources"] ?? null))) {
             S["source"] = it28;
-            R.ln = F + 402;
+            R.ln = F + 390;
             if (!R.t(R.m((S["source"] ?? null), "object"))) {
                 continue;
             }
-            R.ln = F + 403;
+            R.ln = F + 391;
             const v29 = [];
-            R.ln = F + 403;
+            R.ln = F + 391;
             const had33 = Object.prototype.hasOwnProperty.call(S, '_'), prev32 = S['_'];
             try {
                 for (const sw30 of R.pi((S["kind"] ?? null))) {
@@ -619,1018 +619,1747 @@ export default R.script("/app/Analyze/tests/01-IdentityAccess.ps1", { params: []
                     let hit31 = false;
                     if (R.t(R.eq(sw30, "password", false))) {
                         hit31 = true;
-                        R.ln = F + 403;
+                        R.ln = F + 391;
                         R.e(v29, R.a("passwordCredentials"));
                     }
                     if (R.t(R.eq(sw30, "key", false))) {
                         hit31 = true;
-                        R.ln = F + 403;
+                        R.ln = F + 391;
                         R.e(v29, R.a("keyCredentials"));
                     }
                     if (!hit31) {
-                        R.ln = F + 403;
+                        R.ln = F + 391;
                         R.e(v29, R.a([R.v("passwordCredentials"), R.v("keyCredentials")]));
                     }
                 }
             } finally { if (had33) { S['_'] = prev32; } else { delete S['_']; } }
             S["types"] = R.u(v29);
-            R.ln = F + 404;
+            R.ln = F + 392;
             for (const it34 of R.fi((S["types"] ?? null))) {
                 S["type"] = it34;
-                R.ln = F + 405;
+                R.ln = F + 393;
                 for (const it35 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                    R.ln = F + 405;
+                    R.ln = F + 393;
                     R.e(O, (S["_"] ?? null));
                 })], R.pi(R.m(R.m((S["source"] ?? null), "object"), R.str((S["type"] ?? null))))))) {
                     S["credential"] = it35;
-                    R.ln = F + 406;
+                    R.ln = F + 394;
                     S["end"] = R.u(R.cmd(S, "ConvertTo-UtcDate", [R.m((S["credential"] ?? null), "endDateTime")], null));
-                    R.ln = F + 407;
+                    R.ln = F + 395;
                     if ((R.t((S["end"] ?? null)) && R.t(R.le((S["end"] ?? null), R.m((R.ss(S)["script:ingest"] ?? null), "ReferenceTime"))))) {
                         continue;
                     }
-                    R.ln = F + 408;
+                    R.ln = F + 396;
                     R.e(O, R.pso(["Owner", R.m((S["source"] ?? null), "owner"), "Type", (S["type"] ?? null), "Name", R.m((S["credential"] ?? null), "displayName"), "KeyId", R.m((S["credential"] ?? null), "keyId"), "Start", R.u(R.cmd(S, "ConvertTo-UtcDate", [R.m((S["credential"] ?? null), "startDateTime")], null)), "End", (S["end"] ?? null)]));
                 }
             }
         }
     });
-    R.ln = F + 414;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-IAM-013", "Title", "Workload identities with Azure access do not use client secrets", "Category", "Identity management", "Service", "Microsoft Entra ID", "Severity", "Medium", "Description", "Finds applications and service principals with Azure role assignments in this subscription that have active client secrets (password credentials).", "Rationale", "Client secrets are bearer credentials that end up in configuration files, pipelines and scripts. Managed identities, workload identity federation or certificates remove or reduce that exposure.", "Remediation", "Replace the workload with a managed identity or workload identity federation where possible, otherwise use a certificate stored in Key Vault. Then remove the client secrets from the application and service principal.", "References", R.a("https://learn.microsoft.com/entra/workload-id/workload-identity-federation"), "Frameworks", R.ht(["MCSB", R.a([R.v("IM-3"), R.v("IM-8")]), "WAF", "SE:09"], false), "Requires", R.a([R.v("rbac/roleAssignments"), R.v("rbac/roleDefinitions"), R.v("identity/servicePrincipals"), R.v("identity/directoryObjects"), R.v("identity/groups")]), "Run", R.sb({ params: [], adv: 0, text: "\n        $identities = @(Get-AzureWorkloadIdentities)\n        if (-not $identities) { return New-SubscriptionFinding (New-Pass 'No application identities with Azure access') }\n        foreach ($identity in $identities) {\n            $secrets = @(Get-WorkloadCredentials -Identity $identity -Kind password)\n            $evidence = [ordered]@{ appId = $identity.Principal.appId; roles = @($identity.Assignments | ForEach-Object { \"$(Get-RoleName $_.properties.roleDefinitionId) @ $($_.properties.scope)\" } | Sort-Object -Unique); activeSecrets = @($secrets | ForEach-Object { \"$($_.Owner): $($_.Name) ($($_.KeyId)) expires $(Format-UtcDate $_.End)\" } | Sort-Object) }\n            $result = if ($secrets) { New-Fail \"$($identity.Principal.displayName) has $($secrets.Count) active client secret(s)\" $evidence } else { New-Pass \"$($identity.Principal.displayName) has no client secrets\" $evidence }\n            New-Finding -ResourceId \"/servicePrincipals/$($identity.Record.id)\" -ResourceType 'Microsoft.Entra/servicePrincipals' -ResourceName $identity.Principal.displayName -Result $result\n        }\n    " }, (S, O) => {
-        R.ln = F + 427;
+    R.ln = F + 402;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-IAM-013", "Title", "Workload identities with Azure access do not use client secrets", "Category", "Identity management", "Service", "Microsoft Entra ID", "Severity", "Medium", "Description", "Finds applications and service principals with Azure role assignments in this subscription that have active client secrets (password credentials).", "Rationale", "Client secrets are bearer credentials that end up in configuration files, pipelines and scripts. Managed identities, workload identity federation or certificates remove or reduce that exposure.", "Remediation", "Replace the workload with a managed identity or workload identity federation where possible, otherwise use a certificate stored in Key Vault. Then remove the client secrets from the application and service principal.", "References", R.a("https://learn.microsoft.com/entra/workload-id/workload-identity-federation"), "Requires", R.a([R.v("rbac/roleAssignments"), R.v("rbac/roleDefinitions"), R.v("identity/servicePrincipals"), R.v("identity/directoryObjects"), R.v("identity/groups")]), "Run", R.sb({ params: [], adv: 0, text: "\n        $identities = @(Get-AzureWorkloadIdentities)\n        if (-not $identities) { return New-SubscriptionFinding (New-Pass 'No application identities with Azure access') }\n        foreach ($identity in $identities) {\n            $secrets = @(Get-WorkloadCredentials -Identity $identity -Kind password)\n            $evidence = [ordered]@{ appId = $identity.Principal.appId; roles = @($identity.Assignments | ForEach-Object { \"$(Get-RoleName $_.properties.roleDefinitionId) @ $($_.properties.scope)\" } | Sort-Object -Unique); activeSecrets = @($secrets | ForEach-Object { \"$($_.Owner): $($_.Name) ($($_.KeyId)) expires $(Format-UtcDate $_.End)\" } | Sort-Object) }\n            $result = if ($secrets) { New-Fail \"$($identity.Principal.displayName) has $($secrets.Count) active client secret(s)\" $evidence } else { New-Pass \"$($identity.Principal.displayName) has no client secrets\" $evidence }\n            New-Finding -ResourceId \"/servicePrincipals/$($identity.Record.id)\" -ResourceType 'Microsoft.Entra/servicePrincipals' -ResourceName $identity.Principal.displayName -Result $result\n        }\n    " }, (S, O) => {
+        R.ln = F + 414;
         S["identities"] = R.cmd(S, "Get-AzureWorkloadIdentities", [], null);
-        R.ln = F + 428;
+        R.ln = F + 415;
         if (!R.t((S["identities"] ?? null))) {
-            R.ln = F + 428;
+            R.ln = F + 415;
             R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Pass", ["No application identities with Azure access"], null))], null));
             return;
         }
-        R.ln = F + 429;
+        R.ln = F + 416;
         for (const it36 of R.fi((S["identities"] ?? null))) {
             S["identity"] = it36;
-            R.ln = F + 430;
+            R.ln = F + 417;
             S["secrets"] = R.cmd(S, "Get-WorkloadCredentials", [R.np("Identity"), (S["identity"] ?? null), R.np("Kind"), "password"], null);
-            R.ln = F + 431;
+            R.ln = F + 418;
             S["evidence"] = R.ht(["appId", R.m(R.m((S["identity"] ?? null), "Principal"), "appId"), "roles", R.cmd(S, "Sort-Object", [R.np("Unique")], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " \"$(Get-RoleName $_.properties.roleDefinitionId) @ $($_.properties.scope)\" " }, (S, O) => {
-                R.ln = F + 431;
+                R.ln = F + 418;
                 R.e(O, ("" + R.str(R.u(R.cmd(S, "Get-RoleName", [R.m(R.m((S["_"] ?? null), "properties"), "roleDefinitionId")], null))) + " @ " + R.str(R.u(R.pi(R.m(R.m((S["_"] ?? null), "properties"), "scope"))))));
             })], R.pi(R.m((S["identity"] ?? null), "Assignments")))), "activeSecrets", R.cmd(S, "Sort-Object", [], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " \"$($_.Owner): $($_.Name) ($($_.KeyId)) expires $(Format-UtcDate $_.End)\" " }, (S, O) => {
-                R.ln = F + 431;
+                R.ln = F + 418;
                 R.e(O, ("" + R.str(R.u(R.pi(R.m((S["_"] ?? null), "Owner")))) + ": " + R.str(R.u(R.pi(R.m((S["_"] ?? null), "Name")))) + " (" + R.str(R.u(R.pi(R.m((S["_"] ?? null), "KeyId")))) + ") expires " + R.str(R.u(R.cmd(S, "Format-UtcDate", [R.m((S["_"] ?? null), "End")], null)))));
             })], R.pi((S["secrets"] ?? null))))], true);
-            R.ln = F + 432;
+            R.ln = F + 419;
             const v37 = [];
-            R.ln = F + 432;
+            R.ln = F + 419;
             if (R.t((S["secrets"] ?? null))) {
-                R.ln = F + 432;
+                R.ln = F + 419;
                 R.pa(v37, R.cmd(S, "New-Fail", [("" + R.str(R.u(R.pi(R.m(R.m((S["identity"] ?? null), "Principal"), "displayName")))) + " has " + R.str(R.u(R.pi(R.m((S["secrets"] ?? null), "Count")))) + " active client secret(s)"), (S["evidence"] ?? null)], null));
             } else {
-                R.ln = F + 432;
+                R.ln = F + 419;
                 R.pa(v37, R.cmd(S, "New-Pass", [("" + R.str(R.u(R.pi(R.m(R.m((S["identity"] ?? null), "Principal"), "displayName")))) + " has no client secrets"), (S["evidence"] ?? null)], null));
             }
             S["result"] = R.u(v37);
-            R.ln = F + 433;
+            R.ln = F + 420;
             R.pa(O, R.cmd(S, "New-Finding", [R.np("ResourceId"), ("/servicePrincipals/" + R.str(R.u(R.pi(R.m(R.m((S["identity"] ?? null), "Record"), "id"))))), R.np("ResourceType"), "Microsoft.Entra/servicePrincipals", R.np("ResourceName"), R.m(R.m((S["identity"] ?? null), "Principal"), "displayName"), R.np("Result"), (S["result"] ?? null)], null));
         }
     })], false)], null));
-    R.ln = F + 438;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-IAM-014", "Title", "Workload identity certificates are valid for at most one year", "Category", "Identity management", "Service", "Microsoft Entra ID", "Severity", "Medium", "Description", "Checks the lifetime of active certificate credentials of applications and service principals with Azure role assignments in this subscription (client secrets are covered by AZ-IAM-013).", "Rationale", "Long lived certificates stay valid long after the private key leaks and discourage rotation. Short lifetimes force a working rotation process.", "Remediation", "Issue new certificates valid for 12 months or less, automate rotation (for example with Key Vault), remove the long lived certificates and consider an application management policy that limits credential lifetime.", "References", R.a("https://learn.microsoft.com/graph/api/resources/applicationauthenticationmethodpolicy"), "Frameworks", R.ht(["MCSB", R.a([R.v("IM-8"), R.v("IM-3")]), "WAF", "SE:09"], false), "Requires", R.a([R.v("rbac/roleAssignments"), R.v("rbac/roleDefinitions"), R.v("identity/servicePrincipals"), R.v("identity/directoryObjects"), R.v("identity/groups")]), "Run", R.sb({ params: [], adv: 0, text: "\n        $identities = @(Get-AzureWorkloadIdentities)\n        if (-not $identities) { return New-SubscriptionFinding (New-Pass 'No application identities with Azure access') }\n        foreach ($identity in $identities) {\n            $credentials = @(Get-WorkloadCredentials -Identity $identity -Kind key)\n            $long = @($credentials | Where-Object { $_.Start -and $_.End -and ($_.End - $_.Start).TotalDays -gt 366 })\n            $evidence = [ordered]@{ appId = $identity.Principal.appId; longLivedCertificates = @($long | ForEach-Object { \"$($_.Owner): $($_.Name) ($($_.KeyId)) $([int]($_.End - $_.Start).TotalDays) days\" } | Sort-Object) }\n            $result = if ($long) { New-Fail \"$($identity.Principal.displayName) has $($long.Count) certificate(s) valid for more than a year\" $evidence } elseif ($credentials) { New-Pass 'All active certificates are valid for a year or less' $evidence } else { New-Pass 'No active certificates' $evidence }\n            New-Finding -ResourceId \"/servicePrincipals/$($identity.Record.id)\" -ResourceType 'Microsoft.Entra/servicePrincipals' -ResourceName $identity.Principal.displayName -Result $result\n        }\n    " }, (S, O) => {
-        R.ln = F + 451;
+    R.ln = F + 425;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-IAM-014", "Title", "Workload identity certificates are valid for at most one year", "Category", "Identity management", "Service", "Microsoft Entra ID", "Severity", "Medium", "Description", "Checks the lifetime of active certificate credentials of applications and service principals with Azure role assignments in this subscription (client secrets are covered by AZ-IAM-013).", "Rationale", "Long lived certificates stay valid long after the private key leaks and discourage rotation. Short lifetimes force a working rotation process.", "Remediation", "Issue new certificates valid for 12 months or less, automate rotation (for example with Key Vault), remove the long lived certificates and consider an application management policy that limits credential lifetime.", "References", R.a("https://learn.microsoft.com/graph/api/resources/applicationauthenticationmethodpolicy"), "Requires", R.a([R.v("rbac/roleAssignments"), R.v("rbac/roleDefinitions"), R.v("identity/servicePrincipals"), R.v("identity/directoryObjects"), R.v("identity/groups")]), "Run", R.sb({ params: [], adv: 0, text: "\n        $identities = @(Get-AzureWorkloadIdentities)\n        if (-not $identities) { return New-SubscriptionFinding (New-Pass 'No application identities with Azure access') }\n        foreach ($identity in $identities) {\n            $credentials = @(Get-WorkloadCredentials -Identity $identity -Kind key)\n            $long = @($credentials | Where-Object { $_.Start -and $_.End -and ($_.End - $_.Start).TotalDays -gt 366 })\n            $evidence = [ordered]@{ appId = $identity.Principal.appId; longLivedCertificates = @($long | ForEach-Object { \"$($_.Owner): $($_.Name) ($($_.KeyId)) $([int]($_.End - $_.Start).TotalDays) days\" } | Sort-Object) }\n            $result = if ($long) { New-Fail \"$($identity.Principal.displayName) has $($long.Count) certificate(s) valid for more than a year\" $evidence } elseif ($credentials) { New-Pass 'All active certificates are valid for a year or less' $evidence } else { New-Pass 'No active certificates' $evidence }\n            New-Finding -ResourceId \"/servicePrincipals/$($identity.Record.id)\" -ResourceType 'Microsoft.Entra/servicePrincipals' -ResourceName $identity.Principal.displayName -Result $result\n        }\n    " }, (S, O) => {
+        R.ln = F + 437;
         S["identities"] = R.cmd(S, "Get-AzureWorkloadIdentities", [], null);
-        R.ln = F + 452;
+        R.ln = F + 438;
         if (!R.t((S["identities"] ?? null))) {
-            R.ln = F + 452;
+            R.ln = F + 438;
             R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Pass", ["No application identities with Azure access"], null))], null));
             return;
         }
-        R.ln = F + 453;
+        R.ln = F + 439;
         for (const it38 of R.fi((S["identities"] ?? null))) {
             S["identity"] = it38;
-            R.ln = F + 454;
+            R.ln = F + 440;
             S["credentials"] = R.cmd(S, "Get-WorkloadCredentials", [R.np("Identity"), (S["identity"] ?? null), R.np("Kind"), "key"], null);
-            R.ln = F + 455;
+            R.ln = F + 441;
             S["long"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.Start -and $_.End -and ($_.End - $_.Start).TotalDays -gt 366 " }, (S, O) => {
-                R.ln = F + 455;
+                R.ln = F + 441;
                 R.e(O, ((R.t(R.m((S["_"] ?? null), "Start")) && R.t(R.m((S["_"] ?? null), "End"))) && R.t(R.gt(R.m((R.sub(R.m((S["_"] ?? null), "End"), R.m((S["_"] ?? null), "Start"))), "TotalDays"), 366))));
             })], R.pi((S["credentials"] ?? null)));
-            R.ln = F + 456;
+            R.ln = F + 442;
             S["evidence"] = R.ht(["appId", R.m(R.m((S["identity"] ?? null), "Principal"), "appId"), "longLivedCertificates", R.cmd(S, "Sort-Object", [], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " \"$($_.Owner): $($_.Name) ($($_.KeyId)) $([int]($_.End - $_.Start).TotalDays) days\" " }, (S, O) => {
-                R.ln = F + 456;
+                R.ln = F + 442;
                 R.e(O, ("" + R.str(R.u(R.pi(R.m((S["_"] ?? null), "Owner")))) + ": " + R.str(R.u(R.pi(R.m((S["_"] ?? null), "Name")))) + " (" + R.str(R.u(R.pi(R.m((S["_"] ?? null), "KeyId")))) + ") " + R.str(R.u(R.pi(R.c("int", R.m((R.sub(R.m((S["_"] ?? null), "End"), R.m((S["_"] ?? null), "Start"))), "TotalDays"))))) + " days"));
             })], R.pi((S["long"] ?? null))))], true);
-            R.ln = F + 457;
+            R.ln = F + 443;
             const v39 = [];
-            R.ln = F + 457;
+            R.ln = F + 443;
             if (R.t((S["long"] ?? null))) {
-                R.ln = F + 457;
+                R.ln = F + 443;
                 R.pa(v39, R.cmd(S, "New-Fail", [("" + R.str(R.u(R.pi(R.m(R.m((S["identity"] ?? null), "Principal"), "displayName")))) + " has " + R.str(R.u(R.pi(R.m((S["long"] ?? null), "Count")))) + " certificate(s) valid for more than a year"), (S["evidence"] ?? null)], null));
             } else if (R.t((S["credentials"] ?? null))) {
-                R.ln = F + 457;
+                R.ln = F + 443;
                 R.pa(v39, R.cmd(S, "New-Pass", ["All active certificates are valid for a year or less", (S["evidence"] ?? null)], null));
             } else {
-                R.ln = F + 457;
+                R.ln = F + 443;
                 R.pa(v39, R.cmd(S, "New-Pass", ["No active certificates", (S["evidence"] ?? null)], null));
             }
             S["result"] = R.u(v39);
-            R.ln = F + 458;
+            R.ln = F + 444;
             R.pa(O, R.cmd(S, "New-Finding", [R.np("ResourceId"), ("/servicePrincipals/" + R.str(R.u(R.pi(R.m(R.m((S["identity"] ?? null), "Record"), "id"))))), R.np("ResourceType"), "Microsoft.Entra/servicePrincipals", R.np("ResourceName"), R.m(R.m((S["identity"] ?? null), "Principal"), "displayName"), R.np("Result"), (S["result"] ?? null)], null));
         }
     })], false)], null));
-    R.ln = F + 463;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-IAM-015", "Title", "Applications with privileged Azure roles have no owners", "Category", "Privileged access", "Service", "Microsoft Entra ID", "Severity", "High", "Description", "Finds applications and service principals with privileged Azure roles that have owners.", "Rationale", "Owners of an application or service principal can add credentials to it and sign in as it. Every owner therefore effectively holds the privileged Azure role of the application, usually without MFA, PIM or review.", "Remediation", "Remove owners from applications and service principals that hold privileged Azure access, and manage them through Entra roles (Application Administrator with PIM) or a restricted administrative unit instead.", "References", R.a("https://learn.microsoft.com/entra/identity/enterprise-apps/assign-app-owners"), "Frameworks", R.ht(["MCSB", R.a([R.v("PA-1"), R.v("PA-7")]), "WAF", "SE:05"], false), "Requires", R.a([R.v("rbac/roleAssignments"), R.v("rbac/roleDefinitions"), R.v("identity/servicePrincipals"), R.v("identity/directoryObjects"), R.v("identity/groups")]), "Run", R.sb({ params: [], adv: 0, text: "\n        $identities = @(Get-AzureWorkloadIdentities | Where-Object { $_.Assignments | Where-Object { Test-RolePrivileged $_.properties.roleDefinitionId } })\n        if (-not $identities) { return New-SubscriptionFinding (New-Pass 'No applications with privileged Azure roles') }\n        foreach ($identity in $identities) {\n            $owners = @($identity.Record.owners) + @($identity.Record.applicationOwners) | Where-Object { $_ }\n            $evidence = [ordered]@{ appId = $identity.Principal.appId; privilegedRoles = @($identity.Assignments | Where-Object { Test-RolePrivileged $_.properties.roleDefinitionId } | ForEach-Object { \"$(Get-RoleName $_.properties.roleDefinitionId) @ $($_.properties.scope)\" } | Sort-Object -Unique); owners = @($owners | ForEach-Object { if ($_.userPrincipalName) { $_.userPrincipalName } else { $_.displayName } } | Sort-Object -Unique) }\n            $result = if ($owners) { New-Fail \"$($identity.Principal.displayName) has $(@($evidence.owners).Count) owner(s) who can act as it\" $evidence } else { New-Pass 'No owners' $evidence }\n            New-Finding -ResourceId \"/servicePrincipals/$($identity.Record.id)\" -ResourceType 'Microsoft.Entra/servicePrincipals' -ResourceName $identity.Principal.displayName -Result $result\n        }\n    " }, (S, O) => {
-        R.ln = F + 476;
+    R.ln = F + 449;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-IAM-015", "Title", "Applications with privileged Azure roles have no owners", "Category", "Privileged access", "Service", "Microsoft Entra ID", "Severity", "High", "Description", "Finds applications and service principals with privileged Azure roles that have owners.", "Rationale", "Owners of an application or service principal can add credentials to it and sign in as it. Every owner therefore effectively holds the privileged Azure role of the application, usually without MFA, PIM or review.", "Remediation", "Remove owners from applications and service principals that hold privileged Azure access, and manage them through Entra roles (Application Administrator with PIM) or a restricted administrative unit instead.", "References", R.a("https://learn.microsoft.com/entra/identity/enterprise-apps/assign-app-owners"), "Requires", R.a([R.v("rbac/roleAssignments"), R.v("rbac/roleDefinitions"), R.v("identity/servicePrincipals"), R.v("identity/directoryObjects"), R.v("identity/groups")]), "Run", R.sb({ params: [], adv: 0, text: "\n        $identities = @(Get-AzureWorkloadIdentities | Where-Object { $_.Assignments | Where-Object { Test-RolePrivileged $_.properties.roleDefinitionId } })\n        if (-not $identities) { return New-SubscriptionFinding (New-Pass 'No applications with privileged Azure roles') }\n        foreach ($identity in $identities) {\n            $owners = @($identity.Record.owners) + @($identity.Record.applicationOwners) | Where-Object { $_ }\n            $evidence = [ordered]@{ appId = $identity.Principal.appId; privilegedRoles = @($identity.Assignments | Where-Object { Test-RolePrivileged $_.properties.roleDefinitionId } | ForEach-Object { \"$(Get-RoleName $_.properties.roleDefinitionId) @ $($_.properties.scope)\" } | Sort-Object -Unique); owners = @($owners | ForEach-Object { if ($_.userPrincipalName) { $_.userPrincipalName } else { $_.displayName } } | Sort-Object -Unique) }\n            $result = if ($owners) { New-Fail \"$($identity.Principal.displayName) has $(@($evidence.owners).Count) owner(s) who can act as it\" $evidence } else { New-Pass 'No owners' $evidence }\n            New-Finding -ResourceId \"/servicePrincipals/$($identity.Record.id)\" -ResourceType 'Microsoft.Entra/servicePrincipals' -ResourceName $identity.Principal.displayName -Result $result\n        }\n    " }, (S, O) => {
+        R.ln = F + 461;
         S["identities"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.Assignments | Where-Object { Test-RolePrivileged $_.properties.roleDefinitionId } " }, (S, O) => {
-            R.ln = F + 476;
+            R.ln = F + 461;
             R.pa(O, R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " Test-RolePrivileged $_.properties.roleDefinitionId " }, (S, O) => {
-                R.ln = F + 476;
+                R.ln = F + 461;
                 R.pa(O, R.cmd(S, "Test-RolePrivileged", [R.m(R.m((S["_"] ?? null), "properties"), "roleDefinitionId")], null));
             })], R.pi(R.m((S["_"] ?? null), "Assignments"))));
         })], R.cmd(S, "Get-AzureWorkloadIdentities", [], null));
-        R.ln = F + 477;
+        R.ln = F + 462;
         if (!R.t((S["identities"] ?? null))) {
-            R.ln = F + 477;
+            R.ln = F + 462;
             R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Pass", ["No applications with privileged Azure roles"], null))], null));
             return;
         }
-        R.ln = F + 478;
+        R.ln = F + 463;
         for (const it40 of R.fi((S["identities"] ?? null))) {
             S["identity"] = it40;
-            R.ln = F + 479;
+            R.ln = F + 464;
             S["owners"] = R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                R.ln = F + 479;
+                R.ln = F + 464;
                 R.e(O, (S["_"] ?? null));
             })], R.pi(R.add(R.a(R.m(R.m((S["identity"] ?? null), "Record"), "owners")), R.a(R.m(R.m((S["identity"] ?? null), "Record"), "applicationOwners"))))));
-            R.ln = F + 480;
+            R.ln = F + 465;
             S["evidence"] = R.ht(["appId", R.m(R.m((S["identity"] ?? null), "Principal"), "appId"), "privilegedRoles", R.cmd(S, "Sort-Object", [R.np("Unique")], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " \"$(Get-RoleName $_.properties.roleDefinitionId) @ $($_.properties.scope)\" " }, (S, O) => {
-                R.ln = F + 480;
+                R.ln = F + 465;
                 R.e(O, ("" + R.str(R.u(R.cmd(S, "Get-RoleName", [R.m(R.m((S["_"] ?? null), "properties"), "roleDefinitionId")], null))) + " @ " + R.str(R.u(R.pi(R.m(R.m((S["_"] ?? null), "properties"), "scope"))))));
             })], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " Test-RolePrivileged $_.properties.roleDefinitionId " }, (S, O) => {
-                R.ln = F + 480;
+                R.ln = F + 465;
                 R.pa(O, R.cmd(S, "Test-RolePrivileged", [R.m(R.m((S["_"] ?? null), "properties"), "roleDefinitionId")], null));
             })], R.pi(R.m((S["identity"] ?? null), "Assignments"))))), "owners", R.cmd(S, "Sort-Object", [R.np("Unique")], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " if ($_.userPrincipalName) { $_.userPrincipalName } else { $_.displayName } " }, (S, O) => {
-                R.ln = F + 480;
+                R.ln = F + 465;
                 if (R.t(R.m((S["_"] ?? null), "userPrincipalName"))) {
-                    R.ln = F + 480;
+                    R.ln = F + 465;
                     R.e(O, R.m((S["_"] ?? null), "userPrincipalName"));
                 } else {
-                    R.ln = F + 480;
+                    R.ln = F + 465;
                     R.e(O, R.m((S["_"] ?? null), "displayName"));
                 }
             })], R.pi((S["owners"] ?? null))))], true);
-            R.ln = F + 481;
+            R.ln = F + 466;
             const v41 = [];
-            R.ln = F + 481;
+            R.ln = F + 466;
             if (R.t((S["owners"] ?? null))) {
-                R.ln = F + 481;
+                R.ln = F + 466;
                 R.pa(v41, R.cmd(S, "New-Fail", [("" + R.str(R.u(R.pi(R.m(R.m((S["identity"] ?? null), "Principal"), "displayName")))) + " has " + R.str(R.u(R.pi(R.m(R.a(R.m((S["evidence"] ?? null), "owners")), "Count")))) + " owner(s) who can act as it"), (S["evidence"] ?? null)], null));
             } else {
-                R.ln = F + 481;
+                R.ln = F + 466;
                 R.pa(v41, R.cmd(S, "New-Pass", ["No owners", (S["evidence"] ?? null)], null));
             }
             S["result"] = R.u(v41);
-            R.ln = F + 482;
+            R.ln = F + 467;
             R.pa(O, R.cmd(S, "New-Finding", [R.np("ResourceId"), ("/servicePrincipals/" + R.str(R.u(R.pi(R.m(R.m((S["identity"] ?? null), "Record"), "id"))))), R.np("ResourceType"), "Microsoft.Entra/servicePrincipals", R.np("ResourceName"), R.m(R.m((S["identity"] ?? null), "Principal"), "displayName"), R.np("Result"), (S["result"] ?? null)], null));
         }
     })], false)], null));
-    R.ln = F + 487;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-IAM-016", "Version", 2, "Title", "Identities used in this subscription do not hold tenant takeover (Tier 0) Graph permissions", "Category", "Privileged access", "Service", "Microsoft Entra ID", "Severity", "Critical", "Description", "Finds managed identities and service principals referenced by this subscription's resources or role assignments that hold Microsoft Graph permissions which allow taking over the Entra tenant, such as RoleManagement.ReadWrite.Directory, AppRoleAssignment.ReadWrite.All or Application.ReadWrite.All. Both application permissions (app role assignments) and tenant wide delegated permissions (admin consented OAuth2 grants) are checked.", "Rationale", "Anyone who controls the Azure resource (code deployment, Run Command, Automation, a Contributor) can obtain tokens for its identity. Tier 0 Graph permissions on that identity turn an Azure compromise into a full tenant compromise. A delegated grant consented for all users is equally dangerous whenever the application can act in the context of an administrator.", "Remediation", "Remove the Tier 0 permissions or replace them with scoped alternatives (for example Sites.Selected, RBAC for applications, administrative units). Revoke tenant wide admin consent for delegated scopes that are not needed. Where they are unavoidable, run the workload in an isolated subscription with minimal administrators.", "References", R.a("https://learn.microsoft.com/graph/permissions-reference"), "Frameworks", R.ht(["MCSB", R.a([R.v("PA-7"), R.v("PA-1")]), "WAF", "SE:05"], false), "Requires", R.a([R.v("identity/servicePrincipals"), R.v("identity/apiServicePrincipals")]), "Run", R.sb({ params: [], adv: 0, text: "\n        $roleValues = @{}\n        $graphServicePrincipalIds = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)\n        foreach ($api in @(Get-IngestData 'identity/apiServicePrincipals' | Where-Object { $_ -and $_.appId -eq $graphAppId })) {\n            $null = $graphServicePrincipalIds.Add([string]$api.id)\n            foreach ($role in @($api.appRoles)) { $roleValues[\"$($api.id)|$($role.id)\".ToLowerInvariant()] = $role.value }\n        }\n        foreach ($record in @(Get-IngestData 'identity/servicePrincipals' | Where-Object { $_ })) {\n            $principal = Get-Principal $record.id\n            $granted = @($record.appRoleAssignments | Where-Object { $_ } | ForEach-Object { $roleValues[\"$($_.resourceId)|$($_.appRoleId)\".ToLowerInvariant()] } | Where-Object { $_ })\n            #delegated scopes consented for the whole tenant (consentType AllPrincipals) apply to every signed-in user\n            $delegated = @($record.oauth2PermissionGrants | Where-Object { $_ -and $_.consentType -eq 'AllPrincipals' -and $graphServicePrincipalIds.Contains([string]$_.resourceId) } |\n                    ForEach-Object { ([string]$_.scope) -split '\\s+' } | Where-Object { $_ })\n            $tierZero = @($granted | Where-Object { $_ -in $tierZeroGraphRoles } | Sort-Object -Unique)\n            $tierZeroDelegated = @($delegated | Where-Object { $_ -in $tierZeroGraphRoles } | Sort-Object -Unique)\n            $name = if ($principal) { $principal.displayName } else { $record.id }\n            $evidence = [ordered]@{ appId = $principal.appId; servicePrincipalType = $principal.servicePrincipalType; tierZeroPermissions = $tierZero; tierZeroDelegatedPermissions = $tierZeroDelegated; graphPermissions = @($granted | Sort-Object -Unique); delegatedGraphPermissions = @($delegated | Sort-Object -Unique) }\n            $problems = @()\n            if ($tierZero) { $problems += \"application permission(s) $($tierZero -join ', ')\" }\n            if ($tierZeroDelegated) { $problems += \"tenant wide delegated permission(s) $($tierZeroDelegated -join ', ')\" }\n            $result = if ($problems) { New-Fail \"$name holds Tier 0 Graph $($problems -join ' and ')\" $evidence } else { New-Pass \"$name holds no Tier 0 Graph permissions\" $evidence }\n            New-Finding -ResourceId \"/servicePrincipals/$($record.id)\" -ResourceType 'Microsoft.Entra/servicePrincipals' -ResourceName $name -Result $result\n        }\n    " }, (S, O) => {
-        R.ln = F + 501;
+    R.ln = F + 472;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-IAM-016", "Version", 2, "Title", "Identities used in this subscription do not hold tenant takeover (Tier 0) Graph permissions", "Category", "Privileged access", "Service", "Microsoft Entra ID", "Severity", "Critical", "Description", "Finds managed identities and service principals referenced by this subscription's resources or role assignments that hold Microsoft Graph permissions which allow taking over the Entra tenant, such as RoleManagement.ReadWrite.Directory, AppRoleAssignment.ReadWrite.All or Application.ReadWrite.All. Both application permissions (app role assignments) and tenant wide delegated permissions (admin consented OAuth2 grants) are checked.", "Rationale", "Anyone who controls the Azure resource (code deployment, Run Command, Automation, a Contributor) can obtain tokens for its identity. Tier 0 Graph permissions on that identity turn an Azure compromise into a full tenant compromise. A delegated grant consented for all users is equally dangerous whenever the application can act in the context of an administrator.", "Remediation", "Remove the Tier 0 permissions or replace them with scoped alternatives (for example Sites.Selected, RBAC for applications, administrative units). Revoke tenant wide admin consent for delegated scopes that are not needed. Where they are unavoidable, run the workload in an isolated subscription with minimal administrators.", "References", R.a("https://learn.microsoft.com/graph/permissions-reference"), "Requires", R.a([R.v("identity/servicePrincipals"), R.v("identity/apiServicePrincipals")]), "Run", R.sb({ params: [], adv: 0, text: "\n        $roleValues = @{}\n        $graphServicePrincipalIds = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)\n        foreach ($api in @(Get-IngestData 'identity/apiServicePrincipals' | Where-Object { $_ -and $_.appId -eq $graphAppId })) {\n            $null = $graphServicePrincipalIds.Add([string]$api.id)\n            foreach ($role in @($api.appRoles)) { $roleValues[\"$($api.id)|$($role.id)\".ToLowerInvariant()] = $role.value }\n        }\n        foreach ($record in @(Get-IngestData 'identity/servicePrincipals' | Where-Object { $_ })) {\n            $principal = Get-Principal $record.id\n            $granted = @($record.appRoleAssignments | Where-Object { $_ } | ForEach-Object { $roleValues[\"$($_.resourceId)|$($_.appRoleId)\".ToLowerInvariant()] } | Where-Object { $_ })\n            #delegated scopes consented for the whole tenant (consentType AllPrincipals) apply to every signed-in user\n            $delegated = @($record.oauth2PermissionGrants | Where-Object { $_ -and $_.consentType -eq 'AllPrincipals' -and $graphServicePrincipalIds.Contains([string]$_.resourceId) } |\n                    ForEach-Object { ([string]$_.scope) -split '\\s+' } | Where-Object { $_ })\n            $tierZero = @($granted | Where-Object { $_ -in $tierZeroGraphRoles } | Sort-Object -Unique)\n            $tierZeroDelegated = @($delegated | Where-Object { $_ -in $tierZeroGraphRoles } | Sort-Object -Unique)\n            $name = if ($principal) { $principal.displayName } else { $record.id }\n            $evidence = [ordered]@{ appId = $principal.appId; servicePrincipalType = $principal.servicePrincipalType; tierZeroPermissions = $tierZero; tierZeroDelegatedPermissions = $tierZeroDelegated; graphPermissions = @($granted | Sort-Object -Unique); delegatedGraphPermissions = @($delegated | Sort-Object -Unique) }\n            $problems = @()\n            if ($tierZero) { $problems += \"application permission(s) $($tierZero -join ', ')\" }\n            if ($tierZeroDelegated) { $problems += \"tenant wide delegated permission(s) $($tierZeroDelegated -join ', ')\" }\n            $result = if ($problems) { New-Fail \"$name holds Tier 0 Graph $($problems -join ' and ')\" $evidence } else { New-Pass \"$name holds no Tier 0 Graph permissions\" $evidence }\n            New-Finding -ResourceId \"/servicePrincipals/$($record.id)\" -ResourceType 'Microsoft.Entra/servicePrincipals' -ResourceName $name -Result $result\n        }\n    " }, (S, O) => {
+        R.ln = F + 485;
         S["rolevalues"] = R.ht([], false);
-        R.ln = F + 502;
+        R.ln = F + 486;
         S["graphserviceprincipalids"] = R.sc("System.Collections.Generic.HashSet[string]", "new", [R.st("System.StringComparer", "OrdinalIgnoreCase")]);
-        R.ln = F + 503;
+        R.ln = F + 487;
         for (const it42 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.appId -eq $graphAppId " }, (S, O) => {
-            R.ln = F + 503;
+            R.ln = F + 487;
             R.e(O, (R.t((S["_"] ?? null)) && R.t(R.eq(R.m((S["_"] ?? null), "appId"), (S["graphappid"] ?? null)))));
         })], R.cmd(S, "Get-IngestData", ["identity/apiServicePrincipals"], null)))) {
             S["api"] = it42;
-            R.ln = F + 504;
+            R.ln = F + 488;
             R.im((S["graphserviceprincipalids"] ?? null), "Add", [R.c("string", R.m((S["api"] ?? null), "id"))]);
-            R.ln = F + 505;
+            R.ln = F + 489;
             for (const it43 of R.fi(R.a(R.m((S["api"] ?? null), "appRoles")))) {
                 S["role"] = it43;
-                R.ln = F + 505;
+                R.ln = F + 489;
                 R.si((S["rolevalues"] ?? null), R.im(("" + R.str(R.u(R.pi(R.m((S["api"] ?? null), "id")))) + "|" + R.str(R.u(R.pi(R.m((S["role"] ?? null), "id"))))), "ToLowerInvariant", []), R.m((S["role"] ?? null), "value"));
             }
         }
-        R.ln = F + 507;
+        R.ln = F + 491;
         for (const it44 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 507;
+            R.ln = F + 491;
             R.e(O, (S["_"] ?? null));
         })], R.cmd(S, "Get-IngestData", ["identity/servicePrincipals"], null)))) {
             S["record"] = it44;
-            R.ln = F + 508;
+            R.ln = F + 492;
             S["principal"] = R.u(R.cmd(S, "Get-Principal", [R.m((S["record"] ?? null), "id")], null));
-            R.ln = F + 509;
+            R.ln = F + 493;
             S["granted"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                R.ln = F + 509;
+                R.ln = F + 493;
                 R.e(O, (S["_"] ?? null));
             })], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " $roleValues[\"$($_.resourceId)|$($_.appRoleId)\".ToLowerInvariant()] " }, (S, O) => {
-                R.ln = F + 509;
+                R.ln = F + 493;
                 R.e(O, R.i((S["rolevalues"] ?? null), R.im(("" + R.str(R.u(R.pi(R.m((S["_"] ?? null), "resourceId")))) + "|" + R.str(R.u(R.pi(R.m((S["_"] ?? null), "appRoleId"))))), "ToLowerInvariant", [])));
             })], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                R.ln = F + 509;
+                R.ln = F + 493;
                 R.e(O, (S["_"] ?? null));
             })], R.pi(R.m((S["record"] ?? null), "appRoleAssignments")))));
-            R.ln = F + 511;
+            R.ln = F + 495;
             S["delegated"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                R.ln = F + 512;
+                R.ln = F + 496;
                 R.e(O, (S["_"] ?? null));
             })], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " ([string]$_.scope) -split '\\s+' " }, (S, O) => {
-                R.ln = F + 512;
+                R.ln = F + 496;
                 R.e(O, R.split((R.c("string", R.m((S["_"] ?? null), "scope"))), "\\s+"));
             })], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.consentType -eq 'AllPrincipals' -and $graphServicePrincipalIds.Contains([string]$_.resourceId) " }, (S, O) => {
-                R.ln = F + 511;
+                R.ln = F + 495;
                 R.e(O, ((R.t((S["_"] ?? null)) && R.t(R.eq(R.m((S["_"] ?? null), "consentType"), "AllPrincipals"))) && R.t(R.im((S["graphserviceprincipalids"] ?? null), "Contains", [R.c("string", R.m((S["_"] ?? null), "resourceId"))]))));
             })], R.pi(R.m((S["record"] ?? null), "oauth2PermissionGrants")))));
-            R.ln = F + 513;
+            R.ln = F + 497;
             S["tierzero"] = R.cmd(S, "Sort-Object", [R.np("Unique")], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -in $tierZeroGraphRoles " }, (S, O) => {
-                R.ln = F + 513;
+                R.ln = F + 497;
                 R.e(O, R.in((S["_"] ?? null), (S["tierzerographroles"] ?? null)));
             })], R.pi((S["granted"] ?? null))));
-            R.ln = F + 514;
+            R.ln = F + 498;
             S["tierzerodelegated"] = R.cmd(S, "Sort-Object", [R.np("Unique")], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -in $tierZeroGraphRoles " }, (S, O) => {
-                R.ln = F + 514;
+                R.ln = F + 498;
                 R.e(O, R.in((S["_"] ?? null), (S["tierzerographroles"] ?? null)));
             })], R.pi((S["delegated"] ?? null))));
-            R.ln = F + 515;
+            R.ln = F + 499;
             const v45 = [];
-            R.ln = F + 515;
+            R.ln = F + 499;
             if (R.t((S["principal"] ?? null))) {
-                R.ln = F + 515;
+                R.ln = F + 499;
                 R.e(v45, R.m((S["principal"] ?? null), "displayName"));
             } else {
-                R.ln = F + 515;
+                R.ln = F + 499;
                 R.e(v45, R.m((S["record"] ?? null), "id"));
             }
             S["name"] = R.u(v45);
-            R.ln = F + 516;
+            R.ln = F + 500;
             S["evidence"] = R.ht(["appId", R.m((S["principal"] ?? null), "appId"), "servicePrincipalType", R.m((S["principal"] ?? null), "servicePrincipalType"), "tierZeroPermissions", (S["tierzero"] ?? null), "tierZeroDelegatedPermissions", (S["tierzerodelegated"] ?? null), "graphPermissions", R.cmd(S, "Sort-Object", [R.np("Unique")], R.pi((S["granted"] ?? null))), "delegatedGraphPermissions", R.cmd(S, "Sort-Object", [R.np("Unique")], R.pi((S["delegated"] ?? null)))], true);
-            R.ln = F + 517;
+            R.ln = F + 501;
             S["problems"] = [];
-            R.ln = F + 518;
+            R.ln = F + 502;
             if (R.t((S["tierzero"] ?? null))) {
-                R.ln = F + 518;
+                R.ln = F + 502;
                 S["problems"] = R.add(S["problems"] ?? null, ("application permission(s) " + R.str(R.u(R.pi(R.join((S["tierzero"] ?? null), ", "))))));
             }
-            R.ln = F + 519;
+            R.ln = F + 503;
             if (R.t((S["tierzerodelegated"] ?? null))) {
-                R.ln = F + 519;
+                R.ln = F + 503;
                 S["problems"] = R.add(S["problems"] ?? null, ("tenant wide delegated permission(s) " + R.str(R.u(R.pi(R.join((S["tierzerodelegated"] ?? null), ", "))))));
             }
-            R.ln = F + 520;
+            R.ln = F + 504;
             const v46 = [];
-            R.ln = F + 520;
+            R.ln = F + 504;
             if (R.t((S["problems"] ?? null))) {
-                R.ln = F + 520;
+                R.ln = F + 504;
                 R.pa(v46, R.cmd(S, "New-Fail", [("" + R.str((S["name"] ?? null)) + " holds Tier 0 Graph " + R.str(R.u(R.pi(R.join((S["problems"] ?? null), " and "))))), (S["evidence"] ?? null)], null));
             } else {
-                R.ln = F + 520;
+                R.ln = F + 504;
                 R.pa(v46, R.cmd(S, "New-Pass", [("" + R.str((S["name"] ?? null)) + " holds no Tier 0 Graph permissions"), (S["evidence"] ?? null)], null));
             }
             S["result"] = R.u(v46);
-            R.ln = F + 521;
+            R.ln = F + 505;
             R.pa(O, R.cmd(S, "New-Finding", [R.np("ResourceId"), ("/servicePrincipals/" + R.str(R.u(R.pi(R.m((S["record"] ?? null), "id"))))), R.np("ResourceType"), "Microsoft.Entra/servicePrincipals", R.np("ResourceName"), (S["name"] ?? null), R.np("Result"), (S["result"] ?? null)], null));
         }
     })], false)], null));
-    R.ln = F + 526;
+    R.ln = F + 510;
     R.def(S, "Get-EntraRoleAssignments", { params: [], adv: 0, h: "251c2b7164b4717c" }, (S, O) => {
-        R.ln = F + 528;
+        R.ln = F + 512;
         for (const it47 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 528;
+            R.ln = F + 512;
             R.e(O, (S["_"] ?? null));
         })], R.cmd(S, "Get-IngestData", ["identity/directoryRoleAssignments"], null)))) {
             S["assignment"] = it47;
-            R.ln = F + 528;
+            R.ln = F + 512;
             R.e(O, R.pso(["Kind", "active", "Assignment", (S["assignment"] ?? null)]));
         }
-        R.ln = F + 529;
+        R.ln = F + 513;
         for (const it48 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 529;
+            R.ln = F + 513;
             R.e(O, (S["_"] ?? null));
         })], R.cmd(S, "Get-IngestData", ["identity/directoryRoleEligibilitySchedules"], null)))) {
             S["assignment"] = it48;
-            R.ln = F + 529;
+            R.ln = F + 513;
             R.e(O, R.pso(["Kind", "eligible", "Assignment", (S["assignment"] ?? null)]));
         }
     });
-    R.ln = F + 532;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-IAM-017", "Title", "The tenant has between 2 and 4 Global Administrators", "Category", "Privileged access", "Service", "Microsoft Entra ID", "Severity", "Medium", "Description", "Counts principals with an active or eligible Global Administrator assignment. Global Administrators can elevate themselves to User Access Administrator on every Azure subscription.", "Rationale", "Microsoft recommends fewer than five Global Administrators, and at least two (including break-glass accounts) so the tenant cannot be locked out.", "Remediation", "Reduce Global Administrators to at most four by moving people to least privileged roles, and keep at least two cloud-only emergency access accounts.", "References", R.a("https://learn.microsoft.com/entra/identity/role-based-access-control/best-practices"), "Frameworks", R.ht(["MCSB", "PA-1"], false), "Requires", R.a("identity/directoryRoleAssignments"), "Run", R.sb({ params: [], adv: 0, text: "\n        $gaTemplate = '62e90394-69f5-4237-9190-012177145e10'\n        $assignments = @(Get-EntraRoleAssignments | Where-Object { $_.Assignment.roleDefinitionId -eq $gaTemplate })\n        $principals = @($assignments | ForEach-Object { \"$($_.Assignment.principal.displayName) [$($_.Kind)]\" } | Sort-Object -Unique)\n        $count = @($assignments | ForEach-Object { $_.Assignment.principalId } | Sort-Object -Unique).Count\n        $evidence = [ordered]@{ globalAdministratorCount = $count; globalAdministrators = $principals; eligibleDataCollected = (Test-IngestSection 'identity/directoryRoleEligibilitySchedules') }\n        $result = if ($count -lt 2) { New-Fail \"$count Global Administrator(s), at least 2 are needed\" $evidence } elseif ($count -gt 4) { New-Fail \"$count Global Administrators, fewer than 5 are recommended\" $evidence } else { New-Pass \"$count Global Administrators\" $evidence }\n        New-TenantFinding -Result $result -Suffix '/roles/GlobalAdministrator'\n    " }, (S, O) => {
-        R.ln = F + 545;
+    R.ln = F + 516;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-IAM-017", "Title", "The tenant has between 2 and 4 Global Administrators", "Category", "Privileged access", "Service", "Microsoft Entra ID", "Severity", "Medium", "Description", "Counts principals with an active or eligible Global Administrator assignment. Global Administrators can elevate themselves to User Access Administrator on every Azure subscription.", "Rationale", "Microsoft recommends fewer than five Global Administrators, and at least two (including break-glass accounts) so the tenant cannot be locked out.", "Remediation", "Reduce Global Administrators to at most four by moving people to least privileged roles, and keep at least two cloud-only emergency access accounts.", "References", R.a("https://learn.microsoft.com/entra/identity/role-based-access-control/best-practices"), "Requires", R.a("identity/directoryRoleAssignments"), "Run", R.sb({ params: [], adv: 0, text: "\n        $gaTemplate = '62e90394-69f5-4237-9190-012177145e10'\n        $assignments = @(Get-EntraRoleAssignments | Where-Object { $_.Assignment.roleDefinitionId -eq $gaTemplate })\n        $principals = @($assignments | ForEach-Object { \"$($_.Assignment.principal.displayName) [$($_.Kind)]\" } | Sort-Object -Unique)\n        $count = @($assignments | ForEach-Object { $_.Assignment.principalId } | Sort-Object -Unique).Count\n        $evidence = [ordered]@{ globalAdministratorCount = $count; globalAdministrators = $principals; eligibleDataCollected = (Test-IngestSection 'identity/directoryRoleEligibilitySchedules') }\n        $result = if ($count -lt 2) { New-Fail \"$count Global Administrator(s), at least 2 are needed\" $evidence } elseif ($count -gt 4) { New-Fail \"$count Global Administrators, fewer than 5 are recommended\" $evidence } else { New-Pass \"$count Global Administrators\" $evidence }\n        New-TenantFinding -Result $result -Suffix '/roles/GlobalAdministrator'\n    " }, (S, O) => {
+        R.ln = F + 528;
         S["gatemplate"] = "62e90394-69f5-4237-9190-012177145e10";
-        R.ln = F + 546;
+        R.ln = F + 529;
         S["assignments"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.Assignment.roleDefinitionId -eq $gaTemplate " }, (S, O) => {
-            R.ln = F + 546;
+            R.ln = F + 529;
             R.e(O, R.eq(R.m(R.m((S["_"] ?? null), "Assignment"), "roleDefinitionId"), (S["gatemplate"] ?? null)));
         })], R.cmd(S, "Get-EntraRoleAssignments", [], null));
-        R.ln = F + 547;
+        R.ln = F + 530;
         S["principals"] = R.cmd(S, "Sort-Object", [R.np("Unique")], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " \"$($_.Assignment.principal.displayName) [$($_.Kind)]\" " }, (S, O) => {
-            R.ln = F + 547;
+            R.ln = F + 530;
             R.e(O, ("" + R.str(R.u(R.pi(R.m(R.m(R.m((S["_"] ?? null), "Assignment"), "principal"), "displayName")))) + " [" + R.str(R.u(R.pi(R.m((S["_"] ?? null), "Kind")))) + "]"));
         })], R.pi((S["assignments"] ?? null))));
-        R.ln = F + 548;
+        R.ln = F + 531;
         S["count"] = R.m(R.cmd(S, "Sort-Object", [R.np("Unique")], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " $_.Assignment.principalId " }, (S, O) => {
-            R.ln = F + 548;
+            R.ln = F + 531;
             R.e(O, R.m(R.m((S["_"] ?? null), "Assignment"), "principalId"));
         })], R.pi((S["assignments"] ?? null)))), "Count");
-        R.ln = F + 549;
+        R.ln = F + 532;
         S["evidence"] = R.ht(["globalAdministratorCount", (S["count"] ?? null), "globalAdministrators", (S["principals"] ?? null), "eligibleDataCollected", R.u(R.cmd(S, "Test-IngestSection", ["identity/directoryRoleEligibilitySchedules"], null))], true);
-        R.ln = F + 550;
+        R.ln = F + 533;
         const v49 = [];
-        R.ln = F + 550;
+        R.ln = F + 533;
         if (R.t(R.lt((S["count"] ?? null), 2))) {
-            R.ln = F + 550;
+            R.ln = F + 533;
             R.pa(v49, R.cmd(S, "New-Fail", [("" + R.str((S["count"] ?? null)) + " Global Administrator(s), at least 2 are needed"), (S["evidence"] ?? null)], null));
         } else if (R.t(R.gt((S["count"] ?? null), 4))) {
-            R.ln = F + 550;
+            R.ln = F + 533;
             R.pa(v49, R.cmd(S, "New-Fail", [("" + R.str((S["count"] ?? null)) + " Global Administrators, fewer than 5 are recommended"), (S["evidence"] ?? null)], null));
         } else {
-            R.ln = F + 550;
+            R.ln = F + 533;
             R.pa(v49, R.cmd(S, "New-Pass", [("" + R.str((S["count"] ?? null)) + " Global Administrators"), (S["evidence"] ?? null)], null));
         }
         S["result"] = R.u(v49);
-        R.ln = F + 551;
+        R.ln = F + 534;
         R.pa(O, R.cmd(S, "New-TenantFinding", [R.np("Result"), (S["result"] ?? null), R.np("Suffix"), "/roles/GlobalAdministrator"], null));
     })], false)], null));
-    R.ln = F + 555;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-IAM-018", "Title", "Privileged Entra roles are held by cloud-only member accounts", "Category", "Privileged access", "Service", "Microsoft Entra ID", "Severity", "High", "Description", "Finds users with active or eligible privileged Entra roles that are synchronized from on-premises Active Directory or are guests.", "Rationale", "A synchronized administrator can be taken over from on-premises (a compromised domain means a compromised cloud), and a guest administrator is governed by another organization. Privileged accounts should be cloud-only members.", "Remediation", "Create dedicated cloud-only administrator accounts, move the privileged roles to them (PIM eligible) and remove the roles from synchronized and guest accounts.", "References", R.a("https://learn.microsoft.com/entra/identity/role-based-access-control/best-practices"), "Frameworks", R.ht(["MCSB", R.a([R.v("PA-1"), R.v("IM-1")])], false), "Requires", R.a([R.v("identity/directoryRoleAssignments"), R.v("identity/directoryRoleDefinitions")]), "Run", R.sb({ params: [], adv: 0, text: "\n        $findings = foreach ($item in @(Get-EntraRoleAssignments)) {\n            $assignment = $item.Assignment\n            $principal = $assignment.principal\n            if ($principal.'@odata.type' -ne '#microsoft.graph.user') { continue }\n            $role = Get-EntraRoleName $assignment.roleDefinitionId\n            if ($role -notin $privilegedEntraRoles) { continue }\n            $issues = @()\n            if ($principal.onPremisesSyncEnabled) { $issues += 'synchronized from on-premises' }\n            if (Test-GuestUser $principal) { $issues += 'guest' }\n            $evidence = [ordered]@{ user = \"$($principal.displayName) ($($principal.userPrincipalName))\"; role = $role; kind = $item.Kind; onPremisesSyncEnabled = [bool]$principal.onPremisesSyncEnabled; userType = $principal.userType }\n            $result = if ($issues) { New-Fail \"$($evidence.user) holds $role ($($item.Kind)) but is $($issues -join ' and ')\" $evidence } else { New-Pass \"$($evidence.user) is a cloud-only member\" $evidence }\n            New-TenantFinding -Result $result -Suffix \"/roleAssignments/$($item.Kind)/$($assignment.id)\"\n        }\n        if (-not $findings) { return New-TenantFinding -Result (New-Pass 'No users with privileged Entra roles found') -Suffix '/roles/privileged' }\n        $findings\n    " }, (S, O) => {
-        R.ln = F + 568;
+    R.ln = F + 538;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-IAM-018", "Title", "Privileged Entra roles are held by cloud-only member accounts", "Category", "Privileged access", "Service", "Microsoft Entra ID", "Severity", "High", "Description", "Finds users with active or eligible privileged Entra roles that are synchronized from on-premises Active Directory or are guests.", "Rationale", "A synchronized administrator can be taken over from on-premises (a compromised domain means a compromised cloud), and a guest administrator is governed by another organization. Privileged accounts should be cloud-only members.", "Remediation", "Create dedicated cloud-only administrator accounts, move the privileged roles to them (PIM eligible) and remove the roles from synchronized and guest accounts.", "References", R.a("https://learn.microsoft.com/entra/identity/role-based-access-control/best-practices"), "Requires", R.a([R.v("identity/directoryRoleAssignments"), R.v("identity/directoryRoleDefinitions")]), "Run", R.sb({ params: [], adv: 0, text: "\n        $findings = foreach ($item in @(Get-EntraRoleAssignments)) {\n            $assignment = $item.Assignment\n            $principal = $assignment.principal\n            if ($principal.'@odata.type' -ne '#microsoft.graph.user') { continue }\n            $role = Get-EntraRoleName $assignment.roleDefinitionId\n            if ($role -notin $privilegedEntraRoles) { continue }\n            $issues = @()\n            if ($principal.onPremisesSyncEnabled) { $issues += 'synchronized from on-premises' }\n            if (Test-GuestUser $principal) { $issues += 'guest' }\n            $evidence = [ordered]@{ user = \"$($principal.displayName) ($($principal.userPrincipalName))\"; role = $role; kind = $item.Kind; onPremisesSyncEnabled = [bool]$principal.onPremisesSyncEnabled; userType = $principal.userType }\n            $result = if ($issues) { New-Fail \"$($evidence.user) holds $role ($($item.Kind)) but is $($issues -join ' and ')\" $evidence } else { New-Pass \"$($evidence.user) is a cloud-only member\" $evidence }\n            New-TenantFinding -Result $result -Suffix \"/roleAssignments/$($item.Kind)/$($assignment.id)\"\n        }\n        if (-not $findings) { return New-TenantFinding -Result (New-Pass 'No users with privileged Entra roles found') -Suffix '/roles/privileged' }\n        $findings\n    " }, (S, O) => {
+        R.ln = F + 550;
         const v50 = [];
-        R.ln = F + 568;
+        R.ln = F + 550;
         for (const it51 of R.fi(R.cmd(S, "Get-EntraRoleAssignments", [], null))) {
             S["item"] = it51;
-            R.ln = F + 569;
+            R.ln = F + 551;
             S["assignment"] = R.m((S["item"] ?? null), "Assignment");
-            R.ln = F + 570;
+            R.ln = F + 552;
             S["principal"] = R.m((S["assignment"] ?? null), "principal");
-            R.ln = F + 571;
+            R.ln = F + 553;
             if (R.t(R.ne(R.m((S["principal"] ?? null), "@odata.type"), "#microsoft.graph.user"))) {
                 continue;
             }
-            R.ln = F + 572;
+            R.ln = F + 554;
             S["role"] = R.u(R.cmd(S, "Get-EntraRoleName", [R.m((S["assignment"] ?? null), "roleDefinitionId")], null));
-            R.ln = F + 573;
+            R.ln = F + 555;
             if (R.t(R.nin((S["role"] ?? null), (S["privilegedentraroles"] ?? null)))) {
                 continue;
             }
-            R.ln = F + 574;
+            R.ln = F + 556;
             S["issues"] = [];
-            R.ln = F + 575;
+            R.ln = F + 557;
             if (R.t(R.m((S["principal"] ?? null), "onPremisesSyncEnabled"))) {
-                R.ln = F + 575;
+                R.ln = F + 557;
                 S["issues"] = R.add(S["issues"] ?? null, "synchronized from on-premises");
             }
-            R.ln = F + 576;
+            R.ln = F + 558;
             if (R.t(R.u(R.cmd(S, "Test-GuestUser", [(S["principal"] ?? null)], null)))) {
-                R.ln = F + 576;
+                R.ln = F + 558;
                 S["issues"] = R.add(S["issues"] ?? null, "guest");
             }
-            R.ln = F + 577;
+            R.ln = F + 559;
             S["evidence"] = R.ht(["user", ("" + R.str(R.u(R.pi(R.m((S["principal"] ?? null), "displayName")))) + " (" + R.str(R.u(R.pi(R.m((S["principal"] ?? null), "userPrincipalName")))) + ")"), "role", (S["role"] ?? null), "kind", R.m((S["item"] ?? null), "Kind"), "onPremisesSyncEnabled", R.c("bool", R.m((S["principal"] ?? null), "onPremisesSyncEnabled")), "userType", R.m((S["principal"] ?? null), "userType")], true);
-            R.ln = F + 578;
+            R.ln = F + 560;
             const v52 = [];
-            R.ln = F + 578;
+            R.ln = F + 560;
             if (R.t((S["issues"] ?? null))) {
-                R.ln = F + 578;
+                R.ln = F + 560;
                 R.pa(v52, R.cmd(S, "New-Fail", [("" + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "user")))) + " holds " + R.str((S["role"] ?? null)) + " (" + R.str(R.u(R.pi(R.m((S["item"] ?? null), "Kind")))) + ") but is " + R.str(R.u(R.pi(R.join((S["issues"] ?? null), " and "))))), (S["evidence"] ?? null)], null));
             } else {
-                R.ln = F + 578;
+                R.ln = F + 560;
                 R.pa(v52, R.cmd(S, "New-Pass", [("" + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "user")))) + " is a cloud-only member"), (S["evidence"] ?? null)], null));
             }
             S["result"] = R.u(v52);
-            R.ln = F + 579;
+            R.ln = F + 561;
             R.pa(v50, R.cmd(S, "New-TenantFinding", [R.np("Result"), (S["result"] ?? null), R.np("Suffix"), ("/roleAssignments/" + R.str(R.u(R.pi(R.m((S["item"] ?? null), "Kind")))) + "/" + R.str(R.u(R.pi(R.m((S["assignment"] ?? null), "id")))))], null));
         }
         S["findings"] = R.u(v50);
-        R.ln = F + 581;
+        R.ln = F + 563;
         if (!R.t((S["findings"] ?? null))) {
-            R.ln = F + 581;
+            R.ln = F + 563;
             R.pa(O, R.cmd(S, "New-TenantFinding", [R.np("Result"), R.u(R.cmd(S, "New-Pass", ["No users with privileged Entra roles found"], null)), R.np("Suffix"), "/roles/privileged"], null));
             return;
         }
-        R.ln = F + 582;
+        R.ln = F + 564;
         R.e(O, (S["findings"] ?? null));
     })], false)], null));
-    R.ln = F + 586;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-IAM-019", "Title", "Service principals do not hold privileged Entra roles", "Category", "Privileged access", "Service", "Microsoft Entra ID", "Severity", "High", "Description", "Finds service principals and managed identities with active or eligible privileged Entra roles such as Global Administrator or Privileged Role Administrator.", "Rationale", "Workload identities cannot be protected with MFA or Conditional Access for users. Anyone who obtains their credential, or controls the Azure resource of a managed identity, holds the directory role.", "Remediation", "Replace directory roles on workload identities with the specific Graph permissions or scoped (administrative unit) roles they need, and restrict who can manage those identities.", "References", R.a("https://learn.microsoft.com/entra/identity/role-based-access-control/best-practices"), "Frameworks", R.ht(["MCSB", R.a([R.v("PA-1"), R.v("PA-7")])], false), "Requires", R.a([R.v("identity/directoryRoleAssignments"), R.v("identity/directoryRoleDefinitions")]), "Run", R.sb({ params: [], adv: 0, text: "\n        $findings = foreach ($item in @(Get-EntraRoleAssignments)) {\n            $assignment = $item.Assignment\n            if ($assignment.principal.'@odata.type' -ne '#microsoft.graph.servicePrincipal') { continue }\n            $role = Get-EntraRoleName $assignment.roleDefinitionId\n            if ($role -notin $privilegedEntraRoles) { continue }\n            $evidence = [ordered]@{ servicePrincipal = $assignment.principal.displayName; appId = $assignment.principal.appId; servicePrincipalType = $assignment.principal.servicePrincipalType; role = $role; kind = $item.Kind }\n            New-TenantFinding -Result (New-Fail \"$($assignment.principal.displayName) holds $role ($($item.Kind))\" $evidence) -Suffix \"/roleAssignments/$($item.Kind)/$($assignment.id)\"\n        }\n        if (-not $findings) { return New-TenantFinding -Result (New-Pass 'No service principals with privileged Entra roles') -Suffix '/roles/servicePrincipals' }\n        $findings\n    " }, (S, O) => {
-        R.ln = F + 599;
+    R.ln = F + 568;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-IAM-019", "Title", "Service principals do not hold privileged Entra roles", "Category", "Privileged access", "Service", "Microsoft Entra ID", "Severity", "High", "Description", "Finds service principals and managed identities with active or eligible privileged Entra roles such as Global Administrator or Privileged Role Administrator.", "Rationale", "Workload identities cannot be protected with MFA or Conditional Access for users. Anyone who obtains their credential, or controls the Azure resource of a managed identity, holds the directory role.", "Remediation", "Replace directory roles on workload identities with the specific Graph permissions or scoped (administrative unit) roles they need, and restrict who can manage those identities.", "References", R.a("https://learn.microsoft.com/entra/identity/role-based-access-control/best-practices"), "Requires", R.a([R.v("identity/directoryRoleAssignments"), R.v("identity/directoryRoleDefinitions")]), "Run", R.sb({ params: [], adv: 0, text: "\n        $findings = foreach ($item in @(Get-EntraRoleAssignments)) {\n            $assignment = $item.Assignment\n            if ($assignment.principal.'@odata.type' -ne '#microsoft.graph.servicePrincipal') { continue }\n            $role = Get-EntraRoleName $assignment.roleDefinitionId\n            if ($role -notin $privilegedEntraRoles) { continue }\n            $evidence = [ordered]@{ servicePrincipal = $assignment.principal.displayName; appId = $assignment.principal.appId; servicePrincipalType = $assignment.principal.servicePrincipalType; role = $role; kind = $item.Kind }\n            New-TenantFinding -Result (New-Fail \"$($assignment.principal.displayName) holds $role ($($item.Kind))\" $evidence) -Suffix \"/roleAssignments/$($item.Kind)/$($assignment.id)\"\n        }\n        if (-not $findings) { return New-TenantFinding -Result (New-Pass 'No service principals with privileged Entra roles') -Suffix '/roles/servicePrincipals' }\n        $findings\n    " }, (S, O) => {
+        R.ln = F + 580;
         const v53 = [];
-        R.ln = F + 599;
+        R.ln = F + 580;
         for (const it54 of R.fi(R.cmd(S, "Get-EntraRoleAssignments", [], null))) {
             S["item"] = it54;
-            R.ln = F + 600;
+            R.ln = F + 581;
             S["assignment"] = R.m((S["item"] ?? null), "Assignment");
-            R.ln = F + 601;
+            R.ln = F + 582;
             if (R.t(R.ne(R.m(R.m((S["assignment"] ?? null), "principal"), "@odata.type"), "#microsoft.graph.servicePrincipal"))) {
                 continue;
             }
-            R.ln = F + 602;
+            R.ln = F + 583;
             S["role"] = R.u(R.cmd(S, "Get-EntraRoleName", [R.m((S["assignment"] ?? null), "roleDefinitionId")], null));
-            R.ln = F + 603;
+            R.ln = F + 584;
             if (R.t(R.nin((S["role"] ?? null), (S["privilegedentraroles"] ?? null)))) {
                 continue;
             }
-            R.ln = F + 604;
+            R.ln = F + 585;
             S["evidence"] = R.ht(["servicePrincipal", R.m(R.m((S["assignment"] ?? null), "principal"), "displayName"), "appId", R.m(R.m((S["assignment"] ?? null), "principal"), "appId"), "servicePrincipalType", R.m(R.m((S["assignment"] ?? null), "principal"), "servicePrincipalType"), "role", (S["role"] ?? null), "kind", R.m((S["item"] ?? null), "Kind")], true);
-            R.ln = F + 605;
+            R.ln = F + 586;
             R.pa(v53, R.cmd(S, "New-TenantFinding", [R.np("Result"), R.u(R.cmd(S, "New-Fail", [("" + R.str(R.u(R.pi(R.m(R.m((S["assignment"] ?? null), "principal"), "displayName")))) + " holds " + R.str((S["role"] ?? null)) + " (" + R.str(R.u(R.pi(R.m((S["item"] ?? null), "Kind")))) + ")"), (S["evidence"] ?? null)], null)), R.np("Suffix"), ("/roleAssignments/" + R.str(R.u(R.pi(R.m((S["item"] ?? null), "Kind")))) + "/" + R.str(R.u(R.pi(R.m((S["assignment"] ?? null), "id")))))], null));
         }
         S["findings"] = R.u(v53);
-        R.ln = F + 607;
+        R.ln = F + 588;
         if (!R.t((S["findings"] ?? null))) {
-            R.ln = F + 607;
+            R.ln = F + 588;
             R.pa(O, R.cmd(S, "New-TenantFinding", [R.np("Result"), R.u(R.cmd(S, "New-Pass", ["No service principals with privileged Entra roles"], null)), R.np("Suffix"), "/roles/servicePrincipals"], null));
             return;
         }
-        R.ln = F + 608;
+        R.ln = F + 589;
         R.e(O, (S["findings"] ?? null));
     })], false)], null));
-    R.ln = F + 612;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-IAM-020", "Title", "Users with write access have signed in within 90 days", "Category", "Privileged access", "Service", "Microsoft Entra ID", "Severity", "Medium", "Description", "Finds users that hold write capable Azure roles (directly or through groups) without a sign-in in the 90 days before ingestion.", "Rationale", "Unused privileged access is pure risk: it is not needed by the business, is unlikely to be monitored and gives attackers dormant accounts to abuse.", "Remediation", "Remove the role assignments (or the group memberships) of inactive users, and schedule access reviews for privileged roles.", "References", R.a("https://learn.microsoft.com/entra/id-governance/access-reviews-overview"), "Frameworks", R.ht(["MCSB", R.a([R.v("PA-4"), R.v("PA-3")])], false), "Requires", R.a([R.v("rbac/roleAssignments"), R.v("rbac/roleDefinitions"), R.v("identity/users"), R.v("identity/groups")]), "Run", R.sb({ params: [], adv: 0, text: "\n        if (-not $script:Ingest.Manifest.sections.'identity/users'.signInActivity) { return New-SubscriptionFinding (New-Unknown 'Sign-in activity was not collected (requires AuditLog.Read.All and Entra ID P1)') }\n        $access = Get-PrincipalAccessMap\n        foreach ($user in @(Get-IngestData 'identity/users' | Where-Object { $_ })) {\n            $assignments = @($access[$user.id.ToLowerInvariant()] | Where-Object { $_ -and (Test-RoleCanWrite $_.properties.roleDefinitionId) })\n            if (-not $assignments) { continue }\n            $activity = $user.signInActivity\n            $dates = @($activity.lastSignInDateTime, $activity.lastNonInteractiveSignInDateTime, $activity.lastSuccessfulSignInDateTime) | Where-Object { $_ } | ForEach-Object { ConvertTo-UtcDate $_ }\n            $last = $dates | Sort-Object -Descending | Select-Object -First 1\n            $evidence = [ordered]@{ user = $user.userPrincipalName; lastSignIn = Format-UtcDate $last; roles = @($assignments | ForEach-Object { \"$(Get-RoleName $_.properties.roleDefinitionId) @ $($_.properties.scope)\" } | Sort-Object -Unique) }\n            $age = if ($last) { Get-AgeInDays $last } else { $null }\n            $result = if (-not $last) { New-Fail \"$($user.userPrincipalName) has write access but no recorded sign-in\" $evidence } elseif ($age -gt 90) { New-Fail \"$($user.userPrincipalName) last signed in $age days before ingestion\" $evidence } else { New-Pass \"$($user.userPrincipalName) signed in within 90 days\" $evidence }\n            New-Finding -ResourceId \"/users/$($user.id)\" -ResourceType 'Microsoft.Entra/users' -ResourceName $user.userPrincipalName -Result $result\n        }\n    " }, (S, O) => {
-        R.ln = F + 625;
+    R.ln = F + 593;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-IAM-020", "Title", "Users with write access have signed in within 90 days", "Category", "Privileged access", "Service", "Microsoft Entra ID", "Severity", "Medium", "Description", "Finds users that hold write capable Azure roles (directly or through groups) without a sign-in in the 90 days before ingestion.", "Rationale", "Unused privileged access is pure risk: it is not needed by the business, is unlikely to be monitored and gives attackers dormant accounts to abuse.", "Remediation", "Remove the role assignments (or the group memberships) of inactive users, and schedule access reviews for privileged roles.", "References", R.a("https://learn.microsoft.com/entra/id-governance/access-reviews-overview"), "Requires", R.a([R.v("rbac/roleAssignments"), R.v("rbac/roleDefinitions"), R.v("identity/users"), R.v("identity/groups")]), "Run", R.sb({ params: [], adv: 0, text: "\n        if (-not $script:Ingest.Manifest.sections.'identity/users'.signInActivity) { return New-SubscriptionFinding (New-Unknown 'Sign-in activity was not collected (requires AuditLog.Read.All and Entra ID P1)') }\n        $access = Get-PrincipalAccessMap\n        foreach ($user in @(Get-IngestData 'identity/users' | Where-Object { $_ })) {\n            $assignments = @($access[$user.id.ToLowerInvariant()] | Where-Object { $_ -and (Test-RoleCanWrite $_.properties.roleDefinitionId) })\n            if (-not $assignments) { continue }\n            $activity = $user.signInActivity\n            $dates = @($activity.lastSignInDateTime, $activity.lastNonInteractiveSignInDateTime, $activity.lastSuccessfulSignInDateTime) | Where-Object { $_ } | ForEach-Object { ConvertTo-UtcDate $_ }\n            $last = $dates | Sort-Object -Descending | Select-Object -First 1\n            $evidence = [ordered]@{ user = $user.userPrincipalName; lastSignIn = Format-UtcDate $last; roles = @($assignments | ForEach-Object { \"$(Get-RoleName $_.properties.roleDefinitionId) @ $($_.properties.scope)\" } | Sort-Object -Unique) }\n            $age = if ($last) { Get-AgeInDays $last } else { $null }\n            $result = if (-not $last) { New-Fail \"$($user.userPrincipalName) has write access but no recorded sign-in\" $evidence } elseif ($age -gt 90) { New-Fail \"$($user.userPrincipalName) last signed in $age days before ingestion\" $evidence } else { New-Pass \"$($user.userPrincipalName) signed in within 90 days\" $evidence }\n            New-Finding -ResourceId \"/users/$($user.id)\" -ResourceType 'Microsoft.Entra/users' -ResourceName $user.userPrincipalName -Result $result\n        }\n    " }, (S, O) => {
+        R.ln = F + 605;
         if (!R.t(R.m(R.m(R.m(R.m((R.ss(S)["script:ingest"] ?? null), "Manifest"), "sections"), "identity/users"), "signInActivity"))) {
-            R.ln = F + 625;
+            R.ln = F + 605;
             R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Unknown", ["Sign-in activity was not collected (requires AuditLog.Read.All and Entra ID P1)"], null))], null));
             return;
         }
-        R.ln = F + 626;
+        R.ln = F + 606;
         S["access"] = R.u(R.cmd(S, "Get-PrincipalAccessMap", [], null));
-        R.ln = F + 627;
+        R.ln = F + 607;
         for (const it55 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 627;
+            R.ln = F + 607;
             R.e(O, (S["_"] ?? null));
         })], R.cmd(S, "Get-IngestData", ["identity/users"], null)))) {
             S["user"] = it55;
-            R.ln = F + 628;
+            R.ln = F + 608;
             S["assignments"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and (Test-RoleCanWrite $_.properties.roleDefinitionId) " }, (S, O) => {
-                R.ln = F + 628;
+                R.ln = F + 608;
                 R.e(O, (R.t((S["_"] ?? null)) && R.t(R.u(R.cmd(S, "Test-RoleCanWrite", [R.m(R.m((S["_"] ?? null), "properties"), "roleDefinitionId")], null)))));
             })], R.pi(R.i((S["access"] ?? null), R.im(R.m((S["user"] ?? null), "id"), "ToLowerInvariant", []))));
-            R.ln = F + 629;
+            R.ln = F + 609;
             if (!R.t((S["assignments"] ?? null))) {
                 continue;
             }
-            R.ln = F + 630;
+            R.ln = F + 610;
             S["activity"] = R.m((S["user"] ?? null), "signInActivity");
-            R.ln = F + 631;
+            R.ln = F + 611;
             S["dates"] = R.u(R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " ConvertTo-UtcDate $_ " }, (S, O) => {
-                R.ln = F + 631;
+                R.ln = F + 611;
                 R.pa(O, R.cmd(S, "ConvertTo-UtcDate", [(S["_"] ?? null)], null));
             })], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                R.ln = F + 631;
+                R.ln = F + 611;
                 R.e(O, (S["_"] ?? null));
             })], R.pi(R.a([R.v(R.m((S["activity"] ?? null), "lastSignInDateTime")), R.v(R.m((S["activity"] ?? null), "lastNonInteractiveSignInDateTime")), R.v(R.m((S["activity"] ?? null), "lastSuccessfulSignInDateTime"))])))));
-            R.ln = F + 632;
+            R.ln = F + 612;
             S["last"] = R.u(R.cmd(S, "Select-Object", [R.np("First"), 1], R.cmd(S, "Sort-Object", [R.np("Descending")], R.pi((S["dates"] ?? null)))));
-            R.ln = F + 633;
+            R.ln = F + 613;
             S["evidence"] = R.ht(["user", R.m((S["user"] ?? null), "userPrincipalName"), "lastSignIn", R.u(R.cmd(S, "Format-UtcDate", [(S["last"] ?? null)], null)), "roles", R.cmd(S, "Sort-Object", [R.np("Unique")], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " \"$(Get-RoleName $_.properties.roleDefinitionId) @ $($_.properties.scope)\" " }, (S, O) => {
-                R.ln = F + 633;
+                R.ln = F + 613;
                 R.e(O, ("" + R.str(R.u(R.cmd(S, "Get-RoleName", [R.m(R.m((S["_"] ?? null), "properties"), "roleDefinitionId")], null))) + " @ " + R.str(R.u(R.pi(R.m(R.m((S["_"] ?? null), "properties"), "scope"))))));
             })], R.pi((S["assignments"] ?? null))))], true);
-            R.ln = F + 634;
+            R.ln = F + 614;
             const v56 = [];
-            R.ln = F + 634;
+            R.ln = F + 614;
             if (R.t((S["last"] ?? null))) {
-                R.ln = F + 634;
+                R.ln = F + 614;
                 R.pa(v56, R.cmd(S, "Get-AgeInDays", [(S["last"] ?? null)], null));
             } else {
-                R.ln = F + 634;
+                R.ln = F + 614;
                 R.e(v56, null);
             }
             S["age"] = R.u(v56);
-            R.ln = F + 635;
+            R.ln = F + 615;
             const v57 = [];
-            R.ln = F + 635;
+            R.ln = F + 615;
             if (!R.t((S["last"] ?? null))) {
-                R.ln = F + 635;
+                R.ln = F + 615;
                 R.pa(v57, R.cmd(S, "New-Fail", [("" + R.str(R.u(R.pi(R.m((S["user"] ?? null), "userPrincipalName")))) + " has write access but no recorded sign-in"), (S["evidence"] ?? null)], null));
             } else if (R.t(R.gt((S["age"] ?? null), 90))) {
-                R.ln = F + 635;
+                R.ln = F + 615;
                 R.pa(v57, R.cmd(S, "New-Fail", [("" + R.str(R.u(R.pi(R.m((S["user"] ?? null), "userPrincipalName")))) + " last signed in " + R.str((S["age"] ?? null)) + " days before ingestion"), (S["evidence"] ?? null)], null));
             } else {
-                R.ln = F + 635;
+                R.ln = F + 615;
                 R.pa(v57, R.cmd(S, "New-Pass", [("" + R.str(R.u(R.pi(R.m((S["user"] ?? null), "userPrincipalName")))) + " signed in within 90 days"), (S["evidence"] ?? null)], null));
             }
             S["result"] = R.u(v57);
-            R.ln = F + 636;
+            R.ln = F + 616;
             R.pa(O, R.cmd(S, "New-Finding", [R.np("ResourceId"), ("/users/" + R.str(R.u(R.pi(R.m((S["user"] ?? null), "id"))))), R.np("ResourceType"), "Microsoft.Entra/users", R.np("ResourceName"), R.m((S["user"] ?? null), "userPrincipalName"), R.np("Result"), (S["result"] ?? null)], null));
         }
     })], false)], null));
-    R.ln = F + 641;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-IAM-021", "Title", "Azure Lighthouse delegations do not grant standing write access", "Category", "Privileged access", "Service", "Azure Lighthouse", "Severity", "Medium", "Description", "Checks Azure Lighthouse delegations of the subscription and its resource groups for permanent (non eligible) authorizations with write capable roles for the managing tenant.", "Rationale", "Lighthouse gives principals in another tenant access that does not appear as regular role assignments. Standing write access by a provider extends the attack surface to that provider.", "Remediation", "Use eligible authorizations (just-in-time with MFA and approval) in the registration definition, limit roles to what the provider needs and remove delegations that are no longer used.", "References", R.a("https://learn.microsoft.com/azure/lighthouse/how-to/create-eligible-authorizations"), "Frameworks", R.ht(["MCSB", R.a([R.v("PA-7"), R.v("PA-8")])], false), "Requires", R.a([R.v("subscription/lighthouseRegistrationAssignments"), R.v("rbac/roleDefinitions")]), "Run", R.sb({ params: [], adv: 0, text: "\n        $assignments = @(Get-IngestData 'subscription/lighthouseRegistrationAssignments' | Where-Object { $_ })\n        foreach ($group in (Get-ResourceGroupRecords)) { $assignments += @($group.lighthouseRegistrationAssignments | Where-Object { $_ }) }\n        if (-not $assignments) { return New-SubscriptionFinding (New-Pass 'No Azure Lighthouse delegations') }\n        foreach ($assignment in $assignments) {\n            $definition = $assignment.properties.registrationDefinition.properties\n            $writers = @($definition.authorizations | Where-Object { $_ -and (Test-RoleCanWrite $_.roleDefinitionId) })\n            $evidence = [ordered]@{ managedByTenant = \"$($definition.managedByTenantName) ($($definition.managedByTenantId))\"; offer = $definition.registrationDefinitionName; standingWrite = @($writers | ForEach-Object { \"$($_.principalIdDisplayName): $(Get-RoleName $_.roleDefinitionId)\" } | Sort-Object); eligible = @($definition.eligibleAuthorizations | Where-Object { $_ } | ForEach-Object { \"$($_.principalIdDisplayName): $(Get-RoleName $_.roleDefinitionId)\" } | Sort-Object) }\n            $result = if ($writers) { New-Fail \"$($definition.managedByTenantName) has standing write access through $($writers.Count) authorization(s)\" $evidence } else { New-Pass \"$($definition.managedByTenantName) has no standing write access\" $evidence }\n            New-Finding -ResourceId $assignment.id -ResourceType 'Microsoft.ManagedServices/registrationAssignments' -ResourceName $definition.registrationDefinitionName -Result $result\n        }\n    " }, (S, O) => {
-        R.ln = F + 654;
+    R.ln = F + 621;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-IAM-021", "Title", "Azure Lighthouse delegations do not grant standing write access", "Category", "Privileged access", "Service", "Azure Lighthouse", "Severity", "Medium", "Description", "Checks Azure Lighthouse delegations of the subscription and its resource groups for permanent (non eligible) authorizations with write capable roles for the managing tenant.", "Rationale", "Lighthouse gives principals in another tenant access that does not appear as regular role assignments. Standing write access by a provider extends the attack surface to that provider.", "Remediation", "Use eligible authorizations (just-in-time with MFA and approval) in the registration definition, limit roles to what the provider needs and remove delegations that are no longer used.", "References", R.a("https://learn.microsoft.com/azure/lighthouse/how-to/create-eligible-authorizations"), "Requires", R.a([R.v("subscription/lighthouseRegistrationAssignments"), R.v("rbac/roleDefinitions")]), "Run", R.sb({ params: [], adv: 0, text: "\n        $assignments = @(Get-IngestData 'subscription/lighthouseRegistrationAssignments' | Where-Object { $_ })\n        foreach ($group in (Get-ResourceGroupRecords)) { $assignments += @($group.lighthouseRegistrationAssignments | Where-Object { $_ }) }\n        if (-not $assignments) { return New-SubscriptionFinding (New-Pass 'No Azure Lighthouse delegations') }\n        foreach ($assignment in $assignments) {\n            $definition = $assignment.properties.registrationDefinition.properties\n            $writers = @($definition.authorizations | Where-Object { $_ -and (Test-RoleCanWrite $_.roleDefinitionId) })\n            $evidence = [ordered]@{ managedByTenant = \"$($definition.managedByTenantName) ($($definition.managedByTenantId))\"; offer = $definition.registrationDefinitionName; standingWrite = @($writers | ForEach-Object { \"$($_.principalIdDisplayName): $(Get-RoleName $_.roleDefinitionId)\" } | Sort-Object); eligible = @($definition.eligibleAuthorizations | Where-Object { $_ } | ForEach-Object { \"$($_.principalIdDisplayName): $(Get-RoleName $_.roleDefinitionId)\" } | Sort-Object) }\n            $result = if ($writers) { New-Fail \"$($definition.managedByTenantName) has standing write access through $($writers.Count) authorization(s)\" $evidence } else { New-Pass \"$($definition.managedByTenantName) has no standing write access\" $evidence }\n            New-Finding -ResourceId $assignment.id -ResourceType 'Microsoft.ManagedServices/registrationAssignments' -ResourceName $definition.registrationDefinitionName -Result $result\n        }\n    " }, (S, O) => {
+        R.ln = F + 633;
         S["assignments"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 654;
+            R.ln = F + 633;
             R.e(O, (S["_"] ?? null));
         })], R.cmd(S, "Get-IngestData", ["subscription/lighthouseRegistrationAssignments"], null));
-        R.ln = F + 655;
+        R.ln = F + 634;
         for (const it58 of R.fi(R.u(R.cmd(S, "Get-ResourceGroupRecords", [], null)))) {
             S["group"] = it58;
-            R.ln = F + 655;
+            R.ln = F + 634;
             S["assignments"] = R.add(S["assignments"] ?? null, R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                R.ln = F + 655;
+                R.ln = F + 634;
                 R.e(O, (S["_"] ?? null));
             })], R.pi(R.m((S["group"] ?? null), "lighthouseRegistrationAssignments"))));
         }
-        R.ln = F + 656;
+        R.ln = F + 635;
         if (!R.t((S["assignments"] ?? null))) {
-            R.ln = F + 656;
+            R.ln = F + 635;
             R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Pass", ["No Azure Lighthouse delegations"], null))], null));
             return;
         }
-        R.ln = F + 657;
+        R.ln = F + 636;
         for (const it59 of R.fi((S["assignments"] ?? null))) {
             S["assignment"] = it59;
-            R.ln = F + 658;
+            R.ln = F + 637;
             S["definition"] = R.m(R.m(R.m((S["assignment"] ?? null), "properties"), "registrationDefinition"), "properties");
-            R.ln = F + 659;
+            R.ln = F + 638;
             S["writers"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and (Test-RoleCanWrite $_.roleDefinitionId) " }, (S, O) => {
-                R.ln = F + 659;
+                R.ln = F + 638;
                 R.e(O, (R.t((S["_"] ?? null)) && R.t(R.u(R.cmd(S, "Test-RoleCanWrite", [R.m((S["_"] ?? null), "roleDefinitionId")], null)))));
             })], R.pi(R.m((S["definition"] ?? null), "authorizations")));
-            R.ln = F + 660;
+            R.ln = F + 639;
             S["evidence"] = R.ht(["managedByTenant", ("" + R.str(R.u(R.pi(R.m((S["definition"] ?? null), "managedByTenantName")))) + " (" + R.str(R.u(R.pi(R.m((S["definition"] ?? null), "managedByTenantId")))) + ")"), "offer", R.m((S["definition"] ?? null), "registrationDefinitionName"), "standingWrite", R.cmd(S, "Sort-Object", [], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " \"$($_.principalIdDisplayName): $(Get-RoleName $_.roleDefinitionId)\" " }, (S, O) => {
-                R.ln = F + 660;
+                R.ln = F + 639;
                 R.e(O, ("" + R.str(R.u(R.pi(R.m((S["_"] ?? null), "principalIdDisplayName")))) + ": " + R.str(R.u(R.cmd(S, "Get-RoleName", [R.m((S["_"] ?? null), "roleDefinitionId")], null)))));
             })], R.pi((S["writers"] ?? null)))), "eligible", R.cmd(S, "Sort-Object", [], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " \"$($_.principalIdDisplayName): $(Get-RoleName $_.roleDefinitionId)\" " }, (S, O) => {
-                R.ln = F + 660;
+                R.ln = F + 639;
                 R.e(O, ("" + R.str(R.u(R.pi(R.m((S["_"] ?? null), "principalIdDisplayName")))) + ": " + R.str(R.u(R.cmd(S, "Get-RoleName", [R.m((S["_"] ?? null), "roleDefinitionId")], null)))));
             })], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                R.ln = F + 660;
+                R.ln = F + 639;
                 R.e(O, (S["_"] ?? null));
             })], R.pi(R.m((S["definition"] ?? null), "eligibleAuthorizations")))))], true);
-            R.ln = F + 661;
+            R.ln = F + 640;
             const v60 = [];
-            R.ln = F + 661;
+            R.ln = F + 640;
             if (R.t((S["writers"] ?? null))) {
-                R.ln = F + 661;
+                R.ln = F + 640;
                 R.pa(v60, R.cmd(S, "New-Fail", [("" + R.str(R.u(R.pi(R.m((S["definition"] ?? null), "managedByTenantName")))) + " has standing write access through " + R.str(R.u(R.pi(R.m((S["writers"] ?? null), "Count")))) + " authorization(s)"), (S["evidence"] ?? null)], null));
             } else {
-                R.ln = F + 661;
+                R.ln = F + 640;
                 R.pa(v60, R.cmd(S, "New-Pass", [("" + R.str(R.u(R.pi(R.m((S["definition"] ?? null), "managedByTenantName")))) + " has no standing write access"), (S["evidence"] ?? null)], null));
             }
             S["result"] = R.u(v60);
-            R.ln = F + 662;
+            R.ln = F + 641;
             R.pa(O, R.cmd(S, "New-Finding", [R.np("ResourceId"), R.m((S["assignment"] ?? null), "id"), R.np("ResourceType"), "Microsoft.ManagedServices/registrationAssignments", R.np("ResourceName"), R.m((S["definition"] ?? null), "registrationDefinitionName"), R.np("Result"), (S["result"] ?? null)], null));
         }
     })], false)], null));
-    R.ln = F + 667;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-IAM-022", "Title", "Workload identity federation trusts only expected issuers", "Category", "Identity management", "Service", "Microsoft Entra ID", "Severity", "High", "Description", "Checks the federated identity credentials of applications and user assigned managed identities with Azure access for wildcard subjects, and lists the external issuers and subjects that can obtain a token for them.", "Rationale", "A federated credential lets anyone who can make the external identity provider issue a token with the configured subject sign in as the workload, without any secret. A wildcard or overly broad subject (for example any branch or any pull request of a repository) lets a fork or an untrusted contributor obtain that token.", "Remediation", "Pin each federated credential to one issuer and one exact subject (for example repo:org/repo:ref:refs/heads/main or repo:org/repo:environment:production), remove credentials for issuers you do not control, and prefer protected environments with required reviewers for deployment credentials.", "References", R.a("https://learn.microsoft.com/entra/workload-id/workload-identity-federation-considerations"), "Frameworks", R.ht(["MCSB", R.a([R.v("IM-3"), R.v("IM-8")]), "WAF", "SE:09"], false), "Requires", R.a([R.v("rbac/roleAssignments"), R.v("rbac/roleDefinitions"), R.v("identity/servicePrincipals"), R.v("identity/directoryObjects"), R.v("identity/groups")]), "Run", R.sb({ params: [], adv: 0, text: "\n        $findings = @(foreach ($identity in (Get-AzureWorkloadIdentities)) {\n            $credentials = @($identity.Record.applicationFederatedIdentityCredentials | Where-Object { $_ })\n            if (-not $credentials) { continue }\n            #'*' anywhere in the subject means the issuer decides who may sign in as this workload\n            $broad = @($credentials | Where-Object { ([string]$_.subject) -match '\\*' -or -not $_.subject } | ForEach-Object { \"$($_.name): $($_.issuer) / $(if ($_.subject) { $_.subject } else { '(no subject)' })\" } | Sort-Object)\n            $evidence = [ordered]@{\n                appId               = $identity.Principal.appId\n                federatedCredentials = @($credentials | ForEach-Object { \"$($_.name): $($_.issuer) / $($_.subject)\" } | Sort-Object)\n                broadSubjects       = $broad\n                roles               = @($identity.Assignments | ForEach-Object { \"$(Get-RoleName $_.properties.roleDefinitionId) @ $($_.properties.scope)\" } | Sort-Object -Unique)\n            }\n            $result = if ($broad) { New-Fail \"$($identity.Principal.displayName) has $($broad.Count) federated credential(s) with a wildcard or missing subject\" $evidence } else { New-Pass \"$($credentials.Count) federated credential(s), all pinned to an exact subject\" $evidence }\n            New-Finding -ResourceId \"/servicePrincipals/$($identity.Record.id)\" -ResourceType 'Microsoft.Entra/servicePrincipals' -ResourceName $identity.Principal.displayName -Result $result\n        })\n        #user assigned managed identities keep their federated credentials as an Azure child resource, not in the directory\n        $findings += @(foreach ($record in (Get-AzResourceRecords -Type 'Microsoft.ManagedIdentity/userAssignedIdentities')) {\n            if (-not (Test-ChildCollected $record 'federatedIdentityCredentials')) { New-Finding -Record $record -Result (New-Unknown 'Federated identity credentials could not be read'); continue }\n            $credentials = @(Get-Child $record 'federatedIdentityCredentials' | Where-Object { $_ })\n            if (-not $credentials) { continue }\n            $broad = @($credentials | Where-Object { ([string]$_.properties.subject) -match '\\*' -or -not $_.properties.subject } | ForEach-Object { \"$($_.name): $($_.properties.issuer) / $(if ($_.properties.subject) { $_.properties.subject } else { '(no subject)' })\" } | Sort-Object)\n            $evidence = [ordered]@{\n                clientId             = $record.resource.properties.clientId\n                federatedCredentials = @($credentials | ForEach-Object { \"$($_.name): $($_.properties.issuer) / $($_.properties.subject)\" } | Sort-Object)\n                broadSubjects        = $broad\n            }\n            $result = if ($broad) { New-Fail \"$($record.resource.name) has $($broad.Count) federated credential(s) with a wildcard or missing subject\" $evidence } else { New-Pass \"$($credentials.Count) federated credential(s), all pinned to an exact subject\" $evidence }\n            New-Finding -Record $record -Result $result\n        })\n        if (-not $findings) { return New-SubscriptionFinding (New-Pass 'No workload identity federation configured for identities with Azure access') }\n        $findings\n    " }, (S, O) => {
-        R.ln = F + 680;
+    R.ln = F + 646;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-IAM-022", "Title", "Workload identity federation trusts only expected issuers", "Category", "Identity management", "Service", "Microsoft Entra ID", "Severity", "High", "Description", "Checks the federated identity credentials of applications and user assigned managed identities with Azure access for wildcard subjects, and lists the external issuers and subjects that can obtain a token for them.", "Rationale", "A federated credential lets anyone who can make the external identity provider issue a token with the configured subject sign in as the workload, without any secret. A wildcard or overly broad subject (for example any branch or any pull request of a repository) lets a fork or an untrusted contributor obtain that token.", "Remediation", "Pin each federated credential to one issuer and one exact subject (for example repo:org/repo:ref:refs/heads/main or repo:org/repo:environment:production), remove credentials for issuers you do not control, and prefer protected environments with required reviewers for deployment credentials.", "References", R.a("https://learn.microsoft.com/entra/workload-id/workload-identity-federation-considerations"), "Requires", R.a([R.v("rbac/roleAssignments"), R.v("rbac/roleDefinitions"), R.v("identity/servicePrincipals"), R.v("identity/directoryObjects"), R.v("identity/groups")]), "Run", R.sb({ params: [], adv: 0, text: "\n        $findings = @(foreach ($identity in (Get-AzureWorkloadIdentities)) {\n            $credentials = @($identity.Record.applicationFederatedIdentityCredentials | Where-Object { $_ })\n            if (-not $credentials) { continue }\n            #'*' anywhere in the subject means the issuer decides who may sign in as this workload\n            $broad = @($credentials | Where-Object { ([string]$_.subject) -match '\\*' -or -not $_.subject } | ForEach-Object { \"$($_.name): $($_.issuer) / $(if ($_.subject) { $_.subject } else { '(no subject)' })\" } | Sort-Object)\n            $evidence = [ordered]@{\n                appId               = $identity.Principal.appId\n                federatedCredentials = @($credentials | ForEach-Object { \"$($_.name): $($_.issuer) / $($_.subject)\" } | Sort-Object)\n                broadSubjects       = $broad\n                roles               = @($identity.Assignments | ForEach-Object { \"$(Get-RoleName $_.properties.roleDefinitionId) @ $($_.properties.scope)\" } | Sort-Object -Unique)\n            }\n            $result = if ($broad) { New-Fail \"$($identity.Principal.displayName) has $($broad.Count) federated credential(s) with a wildcard or missing subject\" $evidence } else { New-Pass \"$($credentials.Count) federated credential(s), all pinned to an exact subject\" $evidence }\n            New-Finding -ResourceId \"/servicePrincipals/$($identity.Record.id)\" -ResourceType 'Microsoft.Entra/servicePrincipals' -ResourceName $identity.Principal.displayName -Result $result\n        })\n        #user assigned managed identities keep their federated credentials as an Azure child resource, not in the directory\n        $findings += @(foreach ($record in (Get-AzResourceRecords -Type 'Microsoft.ManagedIdentity/userAssignedIdentities')) {\n            if (-not (Test-ChildCollected $record 'federatedIdentityCredentials')) { New-Finding -Record $record -Result (New-Unknown 'Federated identity credentials could not be read'); continue }\n            $credentials = @(Get-Child $record 'federatedIdentityCredentials' | Where-Object { $_ })\n            if (-not $credentials) { continue }\n            $broad = @($credentials | Where-Object { ([string]$_.properties.subject) -match '\\*' -or -not $_.properties.subject } | ForEach-Object { \"$($_.name): $($_.properties.issuer) / $(if ($_.properties.subject) { $_.properties.subject } else { '(no subject)' })\" } | Sort-Object)\n            $evidence = [ordered]@{\n                clientId             = $record.resource.properties.clientId\n                federatedCredentials = @($credentials | ForEach-Object { \"$($_.name): $($_.properties.issuer) / $($_.properties.subject)\" } | Sort-Object)\n                broadSubjects        = $broad\n            }\n            $result = if ($broad) { New-Fail \"$($record.resource.name) has $($broad.Count) federated credential(s) with a wildcard or missing subject\" $evidence } else { New-Pass \"$($credentials.Count) federated credential(s), all pinned to an exact subject\" $evidence }\n            New-Finding -Record $record -Result $result\n        })\n        if (-not $findings) { return New-SubscriptionFinding (New-Pass 'No workload identity federation configured for identities with Azure access') }\n        $findings\n    " }, (S, O) => {
+        R.ln = F + 658;
         S["findings"] = (() => {
             const v61 = [];
-            R.ln = F + 680;
+            R.ln = F + 658;
             for (const it62 of R.fi(R.u(R.cmd(S, "Get-AzureWorkloadIdentities", [], null)))) {
                 S["identity"] = it62;
-                R.ln = F + 681;
+                R.ln = F + 659;
                 S["credentials"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                    R.ln = F + 681;
+                    R.ln = F + 659;
                     R.e(O, (S["_"] ?? null));
                 })], R.pi(R.m(R.m((S["identity"] ?? null), "Record"), "applicationFederatedIdentityCredentials")));
-                R.ln = F + 682;
+                R.ln = F + 660;
                 if (!R.t((S["credentials"] ?? null))) {
                     continue;
                 }
-                R.ln = F + 684;
+                R.ln = F + 662;
                 S["broad"] = R.cmd(S, "Sort-Object", [], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " \"$($_.name): $($_.issuer) / $(if ($_.subject) { $_.subject } else { '(no subject)' })\" " }, (S, O) => {
-                    R.ln = F + 684;
+                    R.ln = F + 662;
                     R.e(O, ("" + R.str(R.u(R.pi(R.m((S["_"] ?? null), "name")))) + ": " + R.str(R.u(R.pi(R.m((S["_"] ?? null), "issuer")))) + " / " + R.str((() => {
                         const v63 = [];
-                        R.ln = F + 684;
+                        R.ln = F + 662;
                         if (R.t(R.m((S["_"] ?? null), "subject"))) {
-                            R.ln = F + 684;
+                            R.ln = F + 662;
                             R.e(v63, R.m((S["_"] ?? null), "subject"));
                         } else {
-                            R.ln = F + 684;
+                            R.ln = F + 662;
                             R.e(v63, "(no subject)");
                         }
                         return R.u(v63);
                     })())));
                 })], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " ([string]$_.subject) -match '\\*' -or -not $_.subject " }, (S, O) => {
-                    R.ln = F + 684;
+                    R.ln = F + 662;
                     R.e(O, (R.t(R.match(S, (R.c("string", R.m((S["_"] ?? null), "subject"))), "\\*")) || !R.t(R.m((S["_"] ?? null), "subject"))));
                 })], R.pi((S["credentials"] ?? null)))));
-                R.ln = F + 685;
+                R.ln = F + 663;
                 S["evidence"] = R.ht(["appId", R.m(R.m((S["identity"] ?? null), "Principal"), "appId"), "federatedCredentials", R.cmd(S, "Sort-Object", [], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " \"$($_.name): $($_.issuer) / $($_.subject)\" " }, (S, O) => {
-                    R.ln = F + 687;
+                    R.ln = F + 665;
                     R.e(O, ("" + R.str(R.u(R.pi(R.m((S["_"] ?? null), "name")))) + ": " + R.str(R.u(R.pi(R.m((S["_"] ?? null), "issuer")))) + " / " + R.str(R.u(R.pi(R.m((S["_"] ?? null), "subject"))))));
                 })], R.pi((S["credentials"] ?? null)))), "broadSubjects", (S["broad"] ?? null), "roles", R.cmd(S, "Sort-Object", [R.np("Unique")], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " \"$(Get-RoleName $_.properties.roleDefinitionId) @ $($_.properties.scope)\" " }, (S, O) => {
-                    R.ln = F + 689;
+                    R.ln = F + 667;
                     R.e(O, ("" + R.str(R.u(R.cmd(S, "Get-RoleName", [R.m(R.m((S["_"] ?? null), "properties"), "roleDefinitionId")], null))) + " @ " + R.str(R.u(R.pi(R.m(R.m((S["_"] ?? null), "properties"), "scope"))))));
                 })], R.pi(R.m((S["identity"] ?? null), "Assignments"))))], true);
-                R.ln = F + 691;
+                R.ln = F + 669;
                 const v64 = [];
-                R.ln = F + 691;
+                R.ln = F + 669;
                 if (R.t((S["broad"] ?? null))) {
-                    R.ln = F + 691;
+                    R.ln = F + 669;
                     R.pa(v64, R.cmd(S, "New-Fail", [("" + R.str(R.u(R.pi(R.m(R.m((S["identity"] ?? null), "Principal"), "displayName")))) + " has " + R.str(R.u(R.pi(R.m((S["broad"] ?? null), "Count")))) + " federated credential(s) with a wildcard or missing subject"), (S["evidence"] ?? null)], null));
                 } else {
-                    R.ln = F + 691;
+                    R.ln = F + 669;
                     R.pa(v64, R.cmd(S, "New-Pass", [("" + R.str(R.u(R.pi(R.m((S["credentials"] ?? null), "Count")))) + " federated credential(s), all pinned to an exact subject"), (S["evidence"] ?? null)], null));
                 }
                 S["result"] = R.u(v64);
-                R.ln = F + 692;
+                R.ln = F + 670;
                 R.pa(v61, R.cmd(S, "New-Finding", [R.np("ResourceId"), ("/servicePrincipals/" + R.str(R.u(R.pi(R.m(R.m((S["identity"] ?? null), "Record"), "id"))))), R.np("ResourceType"), "Microsoft.Entra/servicePrincipals", R.np("ResourceName"), R.m(R.m((S["identity"] ?? null), "Principal"), "displayName"), R.np("Result"), (S["result"] ?? null)], null));
             }
             return v61;
         })();
-        R.ln = F + 695;
+        R.ln = F + 673;
         S["findings"] = R.add(S["findings"] ?? null, (() => {
             const v65 = [];
-            R.ln = F + 695;
+            R.ln = F + 673;
             for (const it66 of R.fi(R.u(R.cmd(S, "Get-AzResourceRecords", [R.np("Type"), "Microsoft.ManagedIdentity/userAssignedIdentities"], null)))) {
                 S["record"] = it66;
-                R.ln = F + 696;
+                R.ln = F + 674;
                 if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "federatedIdentityCredentials"], null)))) {
-                    R.ln = F + 696;
+                    R.ln = F + 674;
                     R.pa(v65, R.cmd(S, "New-Finding", [R.np("Record"), (S["record"] ?? null), R.np("Result"), R.u(R.cmd(S, "New-Unknown", ["Federated identity credentials could not be read"], null))], null));
                     continue;
                 }
-                R.ln = F + 697;
+                R.ln = F + 675;
                 S["credentials"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                    R.ln = F + 697;
+                    R.ln = F + 675;
                     R.e(O, (S["_"] ?? null));
                 })], R.cmd(S, "Get-Child", [(S["record"] ?? null), "federatedIdentityCredentials"], null));
-                R.ln = F + 698;
+                R.ln = F + 676;
                 if (!R.t((S["credentials"] ?? null))) {
                     continue;
                 }
-                R.ln = F + 699;
+                R.ln = F + 677;
                 S["broad"] = R.cmd(S, "Sort-Object", [], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " \"$($_.name): $($_.properties.issuer) / $(if ($_.properties.subject) { $_.properties.subject } else { '(no subject)' })\" " }, (S, O) => {
-                    R.ln = F + 699;
+                    R.ln = F + 677;
                     R.e(O, ("" + R.str(R.u(R.pi(R.m((S["_"] ?? null), "name")))) + ": " + R.str(R.u(R.pi(R.m(R.m((S["_"] ?? null), "properties"), "issuer")))) + " / " + R.str((() => {
                         const v67 = [];
-                        R.ln = F + 699;
+                        R.ln = F + 677;
                         if (R.t(R.m(R.m((S["_"] ?? null), "properties"), "subject"))) {
-                            R.ln = F + 699;
+                            R.ln = F + 677;
                             R.e(v67, R.m(R.m((S["_"] ?? null), "properties"), "subject"));
                         } else {
-                            R.ln = F + 699;
+                            R.ln = F + 677;
                             R.e(v67, "(no subject)");
                         }
                         return R.u(v67);
                     })())));
                 })], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " ([string]$_.properties.subject) -match '\\*' -or -not $_.properties.subject " }, (S, O) => {
-                    R.ln = F + 699;
+                    R.ln = F + 677;
                     R.e(O, (R.t(R.match(S, (R.c("string", R.m(R.m((S["_"] ?? null), "properties"), "subject"))), "\\*")) || !R.t(R.m(R.m((S["_"] ?? null), "properties"), "subject"))));
                 })], R.pi((S["credentials"] ?? null)))));
-                R.ln = F + 700;
+                R.ln = F + 678;
                 S["evidence"] = R.ht(["clientId", R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "clientId"), "federatedCredentials", R.cmd(S, "Sort-Object", [], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " \"$($_.name): $($_.properties.issuer) / $($_.properties.subject)\" " }, (S, O) => {
-                    R.ln = F + 702;
+                    R.ln = F + 680;
                     R.e(O, ("" + R.str(R.u(R.pi(R.m((S["_"] ?? null), "name")))) + ": " + R.str(R.u(R.pi(R.m(R.m((S["_"] ?? null), "properties"), "issuer")))) + " / " + R.str(R.u(R.pi(R.m(R.m((S["_"] ?? null), "properties"), "subject"))))));
                 })], R.pi((S["credentials"] ?? null)))), "broadSubjects", (S["broad"] ?? null)], true);
-                R.ln = F + 705;
+                R.ln = F + 683;
                 const v68 = [];
-                R.ln = F + 705;
+                R.ln = F + 683;
                 if (R.t((S["broad"] ?? null))) {
-                    R.ln = F + 705;
+                    R.ln = F + 683;
                     R.pa(v68, R.cmd(S, "New-Fail", [("" + R.str(R.u(R.pi(R.m(R.m((S["record"] ?? null), "resource"), "name")))) + " has " + R.str(R.u(R.pi(R.m((S["broad"] ?? null), "Count")))) + " federated credential(s) with a wildcard or missing subject"), (S["evidence"] ?? null)], null));
                 } else {
-                    R.ln = F + 705;
+                    R.ln = F + 683;
                     R.pa(v68, R.cmd(S, "New-Pass", [("" + R.str(R.u(R.pi(R.m((S["credentials"] ?? null), "Count")))) + " federated credential(s), all pinned to an exact subject"), (S["evidence"] ?? null)], null));
                 }
                 S["result"] = R.u(v68);
-                R.ln = F + 706;
+                R.ln = F + 684;
                 R.pa(v65, R.cmd(S, "New-Finding", [R.np("Record"), (S["record"] ?? null), R.np("Result"), (S["result"] ?? null)], null));
             }
             return v65;
         })());
-        R.ln = F + 708;
+        R.ln = F + 686;
         if (!R.t((S["findings"] ?? null))) {
-            R.ln = F + 708;
+            R.ln = F + 686;
             R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Pass", ["No workload identity federation configured for identities with Azure access"], null))], null));
             return;
         }
-        R.ln = F + 709;
+        R.ln = F + 687;
         R.e(O, (S["findings"] ?? null));
     })], false)], null));
-    R.ln = F + 713;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-IAM-023", "Title", "Deny assignment exclusions are limited", "Category", "Privileged access", "Service", "Azure RBAC", "Severity", "Medium", "Description", "Checks the deny assignments that apply to this subscription for excluded principals. Deny assignments are created by Azure managed applications, Blueprints and deployment stacks; principals on their exclude list keep the access that the deny assignment takes away from everyone else.", "Rationale", "A deny assignment overrides role assignments, so access cannot be judged from role assignments alone. Every excluded principal is a standing exemption that no access review covers and that does not show up as a role assignment.", "Remediation", "Confirm that each excluded principal is the intended operator of the managed application, blueprint or deployment stack that owns the deny assignment, and remove the owning resource when it is no longer used.", "References", R.a("https://learn.microsoft.com/azure/role-based-access-control/deny-assignments"), "Frameworks", R.ht(["MCSB", R.a([R.v("PA-7"), R.v("PA-4")])], false), "Requires", R.a("rbac/denyAssignments"), "Run", R.sb({ params: [], adv: 0, text: "\n        $assignments = @(Get-IngestData 'rbac/denyAssignments' | Where-Object { $_ })\n        if (-not $assignments) { return New-SubscriptionFinding (New-Pass 'No deny assignments apply to this subscription') }\n        foreach ($assignment in $assignments) {\n            $p = $assignment.properties\n            $excluded = @($p.excludePrincipals | Where-Object { $_ } | ForEach-Object { Get-PrincipalLabel $_.id } | Sort-Object)\n            $evidence = [ordered]@{\n                displayName             = $p.denyAssignmentName\n                scope                   = $p.scope\n                isSystemProtected       = [bool]$p.isSystemProtected\n                doNotApplyToChildScopes = [bool]$p.doNotApplyToChildScopes\n                excludedPrincipals      = $excluded\n                deniedActions           = @($p.permissions | ForEach-Object { $_.actions } | Where-Object { $_ } | Sort-Object -Unique)\n            }\n            $result = if ($excluded) {\n                New-Fail \"Deny assignment '$($p.denyAssignmentName)' excludes $($excluded.Count) principal(s): $($excluded -join ', ')\" $evidence\n            } else {\n                New-Pass \"Deny assignment '$($p.denyAssignmentName)' applies to everyone in scope\" $evidence\n            }\n            New-Finding -ResourceId $assignment.id -ResourceType 'Microsoft.Authorization/denyAssignments' -ResourceName $p.denyAssignmentName -Result $result\n        }\n    " }, (S, O) => {
-        R.ln = F + 726;
+    R.ln = F + 691;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-IAM-023", "Title", "Deny assignment exclusions are limited", "Category", "Privileged access", "Service", "Azure RBAC", "Severity", "Medium", "Description", "Checks the deny assignments that apply to this subscription for excluded principals. Deny assignments are created by Azure managed applications, Blueprints and deployment stacks; principals on their exclude list keep the access that the deny assignment takes away from everyone else.", "Rationale", "A deny assignment overrides role assignments, so access cannot be judged from role assignments alone. Every excluded principal is a standing exemption that no access review covers and that does not show up as a role assignment.", "Remediation", "Confirm that each excluded principal is the intended operator of the managed application, blueprint or deployment stack that owns the deny assignment, and remove the owning resource when it is no longer used.", "References", R.a("https://learn.microsoft.com/azure/role-based-access-control/deny-assignments"), "Requires", R.a("rbac/denyAssignments"), "Run", R.sb({ params: [], adv: 0, text: "\n        $assignments = @(Get-IngestData 'rbac/denyAssignments' | Where-Object { $_ })\n        if (-not $assignments) { return New-SubscriptionFinding (New-Pass 'No deny assignments apply to this subscription') }\n        foreach ($assignment in $assignments) {\n            $p = $assignment.properties\n            $excluded = @($p.excludePrincipals | Where-Object { $_ } | ForEach-Object { Get-PrincipalLabel $_.id } | Sort-Object)\n            $evidence = [ordered]@{\n                displayName             = $p.denyAssignmentName\n                scope                   = $p.scope\n                isSystemProtected       = [bool]$p.isSystemProtected\n                doNotApplyToChildScopes = [bool]$p.doNotApplyToChildScopes\n                excludedPrincipals      = $excluded\n                deniedActions           = @($p.permissions | ForEach-Object { $_.actions } | Where-Object { $_ } | Sort-Object -Unique)\n            }\n            $result = if ($excluded) {\n                New-Fail \"Deny assignment '$($p.denyAssignmentName)' excludes $($excluded.Count) principal(s): $($excluded -join ', ')\" $evidence\n            } else {\n                New-Pass \"Deny assignment '$($p.denyAssignmentName)' applies to everyone in scope\" $evidence\n            }\n            New-Finding -ResourceId $assignment.id -ResourceType 'Microsoft.Authorization/denyAssignments' -ResourceName $p.denyAssignmentName -Result $result\n        }\n    " }, (S, O) => {
+        R.ln = F + 703;
         S["assignments"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 726;
+            R.ln = F + 703;
             R.e(O, (S["_"] ?? null));
         })], R.cmd(S, "Get-IngestData", ["rbac/denyAssignments"], null));
-        R.ln = F + 727;
+        R.ln = F + 704;
         if (!R.t((S["assignments"] ?? null))) {
-            R.ln = F + 727;
+            R.ln = F + 704;
             R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Pass", ["No deny assignments apply to this subscription"], null))], null));
             return;
         }
-        R.ln = F + 728;
+        R.ln = F + 705;
         for (const it69 of R.fi((S["assignments"] ?? null))) {
             S["assignment"] = it69;
-            R.ln = F + 729;
+            R.ln = F + 706;
             S["p"] = R.m((S["assignment"] ?? null), "properties");
-            R.ln = F + 730;
+            R.ln = F + 707;
             S["excluded"] = R.cmd(S, "Sort-Object", [], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " Get-PrincipalLabel $_.id " }, (S, O) => {
-                R.ln = F + 730;
+                R.ln = F + 707;
                 R.pa(O, R.cmd(S, "Get-PrincipalLabel", [R.m((S["_"] ?? null), "id")], null));
             })], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                R.ln = F + 730;
+                R.ln = F + 707;
                 R.e(O, (S["_"] ?? null));
             })], R.pi(R.m((S["p"] ?? null), "excludePrincipals")))));
-            R.ln = F + 731;
+            R.ln = F + 708;
             S["evidence"] = R.ht(["displayName", R.m((S["p"] ?? null), "denyAssignmentName"), "scope", R.m((S["p"] ?? null), "scope"), "isSystemProtected", R.c("bool", R.m((S["p"] ?? null), "isSystemProtected")), "doNotApplyToChildScopes", R.c("bool", R.m((S["p"] ?? null), "doNotApplyToChildScopes")), "excludedPrincipals", (S["excluded"] ?? null), "deniedActions", R.cmd(S, "Sort-Object", [R.np("Unique")], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                R.ln = F + 737;
+                R.ln = F + 714;
                 R.e(O, (S["_"] ?? null));
             })], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " $_.actions " }, (S, O) => {
-                R.ln = F + 737;
+                R.ln = F + 714;
                 R.e(O, R.m((S["_"] ?? null), "actions"));
             })], R.pi(R.m((S["p"] ?? null), "permissions")))))], true);
-            R.ln = F + 739;
+            R.ln = F + 716;
             const v70 = [];
-            R.ln = F + 739;
+            R.ln = F + 716;
             if (R.t((S["excluded"] ?? null))) {
-                R.ln = F + 740;
+                R.ln = F + 717;
                 R.pa(v70, R.cmd(S, "New-Fail", [("Deny assignment '" + R.str(R.u(R.pi(R.m((S["p"] ?? null), "denyAssignmentName")))) + "' excludes " + R.str(R.u(R.pi(R.m((S["excluded"] ?? null), "Count")))) + " principal(s): " + R.str(R.u(R.pi(R.join((S["excluded"] ?? null), ", "))))), (S["evidence"] ?? null)], null));
             } else {
-                R.ln = F + 742;
+                R.ln = F + 719;
                 R.pa(v70, R.cmd(S, "New-Pass", [("Deny assignment '" + R.str(R.u(R.pi(R.m((S["p"] ?? null), "denyAssignmentName")))) + "' applies to everyone in scope"), (S["evidence"] ?? null)], null));
             }
             S["result"] = R.u(v70);
-            R.ln = F + 744;
+            R.ln = F + 721;
             R.pa(O, R.cmd(S, "New-Finding", [R.np("ResourceId"), R.m((S["assignment"] ?? null), "id"), R.np("ResourceType"), "Microsoft.Authorization/denyAssignments", R.np("ResourceName"), R.m((S["p"] ?? null), "denyAssignmentName"), R.np("Result"), (S["result"] ?? null)], null));
         }
     })], false)], null));
-    R.ln = F + 750;
+    R.ln = F + 727;
     S["azuremanagementappid"] = "797f4846-ba00-4fd7-ba43-dac1f8f63013";
-    R.ln = F + 752;
-    R.def(S, "Get-AzureMfaPolicyGap", { params: [{ n: "Policy", t: null, pos: null }], adv: 0, h: "3779450c25c69d14" }, (S, O) => {
-        R.ln = F + 756;
-        S["conditions"] = R.m((S["policy"] ?? null), "conditions");
-        R.ln = F + 757;
-        S["apps"] = R.m((S["conditions"] ?? null), "applications");
-        R.ln = F + 758;
-        S["grant"] = R.m((S["policy"] ?? null), "grantControls");
-        R.ln = F + 759;
-        S["targetsazure"] = ((R.t(R.cont(R.a(R.m((S["apps"] ?? null), "includeApplications")), "All")) || R.t(R.cont(R.a(R.m((S["apps"] ?? null), "includeApplications")), (S["azuremanagementappid"] ?? null)))) && R.t(R.ncont(R.a(R.m((S["apps"] ?? null), "excludeApplications")), (S["azuremanagementappid"] ?? null))));
-        R.ln = F + 760;
-        S["controls"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 760;
-            R.e(O, (S["_"] ?? null));
-        })], R.pi(R.m((S["grant"] ?? null), "builtInControls")));
-        R.ln = F + 761;
-        S["requiresmfa"] = (R.t(R.cont((S["controls"] ?? null), "mfa")) || R.t(R.c("bool", R.m((S["grant"] ?? null), "authenticationStrength"))));
-        R.ln = F + 762;
-        if (!(R.t((S["targetsazure"] ?? null)) && R.t((S["requiresmfa"] ?? null)))) {
-            R.ln = F + 762;
-            R.e(O, "unrelated");
+    R.ln = F + 729;
+    R.def(S, "Test-CaTarget", { params: [{ n: "Policy", t: null, pos: null }, { n: "Target", t: "string", pos: null }], adv: 0, h: "cf40591c57f6b7a3" }, (S, O) => {
+        R.ln = F + 732;
+        S["apps"] = R.m(R.m((S["policy"] ?? null), "conditions"), "applications");
+        R.ln = F + 733;
+        S["included"] = R.a(R.m((S["apps"] ?? null), "includeApplications"));
+        R.ln = F + 734;
+        if (R.t(R.eq((S["target"] ?? null), "all"))) {
+            R.ln = F + 734;
+            R.e(O, (R.cont((S["included"] ?? null), "All")));
             return;
         }
-        R.ln = F + 763;
+        R.ln = F + 735;
+        R.e(O, (((R.t(R.cont((S["included"] ?? null), "All")) || R.t(R.cont((S["included"] ?? null), (S["azuremanagementappid"] ?? null)))) && R.t(R.ncont(R.a(R.m((S["apps"] ?? null), "excludeApplications")), (S["azuremanagementappid"] ?? null))))));
+        return;
+    });
+    R.ln = F + 738;
+    R.def(S, "Get-CaScopeGap", { params: [{ n: "Policy", t: null, pos: null }, { n: "Target", t: "string", pos: null }], adv: 0, h: "ded59e5892972ba5" }, (S, O) => {
+        R.ln = F + 741;
         if (R.t(R.eq(R.m((S["policy"] ?? null), "state"), "enabledForReportingButNotEnforced"))) {
-            R.ln = F + 763;
+            R.ln = F + 741;
             R.e(O, "it is in report-only mode");
             return;
         }
-        R.ln = F + 764;
+        R.ln = F + 742;
         if (R.t(R.ne(R.m((S["policy"] ?? null), "state"), "enabled"))) {
-            R.ln = F + 764;
+            R.ln = F + 742;
             R.e(O, "it is turned off");
             return;
         }
-        R.ln = F + 765;
-        if (R.t(R.ncont(R.a(R.m(R.m((S["conditions"] ?? null), "users"), "includeUsers")), "All"))) {
-            R.ln = F + 765;
+        R.ln = F + 743;
+        if (R.t(R.ncont(R.a(R.m(R.m(R.m((S["policy"] ?? null), "conditions"), "users"), "includeUsers")), "All"))) {
+            R.ln = F + 743;
             R.e(O, "it applies to selected users, groups or roles only");
             return;
         }
-        R.ln = F + 766;
-        S["alternatives"] = R.add(R.add(R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -ne 'mfa' " }, (S, O) => {
-            R.ln = F + 766;
-            R.e(O, R.ne((S["_"] ?? null), "mfa"));
-        })], R.pi((S["controls"] ?? null))), "Count"), R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 766;
+        R.ln = F + 744;
+        S["excluded"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+            R.ln = F + 744;
             R.e(O, (S["_"] ?? null));
-        })], R.pi(R.m((S["grant"] ?? null), "termsOfUse"))), "Count")), R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 766;
-            R.e(O, (S["_"] ?? null));
-        })], R.pi(R.m((S["grant"] ?? null), "customAuthenticationFactors"))), "Count"));
-        R.ln = F + 767;
-        if ((R.t(R.eq(R.m((S["grant"] ?? null), "operator"), "OR")) && R.t((S["alternatives"] ?? null)))) {
-            R.ln = F + 767;
-            R.e(O, "MFA is one of several alternative grant controls");
+        })], R.pi(R.m(R.m(R.m((S["policy"] ?? null), "conditions"), "applications"), "excludeApplications")));
+        R.ln = F + 745;
+        if ((R.t(R.eq((S["target"] ?? null), "all")) && R.t((S["excluded"] ?? null)))) {
+            R.ln = F + 745;
+            R.e(O, ("it excludes " + R.str(R.u(R.pi(R.m((S["excluded"] ?? null), "Count")))) + " application(s)"));
             return;
         }
-        R.ln = F + 768;
-        S["clients"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 768;
-            R.e(O, (S["_"] ?? null));
-        })], R.pi(R.m((S["conditions"] ?? null), "clientAppTypes")));
-        R.ln = F + 769;
-        if (((R.t((S["clients"] ?? null)) && R.t(R.ncont((S["clients"] ?? null), "all"))) && !(R.t(R.cont((S["clients"] ?? null), "browser")) && R.t(R.cont((S["clients"] ?? null), "mobileAppsAndDesktopClients"))))) {
-            R.ln = F + 769;
-            R.e(O, "it applies to some client apps only");
-            return;
-        }
-        R.ln = F + 770;
-        if ((R.t(R.m((S["conditions"] ?? null), "platforms")) && R.t(R.ncont(R.a(R.m(R.m((S["conditions"] ?? null), "platforms"), "includePlatforms")), "all")))) {
-            R.ln = F + 770;
-            R.e(O, "it applies to some device platforms only");
-            return;
-        }
-        R.ln = F + 771;
-        if ((R.t(R.m((S["conditions"] ?? null), "locations")) && (R.t(R.ncont(R.a(R.m(R.m((S["conditions"] ?? null), "locations"), "includeLocations")), "All")) || R.t(R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 771;
-            R.e(O, (S["_"] ?? null));
-        })], R.pi(R.m(R.m((S["conditions"] ?? null), "locations"), "excludeLocations"))), "Count"))))) {
-            R.ln = F + 771;
-            R.e(O, "MFA is skipped for some locations");
-            return;
-        }
-        R.ln = F + 772;
-        if ((R.t(R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 772;
-            R.e(O, (S["_"] ?? null));
-        })], R.pi(R.m((S["conditions"] ?? null), "signInRiskLevels"))), "Count")) || R.t(R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 772;
-            R.e(O, (S["_"] ?? null));
-        })], R.pi(R.m((S["conditions"] ?? null), "userRiskLevels"))), "Count")))) {
-            R.ln = F + 772;
-            R.e(O, "it applies at elevated risk only");
-            return;
-        }
-        R.ln = F + 773;
-        if (R.t(R.m(R.m((S["conditions"] ?? null), "devices"), "deviceFilter"))) {
-            R.ln = F + 773;
-            R.e(O, "a device filter limits it");
-            return;
-        }
-        R.ln = F + 774;
+        R.ln = F + 746;
         R.e(O, null);
         return;
     });
-    R.ln = F + 777;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-IAM-024", "Title", "Conditional Access requires multifactor authentication for Azure management", "Category", "Identity management", "Service", "Microsoft Entra ID", "Severity", "High", "Description", "Looks for an enabled Conditional Access policy for all users that requires multifactor authentication or an authentication strength for Azure management (the Windows Azure Service Management API, or all resources), without conditions that limit it to some client apps, platforms, locations or risk levels. Security defaults count as well.", "Rationale", "Every Azure management tool (portal, CLI, PowerShell, infrastructure as code) signs in to Azure Resource Manager. A policy the organization owns makes MFA there its own control: it covers every client, can require phishing resistant methods for administrators, and is evidence of strong authentication for privileged access.", "Remediation", "Create a Conditional Access policy for all users (exclude only emergency access accounts) that targets 'Windows Azure Service Management API' or all resources and grants access with 'Require multifactor authentication' or a phishing resistant authentication strength. Check it in report-only mode, then turn it on.", "References", R.a([R.v("https://learn.microsoft.com/entra/identity/conditional-access/policy-old-require-mfa-azure-mgmt"), R.v("https://learn.microsoft.com/entra/fundamentals/security-defaults")]), "Frameworks", R.ht(["MCSB", R.a([R.v("IM-6"), R.v("IM-7")])], false), "Requires", R.a("identity/conditionalAccessPolicies"), "Run", R.sb({ params: [], adv: 0, text: "\n        $policies = @(Get-IngestData 'identity/conditionalAccessPolicies' | Where-Object { $_ } | Sort-Object displayName, id)\n        $qualifying = @($policies | Where-Object { $null -eq (Get-AzureMfaPolicyGap $_) })\n        $nearMisses = @(foreach ($policy in $policies) { $gap = Get-AzureMfaPolicyGap $policy; if ($gap -and $gap -ne 'unrelated') { \"$($policy.displayName): $gap\" } })\n        if ($qualifying) {\n            $users = $qualifying[0].conditions.users\n            $evidence = [ordered]@{\n                policies         = @($qualifying | ForEach-Object { $_.displayName })\n                grant            = $(if ($qualifying[0].grantControls.authenticationStrength) { \"authentication strength $($qualifying[0].grantControls.authenticationStrength.displayName)\" } else { 'multifactor authentication' })\n                excludedUsers    = @($users.excludeUsers | Where-Object { $_ }).Count\n                excludedGroups   = @($users.excludeGroups | Where-Object { $_ }).Count\n                excludedRoles    = @($users.excludeRoles | Where-Object { $_ }).Count\n            }\n            return New-TenantFinding -Result (New-Pass \"Policy '$($qualifying[0].displayName)' requires $($evidence.grant) for Azure management\" $evidence) -Suffix '/conditionalAccess'\n        }\n        $evidence = [ordered]@{ enabledPolicies = @($policies | Where-Object { $_.state -eq 'enabled' }).Count; nearMisses = $nearMisses }\n        #security defaults can only be on while no Conditional Access policy is enabled\n        if (-not @($policies | Where-Object { $_.state -eq 'enabled' }).Count) {\n            if (-not (Test-IngestSection 'identity/securityDefaults')) { return New-TenantFinding -Result (New-Unknown 'No Conditional Access policy requires it, and security defaults could not be read' $evidence) -Suffix '/conditionalAccess' }\n            if ((Get-IngestData 'identity/securityDefaults').isEnabled) { return New-TenantFinding -Result (New-Pass 'Security defaults require MFA for Azure management' $evidence) -Suffix '/conditionalAccess' }\n        }\n        $detail = if ($nearMisses) { \"No enabled policy requires MFA for Azure management for all users ($($nearMisses -join '; '))\" } else { 'No Conditional Access policy requires MFA for Azure management' }\n        New-TenantFinding -Result (New-Fail $detail $evidence) -Suffix '/conditionalAccess'\n    " }, (S, O) => {
-        R.ln = F + 790;
-        S["policies"] = R.cmd(S, "Sort-Object", [[R.v("displayName"), R.v("id")]], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 790;
+    R.ln = F + 749;
+    R.def(S, "Get-CaConditionGap", { params: [{ n: "Policy", t: null, pos: null }], adv: 0, h: "84e46d6c1f9ebd22" }, (S, O) => {
+        R.ln = F + 752;
+        S["conditions"] = R.m((S["policy"] ?? null), "conditions");
+        R.ln = F + 753;
+        S["clients"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+            R.ln = F + 753;
             R.e(O, (S["_"] ?? null));
-        })], R.cmd(S, "Get-IngestData", ["identity/conditionalAccessPolicies"], null)));
-        R.ln = F + 791;
-        S["qualifying"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $null -eq (Get-AzureMfaPolicyGap $_) " }, (S, O) => {
-            R.ln = F + 791;
-            R.e(O, R.eq(null, R.u(R.cmd(S, "Get-AzureMfaPolicyGap", [(S["_"] ?? null)], null))));
-        })], R.pi((S["policies"] ?? null)));
-        R.ln = F + 792;
-        S["nearmisses"] = (() => {
-            const v71 = [];
-            R.ln = F + 792;
-            for (const it72 of R.fi((S["policies"] ?? null))) {
-                S["policy"] = it72;
-                R.ln = F + 792;
-                S["gap"] = R.u(R.cmd(S, "Get-AzureMfaPolicyGap", [(S["policy"] ?? null)], null));
-                R.ln = F + 792;
-                if ((R.t((S["gap"] ?? null)) && R.t(R.ne((S["gap"] ?? null), "unrelated")))) {
-                    R.ln = F + 792;
-                    R.e(v71, ("" + R.str(R.u(R.pi(R.m((S["policy"] ?? null), "displayName")))) + ": " + R.str((S["gap"] ?? null))));
-                }
-            }
-            return v71;
-        })();
-        R.ln = F + 793;
-        if (R.t((S["qualifying"] ?? null))) {
-            R.ln = F + 794;
-            S["users"] = R.m(R.m(R.i((S["qualifying"] ?? null), 0), "conditions"), "users");
-            R.ln = F + 795;
-            S["evidence"] = R.ht(["policies", R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " $_.displayName " }, (S, O) => {
-                R.ln = F + 796;
-                R.e(O, R.m((S["_"] ?? null), "displayName"));
-            })], R.pi((S["qualifying"] ?? null))), "grant", (() => {
-                const v73 = [];
-                R.ln = F + 797;
-                if (R.t(R.m(R.m(R.i((S["qualifying"] ?? null), 0), "grantControls"), "authenticationStrength"))) {
-                    R.ln = F + 797;
-                    R.e(v73, ("authentication strength " + R.str(R.u(R.pi(R.m(R.m(R.m(R.i((S["qualifying"] ?? null), 0), "grantControls"), "authenticationStrength"), "displayName"))))));
-                } else {
-                    R.ln = F + 797;
-                    R.e(v73, "multifactor authentication");
-                }
-                return R.u(v73);
-            })(), "excludedUsers", R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                R.ln = F + 798;
-                R.e(O, (S["_"] ?? null));
-            })], R.pi(R.m((S["users"] ?? null), "excludeUsers"))), "Count"), "excludedGroups", R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                R.ln = F + 799;
-                R.e(O, (S["_"] ?? null));
-            })], R.pi(R.m((S["users"] ?? null), "excludeGroups"))), "Count"), "excludedRoles", R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                R.ln = F + 800;
-                R.e(O, (S["_"] ?? null));
-            })], R.pi(R.m((S["users"] ?? null), "excludeRoles"))), "Count")], true);
-            R.ln = F + 802;
-            R.pa(O, R.cmd(S, "New-TenantFinding", [R.np("Result"), R.u(R.cmd(S, "New-Pass", [("Policy '" + R.str(R.u(R.pi(R.m(R.i((S["qualifying"] ?? null), 0), "displayName")))) + "' requires " + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "grant")))) + " for Azure management"), (S["evidence"] ?? null)], null)), R.np("Suffix"), "/conditionalAccess"], null));
+        })], R.pi(R.m((S["conditions"] ?? null), "clientAppTypes")));
+        R.ln = F + 754;
+        if (((R.t((S["clients"] ?? null)) && R.t(R.ncont((S["clients"] ?? null), "all"))) && !(R.t(R.cont((S["clients"] ?? null), "browser")) && R.t(R.cont((S["clients"] ?? null), "mobileAppsAndDesktopClients"))))) {
+            R.ln = F + 754;
+            R.e(O, "it applies to some client apps only");
             return;
         }
-        R.ln = F + 804;
+        R.ln = F + 755;
+        if ((R.t(R.m((S["conditions"] ?? null), "platforms")) && R.t(R.ncont(R.a(R.m(R.m((S["conditions"] ?? null), "platforms"), "includePlatforms")), "all")))) {
+            R.ln = F + 755;
+            R.e(O, "it applies to some device platforms only");
+            return;
+        }
+        R.ln = F + 756;
+        if ((R.t(R.m((S["conditions"] ?? null), "locations")) && (R.t(R.ncont(R.a(R.m(R.m((S["conditions"] ?? null), "locations"), "includeLocations")), "All")) || R.t(R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+            R.ln = F + 756;
+            R.e(O, (S["_"] ?? null));
+        })], R.pi(R.m(R.m((S["conditions"] ?? null), "locations"), "excludeLocations"))), "Count"))))) {
+            R.ln = F + 756;
+            R.e(O, "it is skipped for some locations");
+            return;
+        }
+        R.ln = F + 757;
+        if ((R.t(R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+            R.ln = F + 757;
+            R.e(O, (S["_"] ?? null));
+        })], R.pi(R.m((S["conditions"] ?? null), "signInRiskLevels"))), "Count")) || R.t(R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+            R.ln = F + 757;
+            R.e(O, (S["_"] ?? null));
+        })], R.pi(R.m((S["conditions"] ?? null), "userRiskLevels"))), "Count")))) {
+            R.ln = F + 757;
+            R.e(O, "it applies at elevated risk only");
+            return;
+        }
+        R.ln = F + 758;
+        if (R.t(R.m(R.m((S["conditions"] ?? null), "devices"), "deviceFilter"))) {
+            R.ln = F + 758;
+            R.e(O, "a device filter limits it");
+            return;
+        }
+        R.ln = F + 759;
+        R.e(O, null);
+        return;
+    });
+    R.ln = F + 762;
+    R.def(S, "Get-MfaPolicyGap", { params: [{ n: "Policy", t: null, pos: null }, { n: "Target", t: "string", pos: null }], adv: 0, h: "31545bb8db4bfc11" }, (S, O) => {
+        R.ln = F + 766;
+        S["grant"] = R.m((S["policy"] ?? null), "grantControls");
+        R.ln = F + 767;
+        S["controls"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+            R.ln = F + 767;
+            R.e(O, (S["_"] ?? null));
+        })], R.pi(R.m((S["grant"] ?? null), "builtInControls")));
+        R.ln = F + 768;
+        S["requiresmfa"] = (R.t(R.cont((S["controls"] ?? null), "mfa")) || R.t(R.c("bool", R.m((S["grant"] ?? null), "authenticationStrength"))));
+        R.ln = F + 769;
+        if (!(R.t(R.u(R.cmd(S, "Test-CaTarget", [(S["policy"] ?? null), (S["target"] ?? null)], null))) && R.t((S["requiresmfa"] ?? null)))) {
+            R.ln = F + 769;
+            R.e(O, "unrelated");
+            return;
+        }
+        R.ln = F + 770;
+        S["gap"] = R.u(R.cmd(S, "Get-CaScopeGap", [(S["policy"] ?? null), (S["target"] ?? null)], null));
+        R.ln = F + 771;
+        if (R.t((S["gap"] ?? null))) {
+            R.ln = F + 771;
+            R.e(O, (S["gap"] ?? null));
+            return;
+        }
+        R.ln = F + 772;
+        S["alternatives"] = R.add(R.add(R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -ne 'mfa' " }, (S, O) => {
+            R.ln = F + 772;
+            R.e(O, R.ne((S["_"] ?? null), "mfa"));
+        })], R.pi((S["controls"] ?? null))), "Count"), R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+            R.ln = F + 772;
+            R.e(O, (S["_"] ?? null));
+        })], R.pi(R.m((S["grant"] ?? null), "termsOfUse"))), "Count")), R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+            R.ln = F + 772;
+            R.e(O, (S["_"] ?? null));
+        })], R.pi(R.m((S["grant"] ?? null), "customAuthenticationFactors"))), "Count"));
+        R.ln = F + 773;
+        if ((R.t(R.eq(R.m((S["grant"] ?? null), "operator"), "OR")) && R.t((S["alternatives"] ?? null)))) {
+            R.ln = F + 773;
+            R.e(O, "MFA is one of several alternative grant controls");
+            return;
+        }
+        R.ln = F + 774;
+        R.e(O, R.u(R.cmd(S, "Get-CaConditionGap", [(S["policy"] ?? null)], null)));
+        return;
+    });
+    R.ln = F + 777;
+    R.def(S, "Get-MfaPolicyFinding", { params: [{ n: "Target", t: "string", pos: null }], adv: 0, h: "4508823856e59153" }, (S, O) => {
+        R.ln = F + 780;
+        const v71 = [];
+        R.ln = F + 780;
+        if (R.t(R.eq((S["target"] ?? null), "all"))) {
+            R.ln = F + 780;
+            R.e(v71, "all resources");
+        } else {
+            R.ln = F + 780;
+            R.e(v71, "Azure management");
+        }
+        S["label"] = R.u(v71);
+        R.ln = F + 781;
+        S["policies"] = R.cmd(S, "Sort-Object", [[R.v("displayName"), R.v("id")]], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+            R.ln = F + 781;
+            R.e(O, (S["_"] ?? null));
+        })], R.cmd(S, "Get-IngestData", ["identity/conditionalAccessPolicies"], null)));
+        R.ln = F + 782;
+        S["qualifying"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $null -eq (Get-MfaPolicyGap $_ $Target) " }, (S, O) => {
+            R.ln = F + 782;
+            R.e(O, R.eq(null, R.u(R.cmd(S, "Get-MfaPolicyGap", [(S["_"] ?? null), (S["target"] ?? null)], null))));
+        })], R.pi((S["policies"] ?? null)));
+        R.ln = F + 783;
+        S["nearmisses"] = (() => {
+            const v72 = [];
+            R.ln = F + 783;
+            for (const it73 of R.fi((S["policies"] ?? null))) {
+                S["policy"] = it73;
+                R.ln = F + 783;
+                S["gap"] = R.u(R.cmd(S, "Get-MfaPolicyGap", [(S["policy"] ?? null), (S["target"] ?? null)], null));
+                R.ln = F + 783;
+                if ((R.t((S["gap"] ?? null)) && R.t(R.ne((S["gap"] ?? null), "unrelated")))) {
+                    R.ln = F + 783;
+                    R.e(v72, ("" + R.str(R.u(R.pi(R.m((S["policy"] ?? null), "displayName")))) + ": " + R.str((S["gap"] ?? null))));
+                }
+            }
+            return v72;
+        })();
+        R.ln = F + 784;
+        if (R.t((S["qualifying"] ?? null))) {
+            R.ln = F + 785;
+            S["users"] = R.m(R.m(R.i((S["qualifying"] ?? null), 0), "conditions"), "users");
+            R.ln = F + 786;
+            S["evidence"] = R.ht(["policies", R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " $_.displayName " }, (S, O) => {
+                R.ln = F + 787;
+                R.e(O, R.m((S["_"] ?? null), "displayName"));
+            })], R.pi((S["qualifying"] ?? null))), "grant", (() => {
+                const v74 = [];
+                R.ln = F + 788;
+                if (R.t(R.m(R.m(R.i((S["qualifying"] ?? null), 0), "grantControls"), "authenticationStrength"))) {
+                    R.ln = F + 788;
+                    R.e(v74, ("authentication strength " + R.str(R.u(R.pi(R.m(R.m(R.m(R.i((S["qualifying"] ?? null), 0), "grantControls"), "authenticationStrength"), "displayName"))))));
+                } else {
+                    R.ln = F + 788;
+                    R.e(v74, "multifactor authentication");
+                }
+                return R.u(v74);
+            })(), "excludedUsers", R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+                R.ln = F + 789;
+                R.e(O, (S["_"] ?? null));
+            })], R.pi(R.m((S["users"] ?? null), "excludeUsers"))), "Count"), "excludedGroups", R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+                R.ln = F + 790;
+                R.e(O, (S["_"] ?? null));
+            })], R.pi(R.m((S["users"] ?? null), "excludeGroups"))), "Count"), "excludedRoles", R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+                R.ln = F + 791;
+                R.e(O, (S["_"] ?? null));
+            })], R.pi(R.m((S["users"] ?? null), "excludeRoles"))), "Count")], true);
+            R.ln = F + 793;
+            R.pa(O, R.cmd(S, "New-TenantFinding", [R.np("Result"), R.u(R.cmd(S, "New-Pass", [("Policy '" + R.str(R.u(R.pi(R.m(R.i((S["qualifying"] ?? null), 0), "displayName")))) + "' requires " + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "grant")))) + " for " + R.str((S["label"] ?? null))), (S["evidence"] ?? null)], null)), R.np("Suffix"), "/conditionalAccess"], null));
+            return;
+        }
+        R.ln = F + 795;
         S["evidence"] = R.ht(["enabledPolicies", R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.state -eq 'enabled' " }, (S, O) => {
-            R.ln = F + 804;
+            R.ln = F + 795;
             R.e(O, R.eq(R.m((S["_"] ?? null), "state"), "enabled"));
         })], R.pi((S["policies"] ?? null))), "Count"), "nearMisses", (S["nearmisses"] ?? null)], true);
-        R.ln = F + 806;
+        R.ln = F + 797;
         if (!R.t(R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.state -eq 'enabled' " }, (S, O) => {
-            R.ln = F + 806;
+            R.ln = F + 797;
             R.e(O, R.eq(R.m((S["_"] ?? null), "state"), "enabled"));
         })], R.pi((S["policies"] ?? null))), "Count"))) {
-            R.ln = F + 807;
+            R.ln = F + 798;
             if (!R.t(R.u(R.cmd(S, "Test-IngestSection", ["identity/securityDefaults"], null)))) {
-                R.ln = F + 807;
+                R.ln = F + 798;
                 R.pa(O, R.cmd(S, "New-TenantFinding", [R.np("Result"), R.u(R.cmd(S, "New-Unknown", ["No Conditional Access policy requires it, and security defaults could not be read", (S["evidence"] ?? null)], null)), R.np("Suffix"), "/conditionalAccess"], null));
                 return;
             }
-            R.ln = F + 808;
+            R.ln = F + 799;
             if (R.t(R.m(R.u(R.cmd(S, "Get-IngestData", ["identity/securityDefaults"], null)), "isEnabled"))) {
-                R.ln = F + 808;
-                R.pa(O, R.cmd(S, "New-TenantFinding", [R.np("Result"), R.u(R.cmd(S, "New-Pass", ["Security defaults require MFA for Azure management", (S["evidence"] ?? null)], null)), R.np("Suffix"), "/conditionalAccess"], null));
+                R.ln = F + 799;
+                R.pa(O, R.cmd(S, "New-TenantFinding", [R.np("Result"), R.u(R.cmd(S, "New-Pass", [("Security defaults require MFA for " + R.str((S["label"] ?? null))), (S["evidence"] ?? null)], null)), R.np("Suffix"), "/conditionalAccess"], null));
                 return;
             }
         }
-        R.ln = F + 810;
-        const v74 = [];
-        R.ln = F + 810;
+        R.ln = F + 801;
+        const v75 = [];
+        R.ln = F + 801;
         if (R.t((S["nearmisses"] ?? null))) {
-            R.ln = F + 810;
-            R.e(v74, ("No enabled policy requires MFA for Azure management for all users (" + R.str(R.u(R.pi(R.join((S["nearmisses"] ?? null), "; ")))) + ")"));
+            R.ln = F + 801;
+            R.e(v75, ("No enabled policy requires MFA for " + R.str((S["label"] ?? null)) + " for all users (" + R.str(R.u(R.pi(R.join((S["nearmisses"] ?? null), "; ")))) + ")"));
         } else {
-            R.ln = F + 810;
-            R.e(v74, "No Conditional Access policy requires MFA for Azure management");
+            R.ln = F + 801;
+            R.e(v75, ("No Conditional Access policy requires MFA for " + R.str((S["label"] ?? null))));
         }
-        S["detail"] = R.u(v74);
-        R.ln = F + 811;
+        S["detail"] = R.u(v75);
+        R.ln = F + 802;
         R.pa(O, R.cmd(S, "New-TenantFinding", [R.np("Result"), R.u(R.cmd(S, "New-Fail", [(S["detail"] ?? null), (S["evidence"] ?? null)], null)), R.np("Suffix"), "/conditionalAccess"], null));
+    });
+    R.ln = F + 805;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-IAM-024", "Title", "Conditional Access requires multifactor authentication for Azure management", "Category", "Identity management", "Service", "Microsoft Entra ID", "Severity", "High", "Description", "Looks for an enabled Conditional Access policy for all users that requires multifactor authentication or an authentication strength for Azure management (the Windows Azure Service Management API, or all resources), without conditions that limit it to some client apps, platforms, locations or risk levels. Security defaults count as well.", "Rationale", "Every Azure management tool (portal, CLI, PowerShell, infrastructure as code) signs in to Azure Resource Manager. A policy the organization owns makes MFA there its own control: it covers every client, can require phishing resistant methods for administrators, and is evidence of strong authentication for privileged access.", "Remediation", "Create a Conditional Access policy for all users (exclude only emergency access accounts) that targets 'Windows Azure Service Management API' or all resources and grants access with 'Require multifactor authentication' or a phishing resistant authentication strength. Check it in report-only mode, then turn it on.", "References", R.a([R.v("https://learn.microsoft.com/entra/identity/conditional-access/policy-old-require-mfa-azure-mgmt"), R.v("https://learn.microsoft.com/entra/fundamentals/security-defaults")]), "Requires", R.a("identity/conditionalAccessPolicies"), "Run", R.sb({ params: [], adv: 0, text: "\n        Get-MfaPolicyFinding 'azure'\n    " }, (S, O) => {
+        R.ln = F + 817;
+        R.pa(O, R.cmd(S, "Get-MfaPolicyFinding", ["azure"], null));
     })], false)], null));
-    R.ln = F + 816;
+    R.ln = F + 822;
     S["microsofttenantids"] = R.a([R.v("f8cdef31-a31e-4b4a-93e4-5f571e91255a"), R.v("72f988bf-86f1-41af-91ab-2d7cd011db47")]);
-    R.ln = F + 818;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-IAM-025", "Title", "Applications of other organizations hold no Azure role assignments", "Category", "Privileged access", "Service", "Azure RBAC", "Severity", "Informational", "Description", "Lists role assignments that apply to the subscription and belong to service principals of multi-tenant applications registered by another organization. Managed identities and Microsoft first-party applications are left out.", "Rationale", "Such an application is a third party with access to Azure resources: its publisher controls the code and the credentials. Every third party with access has to be known, assessed and recorded (for DORA in the register of information), and this list is where that inventory starts.", "Remediation", "Confirm that each application is expected and recorded as a third party, limit it to the roles and scopes it needs, and remove the assignments of applications that are no longer used.", "References", R.a("https://learn.microsoft.com/entra/identity-platform/single-and-multi-tenant-apps"), "Frameworks", R.ht(["MCSB", "PA-4", "DORA", "Art. 28"], false), "Requires", R.a([R.v("rbac/roleAssignments"), R.v("identity/directoryObjects")]), "Run", R.sb({ params: [], adv: 0, text: "\n        $tenantId = [string]$script:Ingest.Manifest.subscription.tenantId\n        $unresolved = @{}\n        foreach ($id in @(Get-IngestData 'identity/unresolvedPrincipalIds')) { if ($id) { $unresolved[$id.ToLowerInvariant()] = $true } }\n        $findings = foreach ($assignment in @(Get-ActiveRoleAssignments | Where-Object { $_.properties.principalType -eq 'ServicePrincipal' } | Sort-Object id)) {\n            $principalId = [string]$assignment.properties.principalId\n            $evidence = Get-AssignmentEvidence $assignment\n            $principal = Get-Principal $principalId\n            if (-not $principal) {\n                #deleted principals are AZ-IAM-007\n                if ($unresolved.ContainsKey($principalId.ToLowerInvariant())) { continue }\n                New-Finding -ResourceId $assignment.id -ResourceType $assignment.type -ResourceName \"$($evidence.role): $($evidence.principal)\" -Result (New-Unknown 'The service principal behind this assignment could not be resolved in the directory' $evidence)\n                continue\n            }\n            if ($principal.servicePrincipalType -eq 'ManagedIdentity') { continue }\n            $owner = [string]$principal.appOwnerOrganizationId\n            if (-not $owner) {\n                New-Finding -ResourceId $assignment.id -ResourceType $assignment.type -ResourceName \"$($evidence.role): $($evidence.principal)\" -Result (New-Unknown 'The organization that registered this application was not recorded' $evidence)\n                continue\n            }\n            if ($owner -eq $tenantId -or $owner -in $microsoftTenantIds) { continue }\n            $evidence.appId = $principal.appId\n            $evidence.ownerOrganization = $owner\n            New-Finding -ResourceId $assignment.id -ResourceType $assignment.type -ResourceName \"$($evidence.role): $($evidence.principal)\" -Result (New-Fail \"$($principal.displayName), an application of organization $owner, holds $($evidence.role) on $($evidence.scope)\" $evidence)\n        }\n        if (-not $findings) { return New-SubscriptionFinding (New-Pass 'No applications of other organizations hold Azure roles') }\n        $findings\n    " }, (S, O) => {
-        R.ln = F + 831;
+    R.ln = F + 824;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-IAM-025", "Title", "Applications of other organizations hold no Azure role assignments", "Category", "Privileged access", "Service", "Azure RBAC", "Severity", "Informational", "Description", "Lists role assignments that apply to the subscription and belong to service principals of multi-tenant applications registered by another organization. Managed identities and Microsoft first-party applications are left out.", "Rationale", "Such an application is a third party with access to Azure resources: its publisher controls the code and the credentials. Every third party with access has to be known, assessed and recorded (for DORA in the register of information), and this list is where that inventory starts.", "Remediation", "Confirm that each application is expected and recorded as a third party, limit it to the roles and scopes it needs, and remove the assignments of applications that are no longer used.", "References", R.a("https://learn.microsoft.com/entra/identity-platform/single-and-multi-tenant-apps"), "Requires", R.a([R.v("rbac/roleAssignments"), R.v("identity/directoryObjects")]), "Run", R.sb({ params: [], adv: 0, text: "\n        $tenantId = [string]$script:Ingest.Manifest.subscription.tenantId\n        $unresolved = @{}\n        foreach ($id in @(Get-IngestData 'identity/unresolvedPrincipalIds')) { if ($id) { $unresolved[$id.ToLowerInvariant()] = $true } }\n        $findings = foreach ($assignment in @(Get-ActiveRoleAssignments | Where-Object { $_.properties.principalType -eq 'ServicePrincipal' } | Sort-Object id)) {\n            $principalId = [string]$assignment.properties.principalId\n            $evidence = Get-AssignmentEvidence $assignment\n            $principal = Get-Principal $principalId\n            if (-not $principal) {\n                #deleted principals are AZ-IAM-007\n                if ($unresolved.ContainsKey($principalId.ToLowerInvariant())) { continue }\n                New-Finding -ResourceId $assignment.id -ResourceType $assignment.type -ResourceName \"$($evidence.role): $($evidence.principal)\" -Result (New-Unknown 'The service principal behind this assignment could not be resolved in the directory' $evidence)\n                continue\n            }\n            if ($principal.servicePrincipalType -eq 'ManagedIdentity') { continue }\n            $owner = [string]$principal.appOwnerOrganizationId\n            if (-not $owner) {\n                New-Finding -ResourceId $assignment.id -ResourceType $assignment.type -ResourceName \"$($evidence.role): $($evidence.principal)\" -Result (New-Unknown 'The organization that registered this application was not recorded' $evidence)\n                continue\n            }\n            if ($owner -eq $tenantId -or $owner -in $microsoftTenantIds) { continue }\n            $evidence.appId = $principal.appId\n            $evidence.ownerOrganization = $owner\n            New-Finding -ResourceId $assignment.id -ResourceType $assignment.type -ResourceName \"$($evidence.role): $($evidence.principal)\" -Result (New-Fail \"$($principal.displayName), an application of organization $owner, holds $($evidence.role) on $($evidence.scope)\" $evidence)\n        }\n        if (-not $findings) { return New-SubscriptionFinding (New-Pass 'No applications of other organizations hold Azure roles') }\n        $findings\n    " }, (S, O) => {
+        R.ln = F + 836;
         S["tenantid"] = R.c("string", R.m(R.m(R.m((R.ss(S)["script:ingest"] ?? null), "Manifest"), "subscription"), "tenantId"));
-        R.ln = F + 832;
+        R.ln = F + 837;
         S["unresolved"] = R.ht([], false);
-        R.ln = F + 833;
-        for (const it75 of R.fi(R.cmd(S, "Get-IngestData", ["identity/unresolvedPrincipalIds"], null))) {
-            S["id"] = it75;
-            R.ln = F + 833;
+        R.ln = F + 838;
+        for (const it76 of R.fi(R.cmd(S, "Get-IngestData", ["identity/unresolvedPrincipalIds"], null))) {
+            S["id"] = it76;
+            R.ln = F + 838;
             if (R.t((S["id"] ?? null))) {
-                R.ln = F + 833;
+                R.ln = F + 838;
                 R.si((S["unresolved"] ?? null), R.im((S["id"] ?? null), "ToLowerInvariant", []), true);
             }
         }
-        R.ln = F + 834;
-        const v76 = [];
-        R.ln = F + 834;
-        for (const it77 of R.fi(R.cmd(S, "Sort-Object", ["id"], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.properties.principalType -eq 'ServicePrincipal' " }, (S, O) => {
-            R.ln = F + 834;
+        R.ln = F + 839;
+        const v77 = [];
+        R.ln = F + 839;
+        for (const it78 of R.fi(R.cmd(S, "Sort-Object", ["id"], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.properties.principalType -eq 'ServicePrincipal' " }, (S, O) => {
+            R.ln = F + 839;
             R.e(O, R.eq(R.m(R.m((S["_"] ?? null), "properties"), "principalType"), "ServicePrincipal"));
         })], R.cmd(S, "Get-ActiveRoleAssignments", [], null))))) {
-            S["assignment"] = it77;
-            R.ln = F + 835;
+            S["assignment"] = it78;
+            R.ln = F + 840;
             S["principalid"] = R.c("string", R.m(R.m((S["assignment"] ?? null), "properties"), "principalId"));
-            R.ln = F + 836;
+            R.ln = F + 841;
             S["evidence"] = R.u(R.cmd(S, "Get-AssignmentEvidence", [(S["assignment"] ?? null)], null));
-            R.ln = F + 837;
+            R.ln = F + 842;
             S["principal"] = R.u(R.cmd(S, "Get-Principal", [(S["principalid"] ?? null)], null));
-            R.ln = F + 838;
+            R.ln = F + 843;
             if (!R.t((S["principal"] ?? null))) {
-                R.ln = F + 840;
+                R.ln = F + 845;
                 if (R.t(R.im((S["unresolved"] ?? null), "ContainsKey", [R.im((S["principalid"] ?? null), "ToLowerInvariant", [])]))) {
                     continue;
                 }
-                R.ln = F + 841;
-                R.pa(v76, R.cmd(S, "New-Finding", [R.np("ResourceId"), R.m((S["assignment"] ?? null), "id"), R.np("ResourceType"), R.m((S["assignment"] ?? null), "type"), R.np("ResourceName"), ("" + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "role")))) + ": " + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "principal"))))), R.np("Result"), R.u(R.cmd(S, "New-Unknown", ["The service principal behind this assignment could not be resolved in the directory", (S["evidence"] ?? null)], null))], null));
+                R.ln = F + 846;
+                R.pa(v77, R.cmd(S, "New-Finding", [R.np("ResourceId"), R.m((S["assignment"] ?? null), "id"), R.np("ResourceType"), R.m((S["assignment"] ?? null), "type"), R.np("ResourceName"), ("" + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "role")))) + ": " + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "principal"))))), R.np("Result"), R.u(R.cmd(S, "New-Unknown", ["The service principal behind this assignment could not be resolved in the directory", (S["evidence"] ?? null)], null))], null));
                 continue;
             }
-            R.ln = F + 844;
+            R.ln = F + 849;
             if (R.t(R.eq(R.m((S["principal"] ?? null), "servicePrincipalType"), "ManagedIdentity"))) {
                 continue;
             }
-            R.ln = F + 845;
+            R.ln = F + 850;
             S["owner"] = R.c("string", R.m((S["principal"] ?? null), "appOwnerOrganizationId"));
-            R.ln = F + 846;
+            R.ln = F + 851;
             if (!R.t((S["owner"] ?? null))) {
-                R.ln = F + 847;
-                R.pa(v76, R.cmd(S, "New-Finding", [R.np("ResourceId"), R.m((S["assignment"] ?? null), "id"), R.np("ResourceType"), R.m((S["assignment"] ?? null), "type"), R.np("ResourceName"), ("" + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "role")))) + ": " + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "principal"))))), R.np("Result"), R.u(R.cmd(S, "New-Unknown", ["The organization that registered this application was not recorded", (S["evidence"] ?? null)], null))], null));
+                R.ln = F + 852;
+                R.pa(v77, R.cmd(S, "New-Finding", [R.np("ResourceId"), R.m((S["assignment"] ?? null), "id"), R.np("ResourceType"), R.m((S["assignment"] ?? null), "type"), R.np("ResourceName"), ("" + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "role")))) + ": " + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "principal"))))), R.np("Result"), R.u(R.cmd(S, "New-Unknown", ["The organization that registered this application was not recorded", (S["evidence"] ?? null)], null))], null));
                 continue;
             }
-            R.ln = F + 850;
+            R.ln = F + 855;
             if ((R.t(R.eq((S["owner"] ?? null), (S["tenantid"] ?? null))) || R.t(R.in((S["owner"] ?? null), (S["microsofttenantids"] ?? null))))) {
                 continue;
             }
-            R.ln = F + 851;
+            R.ln = F + 856;
             R.sm((S["evidence"] ?? null), "appId", R.m((S["principal"] ?? null), "appId"));
-            R.ln = F + 852;
+            R.ln = F + 857;
             R.sm((S["evidence"] ?? null), "ownerOrganization", (S["owner"] ?? null));
-            R.ln = F + 853;
-            R.pa(v76, R.cmd(S, "New-Finding", [R.np("ResourceId"), R.m((S["assignment"] ?? null), "id"), R.np("ResourceType"), R.m((S["assignment"] ?? null), "type"), R.np("ResourceName"), ("" + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "role")))) + ": " + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "principal"))))), R.np("Result"), R.u(R.cmd(S, "New-Fail", [("" + R.str(R.u(R.pi(R.m((S["principal"] ?? null), "displayName")))) + ", an application of organization " + R.str((S["owner"] ?? null)) + ", holds " + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "role")))) + " on " + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "scope"))))), (S["evidence"] ?? null)], null))], null));
+            R.ln = F + 858;
+            R.pa(v77, R.cmd(S, "New-Finding", [R.np("ResourceId"), R.m((S["assignment"] ?? null), "id"), R.np("ResourceType"), R.m((S["assignment"] ?? null), "type"), R.np("ResourceName"), ("" + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "role")))) + ": " + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "principal"))))), R.np("Result"), R.u(R.cmd(S, "New-Fail", [("" + R.str(R.u(R.pi(R.m((S["principal"] ?? null), "displayName")))) + ", an application of organization " + R.str((S["owner"] ?? null)) + ", holds " + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "role")))) + " on " + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "scope"))))), (S["evidence"] ?? null)], null))], null));
         }
-        S["findings"] = R.u(v76);
-        R.ln = F + 855;
+        S["findings"] = R.u(v77);
+        R.ln = F + 860;
         if (!R.t((S["findings"] ?? null))) {
-            R.ln = F + 855;
+            R.ln = F + 860;
             R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Pass", ["No applications of other organizations hold Azure roles"], null))], null));
             return;
         }
-        R.ln = F + 856;
+        R.ln = F + 861;
+        R.e(O, (S["findings"] ?? null));
+    })], false)], null));
+    R.ln = F + 865;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-IAM-026", "Title", "Security defaults are enabled when Conditional Access is not used", "Category", "Identity management", "Service", "Microsoft Entra ID", "Severity", "High", "Description", "Checks that security defaults are enabled in a tenant without enabled Conditional Access policies. Tenants that use Conditional Access cannot turn on security defaults and are not applicable; AZ-IAM-024 and AZ-IAM-027 check their policies.", "Rationale", "Security defaults require every user to register for multifactor authentication, require it for administrators and Azure management, and block legacy authentication. A tenant with neither security defaults nor Conditional Access protects its accounts with passwords alone.", "Remediation", "Enable security defaults (Entra admin center > Overview > Properties > Manage security defaults), or with Entra ID P1 create Conditional Access policies that require multifactor authentication and block legacy authentication.", "References", R.a("https://learn.microsoft.com/entra/fundamentals/security-defaults"), "Requires", R.a("identity/securityDefaults"), "Run", R.sb({ params: [], adv: 0, text: "\n        $evidence = [ordered]@{ securityDefaults = [bool](Get-IngestData 'identity/securityDefaults').isEnabled }\n        if ($evidence.securityDefaults) { return New-TenantFinding -Result (New-Pass 'Security defaults are enabled' $evidence) -Suffix '/securityDefaults' }\n        if (-not (Test-IngestSection 'identity/conditionalAccessPolicies')) { return New-TenantFinding -Result (New-Unknown 'Security defaults are off, and Conditional Access policies could not be read' $evidence) -Suffix '/securityDefaults' }\n        $enabled = @(Get-IngestData 'identity/conditionalAccessPolicies' | Where-Object { $_ -and $_.state -eq 'enabled' })\n        $evidence.enabledConditionalAccessPolicies = $enabled.Count\n        if ($enabled) { return New-TenantFinding -Result (New-NotApplicable \"Conditional Access is used instead ($($enabled.Count) enabled policies)\" $evidence) -Suffix '/securityDefaults' }\n        New-TenantFinding -Result (New-Fail 'Security defaults are off and no Conditional Access policy is enabled' $evidence) -Suffix '/securityDefaults'\n    " }, (S, O) => {
+        R.ln = F + 877;
+        S["evidence"] = R.ht(["securityDefaults", R.c("bool", R.m(R.u(R.cmd(S, "Get-IngestData", ["identity/securityDefaults"], null)), "isEnabled"))], true);
+        R.ln = F + 878;
+        if (R.t(R.m((S["evidence"] ?? null), "securityDefaults"))) {
+            R.ln = F + 878;
+            R.pa(O, R.cmd(S, "New-TenantFinding", [R.np("Result"), R.u(R.cmd(S, "New-Pass", ["Security defaults are enabled", (S["evidence"] ?? null)], null)), R.np("Suffix"), "/securityDefaults"], null));
+            return;
+        }
+        R.ln = F + 879;
+        if (!R.t(R.u(R.cmd(S, "Test-IngestSection", ["identity/conditionalAccessPolicies"], null)))) {
+            R.ln = F + 879;
+            R.pa(O, R.cmd(S, "New-TenantFinding", [R.np("Result"), R.u(R.cmd(S, "New-Unknown", ["Security defaults are off, and Conditional Access policies could not be read", (S["evidence"] ?? null)], null)), R.np("Suffix"), "/securityDefaults"], null));
+            return;
+        }
+        R.ln = F + 880;
+        S["enabled"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.state -eq 'enabled' " }, (S, O) => {
+            R.ln = F + 880;
+            R.e(O, (R.t((S["_"] ?? null)) && R.t(R.eq(R.m((S["_"] ?? null), "state"), "enabled"))));
+        })], R.cmd(S, "Get-IngestData", ["identity/conditionalAccessPolicies"], null));
+        R.ln = F + 881;
+        R.sm((S["evidence"] ?? null), "enabledConditionalAccessPolicies", R.m((S["enabled"] ?? null), "Count"));
+        R.ln = F + 882;
+        if (R.t((S["enabled"] ?? null))) {
+            R.ln = F + 882;
+            R.pa(O, R.cmd(S, "New-TenantFinding", [R.np("Result"), R.u(R.cmd(S, "New-NotApplicable", [("Conditional Access is used instead (" + R.str(R.u(R.pi(R.m((S["enabled"] ?? null), "Count")))) + " enabled policies)"), (S["evidence"] ?? null)], null)), R.np("Suffix"), "/securityDefaults"], null));
+            return;
+        }
+        R.ln = F + 883;
+        R.pa(O, R.cmd(S, "New-TenantFinding", [R.np("Result"), R.u(R.cmd(S, "New-Fail", ["Security defaults are off and no Conditional Access policy is enabled", (S["evidence"] ?? null)], null)), R.np("Suffix"), "/securityDefaults"], null));
+    })], false)], null));
+    R.ln = F + 887;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-IAM-027", "Title", "Conditional Access requires multifactor authentication for all users on all resources", "Category", "Identity management", "Service", "Microsoft Entra ID", "Severity", "High", "Description", "Looks for an enabled Conditional Access policy for all users that requires multifactor authentication or an authentication strength for all resources, without excluded applications and without conditions that limit it to some client apps, platforms, locations or risk levels. Security defaults count as well.", "Rationale", "Azure resources are reached through many applications besides Azure Resource Manager: Azure DevOps, data plane tools and every application that holds delegated permissions. A password alone must not open any of them.", "Remediation", "Create a Conditional Access policy for all users (exclude only emergency access accounts) that targets all resources and grants access with 'Require multifactor authentication' or an authentication strength. Check it in report-only mode, then turn it on.", "References", R.a("https://learn.microsoft.com/entra/identity/conditional-access/policy-all-users-mfa-strength"), "Requires", R.a("identity/conditionalAccessPolicies"), "Run", R.sb({ params: [], adv: 0, text: " Get-MfaPolicyFinding 'all' " }, (S, O) => {
+        R.ln = F + 898;
+        R.pa(O, R.cmd(S, "Get-MfaPolicyFinding", ["all"], null));
+    })], false)], null));
+    R.ln = F + 901;
+    S["globaladministratortemplateid"] = "62e90394-69f5-4237-9190-012177145e10";
+    R.ln = F + 903;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-IAM-028", "Title", "An emergency access account is excluded from every Conditional Access policy", "Category", "Privileged access", "Service", "Microsoft Entra ID", "Severity", "High", "Description", "Looks for a user with an active Global Administrator assignment that every enabled Conditional Access policy for all users or for Global Administrators excludes, directly, through a group or through the Global Administrator role. Policies scoped to other users or groups are not evaluated.", "Rationale", "A Conditional Access policy that is misconfigured, or that depends on a service that is down (MFA, a federation provider, device compliance), can lock every administrator out of the tenant and its Azure subscriptions. An emergency access account outside those policies is the way back in.", "Remediation", "Keep two cloud-only emergency access accounts with a permanent Global Administrator assignment and phishing resistant credentials (passkeys or certificates), exclude them (or a group that holds them) from every Conditional Access policy, and alert on their sign-ins.", "References", R.a("https://learn.microsoft.com/entra/identity/role-based-access-control/security-emergency-access"), "Requires", R.a([R.v("identity/conditionalAccessPolicies"), R.v("identity/directoryRoleAssignments")]), "Run", R.sb({ params: [], adv: 0, text: "\n        $policies = @(Get-IngestData 'identity/conditionalAccessPolicies' | Where-Object { $_ -and $_.state -eq 'enabled' } | Sort-Object displayName, id)\n        if (-not $policies) { return New-TenantFinding -Result (New-NotApplicable 'No Conditional Access policy is enabled, so none can lock an account out') -Suffix '/conditionalAccess/emergencyAccess' }\n        $administrators = [System.Collections.Generic.List[object]]::new()\n        foreach ($principal in @(Get-IngestData 'identity/directoryRoleAssignments' | Where-Object { $_ -and $_.roleDefinitionId -eq $globalAdministratorTemplateId -and $_.principal.'@odata.type' -eq '#microsoft.graph.user' } | ForEach-Object principal | Sort-Object userPrincipalName, id)) {\n            if (-not ($administrators | Where-Object { $_.id -eq $principal.id })) { $administrators.Add($principal) }\n        }\n        #members of the excluded groups; $null for a group whose members could not be read\n        $groupMembers = @{}\n        foreach ($group in @(Get-IngestData 'identity/conditionalAccessExcludedGroups' | Where-Object { $_ })) {\n            $groupMembers[$group.id] = if ($null -ne $group.members) { @($group.members | ForEach-Object id) } else { $null }\n        }\n        $excluded = [System.Collections.Generic.List[string]]::new()\n        $undetermined = [System.Collections.Generic.List[string]]::new()\n        $applying = [ordered]@{}\n        foreach ($administrator in $administrators) {\n            $blocking = 0\n            $unknown = $false\n            foreach ($policy in $policies) {\n                $users = $policy.conditions.users\n                $included = @($users.includeUsers) -contains 'All' -or @($users.includeUsers) -contains $administrator.id -or @($users.includeRoles) -contains $globalAdministratorTemplateId\n                if (-not $included) { continue }\n                if (@($users.excludeUsers) -contains $administrator.id -or @($users.excludeRoles) -contains $globalAdministratorTemplateId) { continue }\n                $groups = @($users.excludeGroups | Where-Object { $_ })\n                if ($groups | Where-Object { $null -ne $groupMembers[$_] -and $groupMembers[$_] -contains $administrator.id }) { continue }\n                if ($groups | Where-Object { $null -eq $groupMembers[$_] }) { $unknown = $true }\n                $blocking++\n            }\n            $label = if ($administrator.userPrincipalName) { $administrator.userPrincipalName } else { $administrator.id }\n            if (-not $blocking) { $excluded.Add($label) }\n            elseif ($unknown) { $undetermined.Add($label) }\n            $applying[$label] = $blocking\n        }\n        $evidence = [ordered]@{ enabledPolicies = $policies.Count; globalAdministrators = $administrators.Count; applyingPolicies = $applying }\n        if ($excluded.Count) {\n            $evidence.emergencyAccessAccounts = @($excluded)\n            return New-TenantFinding -Result (New-Pass \"$($excluded.Count) Global Administrator(s) excluded from every enabled policy: $($excluded -join ', ')\" $evidence) -Suffix '/conditionalAccess/emergencyAccess'\n        }\n        if ($undetermined.Count) { return New-TenantFinding -Result (New-Unknown 'No Global Administrator is excluded from every enabled policy that was fully read; the members of some excluded groups could not be read' $evidence) -Suffix '/conditionalAccess/emergencyAccess' }\n        New-TenantFinding -Result (New-Fail \"Every active Global Administrator is subject to at least one of $($policies.Count) enabled Conditional Access policies\" $evidence) -Suffix '/conditionalAccess/emergencyAccess'\n    " }, (S, O) => {
+        R.ln = F + 915;
+        S["policies"] = R.cmd(S, "Sort-Object", [[R.v("displayName"), R.v("id")]], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.state -eq 'enabled' " }, (S, O) => {
+            R.ln = F + 915;
+            R.e(O, (R.t((S["_"] ?? null)) && R.t(R.eq(R.m((S["_"] ?? null), "state"), "enabled"))));
+        })], R.cmd(S, "Get-IngestData", ["identity/conditionalAccessPolicies"], null)));
+        R.ln = F + 916;
+        if (!R.t((S["policies"] ?? null))) {
+            R.ln = F + 916;
+            R.pa(O, R.cmd(S, "New-TenantFinding", [R.np("Result"), R.u(R.cmd(S, "New-NotApplicable", ["No Conditional Access policy is enabled, so none can lock an account out"], null)), R.np("Suffix"), "/conditionalAccess/emergencyAccess"], null));
+            return;
+        }
+        R.ln = F + 917;
+        S["administrators"] = R.sc("System.Collections.Generic.List[object]", "new", []);
+        R.ln = F + 918;
+        for (const it79 of R.fi(R.cmd(S, "Sort-Object", [[R.v("userPrincipalName"), R.v("id")]], R.cmd(S, "ForEach-Object", ["principal"], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.roleDefinitionId -eq $globalAdministratorTemplateId -and $_.principal.'@odata.type' -eq '#microsoft.graph.user' " }, (S, O) => {
+            R.ln = F + 918;
+            R.e(O, ((R.t((S["_"] ?? null)) && R.t(R.eq(R.m((S["_"] ?? null), "roleDefinitionId"), (S["globaladministratortemplateid"] ?? null)))) && R.t(R.eq(R.m(R.m((S["_"] ?? null), "principal"), "@odata.type"), "#microsoft.graph.user"))));
+        })], R.cmd(S, "Get-IngestData", ["identity/directoryRoleAssignments"], null)))))) {
+            S["principal"] = it79;
+            R.ln = F + 919;
+            if (!R.t(R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.id -eq $principal.id " }, (S, O) => {
+                R.ln = F + 919;
+                R.e(O, R.eq(R.m((S["_"] ?? null), "id"), R.m((S["principal"] ?? null), "id")));
+            })], R.pi((S["administrators"] ?? null)))))) {
+                R.ln = F + 919;
+                R.e(O, R.im((S["administrators"] ?? null), "Add", [(S["principal"] ?? null)]));
+            }
+        }
+        R.ln = F + 922;
+        S["groupmembers"] = R.ht([], false);
+        R.ln = F + 923;
+        for (const it80 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+            R.ln = F + 923;
+            R.e(O, (S["_"] ?? null));
+        })], R.cmd(S, "Get-IngestData", ["identity/conditionalAccessExcludedGroups"], null)))) {
+            S["group"] = it80;
+            R.ln = F + 924;
+            const v81 = [];
+            R.ln = F + 924;
+            if (R.t(R.ne(null, R.m((S["group"] ?? null), "members")))) {
+                R.ln = F + 924;
+                R.e(v81, R.cmd(S, "ForEach-Object", ["id"], R.pi(R.m((S["group"] ?? null), "members"))));
+            } else {
+                R.ln = F + 924;
+                R.e(v81, null);
+            }
+            R.si((S["groupmembers"] ?? null), R.m((S["group"] ?? null), "id"), R.u(v81));
+        }
+        R.ln = F + 926;
+        S["excluded"] = R.sc("System.Collections.Generic.List[string]", "new", []);
+        R.ln = F + 927;
+        S["undetermined"] = R.sc("System.Collections.Generic.List[string]", "new", []);
+        R.ln = F + 928;
+        S["applying"] = R.ht([], true);
+        R.ln = F + 929;
+        for (const it82 of R.fi((S["administrators"] ?? null))) {
+            S["administrator"] = it82;
+            R.ln = F + 930;
+            S["blocking"] = 0;
+            R.ln = F + 931;
+            S["unknown"] = false;
+            R.ln = F + 932;
+            for (const it83 of R.fi((S["policies"] ?? null))) {
+                S["policy"] = it83;
+                R.ln = F + 933;
+                S["users"] = R.m(R.m((S["policy"] ?? null), "conditions"), "users");
+                R.ln = F + 934;
+                S["included"] = ((R.t(R.cont(R.a(R.m((S["users"] ?? null), "includeUsers")), "All")) || R.t(R.cont(R.a(R.m((S["users"] ?? null), "includeUsers")), R.m((S["administrator"] ?? null), "id")))) || R.t(R.cont(R.a(R.m((S["users"] ?? null), "includeRoles")), (S["globaladministratortemplateid"] ?? null))));
+                R.ln = F + 935;
+                if (!R.t((S["included"] ?? null))) {
+                    continue;
+                }
+                R.ln = F + 936;
+                if ((R.t(R.cont(R.a(R.m((S["users"] ?? null), "excludeUsers")), R.m((S["administrator"] ?? null), "id"))) || R.t(R.cont(R.a(R.m((S["users"] ?? null), "excludeRoles")), (S["globaladministratortemplateid"] ?? null))))) {
+                    continue;
+                }
+                R.ln = F + 937;
+                S["groups"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+                    R.ln = F + 937;
+                    R.e(O, (S["_"] ?? null));
+                })], R.pi(R.m((S["users"] ?? null), "excludeGroups")));
+                R.ln = F + 938;
+                if (R.t(R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $null -ne $groupMembers[$_] -and $groupMembers[$_] -contains $administrator.id " }, (S, O) => {
+                    R.ln = F + 938;
+                    R.e(O, (R.t(R.ne(null, R.i((S["groupmembers"] ?? null), (S["_"] ?? null)))) && R.t(R.cont(R.i((S["groupmembers"] ?? null), (S["_"] ?? null)), R.m((S["administrator"] ?? null), "id")))));
+                })], R.pi((S["groups"] ?? null)))))) {
+                    continue;
+                }
+                R.ln = F + 939;
+                if (R.t(R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $null -eq $groupMembers[$_] " }, (S, O) => {
+                    R.ln = F + 939;
+                    R.e(O, R.eq(null, R.i((S["groupmembers"] ?? null), (S["_"] ?? null))));
+                })], R.pi((S["groups"] ?? null)))))) {
+                    R.ln = F + 939;
+                    S["unknown"] = true;
+                }
+                R.ln = F + 940;
+                R.incv(S, "blocking", 1, true);
+            }
+            R.ln = F + 942;
+            const v84 = [];
+            R.ln = F + 942;
+            if (R.t(R.m((S["administrator"] ?? null), "userPrincipalName"))) {
+                R.ln = F + 942;
+                R.e(v84, R.m((S["administrator"] ?? null), "userPrincipalName"));
+            } else {
+                R.ln = F + 942;
+                R.e(v84, R.m((S["administrator"] ?? null), "id"));
+            }
+            S["label"] = R.u(v84);
+            R.ln = F + 943;
+            if (!R.t((S["blocking"] ?? null))) {
+                R.ln = F + 943;
+                R.e(O, R.im((S["excluded"] ?? null), "Add", [(S["label"] ?? null)]));
+            } else if (R.t((S["unknown"] ?? null))) {
+                R.ln = F + 944;
+                R.e(O, R.im((S["undetermined"] ?? null), "Add", [(S["label"] ?? null)]));
+            }
+            R.ln = F + 945;
+            R.si((S["applying"] ?? null), (S["label"] ?? null), (S["blocking"] ?? null));
+        }
+        R.ln = F + 947;
+        S["evidence"] = R.ht(["enabledPolicies", R.m((S["policies"] ?? null), "Count"), "globalAdministrators", R.m((S["administrators"] ?? null), "Count"), "applyingPolicies", (S["applying"] ?? null)], true);
+        R.ln = F + 948;
+        if (R.t(R.m((S["excluded"] ?? null), "Count"))) {
+            R.ln = F + 949;
+            R.sm((S["evidence"] ?? null), "emergencyAccessAccounts", R.a((S["excluded"] ?? null)));
+            R.ln = F + 950;
+            R.pa(O, R.cmd(S, "New-TenantFinding", [R.np("Result"), R.u(R.cmd(S, "New-Pass", [("" + R.str(R.u(R.pi(R.m((S["excluded"] ?? null), "Count")))) + " Global Administrator(s) excluded from every enabled policy: " + R.str(R.u(R.pi(R.join((S["excluded"] ?? null), ", "))))), (S["evidence"] ?? null)], null)), R.np("Suffix"), "/conditionalAccess/emergencyAccess"], null));
+            return;
+        }
+        R.ln = F + 952;
+        if (R.t(R.m((S["undetermined"] ?? null), "Count"))) {
+            R.ln = F + 952;
+            R.pa(O, R.cmd(S, "New-TenantFinding", [R.np("Result"), R.u(R.cmd(S, "New-Unknown", ["No Global Administrator is excluded from every enabled policy that was fully read; the members of some excluded groups could not be read", (S["evidence"] ?? null)], null)), R.np("Suffix"), "/conditionalAccess/emergencyAccess"], null));
+            return;
+        }
+        R.ln = F + 953;
+        R.pa(O, R.cmd(S, "New-TenantFinding", [R.np("Result"), R.u(R.cmd(S, "New-Fail", [("Every active Global Administrator is subject to at least one of " + R.str(R.u(R.pi(R.m((S["policies"] ?? null), "Count")))) + " enabled Conditional Access policies"), (S["evidence"] ?? null)], null)), R.np("Suffix"), "/conditionalAccess/emergencyAccess"], null));
+    })], false)], null));
+    R.ln = F + 957;
+    R.def(S, "Get-CaRequirementGap", { params: [{ n: "Policy", t: null, pos: null }, { n: "Requirement", t: "string", pos: null }], adv: 0, h: "889822608c4fc562" }, (S, O) => {
+        R.ln = F + 962;
+        if (!R.t(R.u(R.cmd(S, "Test-CaTarget", [(S["policy"] ?? null), "azure"], null)))) {
+            R.ln = F + 962;
+            R.e(O, "unrelated");
+            return;
+        }
+        R.ln = F + 963;
+        if (R.t(R.eq((S["requirement"] ?? null), "session"))) {
+            R.ln = F + 964;
+            S["frequency"] = R.m(R.m((S["policy"] ?? null), "sessionControls"), "signInFrequency");
+            R.ln = F + 965;
+            if (!R.t(R.m((S["frequency"] ?? null), "isEnabled"))) {
+                R.ln = F + 965;
+                R.e(O, "unrelated");
+                return;
+            }
+            R.ln = F + 966;
+            S["gap"] = R.u(R.cmd(S, "Get-CaScopeGap", [(S["policy"] ?? null), "azure"], null));
+            R.ln = F + 967;
+            if (R.t((S["gap"] ?? null))) {
+                R.ln = F + 967;
+                R.e(O, (S["gap"] ?? null));
+                return;
+            }
+            R.ln = F + 968;
+            if (R.t(R.ne(R.m((S["frequency"] ?? null), "frequencyInterval"), "everyTime"))) {
+                R.ln = F + 969;
+                const v85 = [];
+                R.ln = F + 969;
+                if (R.t(R.eq(R.m((S["frequency"] ?? null), "type"), "days"))) {
+                    R.ln = F + 969;
+                    R.e(v85, R.mul(24, R.c("int", R.m((S["frequency"] ?? null), "value"))));
+                } else {
+                    R.ln = F + 969;
+                    R.e(v85, R.c("int", R.m((S["frequency"] ?? null), "value")));
+                }
+                S["hours"] = R.u(v85);
+                R.ln = F + 970;
+                if ((!R.t((S["hours"] ?? null)) || R.t(R.gt((S["hours"] ?? null), 12)))) {
+                    R.ln = F + 970;
+                    R.e(O, ("it asks to sign in again every " + R.str(R.u(R.pi(R.m((S["frequency"] ?? null), "value")))) + " " + R.str(R.u(R.pi(R.m((S["frequency"] ?? null), "type"))))));
+                    return;
+                }
+            }
+            R.ln = F + 972;
+            R.e(O, R.u(R.cmd(S, "Get-CaConditionGap", [(S["policy"] ?? null)], null)));
+            return;
+        }
+        R.ln = F + 974;
+        S["grant"] = R.m((S["policy"] ?? null), "grantControls");
+        R.ln = F + 975;
+        S["controls"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+            R.ln = F + 975;
+            R.e(O, (S["_"] ?? null));
+        })], R.pi(R.m((S["grant"] ?? null), "builtInControls")));
+        R.ln = F + 976;
+        if (!(R.t(R.cont((S["controls"] ?? null), "compliantDevice")) || R.t(R.cont((S["controls"] ?? null), "domainJoinedDevice")))) {
+            R.ln = F + 976;
+            R.e(O, "unrelated");
+            return;
+        }
+        R.ln = F + 977;
+        S["gap"] = R.u(R.cmd(S, "Get-CaScopeGap", [(S["policy"] ?? null), "azure"], null));
+        R.ln = F + 978;
+        if (R.t((S["gap"] ?? null))) {
+            R.ln = F + 978;
+            R.e(O, (S["gap"] ?? null));
+            return;
+        }
+        R.ln = F + 979;
+        S["alternatives"] = R.add(R.add(R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -notin 'compliantDevice', 'domainJoinedDevice' " }, (S, O) => {
+            R.ln = F + 979;
+            R.e(O, R.nin((S["_"] ?? null), [R.v("compliantDevice"), R.v("domainJoinedDevice")]));
+        })], R.pi((S["controls"] ?? null))), "Count"), R.c("int", R.c("bool", R.m((S["grant"] ?? null), "authenticationStrength")))), R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+            R.ln = F + 979;
+            R.e(O, (S["_"] ?? null));
+        })], R.pi(R.m((S["grant"] ?? null), "termsOfUse"))), "Count"));
+        R.ln = F + 980;
+        if ((R.t(R.eq(R.m((S["grant"] ?? null), "operator"), "OR")) && R.t((S["alternatives"] ?? null)))) {
+            R.ln = F + 980;
+            R.e(O, "a managed device is one of several alternative grant controls");
+            return;
+        }
+        R.ln = F + 981;
+        R.e(O, R.u(R.cmd(S, "Get-CaConditionGap", [(S["policy"] ?? null)], null)));
+        return;
+    });
+    R.ln = F + 984;
+    R.def(S, "Get-CaRequirementFinding", { params: [{ n: "Requirement", t: "string", pos: null }, { n: "Label", t: "string", pos: null }, { n: "Suffix", t: "string", pos: null }], adv: 0, h: "dd5a5977896a91dd" }, (S, O) => {
+        R.ln = F + 987;
+        S["policies"] = R.cmd(S, "Sort-Object", [[R.v("displayName"), R.v("id")]], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+            R.ln = F + 987;
+            R.e(O, (S["_"] ?? null));
+        })], R.cmd(S, "Get-IngestData", ["identity/conditionalAccessPolicies"], null)));
+        R.ln = F + 988;
+        S["qualifying"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $null -eq (Get-CaRequirementGap $_ $Requirement) " }, (S, O) => {
+            R.ln = F + 988;
+            R.e(O, R.eq(null, R.u(R.cmd(S, "Get-CaRequirementGap", [(S["_"] ?? null), (S["requirement"] ?? null)], null))));
+        })], R.pi((S["policies"] ?? null)));
+        R.ln = F + 989;
+        S["nearmisses"] = (() => {
+            const v86 = [];
+            R.ln = F + 989;
+            for (const it87 of R.fi((S["policies"] ?? null))) {
+                S["policy"] = it87;
+                R.ln = F + 989;
+                S["gap"] = R.u(R.cmd(S, "Get-CaRequirementGap", [(S["policy"] ?? null), (S["requirement"] ?? null)], null));
+                R.ln = F + 989;
+                if ((R.t((S["gap"] ?? null)) && R.t(R.ne((S["gap"] ?? null), "unrelated")))) {
+                    R.ln = F + 989;
+                    R.e(v86, ("" + R.str(R.u(R.pi(R.m((S["policy"] ?? null), "displayName")))) + ": " + R.str((S["gap"] ?? null))));
+                }
+            }
+            return v86;
+        })();
+        R.ln = F + 990;
+        if (R.t((S["qualifying"] ?? null))) {
+            R.ln = F + 991;
+            S["policy"] = R.i((S["qualifying"] ?? null), 0);
+            R.ln = F + 992;
+            S["evidence"] = R.ht(["policies", R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " $_.displayName " }, (S, O) => {
+                R.ln = F + 992;
+                R.e(O, R.m((S["_"] ?? null), "displayName"));
+            })], R.pi((S["qualifying"] ?? null)))], true);
+            R.ln = F + 993;
+            if (R.t(R.eq((S["requirement"] ?? null), "session"))) {
+                R.ln = F + 993;
+                R.sm((S["evidence"] ?? null), "signInFrequency", (() => {
+                    const v88 = [];
+                    R.ln = F + 993;
+                    if (R.t(R.eq(R.m(R.m(R.m((S["policy"] ?? null), "sessionControls"), "signInFrequency"), "frequencyInterval"), "everyTime"))) {
+                        R.ln = F + 993;
+                        R.e(v88, "every time");
+                    } else {
+                        R.ln = F + 993;
+                        R.e(v88, ("" + R.str(R.u(R.pi(R.m(R.m(R.m((S["policy"] ?? null), "sessionControls"), "signInFrequency"), "value")))) + " " + R.str(R.u(R.pi(R.m(R.m(R.m((S["policy"] ?? null), "sessionControls"), "signInFrequency"), "type"))))));
+                    }
+                    return R.u(v88);
+                })());
+            } else {
+                R.ln = F + 994;
+                R.sm((S["evidence"] ?? null), "grant", R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+                    R.ln = F + 994;
+                    R.e(O, (S["_"] ?? null));
+                })], R.pi(R.m(R.m((S["policy"] ?? null), "grantControls"), "builtInControls"))));
+            }
+            R.ln = F + 995;
+            R.sm((S["evidence"] ?? null), "excludedUsers", R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+                R.ln = F + 995;
+                R.e(O, (S["_"] ?? null));
+            })], R.pi(R.m(R.m(R.m((S["policy"] ?? null), "conditions"), "users"), "excludeUsers"))), "Count"));
+            R.ln = F + 996;
+            R.sm((S["evidence"] ?? null), "excludedGroups", R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+                R.ln = F + 996;
+                R.e(O, (S["_"] ?? null));
+            })], R.pi(R.m(R.m(R.m((S["policy"] ?? null), "conditions"), "users"), "excludeGroups"))), "Count"));
+            R.ln = F + 997;
+            R.pa(O, R.cmd(S, "New-TenantFinding", [R.np("Result"), R.u(R.cmd(S, "New-Pass", [("Policy '" + R.str(R.u(R.pi(R.m((S["policy"] ?? null), "displayName")))) + "' " + R.str((S["label"] ?? null))), (S["evidence"] ?? null)], null)), R.np("Suffix"), (S["suffix"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 999;
+        S["evidence"] = R.ht(["enabledPolicies", R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.state -eq 'enabled' " }, (S, O) => {
+            R.ln = F + 999;
+            R.e(O, R.eq(R.m((S["_"] ?? null), "state"), "enabled"));
+        })], R.pi((S["policies"] ?? null))), "Count"), "nearMisses", (S["nearmisses"] ?? null)], true);
+        R.ln = F + 1000;
+        const v89 = [];
+        R.ln = F + 1000;
+        if (R.t((S["nearmisses"] ?? null))) {
+            R.ln = F + 1000;
+            R.e(v89, ("No enabled policy for all users " + R.str((S["label"] ?? null)) + " (" + R.str(R.u(R.pi(R.join((S["nearmisses"] ?? null), "; ")))) + ")"));
+        } else {
+            R.ln = F + 1000;
+            R.e(v89, ("No Conditional Access policy " + R.str((S["label"] ?? null))));
+        }
+        S["detail"] = R.u(v89);
+        R.ln = F + 1001;
+        R.pa(O, R.cmd(S, "New-TenantFinding", [R.np("Result"), R.u(R.cmd(S, "New-Fail", [(S["detail"] ?? null), (S["evidence"] ?? null)], null)), R.np("Suffix"), (S["suffix"] ?? null)], null));
+    });
+    R.ln = F + 1004;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-IAM-029", "Title", "Azure management sessions require a new sign-in at least every 12 hours", "Category", "Identity management", "Service", "Microsoft Entra ID", "Severity", "Medium", "Description", "Looks for an enabled Conditional Access policy for all users on Azure management (the Windows Azure Service Management API, or all resources) with a sign-in frequency of at most 12 hours, or every time, without conditions that limit it to some client apps, platforms, locations or risk levels.", "Rationale", "Without a sign-in frequency an Azure management session lasts as long as its refresh tokens, which is 90 days of activity. A stolen token or an unattended session then keeps working long after the user stopped. NIST SP 800-63B asks to re-authenticate at least every 12 hours at the highest assurance level.", "Remediation", "In the Conditional Access policy for Azure management, set Session > Sign-in frequency to 12 hours or less (or every time for privileged roles), for all users except emergency access accounts.", "References", R.a([R.v("https://learn.microsoft.com/entra/identity/conditional-access/concept-session-lifetime"), R.v("https://pages.nist.gov/800-63-4/sp800-63b.html")]), "Requires", R.a("identity/conditionalAccessPolicies"), "Run", R.sb({ params: [], adv: 0, text: " Get-CaRequirementFinding 'session' 'limits Azure management sessions to 12 hours or less' '/conditionalAccess/sessionLifetime' " }, (S, O) => {
+        R.ln = F + 1015;
+        R.pa(O, R.cmd(S, "Get-CaRequirementFinding", ["session", "limits Azure management sessions to 12 hours or less", "/conditionalAccess/sessionLifetime"], null));
+    })], false)], null));
+    R.ln = F + 1018;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-IAM-030", "Title", "Conditional Access requires a managed device for Azure management", "Category", "Privileged access", "Service", "Microsoft Entra ID", "Severity", "Medium", "Description", "Looks for an enabled Conditional Access policy for all users on Azure management (the Windows Azure Service Management API, or all resources) that requires a compliant or Microsoft Entra hybrid joined device, not as one of several alternatives, and without conditions that limit it to some client apps, platforms, locations or risk levels.", "Rationale", "Credentials and tokens are stolen from unmanaged devices, and a phished session can be replayed from the attacker's own device. Requiring a device that the organization manages keeps Azure administration on devices with known security configuration, and blocks access from anywhere else even with valid credentials.", "Remediation", "Create a Conditional Access policy for all users (exclude only emergency access accounts) that targets 'Windows Azure Service Management API' and grants access with 'Require device to be marked as compliant' or 'Require Microsoft Entra hybrid joined device'. Check it in report-only mode first: every administrator needs a managed device.", "References", R.a([R.v("https://learn.microsoft.com/entra/identity/conditional-access/policy-all-users-device-compliance"), R.v("https://learn.microsoft.com/security/privileged-access-workstations/privileged-access-devices")]), "Requires", R.a("identity/conditionalAccessPolicies"), "Run", R.sb({ params: [], adv: 0, text: " Get-CaRequirementFinding 'device' 'requires a managed device for Azure management' '/conditionalAccess/managedDevice' " }, (S, O) => {
+        R.ln = F + 1029;
+        R.pa(O, R.cmd(S, "Get-CaRequirementFinding", ["device", "requires a managed device for Azure management", "/conditionalAccess/managedDevice"], null));
+    })], false)], null));
+    R.ln = F + 1032;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-IAM-031", "Title", "Managed identities have no write access outside the resource group of their resource", "Category", "Privileged access", "Service", "Azure RBAC", "Severity", "High", "Description", "For every resource with a system or user assigned managed identity, lists the write capable role assignments of that identity on other resource groups, or on resources in other resource groups. Assignments at subscription scope or above are AZ-IAM-003, and assignments on the managed application that owns the resource group are part of that application; assignments through group membership are not evaluated.", "Rationale", "Whoever can change a resource can act as its managed identity: run a command on the virtual machine, change the code of the function or the steps of the runbook or Logic App. An identity with rights in another resource group hands those rights to every contributor of its own resource group, a privilege escalation path that no single role assignment shows.", "Remediation", "Limit the managed identity to what it needs in its own resource group, move the resource next to what it manages, or let a resource that only the owners of the target resource group can change do the work.", "References", R.a("https://learn.microsoft.com/entra/identity/managed-identities-azure-resources/managed-identity-best-practice-recommendations"), "Requires", R.a([R.v("rbac/roleAssignments"), R.v("rbac/roleDefinitions")]), "Run", R.sb({ params: [], adv: 0, text: "\n        #identity principal id > the resources that act as it\n        $usedBy = @{}\n        foreach ($record in (Get-AzResourceRecords)) {\n            $identity = $record.resource.identity\n            if (-not $identity) { continue }\n            $principals = @($identity.principalId) + @(foreach ($assigned in @($identity.userAssignedIdentities.PSObject.Properties)) { $assigned.Value.principalId })\n            foreach ($principal in @($principals | Where-Object { $_ })) {\n                $key = ([string]$principal).ToLowerInvariant()\n                if (-not $usedBy.ContainsKey($key)) { $usedBy[$key] = [System.Collections.Generic.List[object]]::new() }\n                $usedBy[$key].Add($record)\n            }\n        }\n        #managed resource group > its managed application, which the resources in it act on by design\n        $managedBy = @{}\n        foreach ($application in (Get-AzResourceRecords -Type 'Microsoft.Solutions/applications')) {\n            $managed = [string]$application.resource.properties.managedResourceGroupId\n            if ($managed) { $managedBy[$managed.ToLowerInvariant()] = $application.id.ToLowerInvariant() }\n        }\n        #resource id (lowercase) > write capable assignments of its identities outside its resource group\n        $outside = [ordered]@{}\n        $records = @{}\n        foreach ($assignment in @(Get-ActiveRoleAssignments | Where-Object { $_.properties.principalType -eq 'ServicePrincipal' } | Sort-Object id)) {\n            $key = ([string]$assignment.properties.principalId).ToLowerInvariant()\n            if (-not $usedBy.ContainsKey($key)) { continue }\n            $scope = [string]$assignment.properties.scope\n            if ((Get-ScopeLevel $scope) -in 'root', 'managementGroup', 'subscription') { continue }\n            if (-not (Test-RoleCanWrite $assignment.properties.roleDefinitionId)) { continue }\n            foreach ($record in $usedBy[$key]) {\n                $resourceGroup = (($record.id -split '/')[0..4] -join '/').ToLowerInvariant()\n                $target = $scope.ToLowerInvariant()\n                if ($target -eq $resourceGroup -or $target.StartsWith(\"$resourceGroup/\")) { continue }\n                if ($managedBy.ContainsKey($resourceGroup) -and ($target -eq $managedBy[$resourceGroup] -or $target.StartsWith(\"$($managedBy[$resourceGroup])/\"))) { continue }\n                $id = $record.id.ToLowerInvariant()\n                if (-not $outside.Contains($id)) { $outside[$id] = [System.Collections.Generic.List[string]]::new(); $records[$id] = $record }\n                $outside[$id].Add(\"$(Get-RoleName $assignment.properties.roleDefinitionId) @ $scope\")\n            }\n        }\n        if (-not $outside.Count) { return New-SubscriptionFinding (New-Pass 'No managed identity has write access outside the resource group of its resource') }\n        foreach ($id in $outside.Keys) {\n            $grants = @($outside[$id] | Sort-Object -Unique)\n            New-Finding -Record $records[$id] -Result (New-Fail \"Its managed identity has write access outside its resource group: $($grants -join '; ')\" ([ordered]@{ outsideAssignments = $grants }))\n        }\n    " }, (S, O) => {
+        R.ln = F + 1045;
+        S["usedby"] = R.ht([], false);
+        R.ln = F + 1046;
+        for (const it90 of R.fi(R.u(R.cmd(S, "Get-AzResourceRecords", [], null)))) {
+            S["record"] = it90;
+            R.ln = F + 1047;
+            S["identity"] = R.m(R.m((S["record"] ?? null), "resource"), "identity");
+            R.ln = F + 1048;
+            if (!R.t((S["identity"] ?? null))) {
+                continue;
+            }
+            R.ln = F + 1049;
+            S["principals"] = R.add(R.a(R.m((S["identity"] ?? null), "principalId")), (() => {
+                const v91 = [];
+                R.ln = F + 1049;
+                for (const it92 of R.fi(R.a(R.m(R.m(R.m((S["identity"] ?? null), "userAssignedIdentities"), "PSObject"), "Properties")))) {
+                    S["assigned"] = it92;
+                    R.ln = F + 1049;
+                    R.e(v91, R.m(R.m((S["assigned"] ?? null), "Value"), "principalId"));
+                }
+                return v91;
+            })());
+            R.ln = F + 1050;
+            for (const it93 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+                R.ln = F + 1050;
+                R.e(O, (S["_"] ?? null));
+            })], R.pi((S["principals"] ?? null))))) {
+                S["principal"] = it93;
+                R.ln = F + 1051;
+                S["key"] = R.im((R.c("string", (S["principal"] ?? null))), "ToLowerInvariant", []);
+                R.ln = F + 1052;
+                if (!R.t(R.im((S["usedby"] ?? null), "ContainsKey", [(S["key"] ?? null)]))) {
+                    R.ln = F + 1052;
+                    R.si((S["usedby"] ?? null), (S["key"] ?? null), R.sc("System.Collections.Generic.List[object]", "new", []));
+                }
+                R.ln = F + 1053;
+                R.e(O, R.im(R.i((S["usedby"] ?? null), (S["key"] ?? null)), "Add", [(S["record"] ?? null)]));
+            }
+        }
+        R.ln = F + 1057;
+        S["managedby"] = R.ht([], false);
+        R.ln = F + 1058;
+        for (const it94 of R.fi(R.u(R.cmd(S, "Get-AzResourceRecords", [R.np("Type"), "Microsoft.Solutions/applications"], null)))) {
+            S["application"] = it94;
+            R.ln = F + 1059;
+            S["managed"] = R.c("string", R.m(R.m(R.m((S["application"] ?? null), "resource"), "properties"), "managedResourceGroupId"));
+            R.ln = F + 1060;
+            if (R.t((S["managed"] ?? null))) {
+                R.ln = F + 1060;
+                R.si((S["managedby"] ?? null), R.im((S["managed"] ?? null), "ToLowerInvariant", []), R.im(R.m((S["application"] ?? null), "id"), "ToLowerInvariant", []));
+            }
+        }
+        R.ln = F + 1063;
+        S["outside"] = R.ht([], true);
+        R.ln = F + 1064;
+        S["records"] = R.ht([], false);
+        R.ln = F + 1065;
+        for (const it95 of R.fi(R.cmd(S, "Sort-Object", ["id"], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.properties.principalType -eq 'ServicePrincipal' " }, (S, O) => {
+            R.ln = F + 1065;
+            R.e(O, R.eq(R.m(R.m((S["_"] ?? null), "properties"), "principalType"), "ServicePrincipal"));
+        })], R.cmd(S, "Get-ActiveRoleAssignments", [], null))))) {
+            S["assignment"] = it95;
+            R.ln = F + 1066;
+            S["key"] = R.im((R.c("string", R.m(R.m((S["assignment"] ?? null), "properties"), "principalId"))), "ToLowerInvariant", []);
+            R.ln = F + 1067;
+            if (!R.t(R.im((S["usedby"] ?? null), "ContainsKey", [(S["key"] ?? null)]))) {
+                continue;
+            }
+            R.ln = F + 1068;
+            S["scope"] = R.c("string", R.m(R.m((S["assignment"] ?? null), "properties"), "scope"));
+            R.ln = F + 1069;
+            if (R.t(R.in(R.u(R.cmd(S, "Get-ScopeLevel", [(S["scope"] ?? null)], null)), [R.v("root"), R.v("managementGroup"), R.v("subscription")]))) {
+                continue;
+            }
+            R.ln = F + 1070;
+            if (!R.t(R.u(R.cmd(S, "Test-RoleCanWrite", [R.m(R.m((S["assignment"] ?? null), "properties"), "roleDefinitionId")], null)))) {
+                continue;
+            }
+            R.ln = F + 1071;
+            for (const it96 of R.fi(R.i((S["usedby"] ?? null), (S["key"] ?? null)))) {
+                S["record"] = it96;
+                R.ln = F + 1072;
+                S["resourcegroup"] = R.im((R.join(R.i((R.split(R.m((S["record"] ?? null), "id"), "/")), R.range(0, 4)), "/")), "ToLowerInvariant", []);
+                R.ln = F + 1073;
+                S["target"] = R.im((S["scope"] ?? null), "ToLowerInvariant", []);
+                R.ln = F + 1074;
+                if ((R.t(R.eq((S["target"] ?? null), (S["resourcegroup"] ?? null))) || R.t(R.im((S["target"] ?? null), "StartsWith", [("" + R.str((S["resourcegroup"] ?? null)) + "/")])))) {
+                    continue;
+                }
+                R.ln = F + 1075;
+                if ((R.t(R.im((S["managedby"] ?? null), "ContainsKey", [(S["resourcegroup"] ?? null)])) && (R.t(R.eq((S["target"] ?? null), R.i((S["managedby"] ?? null), (S["resourcegroup"] ?? null)))) || R.t(R.im((S["target"] ?? null), "StartsWith", [("" + R.str(R.u(R.pi(R.i((S["managedby"] ?? null), (S["resourcegroup"] ?? null))))) + "/")]))))) {
+                    continue;
+                }
+                R.ln = F + 1076;
+                S["id"] = R.im(R.m((S["record"] ?? null), "id"), "ToLowerInvariant", []);
+                R.ln = F + 1077;
+                if (!R.t(R.im((S["outside"] ?? null), "Contains", [(S["id"] ?? null)]))) {
+                    R.ln = F + 1077;
+                    R.si((S["outside"] ?? null), (S["id"] ?? null), R.sc("System.Collections.Generic.List[string]", "new", []));
+                    R.ln = F + 1077;
+                    R.si((S["records"] ?? null), (S["id"] ?? null), (S["record"] ?? null));
+                }
+                R.ln = F + 1078;
+                R.e(O, R.im(R.i((S["outside"] ?? null), (S["id"] ?? null)), "Add", [("" + R.str(R.u(R.cmd(S, "Get-RoleName", [R.m(R.m((S["assignment"] ?? null), "properties"), "roleDefinitionId")], null))) + " @ " + R.str((S["scope"] ?? null)))]));
+            }
+        }
+        R.ln = F + 1081;
+        if (!R.t(R.m((S["outside"] ?? null), "Count"))) {
+            R.ln = F + 1081;
+            R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Pass", ["No managed identity has write access outside the resource group of its resource"], null))], null));
+            return;
+        }
+        R.ln = F + 1082;
+        for (const it97 of R.fi(R.m((S["outside"] ?? null), "Keys"))) {
+            S["id"] = it97;
+            R.ln = F + 1083;
+            S["grants"] = R.cmd(S, "Sort-Object", [R.np("Unique")], R.pi(R.i((S["outside"] ?? null), (S["id"] ?? null))));
+            R.ln = F + 1084;
+            R.pa(O, R.cmd(S, "New-Finding", [R.np("Record"), R.i((S["records"] ?? null), (S["id"] ?? null)), R.np("Result"), R.u(R.cmd(S, "New-Fail", [("Its managed identity has write access outside its resource group: " + R.str(R.u(R.pi(R.join((S["grants"] ?? null), "; "))))), (R.ht(["outsideAssignments", (S["grants"] ?? null)], true))], null))], null));
+        }
+    })], false)], null));
+    R.ln = F + 1089;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-IAM-032", "Title", "Groups with privileged Azure access can only be changed by privileged administrators", "Category", "Privileged access", "Service", "Microsoft Entra ID", "Severity", "High", "Description", "For groups with a write capable role assignment at subscription scope or above, checks that the group is role-assignable, has assigned (not dynamic) membership, is not synchronized from on-premises Active Directory and has no owners.", "Rationale", "Membership of such a group is control of the subscription. Members of a regular group can be added by Groups, User and other directory administrators and by the group owners; members of a dynamic group by anyone who can set the attribute its rule reads; members of a synchronized group by anyone who controls the on-premises directory. Each is a path from a lesser role, or from on-premises, to Azure.", "Remediation", "Grant privileged Azure roles to a cloud-only, role-assignable security group with assigned membership and no owners (a new group created with isAssignableToRole, since the setting cannot be changed later), preferably with eligible membership through PIM for Groups.", "References", R.a([R.v("https://learn.microsoft.com/entra/identity/role-based-access-control/groups-concept"), R.v("https://learn.microsoft.com/entra/id-governance/privileged-identity-management/concept-pim-for-groups")]), "Requires", R.a([R.v("rbac/roleAssignments"), R.v("rbac/roleDefinitions"), R.v("identity/groups")]), "Run", R.sb({ params: [], adv: 0, text: "\n        $roles = [ordered]@{}\n        foreach ($assignment in @(Get-ActiveRoleAssignments | Where-Object { $_.properties.principalType -eq 'Group' -and (Get-ScopeLevel $_.properties.scope) -in 'root', 'managementGroup', 'subscription' -and (Test-RoleCanWrite $_.properties.roleDefinitionId) } | Sort-Object id)) {\n            $key = ([string]$assignment.properties.principalId).ToLowerInvariant()\n            if (-not $roles.Contains($key)) { $roles[$key] = [System.Collections.Generic.List[string]]::new() }\n            $roles[$key].Add(\"$(Get-RoleName $assignment.properties.roleDefinitionId) @ $($assignment.properties.scope)\")\n        }\n        if (-not $roles.Count) { return New-SubscriptionFinding (New-Pass 'No group holds a write capable role at subscription scope or above') }\n        foreach ($id in @($roles.Keys | Sort-Object)) {\n            $record = (Get-GroupMap)[$id]\n            $label = Get-PrincipalLabel $id\n            $evidence = [ordered]@{ roles = @($roles[$id] | Sort-Object -Unique) }\n            if (-not $record -or $null -eq $record.properties -or $null -eq $record.owners) {\n                New-Finding -ResourceId \"/groups/$id\" -ResourceType 'Microsoft.Entra/groups' -ResourceName $label -Result (New-Unknown 'The properties or owners of the group could not be read' $evidence)\n                continue\n            }\n            $p = $record.properties\n            $owners = @($record.owners | Where-Object { $_ })\n            $evidence.isAssignableToRole = [bool]$p.isAssignableToRole\n            $evidence.dynamicMembership = [bool]($p.membershipRule -or @($p.groupTypes) -contains 'DynamicMembership')\n            $evidence.onPremisesSync = [bool]$p.onPremisesSyncEnabled\n            $evidence.owners = @($owners | ForEach-Object { if ($_.userPrincipalName) { $_.userPrincipalName } else { $_.displayName } } | Sort-Object)\n            $issues = @(\n                $(if (-not $evidence.isAssignableToRole) { 'not role-assignable' })\n                $(if ($evidence.dynamicMembership) { 'dynamic membership' })\n                $(if ($evidence.onPremisesSync) { 'synchronized from on-premises' })\n                $(if ($owners) { \"$($owners.Count) owner(s)\" })\n            ) | Where-Object { $_ }\n            $result = if ($issues) { New-Fail \"$($roles[$id][0]) through a group that others can change: $($issues -join ', ')\" $evidence } else { New-Pass 'Role-assignable, assigned membership, cloud-only, no owners' $evidence }\n            New-Finding -ResourceId \"/groups/$id\" -ResourceType 'Microsoft.Entra/groups' -ResourceName $label -Result $result\n        }\n    " }, (S, O) => {
+        R.ln = F + 1101;
+        S["roles"] = R.ht([], true);
+        R.ln = F + 1102;
+        for (const it98 of R.fi(R.cmd(S, "Sort-Object", ["id"], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.properties.principalType -eq 'Group' -and (Get-ScopeLevel $_.properties.scope) -in 'root', 'managementGroup', 'subscription' -and (Test-RoleCanWrite $_.properties.roleDefinitionId) " }, (S, O) => {
+            R.ln = F + 1102;
+            R.e(O, ((R.t(R.eq(R.m(R.m((S["_"] ?? null), "properties"), "principalType"), "Group")) && R.t(R.in(R.u(R.cmd(S, "Get-ScopeLevel", [R.m(R.m((S["_"] ?? null), "properties"), "scope")], null)), [R.v("root"), R.v("managementGroup"), R.v("subscription")]))) && R.t(R.u(R.cmd(S, "Test-RoleCanWrite", [R.m(R.m((S["_"] ?? null), "properties"), "roleDefinitionId")], null)))));
+        })], R.cmd(S, "Get-ActiveRoleAssignments", [], null))))) {
+            S["assignment"] = it98;
+            R.ln = F + 1103;
+            S["key"] = R.im((R.c("string", R.m(R.m((S["assignment"] ?? null), "properties"), "principalId"))), "ToLowerInvariant", []);
+            R.ln = F + 1104;
+            if (!R.t(R.im((S["roles"] ?? null), "Contains", [(S["key"] ?? null)]))) {
+                R.ln = F + 1104;
+                R.si((S["roles"] ?? null), (S["key"] ?? null), R.sc("System.Collections.Generic.List[string]", "new", []));
+            }
+            R.ln = F + 1105;
+            R.e(O, R.im(R.i((S["roles"] ?? null), (S["key"] ?? null)), "Add", [("" + R.str(R.u(R.cmd(S, "Get-RoleName", [R.m(R.m((S["assignment"] ?? null), "properties"), "roleDefinitionId")], null))) + " @ " + R.str(R.u(R.pi(R.m(R.m((S["assignment"] ?? null), "properties"), "scope")))))]));
+        }
+        R.ln = F + 1107;
+        if (!R.t(R.m((S["roles"] ?? null), "Count"))) {
+            R.ln = F + 1107;
+            R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Pass", ["No group holds a write capable role at subscription scope or above"], null))], null));
+            return;
+        }
+        R.ln = F + 1108;
+        for (const it99 of R.fi(R.cmd(S, "Sort-Object", [], R.pi(R.m((S["roles"] ?? null), "Keys"))))) {
+            S["id"] = it99;
+            R.ln = F + 1109;
+            S["record"] = R.i(R.u(R.cmd(S, "Get-GroupMap", [], null)), (S["id"] ?? null));
+            R.ln = F + 1110;
+            S["label"] = R.u(R.cmd(S, "Get-PrincipalLabel", [(S["id"] ?? null)], null));
+            R.ln = F + 1111;
+            S["evidence"] = R.ht(["roles", R.cmd(S, "Sort-Object", [R.np("Unique")], R.pi(R.i((S["roles"] ?? null), (S["id"] ?? null))))], true);
+            R.ln = F + 1112;
+            if (((!R.t((S["record"] ?? null)) || R.t(R.eq(null, R.m((S["record"] ?? null), "properties")))) || R.t(R.eq(null, R.m((S["record"] ?? null), "owners"))))) {
+                R.ln = F + 1113;
+                R.pa(O, R.cmd(S, "New-Finding", [R.np("ResourceId"), ("/groups/" + R.str((S["id"] ?? null))), R.np("ResourceType"), "Microsoft.Entra/groups", R.np("ResourceName"), (S["label"] ?? null), R.np("Result"), R.u(R.cmd(S, "New-Unknown", ["The properties or owners of the group could not be read", (S["evidence"] ?? null)], null))], null));
+                continue;
+            }
+            R.ln = F + 1116;
+            S["p"] = R.m((S["record"] ?? null), "properties");
+            R.ln = F + 1117;
+            S["owners"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+                R.ln = F + 1117;
+                R.e(O, (S["_"] ?? null));
+            })], R.pi(R.m((S["record"] ?? null), "owners")));
+            R.ln = F + 1118;
+            R.sm((S["evidence"] ?? null), "isAssignableToRole", R.c("bool", R.m((S["p"] ?? null), "isAssignableToRole")));
+            R.ln = F + 1119;
+            R.sm((S["evidence"] ?? null), "dynamicMembership", R.c("bool", ((R.t(R.m((S["p"] ?? null), "membershipRule")) || R.t(R.cont(R.a(R.m((S["p"] ?? null), "groupTypes")), "DynamicMembership"))))));
+            R.ln = F + 1120;
+            R.sm((S["evidence"] ?? null), "onPremisesSync", R.c("bool", R.m((S["p"] ?? null), "onPremisesSyncEnabled")));
+            R.ln = F + 1121;
+            R.sm((S["evidence"] ?? null), "owners", R.cmd(S, "Sort-Object", [], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " if ($_.userPrincipalName) { $_.userPrincipalName } else { $_.displayName } " }, (S, O) => {
+                R.ln = F + 1121;
+                if (R.t(R.m((S["_"] ?? null), "userPrincipalName"))) {
+                    R.ln = F + 1121;
+                    R.e(O, R.m((S["_"] ?? null), "userPrincipalName"));
+                } else {
+                    R.ln = F + 1121;
+                    R.e(O, R.m((S["_"] ?? null), "displayName"));
+                }
+            })], R.pi((S["owners"] ?? null)))));
+            R.ln = F + 1122;
+            S["issues"] = R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+                R.ln = F + 1127;
+                R.e(O, (S["_"] ?? null));
+            })], R.pi((() => {
+                const v100 = [];
+                R.ln = F + 1123;
+                R.e(v100, (() => {
+                    const v101 = [];
+                    R.ln = F + 1123;
+                    if (!R.t(R.m((S["evidence"] ?? null), "isAssignableToRole"))) {
+                        R.ln = F + 1123;
+                        R.e(v101, "not role-assignable");
+                    }
+                    return R.u(v101);
+                })());
+                R.ln = F + 1124;
+                R.e(v100, (() => {
+                    const v102 = [];
+                    R.ln = F + 1124;
+                    if (R.t(R.m((S["evidence"] ?? null), "dynamicMembership"))) {
+                        R.ln = F + 1124;
+                        R.e(v102, "dynamic membership");
+                    }
+                    return R.u(v102);
+                })());
+                R.ln = F + 1125;
+                R.e(v100, (() => {
+                    const v103 = [];
+                    R.ln = F + 1125;
+                    if (R.t(R.m((S["evidence"] ?? null), "onPremisesSync"))) {
+                        R.ln = F + 1125;
+                        R.e(v103, "synchronized from on-premises");
+                    }
+                    return R.u(v103);
+                })());
+                R.ln = F + 1126;
+                R.e(v100, (() => {
+                    const v104 = [];
+                    R.ln = F + 1126;
+                    if (R.t((S["owners"] ?? null))) {
+                        R.ln = F + 1126;
+                        R.e(v104, ("" + R.str(R.u(R.pi(R.m((S["owners"] ?? null), "Count")))) + " owner(s)"));
+                    }
+                    return R.u(v104);
+                })());
+                return v100;
+            })())));
+            R.ln = F + 1128;
+            const v105 = [];
+            R.ln = F + 1128;
+            if (R.t((S["issues"] ?? null))) {
+                R.ln = F + 1128;
+                R.pa(v105, R.cmd(S, "New-Fail", [("" + R.str(R.u(R.pi(R.i(R.i((S["roles"] ?? null), (S["id"] ?? null)), 0)))) + " through a group that others can change: " + R.str(R.u(R.pi(R.join((S["issues"] ?? null), ", "))))), (S["evidence"] ?? null)], null));
+            } else {
+                R.ln = F + 1128;
+                R.pa(v105, R.cmd(S, "New-Pass", ["Role-assignable, assigned membership, cloud-only, no owners", (S["evidence"] ?? null)], null));
+            }
+            S["result"] = R.u(v105);
+            R.ln = F + 1129;
+            R.pa(O, R.cmd(S, "New-Finding", [R.np("ResourceId"), ("/groups/" + R.str((S["id"] ?? null))), R.np("ResourceType"), "Microsoft.Entra/groups", R.np("ResourceName"), (S["label"] ?? null), R.np("Result"), (S["result"] ?? null)], null));
+        }
+    })], false)], null));
+    R.ln = F + 1134;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-IAM-033", "Title", "Roles with data access are not assigned at subscription scope or above", "Category", "Privileged access", "Service", "Azure RBAC", "Severity", "Medium", "Description", "Finds role assignments at subscription, management group or root scope of roles that grant data actions, for example Storage Blob Data Owner, Key Vault Secrets User or Azure Kubernetes Service RBAC Cluster Admin.", "Rationale", "A data role at subscription scope reads or changes the data in every storage account, key vault, cluster or other resource of that kind in the subscription, including the ones created later. That breadth is rarely needed, and it does not show on the resources whose data it opens.", "Remediation", "Assign data roles on the resource (or the container, vault or namespace) that holds the data, and remove the broad assignment.", "References", R.a([R.v("https://learn.microsoft.com/azure/role-based-access-control/role-definitions#control-and-data-actions"), R.v("https://learn.microsoft.com/azure/role-based-access-control/best-practices")]), "Requires", R.a([R.v("rbac/roleAssignments"), R.v("rbac/roleDefinitions")]), "Run", R.sb({ params: [], adv: 0, text: "\n        $findings = foreach ($assignment in @(Get-ActiveRoleAssignments | Where-Object { (Get-ScopeLevel $_.properties.scope) -in 'root', 'managementGroup', 'subscription' } | Sort-Object id)) {\n            $definition = (Get-RoleDefinitionMap)[(Get-RoleDefinitionGuid $assignment.properties.roleDefinitionId)]\n            $evidence = Get-AssignmentEvidence $assignment\n            if (-not $definition) {\n                New-Finding -ResourceId $assignment.id -ResourceType $assignment.type -ResourceName \"$($evidence.role): $($evidence.principal)\" -Result (New-Unknown 'The role definition could not be read' $evidence)\n                continue\n            }\n            $dataActions = @($definition.properties.permissions | ForEach-Object { $_.dataActions } | Where-Object { $_ })\n            if (-not $dataActions) { continue }\n            $evidence.dataActions = @($dataActions | Sort-Object -Unique)\n            New-Finding -ResourceId $assignment.id -ResourceType $assignment.type -ResourceName \"$($evidence.role): $($evidence.principal)\" -Result (New-Fail \"$($evidence.principal) has data role $($evidence.role) at $($evidence.scope)\" $evidence)\n        }\n        if (-not $findings) { return New-SubscriptionFinding (New-Pass 'No data role is assigned at subscription scope or above') }\n        $findings\n    " }, (S, O) => {
+        R.ln = F + 1146;
+        const v106 = [];
+        R.ln = F + 1146;
+        for (const it107 of R.fi(R.cmd(S, "Sort-Object", ["id"], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " (Get-ScopeLevel $_.properties.scope) -in 'root', 'managementGroup', 'subscription' " }, (S, O) => {
+            R.ln = F + 1146;
+            R.e(O, R.in(R.u(R.cmd(S, "Get-ScopeLevel", [R.m(R.m((S["_"] ?? null), "properties"), "scope")], null)), [R.v("root"), R.v("managementGroup"), R.v("subscription")]));
+        })], R.cmd(S, "Get-ActiveRoleAssignments", [], null))))) {
+            S["assignment"] = it107;
+            R.ln = F + 1147;
+            S["definition"] = R.i(R.u(R.cmd(S, "Get-RoleDefinitionMap", [], null)), R.u(R.cmd(S, "Get-RoleDefinitionGuid", [R.m(R.m((S["assignment"] ?? null), "properties"), "roleDefinitionId")], null)));
+            R.ln = F + 1148;
+            S["evidence"] = R.u(R.cmd(S, "Get-AssignmentEvidence", [(S["assignment"] ?? null)], null));
+            R.ln = F + 1149;
+            if (!R.t((S["definition"] ?? null))) {
+                R.ln = F + 1150;
+                R.pa(v106, R.cmd(S, "New-Finding", [R.np("ResourceId"), R.m((S["assignment"] ?? null), "id"), R.np("ResourceType"), R.m((S["assignment"] ?? null), "type"), R.np("ResourceName"), ("" + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "role")))) + ": " + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "principal"))))), R.np("Result"), R.u(R.cmd(S, "New-Unknown", ["The role definition could not be read", (S["evidence"] ?? null)], null))], null));
+                continue;
+            }
+            R.ln = F + 1153;
+            S["dataactions"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+                R.ln = F + 1153;
+                R.e(O, (S["_"] ?? null));
+            })], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " $_.dataActions " }, (S, O) => {
+                R.ln = F + 1153;
+                R.e(O, R.m((S["_"] ?? null), "dataActions"));
+            })], R.pi(R.m(R.m((S["definition"] ?? null), "properties"), "permissions"))));
+            R.ln = F + 1154;
+            if (!R.t((S["dataactions"] ?? null))) {
+                continue;
+            }
+            R.ln = F + 1155;
+            R.sm((S["evidence"] ?? null), "dataActions", R.cmd(S, "Sort-Object", [R.np("Unique")], R.pi((S["dataactions"] ?? null))));
+            R.ln = F + 1156;
+            R.pa(v106, R.cmd(S, "New-Finding", [R.np("ResourceId"), R.m((S["assignment"] ?? null), "id"), R.np("ResourceType"), R.m((S["assignment"] ?? null), "type"), R.np("ResourceName"), ("" + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "role")))) + ": " + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "principal"))))), R.np("Result"), R.u(R.cmd(S, "New-Fail", [("" + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "principal")))) + " has data role " + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "role")))) + " at " + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "scope"))))), (S["evidence"] ?? null)], null))], null));
+        }
+        S["findings"] = R.u(v106);
+        R.ln = F + 1158;
+        if (!R.t((S["findings"] ?? null))) {
+            R.ln = F + 1158;
+            R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Pass", ["No data role is assigned at subscription scope or above"], null))], null));
+            return;
+        }
+        R.ln = F + 1159;
         R.e(O, (S["findings"] ?? null));
     })], false)], null));
 });

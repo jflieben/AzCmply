@@ -1,7 +1,8 @@
 #Extracts the collection maps of Ingest\Invoke-AzureIngest.ps1 (the '#region collection maps' block, the cloud endpoints
 #and the version constants) as data for the browser ingestion. Only literal data is accepted: arrays, hashtables, strings
 #and numbers, strings built from earlier variables of the region, and '+'. Anything else stops the generator, because
-#logic in that region would not reach the browser.
+#logic in that region would not reach the browser. The ingestion reads its version from the VERSION file; the plan gets
+#the version the generator read from that same file.
 
 function Get-OrdinalSorted {
     #items sorted by a string key with ordinal comparison, so the order is the same in every culture
@@ -51,7 +52,7 @@ function Test-PlanExpression {
 }
 
 function ConvertTo-IngestPlanModule {
-    param([Parameter(Mandatory = $true)][string]$Path, [Parameter(Mandatory = $true)][string]$SourceName)
+    param([Parameter(Mandatory = $true)][string]$Path, [Parameter(Mandatory = $true)][string]$SourceName, [Parameter(Mandatory = $true)][string]$Version)
     $text = [System.IO.File]::ReadAllText($Path) -replace "`r`n", "`n"
     $parseErrors = $null
     $ast = [System.Management.Automation.Language.Parser]::ParseInput($text, [ref]$null, [ref]$parseErrors)
@@ -70,7 +71,11 @@ function ConvertTo-IngestPlanModule {
         $name = $statement.Left.VariablePath.UserPath
         $right = $statement.Right
         $inRegion = $statement.Extent.StartLineNumber -gt $start -and $statement.Extent.EndLineNumber -lt $end
-        if ($name -in 'scriptVersion', 'schemaVersion') {
+        if ($name -eq 'scriptVersion') {
+            [void]$script.AppendLine("`$scriptVersion = '$($Version.Replace("'", "''"))'")
+            $names.Add($name)
+            continue
+        } elseif ($name -eq 'schemaVersion') {
             Test-PlanExpression -Ast $right -Variables @() -SourceName $SourceName
         } elseif ($name -eq 'cloudEndpoints') {
             #@{ AzureCloud = @{...}; ... }[$Environment]: the table before the index

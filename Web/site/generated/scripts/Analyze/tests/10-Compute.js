@@ -77,353 +77,513 @@ export default R.script("/app/Analyze/tests/10-Compute.ps1", { params: [], adv: 
         return;
     });
     R.ln = F + 36;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-VM-001", "Title", "Virtual machines use managed disks", "Category", "Posture and vulnerability management", "Service", "Virtual machines", "Severity", "Medium", "Description", "Checks that the OS disk of each virtual machine is a managed disk.", "Rationale", "Unmanaged (page blob) disks live in storage accounts that can be read with an account key or SAS, lack disk level RBAC, encryption at host and network access policies, and are being retired.", "Remediation", "Convert the virtual machine to managed disks (az vm convert ...).", "References", R.a("https://learn.microsoft.com/azure/virtual-machines/windows/convert-unmanaged-to-managed-disks"), "Frameworks", R.ht(["MCSB", R.a([R.v("PV-3"), R.v("DP-4")]), "ALZ", "Deny-UnmanagedDisk"], false), "Policy", R.ht(["06a78e20-9358-41c9-923c-fb736d382a4d", "Audit VMs that do not use managed disks"], false), "ResourceTypes", R.a((S["vmtype"] ?? null)), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $osDisk = $Record.resource.properties.storageProfile.osDisk\n        $evidence = [ordered]@{ managedDisk = [bool]$osDisk.managedDisk; vhd = $osDisk.vhd.uri }\n        if ($osDisk.managedDisk) { return New-Pass 'Managed OS disk' $evidence }\n        New-Fail 'Unmanaged OS disk' $evidence\n    " }, (S, O) => {
-        R.ln = F + 51;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-VM-001", "Title", "Virtual machines use managed disks", "Category", "Posture and vulnerability management", "Service", "Virtual machines", "Severity", "Medium", "Description", "Checks that the OS disk of each virtual machine is a managed disk.", "Rationale", "Unmanaged (page blob) disks live in storage accounts that can be read with an account key or SAS, lack disk level RBAC, encryption at host and network access policies, and are being retired.", "Remediation", "Convert the virtual machine to managed disks (az vm convert ...).", "References", R.a("https://learn.microsoft.com/azure/virtual-machines/windows/convert-unmanaged-to-managed-disks"), "Policy", R.ht(["06a78e20-9358-41c9-923c-fb736d382a4d", "Audit VMs that do not use managed disks"], false), "ResourceTypes", R.a((S["vmtype"] ?? null)), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $osDisk = $Record.resource.properties.storageProfile.osDisk\n        $evidence = [ordered]@{ managedDisk = [bool]$osDisk.managedDisk; vhd = $osDisk.vhd.uri }\n        if ($osDisk.managedDisk) { return New-Pass 'Managed OS disk' $evidence }\n        New-Fail 'Unmanaged OS disk' $evidence\n    " }, (S, O) => {
+        R.ln = F + 50;
         S["osdisk"] = R.m(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "storageProfile"), "osDisk");
-        R.ln = F + 52;
+        R.ln = F + 51;
         S["evidence"] = R.ht(["managedDisk", R.c("bool", R.m((S["osdisk"] ?? null), "managedDisk")), "vhd", R.m(R.m((S["osdisk"] ?? null), "vhd"), "uri")], true);
-        R.ln = F + 53;
+        R.ln = F + 52;
         if (R.t(R.m((S["osdisk"] ?? null), "managedDisk"))) {
-            R.ln = F + 53;
+            R.ln = F + 52;
             R.pa(O, R.cmd(S, "New-Pass", ["Managed OS disk", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 54;
+        R.ln = F + 53;
         R.pa(O, R.cmd(S, "New-Fail", ["Unmanaged OS disk", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 58;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-VM-002", "Title", "Virtual machines use encryption at host", "Category", "Data protection", "Service", "Virtual machines", "Severity", "Medium", "Description", "Checks virtual machines and scale sets for encryption at host (or confidential VM disk encryption).", "Rationale", "Encryption at host encrypts temporary disks, caches and data flows to storage end to end; server side encryption alone leaves the temp disk and cache unencrypted.", "Remediation", "Register the EncryptionAtHost feature, deallocate the VM and enable encryption at host (az vm update --set securityProfile.encryptionAtHost=true ...). Azure Disk Encryption is scheduled for retirement; prefer encryption at host.", "References", R.a("https://learn.microsoft.com/azure/virtual-machines/disk-encryption-overview"), "Frameworks", R.ht(["MCSB", "DP-4", "WAF", "SE:07", "ALZ", "Enforce-GR-Compute0"], false), "Defender", R.ht(["efbbd784-656d-473a-9863-ea7693bfcd2a", "Virtual machines and virtual machine scale sets should have encryption at host enabled"], false), "Policy", R.ht(["fc4d8e41-e223-45ea-9bf5-eada37891d87", "Virtual machines and virtual machine scale sets should have encryption at host enabled"], false), "ResourceTypes", R.a([R.v((S["vmtype"] ?? null)), R.v((S["vmsstype"] ?? null))]), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $security = (Get-MachineProfile $Record).securityProfile\n        $evidence = [ordered]@{ encryptionAtHost = [bool]$security.encryptionAtHost; securityType = $security.securityType }\n        if ($security.encryptionAtHost -or $security.securityType -eq 'ConfidentialVM') { return New-Pass $(if ($security.encryptionAtHost) { 'Encryption at host enabled' } else { 'Confidential VM' }) $evidence }\n        New-Fail 'Encryption at host not enabled' $evidence\n    " }, (S, O) => {
-        R.ln = F + 74;
+    R.ln = F + 57;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-VM-002", "Title", "Virtual machines use encryption at host", "Category", "Data protection", "Service", "Virtual machines", "Severity", "Medium", "Description", "Checks virtual machines and scale sets for encryption at host (or confidential VM disk encryption).", "Rationale", "Encryption at host encrypts temporary disks, caches and data flows to storage end to end; server side encryption alone leaves the temp disk and cache unencrypted.", "Remediation", "Register the EncryptionAtHost feature, deallocate the VM and enable encryption at host (az vm update --set securityProfile.encryptionAtHost=true ...). Azure Disk Encryption is scheduled for retirement; prefer encryption at host.", "References", R.a("https://learn.microsoft.com/azure/virtual-machines/disk-encryption-overview"), "Defender", R.ht(["efbbd784-656d-473a-9863-ea7693bfcd2a", "Virtual machines and virtual machine scale sets should have encryption at host enabled"], false), "Policy", R.ht(["fc4d8e41-e223-45ea-9bf5-eada37891d87", "Virtual machines and virtual machine scale sets should have encryption at host enabled"], false), "ResourceTypes", R.a([R.v((S["vmtype"] ?? null)), R.v((S["vmsstype"] ?? null))]), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $security = (Get-MachineProfile $Record).securityProfile\n        $evidence = [ordered]@{ encryptionAtHost = [bool]$security.encryptionAtHost; securityType = $security.securityType }\n        if ($security.encryptionAtHost -or $security.securityType -eq 'ConfidentialVM') { return New-Pass $(if ($security.encryptionAtHost) { 'Encryption at host enabled' } else { 'Confidential VM' }) $evidence }\n        New-Fail 'Encryption at host not enabled' $evidence\n    " }, (S, O) => {
+        R.ln = F + 72;
         S["security"] = R.m(R.u(R.cmd(S, "Get-MachineProfile", [(S["record"] ?? null)], null)), "securityProfile");
-        R.ln = F + 75;
+        R.ln = F + 73;
         S["evidence"] = R.ht(["encryptionAtHost", R.c("bool", R.m((S["security"] ?? null), "encryptionAtHost")), "securityType", R.m((S["security"] ?? null), "securityType")], true);
-        R.ln = F + 76;
+        R.ln = F + 74;
         if ((R.t(R.m((S["security"] ?? null), "encryptionAtHost")) || R.t(R.eq(R.m((S["security"] ?? null), "securityType"), "ConfidentialVM")))) {
-            R.ln = F + 76;
+            R.ln = F + 74;
             R.pa(O, R.cmd(S, "New-Pass", [(() => {
                 const v2 = [];
-                R.ln = F + 76;
+                R.ln = F + 74;
                 if (R.t(R.m((S["security"] ?? null), "encryptionAtHost"))) {
-                    R.ln = F + 76;
+                    R.ln = F + 74;
                     R.e(v2, "Encryption at host enabled");
                 } else {
-                    R.ln = F + 76;
+                    R.ln = F + 74;
                     R.e(v2, "Confidential VM");
                 }
                 return R.u(v2);
             })(), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 77;
+        R.ln = F + 75;
         R.pa(O, R.cmd(S, "New-Fail", ["Encryption at host not enabled", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 81;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-VM-003", "Title", "Virtual machines use Trusted Launch with Secure Boot and vTPM", "Category", "Posture and vulnerability management", "Service", "Virtual machines", "Severity", "Medium", "Description", "Checks the security type of virtual machines and scale sets for Trusted Launch (or confidential VM) with Secure Boot and vTPM enabled.", "Rationale", "Secure Boot and a virtual TPM protect against boot kits, rootkits and kernel level malware and enable boot integrity monitoring.", "Remediation", "Enable Trusted Launch with Secure Boot and vTPM (existing Gen2 VMs can be upgraded in place: az vm update --security-type TrustedLaunch --enable-secure-boot true --enable-vtpm true ...).", "References", R.a("https://learn.microsoft.com/azure/virtual-machines/trusted-launch"), "Frameworks", R.ht(["MCSB", R.a([R.v("PV-3"), R.v("PV-4")]), "WAF", "SE:08", "ALZ", R.a([R.v("Audit-TrustedLaunch"), R.v("Deploy-GuestAttest")])], false), "Policy", R.ht(["97566dd7-78ae-4997-8b36-1c7bfe0d8121", "[Preview]: Secure Boot should be enabled on supported Windows virtual machines", "1c30f9cd-b84c-49cc-aa2c-9288447cc3b3", "[Preview]: vTPM should be enabled on supported virtual machines"], false), "ResourceTypes", R.a([R.v((S["vmtype"] ?? null)), R.v((S["vmsstype"] ?? null))]), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $security = (Get-MachineProfile $Record).securityProfile\n        $evidence = [ordered]@{ securityType = $security.securityType; secureBootEnabled = [bool]$security.uefiSettings.secureBootEnabled; vTpmEnabled = [bool]$security.uefiSettings.vTpmEnabled }\n        if ($security.securityType -in 'TrustedLaunch', 'ConfidentialVM' -and $security.uefiSettings.secureBootEnabled -and $security.uefiSettings.vTpmEnabled) { return New-Pass \"$($security.securityType) with Secure Boot and vTPM\" $evidence }\n        $missing = @()\n        if ($security.securityType -notin 'TrustedLaunch', 'ConfidentialVM') { $missing += 'Trusted Launch' }\n        if (-not $security.uefiSettings.secureBootEnabled) { $missing += 'Secure Boot' }\n        if (-not $security.uefiSettings.vTpmEnabled) { $missing += 'vTPM' }\n        New-Fail \"Not enabled: $($missing -join ', ')\" $evidence\n    " }, (S, O) => {
-        R.ln = F + 96;
+    R.ln = F + 79;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-VM-003", "Title", "Virtual machines use Trusted Launch with Secure Boot and vTPM", "Category", "Posture and vulnerability management", "Service", "Virtual machines", "Severity", "Medium", "Description", "Checks the security type of virtual machines and scale sets for Trusted Launch (or confidential VM) with Secure Boot and vTPM enabled.", "Rationale", "Secure Boot and a virtual TPM protect against boot kits, rootkits and kernel level malware and enable boot integrity monitoring.", "Remediation", "Enable Trusted Launch with Secure Boot and vTPM (existing Gen2 VMs can be upgraded in place: az vm update --security-type TrustedLaunch --enable-secure-boot true --enable-vtpm true ...).", "References", R.a("https://learn.microsoft.com/azure/virtual-machines/trusted-launch"), "Policy", R.ht(["97566dd7-78ae-4997-8b36-1c7bfe0d8121", "[Preview]: Secure Boot should be enabled on supported Windows virtual machines", "1c30f9cd-b84c-49cc-aa2c-9288447cc3b3", "[Preview]: vTPM should be enabled on supported virtual machines"], false), "ResourceTypes", R.a([R.v((S["vmtype"] ?? null)), R.v((S["vmsstype"] ?? null))]), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $security = (Get-MachineProfile $Record).securityProfile\n        $evidence = [ordered]@{ securityType = $security.securityType; secureBootEnabled = [bool]$security.uefiSettings.secureBootEnabled; vTpmEnabled = [bool]$security.uefiSettings.vTpmEnabled }\n        if ($security.securityType -in 'TrustedLaunch', 'ConfidentialVM' -and $security.uefiSettings.secureBootEnabled -and $security.uefiSettings.vTpmEnabled) { return New-Pass \"$($security.securityType) with Secure Boot and vTPM\" $evidence }\n        $missing = @()\n        if ($security.securityType -notin 'TrustedLaunch', 'ConfidentialVM') { $missing += 'Trusted Launch' }\n        if (-not $security.uefiSettings.secureBootEnabled) { $missing += 'Secure Boot' }\n        if (-not $security.uefiSettings.vTpmEnabled) { $missing += 'vTPM' }\n        New-Fail \"Not enabled: $($missing -join ', ')\" $evidence\n    " }, (S, O) => {
+        R.ln = F + 93;
         S["security"] = R.m(R.u(R.cmd(S, "Get-MachineProfile", [(S["record"] ?? null)], null)), "securityProfile");
-        R.ln = F + 97;
+        R.ln = F + 94;
         S["evidence"] = R.ht(["securityType", R.m((S["security"] ?? null), "securityType"), "secureBootEnabled", R.c("bool", R.m(R.m((S["security"] ?? null), "uefiSettings"), "secureBootEnabled")), "vTpmEnabled", R.c("bool", R.m(R.m((S["security"] ?? null), "uefiSettings"), "vTpmEnabled"))], true);
-        R.ln = F + 98;
+        R.ln = F + 95;
         if (((R.t(R.in(R.m((S["security"] ?? null), "securityType"), [R.v("TrustedLaunch"), R.v("ConfidentialVM")])) && R.t(R.m(R.m((S["security"] ?? null), "uefiSettings"), "secureBootEnabled"))) && R.t(R.m(R.m((S["security"] ?? null), "uefiSettings"), "vTpmEnabled")))) {
-            R.ln = F + 98;
+            R.ln = F + 95;
             R.pa(O, R.cmd(S, "New-Pass", [("" + R.str(R.u(R.pi(R.m((S["security"] ?? null), "securityType")))) + " with Secure Boot and vTPM"), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 99;
+        R.ln = F + 96;
         S["missing"] = [];
-        R.ln = F + 100;
+        R.ln = F + 97;
         if (R.t(R.nin(R.m((S["security"] ?? null), "securityType"), [R.v("TrustedLaunch"), R.v("ConfidentialVM")]))) {
-            R.ln = F + 100;
+            R.ln = F + 97;
             S["missing"] = R.add(S["missing"] ?? null, "Trusted Launch");
         }
-        R.ln = F + 101;
+        R.ln = F + 98;
         if (!R.t(R.m(R.m((S["security"] ?? null), "uefiSettings"), "secureBootEnabled"))) {
-            R.ln = F + 101;
+            R.ln = F + 98;
             S["missing"] = R.add(S["missing"] ?? null, "Secure Boot");
         }
-        R.ln = F + 102;
+        R.ln = F + 99;
         if (!R.t(R.m(R.m((S["security"] ?? null), "uefiSettings"), "vTpmEnabled"))) {
-            R.ln = F + 102;
+            R.ln = F + 99;
             S["missing"] = R.add(S["missing"] ?? null, "vTPM");
         }
-        R.ln = F + 103;
+        R.ln = F + 100;
         R.pa(O, R.cmd(S, "New-Fail", [("Not enabled: " + R.str(R.u(R.pi(R.join((S["missing"] ?? null), ", "))))), (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 107;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-VM-004", "Title", "Linux virtual machines require SSH keys", "Category", "Identity management", "Service", "Virtual machines", "Severity", "Medium", "Description", "Checks that password authentication is disabled on Linux virtual machines and scale sets.", "Rationale", "Password based SSH is exposed to brute force and password reuse; SSH keys (or Entra login for Linux) are far stronger.", "Remediation", "Configure SSH keys or the Entra login extension and set disablePasswordAuthentication to true; for existing VMs disable PasswordAuthentication in sshd_config.", "References", R.a("https://learn.microsoft.com/azure/virtual-machines/linux/create-ssh-keys-detailed"), "Frameworks", R.ht(["MCSB", "IM-6", "WAF", "SE:05", "ALZ", "Enforce-ACSB"], false), "Policy", R.ht(["630c64f9-8b6b-4c64-b511-6544ceff6fd6", "Authentication to Linux machines should require SSH keys"], false), "ResourceTypes", R.a([R.v((S["vmtype"] ?? null)), R.v((S["vmsstype"] ?? null))]), "Filter", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) (Get-MachineOsType $Record) -eq 'Linux' " }, (S, O) => {
-        R.ln = F + 120;
+    R.ln = F + 104;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-VM-004", "Title", "Linux virtual machines require SSH keys", "Category", "Identity management", "Service", "Virtual machines", "Severity", "Medium", "Description", "Checks that password authentication is disabled on Linux virtual machines and scale sets.", "Rationale", "Password based SSH is exposed to brute force and password reuse; SSH keys (or Entra login for Linux) are far stronger.", "Remediation", "Configure SSH keys or the Entra login extension and set disablePasswordAuthentication to true; for existing VMs disable PasswordAuthentication in sshd_config.", "References", R.a("https://learn.microsoft.com/azure/virtual-machines/linux/create-ssh-keys-detailed"), "Policy", R.ht(["630c64f9-8b6b-4c64-b511-6544ceff6fd6", "Authentication to Linux machines should require SSH keys"], false), "ResourceTypes", R.a([R.v((S["vmtype"] ?? null)), R.v((S["vmsstype"] ?? null))]), "Filter", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) (Get-MachineOsType $Record) -eq 'Linux' " }, (S, O) => {
+        R.ln = F + 116;
         R.e(O, R.eq(R.u(R.cmd(S, "Get-MachineOsType", [(S["record"] ?? null)], null)), "Linux"));
     }), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $osProfile = (Get-MachineProfile $Record).osProfile\n        if (-not $osProfile) { return New-Unknown 'No OS profile (VM created from a specialized disk); check sshd configuration inside the VM' }\n        $value = $osProfile.linuxConfiguration.disablePasswordAuthentication\n        $evidence = [ordered]@{ disablePasswordAuthentication = $value }\n        if ($value -eq $true) { return New-Pass 'Password authentication disabled' $evidence }\n        New-Fail 'Password authentication enabled' $evidence\n    " }, (S, O) => {
-        R.ln = F + 123;
+        R.ln = F + 119;
         S["osprofile"] = R.m(R.u(R.cmd(S, "Get-MachineProfile", [(S["record"] ?? null)], null)), "osProfile");
-        R.ln = F + 124;
+        R.ln = F + 120;
         if (!R.t((S["osprofile"] ?? null))) {
-            R.ln = F + 124;
+            R.ln = F + 120;
             R.pa(O, R.cmd(S, "New-Unknown", ["No OS profile (VM created from a specialized disk); check sshd configuration inside the VM"], null));
             return;
         }
-        R.ln = F + 125;
+        R.ln = F + 121;
         S["value"] = R.m(R.m((S["osprofile"] ?? null), "linuxConfiguration"), "disablePasswordAuthentication");
-        R.ln = F + 126;
+        R.ln = F + 122;
         S["evidence"] = R.ht(["disablePasswordAuthentication", (S["value"] ?? null)], true);
-        R.ln = F + 127;
+        R.ln = F + 123;
         if (R.t(R.eq((S["value"] ?? null), true))) {
-            R.ln = F + 127;
+            R.ln = F + 123;
             R.pa(O, R.cmd(S, "New-Pass", ["Password authentication disabled", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 128;
+        R.ln = F + 124;
         R.pa(O, R.cmd(S, "New-Fail", ["Password authentication enabled", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 132;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-VM-005", "Title", "Virtual machines periodically assess missing updates", "Category", "Posture and vulnerability management", "Service", "Azure Update Manager", "Severity", "Medium", "Description", "Checks that the patch assessment mode of virtual machines is AutomaticByPlatform (periodic assessment by Azure Update Manager).", "Rationale", "Without periodic assessment, missing security updates are not reported and unpatched vulnerabilities go unnoticed.", "Remediation", "Enable periodic assessment (az vm update --set osProfile.windowsConfiguration.patchSettings.assessmentMode=AutomaticByPlatform ...) or assign the 'Configure periodic checking for missing system updates' policy.", "References", R.a("https://learn.microsoft.com/azure/update-manager/assessment-options"), "Frameworks", R.ht(["MCSB", R.a([R.v("PV-6"), R.v("PV-5")]), "CIS", "8.1.10", "WAF", "SE:08", "ALZ", "Enable-AUM-CheckUpdates"], false), "Defender", R.ht(["90386950-71ca-4357-a12e-486d1679427c", "Machines should be configured to periodically check for missing system updates"], false), "Policy", R.ht(["bd876905-5b84-4f73-ab2d-2e7a7c4568d9", "Machines should be configured to periodically check for missing system updates"], false), "ResourceTypes", R.a((S["vmtype"] ?? null)), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $osProfile = $Record.resource.properties.osProfile\n        if (-not $osProfile) { return New-Unknown 'No OS profile (VM created from a specialized disk); check assessment in Azure Update Manager' }\n        $settings = if ($osProfile.windowsConfiguration) { $osProfile.windowsConfiguration.patchSettings } else { $osProfile.linuxConfiguration.patchSettings }\n        $evidence = [ordered]@{ assessmentMode = $settings.assessmentMode; patchMode = $settings.patchMode }\n        if ($settings.assessmentMode -eq 'AutomaticByPlatform') { return New-Pass 'Periodic assessment enabled' $evidence }\n        New-Fail \"Assessment mode $(if ($settings.assessmentMode) { $settings.assessmentMode } else { 'ImageDefault' })\" $evidence\n    " }, (S, O) => {
-        R.ln = F + 148;
+    R.ln = F + 128;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-VM-005", "Title", "Virtual machines periodically assess missing updates", "Category", "Posture and vulnerability management", "Service", "Azure Update Manager", "Severity", "Medium", "Description", "Checks that the patch assessment mode of virtual machines is AutomaticByPlatform (periodic assessment by Azure Update Manager).", "Rationale", "Without periodic assessment, missing security updates are not reported and unpatched vulnerabilities go unnoticed.", "Remediation", "Enable periodic assessment (az vm update --set osProfile.windowsConfiguration.patchSettings.assessmentMode=AutomaticByPlatform ...) or assign the 'Configure periodic checking for missing system updates' policy.", "References", R.a("https://learn.microsoft.com/azure/update-manager/assessment-options"), "Defender", R.ht(["90386950-71ca-4357-a12e-486d1679427c", "Machines should be configured to periodically check for missing system updates"], false), "Policy", R.ht(["bd876905-5b84-4f73-ab2d-2e7a7c4568d9", "Machines should be configured to periodically check for missing system updates"], false), "ResourceTypes", R.a((S["vmtype"] ?? null)), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $osProfile = $Record.resource.properties.osProfile\n        if (-not $osProfile) { return New-Unknown 'No OS profile (VM created from a specialized disk); check assessment in Azure Update Manager' }\n        $settings = if ($osProfile.windowsConfiguration) { $osProfile.windowsConfiguration.patchSettings } else { $osProfile.linuxConfiguration.patchSettings }\n        $evidence = [ordered]@{ assessmentMode = $settings.assessmentMode; patchMode = $settings.patchMode }\n        if ($settings.assessmentMode -eq 'AutomaticByPlatform') { return New-Pass 'Periodic assessment enabled' $evidence }\n        New-Fail \"Assessment mode $(if ($settings.assessmentMode) { $settings.assessmentMode } else { 'ImageDefault' })\" $evidence\n    " }, (S, O) => {
+        R.ln = F + 143;
         S["osprofile"] = R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "osProfile");
-        R.ln = F + 149;
+        R.ln = F + 144;
         if (!R.t((S["osprofile"] ?? null))) {
-            R.ln = F + 149;
+            R.ln = F + 144;
             R.pa(O, R.cmd(S, "New-Unknown", ["No OS profile (VM created from a specialized disk); check assessment in Azure Update Manager"], null));
             return;
         }
-        R.ln = F + 150;
+        R.ln = F + 145;
         const v3 = [];
-        R.ln = F + 150;
+        R.ln = F + 145;
         if (R.t(R.m((S["osprofile"] ?? null), "windowsConfiguration"))) {
-            R.ln = F + 150;
+            R.ln = F + 145;
             R.e(v3, R.m(R.m((S["osprofile"] ?? null), "windowsConfiguration"), "patchSettings"));
         } else {
-            R.ln = F + 150;
+            R.ln = F + 145;
             R.e(v3, R.m(R.m((S["osprofile"] ?? null), "linuxConfiguration"), "patchSettings"));
         }
         S["settings"] = R.u(v3);
-        R.ln = F + 151;
+        R.ln = F + 146;
         S["evidence"] = R.ht(["assessmentMode", R.m((S["settings"] ?? null), "assessmentMode"), "patchMode", R.m((S["settings"] ?? null), "patchMode")], true);
-        R.ln = F + 152;
+        R.ln = F + 147;
         if (R.t(R.eq(R.m((S["settings"] ?? null), "assessmentMode"), "AutomaticByPlatform"))) {
-            R.ln = F + 152;
+            R.ln = F + 147;
             R.pa(O, R.cmd(S, "New-Pass", ["Periodic assessment enabled", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 153;
+        R.ln = F + 148;
         R.pa(O, R.cmd(S, "New-Fail", [("Assessment mode " + R.str((() => {
             const v4 = [];
-            R.ln = F + 153;
+            R.ln = F + 148;
             if (R.t(R.m((S["settings"] ?? null), "assessmentMode"))) {
-                R.ln = F + 153;
+                R.ln = F + 148;
                 R.e(v4, R.m((S["settings"] ?? null), "assessmentMode"));
             } else {
-                R.ln = F + 153;
+                R.ln = F + 148;
                 R.e(v4, "ImageDefault");
             }
             return R.u(v4);
         })())), (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 157;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-VM-006", "Version", 2, "Title", "Machines run Microsoft Defender for Endpoint", "Category", "Endpoint security", "Service", "Virtual machines", "Severity", "High", "Description", "Checks virtual machines, scale sets and Arc machines for the Microsoft Defender for Endpoint extension (MDE.Windows or MDE.Linux).", "Rationale", "Without EDR, malware, ransomware and hands-on-keyboard attacks on the machine are neither prevented nor detected.", "Remediation", "Enable Defender for Servers with the endpoint protection component, which deploys the MDE extension automatically, or onboard the machine to Defender for Endpoint directly.", "References", R.a("https://learn.microsoft.com/azure/defender-for-cloud/integration-defender-for-endpoint"), "Frameworks", R.ht(["MCSB", R.a([R.v("ES-1"), R.v("ES-2")]), "WAF", "SE:10", "ALZ", R.a([R.v("Deploy-MDEndpoints"), R.v("Deploy-MDEndpointsAMA")])], false), "Defender", R.ht(["06e3a6db-6c0c-4ad9-943f-31d9d73ecf6c", "EDR solution should be installed on Virtual Machines"], false), "ResourceTypes", R.a([R.v((S["vmtype"] ?? null)), R.v((S["vmsstype"] ?? null)), R.v((S["arctype"] ?? null))]), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not (Test-MachineExtensionsCollected $Record)) { return New-Unknown 'Installed extensions could not be read' }\n        $extensions = @(Get-MachineExtensions $Record)\n        $evidence = [ordered]@{ extensions = $extensions }\n        if ($extensions | Where-Object { $_ -match '/MDE\\.(Windows|Linux)$' }) { return New-Pass 'Defender for Endpoint extension installed' $evidence }\n        New-Fail 'No Defender for Endpoint extension' $evidence\n    " }, (S, O) => {
-        R.ln = F + 173;
+    R.ln = F + 152;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-VM-006", "Version", 2, "Title", "Machines run Microsoft Defender for Endpoint", "Category", "Endpoint security", "Service", "Virtual machines", "Severity", "High", "Description", "Checks virtual machines, scale sets and Arc machines for the Microsoft Defender for Endpoint extension (MDE.Windows or MDE.Linux).", "Rationale", "Without EDR, malware, ransomware and hands-on-keyboard attacks on the machine are neither prevented nor detected.", "Remediation", "Enable Defender for Servers with the endpoint protection component, which deploys the MDE extension automatically, or onboard the machine to Defender for Endpoint directly.", "References", R.a("https://learn.microsoft.com/azure/defender-for-cloud/integration-defender-for-endpoint"), "Defender", R.ht(["06e3a6db-6c0c-4ad9-943f-31d9d73ecf6c", "EDR solution should be installed on Virtual Machines"], false), "ResourceTypes", R.a([R.v((S["vmtype"] ?? null)), R.v((S["vmsstype"] ?? null)), R.v((S["arctype"] ?? null))]), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not (Test-MachineExtensionsCollected $Record)) { return New-Unknown 'Installed extensions could not be read' }\n        $extensions = @(Get-MachineExtensions $Record)\n        $evidence = [ordered]@{ extensions = $extensions }\n        if ($extensions | Where-Object { $_ -match '/MDE\\.(Windows|Linux)$' }) { return New-Pass 'Defender for Endpoint extension installed' $evidence }\n        New-Fail 'No Defender for Endpoint extension' $evidence\n    " }, (S, O) => {
+        R.ln = F + 167;
         if (!R.t(R.u(R.cmd(S, "Test-MachineExtensionsCollected", [(S["record"] ?? null)], null)))) {
-            R.ln = F + 173;
+            R.ln = F + 167;
             R.pa(O, R.cmd(S, "New-Unknown", ["Installed extensions could not be read"], null));
             return;
         }
-        R.ln = F + 174;
+        R.ln = F + 168;
         S["extensions"] = R.cmd(S, "Get-MachineExtensions", [(S["record"] ?? null)], null);
-        R.ln = F + 175;
+        R.ln = F + 169;
         S["evidence"] = R.ht(["extensions", (S["extensions"] ?? null)], true);
-        R.ln = F + 176;
+        R.ln = F + 170;
         if (R.t(R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -match '/MDE\\.(Windows|Linux)$' " }, (S, O) => {
-            R.ln = F + 176;
+            R.ln = F + 170;
             R.e(O, R.match(S, (S["_"] ?? null), "/MDE\\.(Windows|Linux)$"));
         })], R.pi((S["extensions"] ?? null)))))) {
-            R.ln = F + 176;
+            R.ln = F + 170;
             R.pa(O, R.cmd(S, "New-Pass", ["Defender for Endpoint extension installed", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 177;
+        R.ln = F + 171;
         R.pa(O, R.cmd(S, "New-Fail", ["No Defender for Endpoint extension", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 181;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-VM-007", "Version", 2, "Title", "Machines have the guest configuration extension with a system assigned identity", "Category", "Posture and vulnerability management", "Service", "Virtual machines", "Severity", "Medium", "Description", "Checks virtual machines for the Azure machine configuration (guest configuration) extension and a system assigned managed identity.", "Rationale", "Machine configuration audits the operating system against the Azure compute security baseline and custom baselines; without it OS hardening drift is not measured.", "Remediation", "Assign the 'Deploy prerequisites to enable Guest Configuration policies on virtual machines' initiative, which adds the extension and identity.", "References", R.a("https://learn.microsoft.com/azure/governance/machine-configuration/overview"), "Frameworks", R.ht(["MCSB", R.a([R.v("PV-4"), R.v("PV-3")]), "ALZ", "Enforce-ACSB"], false), "Defender", R.ht(["6c99f570-2ce7-46bc-8175-cde013df43bc", "Guest Configuration extension should be installed on machines", "69133b6b-695a-43eb-a763-221e19556755", "Virtual machines' Guest Configuration extension should be deployed with system-assigned managed identity"], false), "Policy", R.ht(["ae89ebca-1c92-4898-ac2c-9f63decb045c", "Guest Configuration extension should be installed on your machines"], false), "ResourceTypes", R.a((S["vmtype"] ?? null)), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not (Test-MachineExtensionsCollected $Record)) { return New-Unknown 'Installed extensions could not be read' }\n        $extensions = @(Get-MachineExtensions $Record)\n        $installed = [bool]($extensions | Where-Object { $_ -match '^Microsoft\\.GuestConfiguration/' })\n        $systemIdentity = [string]$Record.resource.identity.type -match 'SystemAssigned'\n        $evidence = [ordered]@{ guestConfigurationExtension = $installed; systemAssignedIdentity = $systemIdentity }\n        if ($installed -and $systemIdentity) { return New-Pass 'Guest configuration enabled' $evidence }\n        New-Fail $(if (-not $installed) { 'Guest configuration extension missing' } else { 'No system assigned managed identity' }) $evidence\n    " }, (S, O) => {
-        R.ln = F + 198;
+    R.ln = F + 175;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-VM-007", "Version", 2, "Title", "Machines have the guest configuration extension with a system assigned identity", "Category", "Posture and vulnerability management", "Service", "Virtual machines", "Severity", "Medium", "Description", "Checks virtual machines for the Azure machine configuration (guest configuration) extension and a system assigned managed identity.", "Rationale", "Machine configuration audits the operating system against the Azure compute security baseline and custom baselines; without it OS hardening drift is not measured.", "Remediation", "Assign the 'Deploy prerequisites to enable Guest Configuration policies on virtual machines' initiative, which adds the extension and identity.", "References", R.a("https://learn.microsoft.com/azure/governance/machine-configuration/overview"), "Defender", R.ht(["6c99f570-2ce7-46bc-8175-cde013df43bc", "Guest Configuration extension should be installed on machines", "69133b6b-695a-43eb-a763-221e19556755", "Virtual machines' Guest Configuration extension should be deployed with system-assigned managed identity"], false), "Policy", R.ht(["ae89ebca-1c92-4898-ac2c-9f63decb045c", "Guest Configuration extension should be installed on your machines"], false), "ResourceTypes", R.a((S["vmtype"] ?? null)), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not (Test-MachineExtensionsCollected $Record)) { return New-Unknown 'Installed extensions could not be read' }\n        $extensions = @(Get-MachineExtensions $Record)\n        $installed = [bool]($extensions | Where-Object { $_ -match '^Microsoft\\.GuestConfiguration/' })\n        $systemIdentity = [string]$Record.resource.identity.type -match 'SystemAssigned'\n        $evidence = [ordered]@{ guestConfigurationExtension = $installed; systemAssignedIdentity = $systemIdentity }\n        if ($installed -and $systemIdentity) { return New-Pass 'Guest configuration enabled' $evidence }\n        New-Fail $(if (-not $installed) { 'Guest configuration extension missing' } else { 'No system assigned managed identity' }) $evidence\n    " }, (S, O) => {
+        R.ln = F + 191;
         if (!R.t(R.u(R.cmd(S, "Test-MachineExtensionsCollected", [(S["record"] ?? null)], null)))) {
-            R.ln = F + 198;
+            R.ln = F + 191;
             R.pa(O, R.cmd(S, "New-Unknown", ["Installed extensions could not be read"], null));
             return;
         }
-        R.ln = F + 199;
+        R.ln = F + 192;
         S["extensions"] = R.cmd(S, "Get-MachineExtensions", [(S["record"] ?? null)], null);
-        R.ln = F + 200;
+        R.ln = F + 193;
         S["installed"] = R.c("bool", R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -match '^Microsoft\\.GuestConfiguration/' " }, (S, O) => {
-            R.ln = F + 200;
+            R.ln = F + 193;
             R.e(O, R.match(S, (S["_"] ?? null), "^Microsoft\\.GuestConfiguration/"));
         })], R.pi((S["extensions"] ?? null)))));
-        R.ln = F + 201;
+        R.ln = F + 194;
         S["systemidentity"] = R.match(S, R.c("string", R.m(R.m(R.m((S["record"] ?? null), "resource"), "identity"), "type")), "SystemAssigned");
-        R.ln = F + 202;
+        R.ln = F + 195;
         S["evidence"] = R.ht(["guestConfigurationExtension", (S["installed"] ?? null), "systemAssignedIdentity", (S["systemidentity"] ?? null)], true);
-        R.ln = F + 203;
+        R.ln = F + 196;
         if ((R.t((S["installed"] ?? null)) && R.t((S["systemidentity"] ?? null)))) {
-            R.ln = F + 203;
+            R.ln = F + 196;
             R.pa(O, R.cmd(S, "New-Pass", ["Guest configuration enabled", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 204;
+        R.ln = F + 197;
         R.pa(O, R.cmd(S, "New-Fail", [(() => {
             const v5 = [];
-            R.ln = F + 204;
+            R.ln = F + 197;
             if (!R.t((S["installed"] ?? null))) {
-                R.ln = F + 204;
+                R.ln = F + 197;
                 R.e(v5, "Guest configuration extension missing");
             } else {
-                R.ln = F + 204;
+                R.ln = F + 197;
                 R.e(v5, "No system assigned managed identity");
             }
             return R.u(v5);
         })(), (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 208;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-VM-008", "Version", 2, "Title", "Machines run the Azure Monitor Agent", "Category", "Logging and threat detection", "Service", "Virtual machines", "Severity", "Medium", "Description", "Checks virtual machines, scale sets and Arc machines for the Azure Monitor Agent extension.", "Rationale", "The Azure Monitor Agent collects security events, syslog and performance data for Sentinel and Defender; without it host level activity is invisible to the SOC.", "Remediation", "Install the Azure Monitor Agent (az vm extension set --name AzureMonitorWindowsAgent|AzureMonitorLinuxAgent --publisher Microsoft.Azure.Monitor ...) and associate data collection rules.", "References", R.a("https://learn.microsoft.com/azure/azure-monitor/agents/azure-monitor-agent-overview"), "Frameworks", R.ht(["MCSB", R.a([R.v("LT-3"), R.v("LT-5")]), "WAF", "SE:10", "ALZ", "Deploy-VM-Monitoring"], false), "ResourceTypes", R.a([R.v((S["vmtype"] ?? null)), R.v((S["vmsstype"] ?? null)), R.v((S["arctype"] ?? null))]), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not (Test-MachineExtensionsCollected $Record)) { return New-Unknown 'Installed extensions could not be read' }\n        $extensions = @(Get-MachineExtensions $Record)\n        $evidence = [ordered]@{ extensions = $extensions }\n        if ($extensions | Where-Object { $_ -match '/AzureMonitor(Windows|Linux)Agent$' }) { return New-Pass 'Azure Monitor Agent installed' $evidence }\n        New-Fail 'No Azure Monitor Agent' $evidence\n    " }, (S, O) => {
-        R.ln = F + 223;
+    R.ln = F + 201;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-VM-008", "Version", 2, "Title", "Machines run the Azure Monitor Agent", "Category", "Logging and threat detection", "Service", "Virtual machines", "Severity", "Medium", "Description", "Checks virtual machines, scale sets and Arc machines for the Azure Monitor Agent extension.", "Rationale", "The Azure Monitor Agent collects security events, syslog and performance data for Sentinel and Defender; without it host level activity is invisible to the SOC.", "Remediation", "Install the Azure Monitor Agent (az vm extension set --name AzureMonitorWindowsAgent|AzureMonitorLinuxAgent --publisher Microsoft.Azure.Monitor ...) and associate data collection rules.", "References", R.a("https://learn.microsoft.com/azure/azure-monitor/agents/azure-monitor-agent-overview"), "ResourceTypes", R.a([R.v((S["vmtype"] ?? null)), R.v((S["vmsstype"] ?? null)), R.v((S["arctype"] ?? null))]), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not (Test-MachineExtensionsCollected $Record)) { return New-Unknown 'Installed extensions could not be read' }\n        $extensions = @(Get-MachineExtensions $Record)\n        $evidence = [ordered]@{ extensions = $extensions }\n        if ($extensions | Where-Object { $_ -match '/AzureMonitor(Windows|Linux)Agent$' }) { return New-Pass 'Azure Monitor Agent installed' $evidence }\n        New-Fail 'No Azure Monitor Agent' $evidence\n    " }, (S, O) => {
+        R.ln = F + 215;
         if (!R.t(R.u(R.cmd(S, "Test-MachineExtensionsCollected", [(S["record"] ?? null)], null)))) {
-            R.ln = F + 223;
+            R.ln = F + 215;
             R.pa(O, R.cmd(S, "New-Unknown", ["Installed extensions could not be read"], null));
             return;
         }
-        R.ln = F + 224;
+        R.ln = F + 216;
         S["extensions"] = R.cmd(S, "Get-MachineExtensions", [(S["record"] ?? null)], null);
-        R.ln = F + 225;
+        R.ln = F + 217;
         S["evidence"] = R.ht(["extensions", (S["extensions"] ?? null)], true);
-        R.ln = F + 226;
+        R.ln = F + 218;
         if (R.t(R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -match '/AzureMonitor(Windows|Linux)Agent$' " }, (S, O) => {
-            R.ln = F + 226;
+            R.ln = F + 218;
             R.e(O, R.match(S, (S["_"] ?? null), "/AzureMonitor(Windows|Linux)Agent$"));
         })], R.pi((S["extensions"] ?? null)))))) {
-            R.ln = F + 226;
+            R.ln = F + 218;
             R.pa(O, R.cmd(S, "New-Pass", ["Azure Monitor Agent installed", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 227;
+        R.ln = F + 219;
         R.pa(O, R.cmd(S, "New-Fail", ["No Azure Monitor Agent", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 231;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-VM-009", "Version", 2, "Title", "Machines do not run the retired Log Analytics agent", "Category", "Logging and threat detection", "Service", "Virtual machines", "Severity", "Medium", "Description", "Finds virtual machines, scale sets and Arc machines with the legacy Log Analytics agent (MicrosoftMonitoringAgent / OmsAgentForLinux), retired since August 2024.", "Rationale", "The retired agent no longer receives security updates or support, and its data collection may stop working at any time.", "Remediation", "Migrate data collection to the Azure Monitor Agent with data collection rules, then remove the legacy extension.", "References", R.a("https://learn.microsoft.com/azure/azure-monitor/agents/azure-monitor-agent-migration"), "Frameworks", R.ht(["MCSB", R.a([R.v("LT-3"), R.v("PV-6")])], false), "Policy", R.ht(["d2185817-5b7e-473c-aadd-9de6ac114280", "The legacy Log Analytics extension should not be installed on virtual machines", "ba6881f9-ab93-498b-8bad-bb91b1d755bf", "The legacy Log Analytics extension should not be installed on virtual machine scale sets"], false), "ResourceTypes", R.a([R.v((S["vmtype"] ?? null)), R.v((S["vmsstype"] ?? null)), R.v((S["arctype"] ?? null))]), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not (Test-MachineExtensionsCollected $Record)) { return New-Unknown 'Installed extensions could not be read' }\n        $legacy = @(Get-MachineExtensions $Record | Where-Object { $_ -match '/(MicrosoftMonitoringAgent|OmsAgentForLinux)$' })\n        $evidence = [ordered]@{ legacyExtensions = $legacy }\n        if ($legacy) { return New-Fail \"Legacy agent installed: $($legacy -join ', ')\" $evidence }\n        New-Pass 'No legacy Log Analytics agent' $evidence\n    " }, (S, O) => {
-        R.ln = F + 247;
+    R.ln = F + 223;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-VM-009", "Version", 2, "Title", "Machines do not run the retired Log Analytics agent", "Category", "Logging and threat detection", "Service", "Virtual machines", "Severity", "Medium", "Description", "Finds virtual machines, scale sets and Arc machines with the legacy Log Analytics agent (MicrosoftMonitoringAgent / OmsAgentForLinux), retired since August 2024.", "Rationale", "The retired agent no longer receives security updates or support, and its data collection may stop working at any time.", "Remediation", "Migrate data collection to the Azure Monitor Agent with data collection rules, then remove the legacy extension.", "References", R.a("https://learn.microsoft.com/azure/azure-monitor/agents/azure-monitor-agent-migration"), "Policy", R.ht(["d2185817-5b7e-473c-aadd-9de6ac114280", "The legacy Log Analytics extension should not be installed on virtual machines", "ba6881f9-ab93-498b-8bad-bb91b1d755bf", "The legacy Log Analytics extension should not be installed on virtual machine scale sets"], false), "ResourceTypes", R.a([R.v((S["vmtype"] ?? null)), R.v((S["vmsstype"] ?? null)), R.v((S["arctype"] ?? null))]), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not (Test-MachineExtensionsCollected $Record)) { return New-Unknown 'Installed extensions could not be read' }\n        $legacy = @(Get-MachineExtensions $Record | Where-Object { $_ -match '/(MicrosoftMonitoringAgent|OmsAgentForLinux)$' })\n        $evidence = [ordered]@{ legacyExtensions = $legacy }\n        if ($legacy) { return New-Fail \"Legacy agent installed: $($legacy -join ', ')\" $evidence }\n        New-Pass 'No legacy Log Analytics agent' $evidence\n    " }, (S, O) => {
+        R.ln = F + 238;
         if (!R.t(R.u(R.cmd(S, "Test-MachineExtensionsCollected", [(S["record"] ?? null)], null)))) {
-            R.ln = F + 247;
+            R.ln = F + 238;
             R.pa(O, R.cmd(S, "New-Unknown", ["Installed extensions could not be read"], null));
             return;
         }
-        R.ln = F + 248;
+        R.ln = F + 239;
         S["legacy"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -match '/(MicrosoftMonitoringAgent|OmsAgentForLinux)$' " }, (S, O) => {
-            R.ln = F + 248;
+            R.ln = F + 239;
             R.e(O, R.match(S, (S["_"] ?? null), "/(MicrosoftMonitoringAgent|OmsAgentForLinux)$"));
         })], R.cmd(S, "Get-MachineExtensions", [(S["record"] ?? null)], null));
-        R.ln = F + 249;
+        R.ln = F + 240;
         S["evidence"] = R.ht(["legacyExtensions", (S["legacy"] ?? null)], true);
-        R.ln = F + 250;
+        R.ln = F + 241;
         if (R.t((S["legacy"] ?? null))) {
-            R.ln = F + 250;
+            R.ln = F + 241;
             R.pa(O, R.cmd(S, "New-Fail", [("Legacy agent installed: " + R.str(R.u(R.pi(R.join((S["legacy"] ?? null), ", "))))), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 251;
+        R.ln = F + 242;
         R.pa(O, R.cmd(S, "New-Pass", ["No legacy Log Analytics agent", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 255;
+    R.ln = F + 246;
     R.def(S, "Get-BackupProtectedIds", { params: [], adv: 0, h: "20689a4648739156" }, (S, O) => {
-        R.ln = F + 257;
+        R.ln = F + 248;
         S["ids"] = R.sc("System.Collections.Generic.HashSet[string]", "new", []);
-        R.ln = F + 258;
+        R.ln = F + 249;
         S["readable"] = false;
-        R.ln = F + 259;
+        R.ln = F + 250;
         for (const it6 of R.fi(R.u(R.cmd(S, "Get-AzResourceRecords", [R.np("Type"), "Microsoft.RecoveryServices/vaults"], null)))) {
             S["vault"] = it6;
-            R.ln = F + 260;
+            R.ln = F + 251;
             if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["vault"] ?? null), "backupProtectedItems"], null)))) {
                 continue;
             }
-            R.ln = F + 261;
+            R.ln = F + 252;
             S["readable"] = true;
-            R.ln = F + 262;
+            R.ln = F + 253;
             for (const it7 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                R.ln = F + 262;
+                R.ln = F + 253;
                 R.e(O, (S["_"] ?? null));
             })], R.cmd(S, "Get-Child", [(S["vault"] ?? null), "backupProtectedItems"], null)))) {
                 S["item"] = it7;
-                R.ln = F + 263;
+                R.ln = F + 254;
                 for (const it8 of R.fi(R.a([R.v(R.m(R.m((S["item"] ?? null), "properties"), "sourceResourceId")), R.v(R.m(R.m((S["item"] ?? null), "properties"), "virtualMachineId"))]))) {
                     S["id"] = it8;
-                    R.ln = F + 263;
+                    R.ln = F + 254;
                     if (R.t((S["id"] ?? null))) {
-                        R.ln = F + 263;
+                        R.ln = F + 254;
                         R.im((S["ids"] ?? null), "Add", [R.im((S["id"] ?? null), "ToLowerInvariant", [])]);
                     }
                 }
             }
         }
-        R.ln = F + 266;
+        R.ln = F + 257;
         if ((!R.t((S["readable"] ?? null)) && R.t(R.m(R.cmd(S, "Get-AzResourceRecords", [R.np("Type"), "Microsoft.RecoveryServices/vaults"], null), "Count")))) {
-            R.ln = F + 266;
+            R.ln = F + 257;
             R.e(O, null);
             return;
         }
-        R.ln = F + 267;
+        R.ln = F + 258;
         R.e(O, [R.v((S["ids"] ?? null))]);
         return;
     });
-    R.ln = F + 270;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-VM-010", "Title", "Virtual machines are protected by Azure Backup", "Category", "Backup and recovery", "Service", "Azure Backup", "Severity", "Medium", "Description", "Checks that each virtual machine is a protected item in a Recovery Services vault in this subscription.", "Rationale", "Without backups a VM cannot be restored after ransomware, destructive attacks or accidental deletion.", "Remediation", "Enable backup for the VM with an enhanced policy in a vault with immutability and soft delete (az backup protection enable-for-vm ...). VMs backed up by a vault in another subscription or by another product must be verified manually.", "References", R.a("https://learn.microsoft.com/azure/backup/backup-azure-vms-introduction"), "Frameworks", R.ht(["MCSB", "BR-1", "WAF", "SE:12", "ALZ", "Deploy-VM-Backup"], false), "Policy", R.ht(["013e242c-8828-4970-87b3-ab247555486d", "Azure Backup should be enabled for Virtual Machines"], false), "ResourceTypes", R.a((S["vmtype"] ?? null)), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $protected = Get-BackupProtectedIds\n        if ($null -eq $protected) { return New-Unknown 'Backup protected items could not be read' }\n        if ($protected.Contains($Record.id.ToLowerInvariant())) { return New-Pass 'Protected by Azure Backup' }\n        New-Fail 'Not protected by a Recovery Services vault in this subscription'\n    " }, (S, O) => {
-        R.ln = F + 285;
+    R.ln = F + 261;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-VM-010", "Title", "Virtual machines are protected by Azure Backup", "Category", "Backup and recovery", "Service", "Azure Backup", "Severity", "Medium", "Description", "Checks that each virtual machine is a protected item in a Recovery Services vault in this subscription.", "Rationale", "Without backups a VM cannot be restored after ransomware, destructive attacks or accidental deletion.", "Remediation", "Enable backup for the VM with an enhanced policy in a vault with immutability and soft delete (az backup protection enable-for-vm ...). VMs backed up by a vault in another subscription or by another product must be verified manually.", "References", R.a("https://learn.microsoft.com/azure/backup/backup-azure-vms-introduction"), "Policy", R.ht(["013e242c-8828-4970-87b3-ab247555486d", "Azure Backup should be enabled for Virtual Machines"], false), "ResourceTypes", R.a((S["vmtype"] ?? null)), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $protected = Get-BackupProtectedIds\n        if ($null -eq $protected) { return New-Unknown 'Backup protected items could not be read' }\n        if ($protected.Contains($Record.id.ToLowerInvariant())) { return New-Pass 'Protected by Azure Backup' }\n        New-Fail 'Not protected by a Recovery Services vault in this subscription'\n    " }, (S, O) => {
+        R.ln = F + 275;
         S["protected"] = R.u(R.cmd(S, "Get-BackupProtectedIds", [], null));
-        R.ln = F + 286;
+        R.ln = F + 276;
         if (R.t(R.eq(null, (S["protected"] ?? null)))) {
-            R.ln = F + 286;
+            R.ln = F + 276;
             R.pa(O, R.cmd(S, "New-Unknown", ["Backup protected items could not be read"], null));
             return;
         }
-        R.ln = F + 287;
+        R.ln = F + 277;
         if (R.t(R.im((S["protected"] ?? null), "Contains", [R.im(R.m((S["record"] ?? null), "id"), "ToLowerInvariant", [])]))) {
-            R.ln = F + 287;
+            R.ln = F + 277;
             R.pa(O, R.cmd(S, "New-Pass", ["Protected by Azure Backup"], null));
             return;
         }
-        R.ln = F + 288;
+        R.ln = F + 278;
         R.pa(O, R.cmd(S, "New-Fail", ["Not protected by a Recovery Services vault in this subscription"], null));
     })], false)], null));
-    R.ln = F + 292;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-VM-011", "Title", "Managed disks disable public network access", "Category", "Network security", "Service", "Managed disks", "Severity", "Medium", "Description", "Checks the network access policy and public network access of managed disks, which control disk export and import over SAS URLs.", "Rationale", "With 'AllowAll' anyone with Contributor rights can generate a SAS URL and download the whole disk (including credentials and data) from the Internet.", "Remediation", "Set the network access policy to DenyAll, or AllowPrivate with a disk access resource, and disable public network access (az disk update --network-access-policy DenyAll --public-network-access Disabled ...).", "References", R.a("https://learn.microsoft.com/azure/virtual-machines/disks-enable-private-links-for-import-export-portal"), "Frameworks", R.ht(["MCSB", R.a([R.v("NS-2"), R.v("DP-2")]), "WAF", "SE:06"], false), "Defender", R.ht(["f635fb12-4c7f-e9a8-5ed1-c005728ea849", "Managed disks should disable public network access"], false), "Policy", R.ht(["8405fdab-1faf-48aa-b702-999c9c172094", "Managed disks should disable public network access"], false), "ResourceTypes", R.a("Microsoft.Compute/disks"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $p = $Record.resource.properties\n        $evidence = [ordered]@{ networkAccessPolicy = $p.networkAccessPolicy; publicNetworkAccess = $p.publicNetworkAccess }\n        if ($p.networkAccessPolicy -in 'DenyAll', 'AllowPrivate' -or $p.publicNetworkAccess -eq 'Disabled') { return New-Pass \"Network access policy $($p.networkAccessPolicy)\" $evidence }\n        New-Fail 'Disk export over the Internet is allowed' $evidence\n    " }, (S, O) => {
-        R.ln = F + 308;
+    R.ln = F + 282;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-VM-011", "Title", "Managed disks disable public network access", "Category", "Network security", "Service", "Managed disks", "Severity", "Medium", "Description", "Checks the network access policy and public network access of managed disks, which control disk export and import over SAS URLs.", "Rationale", "With 'AllowAll' anyone with Contributor rights can generate a SAS URL and download the whole disk (including credentials and data) from the Internet.", "Remediation", "Set the network access policy to DenyAll, or AllowPrivate with a disk access resource, and disable public network access (az disk update --network-access-policy DenyAll --public-network-access Disabled ...).", "References", R.a("https://learn.microsoft.com/azure/virtual-machines/disks-enable-private-links-for-import-export-portal"), "Defender", R.ht(["f635fb12-4c7f-e9a8-5ed1-c005728ea849", "Managed disks should disable public network access"], false), "Policy", R.ht(["8405fdab-1faf-48aa-b702-999c9c172094", "Managed disks should disable public network access"], false), "ResourceTypes", R.a("Microsoft.Compute/disks"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $p = $Record.resource.properties\n        $evidence = [ordered]@{ networkAccessPolicy = $p.networkAccessPolicy; publicNetworkAccess = $p.publicNetworkAccess }\n        if ($p.networkAccessPolicy -in 'DenyAll', 'AllowPrivate' -or $p.publicNetworkAccess -eq 'Disabled') { return New-Pass \"Network access policy $($p.networkAccessPolicy)\" $evidence }\n        New-Fail 'Disk export over the Internet is allowed' $evidence\n    " }, (S, O) => {
+        R.ln = F + 297;
         S["p"] = R.m(R.m((S["record"] ?? null), "resource"), "properties");
-        R.ln = F + 309;
+        R.ln = F + 298;
         S["evidence"] = R.ht(["networkAccessPolicy", R.m((S["p"] ?? null), "networkAccessPolicy"), "publicNetworkAccess", R.m((S["p"] ?? null), "publicNetworkAccess")], true);
-        R.ln = F + 310;
+        R.ln = F + 299;
         if ((R.t(R.in(R.m((S["p"] ?? null), "networkAccessPolicy"), [R.v("DenyAll"), R.v("AllowPrivate")])) || R.t(R.eq(R.m((S["p"] ?? null), "publicNetworkAccess"), "Disabled")))) {
-            R.ln = F + 310;
+            R.ln = F + 299;
             R.pa(O, R.cmd(S, "New-Pass", [("Network access policy " + R.str(R.u(R.pi(R.m((S["p"] ?? null), "networkAccessPolicy"))))), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 311;
+        R.ln = F + 300;
         R.pa(O, R.cmd(S, "New-Fail", ["Disk export over the Internet is allowed", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 315;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-VM-012", "Title", "Disk snapshots disable public network export", "Category", "Network security", "Service", "Managed disks", "Severity", "Medium", "Description", "Checks the network access policy and public network access of managed disk snapshots, and flags any snapshot with a live export session (SAS or upload). Managed disks themselves are covered by AZ-VM-011.", "Rationale", "A snapshot is a full copy of a disk and is often left behind long after the disk is gone. With an 'AllowAll' network policy anyone with Contributor rights can mint a SAS URL and download it, including credentials and data, from the Internet. An active export session means such a URL is live right now.", "Remediation", "Set the snapshot network access policy to DenyAll, or AllowPrivate with a disk access resource, and disable public network access (az snapshot update --network-access-policy DenyAll --public-network-access Disabled ...). Revoke any active export with az snapshot revoke-access and delete snapshots that are no longer needed.", "References", R.a("https://learn.microsoft.com/azure/virtual-machines/disks-enable-private-links-for-import-export-portal"), "Frameworks", R.ht(["MCSB", R.a([R.v("NS-2"), R.v("DP-2")]), "WAF", "SE:06"], false), "ResourceTypes", R.a("Microsoft.Compute/snapshots"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $p = $Record.resource.properties\n        $evidence = [ordered]@{ networkAccessPolicy = $p.networkAccessPolicy; publicNetworkAccess = $p.publicNetworkAccess; diskState = $p.diskState }\n        if ([string]$p.diskState -in 'ActiveSAS', 'ActiveSASFrozen', 'ActiveUpload', 'ActiveUploadSAS') { return New-Fail 'A snapshot export session (SAS or upload) is currently active' $evidence }\n        if ($p.networkAccessPolicy -in 'DenyAll', 'AllowPrivate' -or $p.publicNetworkAccess -eq 'Disabled') { return New-Pass \"Network access policy $($p.networkAccessPolicy)\" $evidence }\n        New-Fail 'Snapshot export over the Internet is allowed' $evidence\n    " }, (S, O) => {
-        R.ln = F + 329;
+    R.ln = F + 304;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-VM-012", "Title", "Disk snapshots disable public network export", "Category", "Network security", "Service", "Managed disks", "Severity", "Medium", "Description", "Checks the network access policy and public network access of managed disk snapshots, and flags any snapshot with a live export session (SAS or upload). Managed disks themselves are covered by AZ-VM-011.", "Rationale", "A snapshot is a full copy of a disk and is often left behind long after the disk is gone. With an 'AllowAll' network policy anyone with Contributor rights can mint a SAS URL and download it, including credentials and data, from the Internet. An active export session means such a URL is live right now.", "Remediation", "Set the snapshot network access policy to DenyAll, or AllowPrivate with a disk access resource, and disable public network access (az snapshot update --network-access-policy DenyAll --public-network-access Disabled ...). Revoke any active export with az snapshot revoke-access and delete snapshots that are no longer needed.", "References", R.a("https://learn.microsoft.com/azure/virtual-machines/disks-enable-private-links-for-import-export-portal"), "ResourceTypes", R.a("Microsoft.Compute/snapshots"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $p = $Record.resource.properties\n        $evidence = [ordered]@{ networkAccessPolicy = $p.networkAccessPolicy; publicNetworkAccess = $p.publicNetworkAccess; diskState = $p.diskState }\n        if ([string]$p.diskState -in 'ActiveSAS', 'ActiveSASFrozen', 'ActiveUpload', 'ActiveUploadSAS') { return New-Fail 'A snapshot export session (SAS or upload) is currently active' $evidence }\n        if ($p.networkAccessPolicy -in 'DenyAll', 'AllowPrivate' -or $p.publicNetworkAccess -eq 'Disabled') { return New-Pass \"Network access policy $($p.networkAccessPolicy)\" $evidence }\n        New-Fail 'Snapshot export over the Internet is allowed' $evidence\n    " }, (S, O) => {
+        R.ln = F + 317;
         S["p"] = R.m(R.m((S["record"] ?? null), "resource"), "properties");
-        R.ln = F + 330;
+        R.ln = F + 318;
         S["evidence"] = R.ht(["networkAccessPolicy", R.m((S["p"] ?? null), "networkAccessPolicy"), "publicNetworkAccess", R.m((S["p"] ?? null), "publicNetworkAccess"), "diskState", R.m((S["p"] ?? null), "diskState")], true);
-        R.ln = F + 331;
+        R.ln = F + 319;
         if (R.t(R.in(R.c("string", R.m((S["p"] ?? null), "diskState")), [R.v("ActiveSAS"), R.v("ActiveSASFrozen"), R.v("ActiveUpload"), R.v("ActiveUploadSAS")]))) {
-            R.ln = F + 331;
+            R.ln = F + 319;
             R.pa(O, R.cmd(S, "New-Fail", ["A snapshot export session (SAS or upload) is currently active", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 332;
+        R.ln = F + 320;
         if ((R.t(R.in(R.m((S["p"] ?? null), "networkAccessPolicy"), [R.v("DenyAll"), R.v("AllowPrivate")])) || R.t(R.eq(R.m((S["p"] ?? null), "publicNetworkAccess"), "Disabled")))) {
-            R.ln = F + 332;
+            R.ln = F + 320;
             R.pa(O, R.cmd(S, "New-Pass", [("Network access policy " + R.str(R.u(R.pi(R.m((S["p"] ?? null), "networkAccessPolicy"))))), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 333;
+        R.ln = F + 321;
         R.pa(O, R.cmd(S, "New-Fail", ["Snapshot export over the Internet is allowed", (S["evidence"] ?? null)], null));
+    })], false)], null));
+    R.ln = F + 325;
+    S["datacollectionruleassociationspath"] = "providers/Microsoft.Insights/dataCollectionRuleAssociations";
+    R.ln = F + 327;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-VM-013", "Title", "Change Tracking and Inventory is enabled on machines", "Category", "Asset management", "Service", "Virtual machines", "Severity", "Low", "Description", "Checks virtual machines, scale sets and Arc machines for the Change Tracking extension with the Azure Monitor Agent, and for an associated data collection rule that collects change tracking data. Scale sets managed by AKS are left out.", "Rationale", "Change Tracking and Inventory records the software, services, files and registry keys of each machine and every change to them. It is the software inventory of the fleet and shows unauthorized installations and configuration drift.", "Remediation", "Enable Change Tracking and Inventory (machine > Operations > Inventory), or assign the built-in initiatives 'Enable ChangeTracking and Inventory for virtual machines', 'for virtual machine scale sets' and 'for Arc-enabled virtual machines'.", "References", R.a("https://learn.microsoft.com/azure/automation/change-tracking/overview-monitoring-agent"), "ResourceTypes", R.a([R.v((S["vmtype"] ?? null)), R.v((S["vmsstype"] ?? null)), R.v((S["arctype"] ?? null))]), "Filter", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) -not ($Record.type -eq $vmssType -and @($Record.resource.tags.PSObject.Properties.Name | Where-Object { $_ -like 'aks-managed-*' }).Count) " }, (S, O) => {
+        R.ln = F + 338;
+        R.e(O, !(R.t(R.eq(R.m((S["record"] ?? null), "type"), (S["vmsstype"] ?? null))) && R.t(R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -like 'aks-managed-*' " }, (S, O) => {
+            R.ln = F + 338;
+            R.e(O, R.like((S["_"] ?? null), "aks-managed-*"));
+        })], R.pi(R.m(R.m(R.m(R.m(R.m((S["record"] ?? null), "resource"), "tags"), "PSObject"), "Properties"), "Name"))), "Count"))));
+    }), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not (Test-MachineExtensionsCollected $Record)) { return New-Unknown 'Installed extensions could not be read' }\n        $extensions = @(Get-MachineExtensions $Record)\n        $evidence = [ordered]@{\n            changeTrackingExtension = [bool]@($extensions | Where-Object { $_ -match '^Microsoft\\.Azure\\.ChangeTrackingAndInventory/ChangeTracking-(Windows|Linux)$' }).Count\n            azureMonitorAgent       = [bool]@($extensions | Where-Object { $_ -match '/AzureMonitor(Windows|Linux)Agent$' }).Count\n        }\n        if (-not $evidence.changeTrackingExtension) { return New-Fail 'No Change Tracking extension' $evidence }\n        if (-not $evidence.azureMonitorAgent) { return New-Fail 'Change Tracking extension without the Azure Monitor Agent' $evidence }\n        if (-not (Test-ChildCollected $Record $dataCollectionRuleAssociationsPath)) { return New-Unknown 'Data collection rule associations could not be read' $evidence }\n        $ruleIds = @(Get-Child $Record $dataCollectionRuleAssociationsPath | Where-Object { $_ -and $_.properties.dataCollectionRuleId } | ForEach-Object { [string]$_.properties.dataCollectionRuleId } | Sort-Object -Unique)\n        $evidence.dataCollectionRules = @($ruleIds | ForEach-Object { ($_ -split '/')[-1] })\n        $unread = 0\n        foreach ($ruleId in $ruleIds) {\n            $rule = Get-AzResourceRecord $ruleId\n            if (-not $rule) { $unread++; continue }\n            if (@($rule.resource.properties.dataSources.extensions | Where-Object { $_ -and [string]$_.extensionName -match '^ChangeTracking-(Windows|Linux)$' }).Count) { return New-Pass \"Data collection rule '$($rule.resource.name)' collects change tracking data\" $evidence }\n        }\n        if ($unread) { return New-Unknown \"No readable data collection rule collects change tracking data; $unread associated rule(s) could not be read\" $evidence }\n        New-Fail 'No associated data collection rule collects change tracking data' $evidence\n    " }, (S, O) => {
+        R.ln = F + 341;
+        if (!R.t(R.u(R.cmd(S, "Test-MachineExtensionsCollected", [(S["record"] ?? null)], null)))) {
+            R.ln = F + 341;
+            R.pa(O, R.cmd(S, "New-Unknown", ["Installed extensions could not be read"], null));
+            return;
+        }
+        R.ln = F + 342;
+        S["extensions"] = R.cmd(S, "Get-MachineExtensions", [(S["record"] ?? null)], null);
+        R.ln = F + 343;
+        S["evidence"] = R.ht(["changeTrackingExtension", R.c("bool", R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -match '^Microsoft\\.Azure\\.ChangeTrackingAndInventory/ChangeTracking-(Windows|Linux)$' " }, (S, O) => {
+            R.ln = F + 344;
+            R.e(O, R.match(S, (S["_"] ?? null), "^Microsoft\\.Azure\\.ChangeTrackingAndInventory/ChangeTracking-(Windows|Linux)$"));
+        })], R.pi((S["extensions"] ?? null))), "Count")), "azureMonitorAgent", R.c("bool", R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -match '/AzureMonitor(Windows|Linux)Agent$' " }, (S, O) => {
+            R.ln = F + 345;
+            R.e(O, R.match(S, (S["_"] ?? null), "/AzureMonitor(Windows|Linux)Agent$"));
+        })], R.pi((S["extensions"] ?? null))), "Count"))], true);
+        R.ln = F + 347;
+        if (!R.t(R.m((S["evidence"] ?? null), "changeTrackingExtension"))) {
+            R.ln = F + 347;
+            R.pa(O, R.cmd(S, "New-Fail", ["No Change Tracking extension", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 348;
+        if (!R.t(R.m((S["evidence"] ?? null), "azureMonitorAgent"))) {
+            R.ln = F + 348;
+            R.pa(O, R.cmd(S, "New-Fail", ["Change Tracking extension without the Azure Monitor Agent", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 349;
+        if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), (S["datacollectionruleassociationspath"] ?? null)], null)))) {
+            R.ln = F + 349;
+            R.pa(O, R.cmd(S, "New-Unknown", ["Data collection rule associations could not be read", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 350;
+        S["ruleids"] = R.cmd(S, "Sort-Object", [R.np("Unique")], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " [string]$_.properties.dataCollectionRuleId " }, (S, O) => {
+            R.ln = F + 350;
+            R.e(O, R.c("string", R.m(R.m((S["_"] ?? null), "properties"), "dataCollectionRuleId")));
+        })], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.properties.dataCollectionRuleId " }, (S, O) => {
+            R.ln = F + 350;
+            R.e(O, (R.t((S["_"] ?? null)) && R.t(R.m(R.m((S["_"] ?? null), "properties"), "dataCollectionRuleId"))));
+        })], R.cmd(S, "Get-Child", [(S["record"] ?? null), (S["datacollectionruleassociationspath"] ?? null)], null))));
+        R.ln = F + 351;
+        R.sm((S["evidence"] ?? null), "dataCollectionRules", R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " ($_ -split '/')[-1] " }, (S, O) => {
+            R.ln = F + 351;
+            R.e(O, R.i((R.split((S["_"] ?? null), "/")), -1));
+        })], R.pi((S["ruleids"] ?? null))));
+        R.ln = F + 352;
+        S["unread"] = 0;
+        R.ln = F + 353;
+        for (const it9 of R.fi((S["ruleids"] ?? null))) {
+            S["ruleid"] = it9;
+            R.ln = F + 354;
+            S["rule"] = R.u(R.cmd(S, "Get-AzResourceRecord", [(S["ruleid"] ?? null)], null));
+            R.ln = F + 355;
+            if (!R.t((S["rule"] ?? null))) {
+                R.ln = F + 355;
+                R.incv(S, "unread", 1, true);
+                continue;
+            }
+            R.ln = F + 356;
+            if (R.t(R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and [string]$_.extensionName -match '^ChangeTracking-(Windows|Linux)$' " }, (S, O) => {
+                R.ln = F + 356;
+                R.e(O, (R.t((S["_"] ?? null)) && R.t(R.match(S, R.c("string", R.m((S["_"] ?? null), "extensionName")), "^ChangeTracking-(Windows|Linux)$"))));
+            })], R.pi(R.m(R.m(R.m(R.m((S["rule"] ?? null), "resource"), "properties"), "dataSources"), "extensions"))), "Count"))) {
+                R.ln = F + 356;
+                R.pa(O, R.cmd(S, "New-Pass", [("Data collection rule '" + R.str(R.u(R.pi(R.m(R.m((S["rule"] ?? null), "resource"), "name")))) + "' collects change tracking data"), (S["evidence"] ?? null)], null));
+                return;
+            }
+        }
+        R.ln = F + 358;
+        if (R.t((S["unread"] ?? null))) {
+            R.ln = F + 358;
+            R.pa(O, R.cmd(S, "New-Unknown", [("No readable data collection rule collects change tracking data; " + R.str((S["unread"] ?? null)) + " associated rule(s) could not be read"), (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 359;
+        R.pa(O, R.cmd(S, "New-Fail", ["No associated data collection rule collects change tracking data", (S["evidence"] ?? null)], null));
+    })], false)], null));
+    R.ln = F + 363;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-AVD-001", "Title", "Azure Virtual Desktop host pools and workspaces disable public network access", "Category", "Network security", "Service", "Azure Virtual Desktop", "Severity", "Medium", "Description", "Checks the public network access setting of Azure Virtual Desktop host pools and workspaces.", "Rationale", "With public network access, session hosts and users reach the host pool and the workspace feed over the Internet. Private Link keeps both connections on private networks, so only clients on those networks can discover and open the desktops.", "Remediation", "Create private endpoints for the host pool (connection) and the workspaces (feed and global), then set public network access to Disabled.", "References", R.a("https://learn.microsoft.com/azure/virtual-desktop/private-link-overview"), "ResourceTypes", R.a([R.v("Microsoft.DesktopVirtualization/hostPools"), R.v("Microsoft.DesktopVirtualization/workspaces")]), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $access = $Record.resource.properties.publicNetworkAccess\n        $evidence = [ordered]@{ publicNetworkAccess = $access }\n        if ($access -eq 'Disabled') { return New-Pass 'Public network access disabled' $evidence }\n        New-Fail \"Public network access $(if ($access) { $access } else { 'Enabled (default)' })\" $evidence\n    " }, (S, O) => {
+        R.ln = F + 376;
+        S["access"] = R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "publicNetworkAccess");
+        R.ln = F + 377;
+        S["evidence"] = R.ht(["publicNetworkAccess", (S["access"] ?? null)], true);
+        R.ln = F + 378;
+        if (R.t(R.eq((S["access"] ?? null), "Disabled"))) {
+            R.ln = F + 378;
+            R.pa(O, R.cmd(S, "New-Pass", ["Public network access disabled", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 379;
+        R.pa(O, R.cmd(S, "New-Fail", [("Public network access " + R.str((() => {
+            const v10 = [];
+            R.ln = F + 379;
+            if (R.t((S["access"] ?? null))) {
+                R.ln = F + 379;
+                R.e(v10, (S["access"] ?? null));
+            } else {
+                R.ln = F + 379;
+                R.e(v10, "Enabled (default)");
+            }
+            return R.u(v10);
+        })())), (S["evidence"] ?? null)], null));
+    })], false)], null));
+    R.ln = F + 383;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-VM-014", "Title", "The serial console is disabled for the subscription", "Category", "Privileged access", "Service", "Virtual machines", "Severity", "Low", "Description", "Checks the serial console setting of the subscription when it has virtual machines or scale sets. The setting only exists once the Microsoft.SerialConsole resource provider is registered; until then the serial console is enabled.", "Rationale", "The serial console opens a text console on a virtual machine through the Azure portal, outside its network: network security groups, Bastion, just-in-time access and firewalls do not apply. Anyone who can change the machine and read the keys of its boot diagnostics storage (Contributor, for example) can open it, and with a local password or the single user mode of Linux it is a way in that bypasses every network control.", "Remediation", "Disable the serial console for the subscription (az resource invoke-action --action disableConsole --ids /subscriptions/<id>/providers/Microsoft.SerialConsole/consoleServices/default --api-version 2023-01-01) and enable it again only for a recovery.", "References", R.a("https://learn.microsoft.com/troubleshoot/azure/virtual-machines/windows/serial-console-enable-disable"), "Requires", R.a("subscription/resources"), "Run", R.sb({ params: [], adv: 0, text: "\n        $machines = @(Get-IngestData 'subscription/resources' | Where-Object { $_ -and $_.type -in 'Microsoft.Compute/virtualMachines', 'Microsoft.Compute/virtualMachineScaleSets' })\n        if (-not $machines) { return New-SubscriptionFinding (New-NotApplicable 'No virtual machines or scale sets') }\n        if (Test-IngestSection 'subscription/serialConsole') {\n            $disabled = [bool](Get-IngestData 'subscription/serialConsole').properties.disabled\n            $evidence = [ordered]@{ disabled = $disabled; machines = $machines.Count }\n            if ($disabled) { return New-SubscriptionFinding (New-Pass 'The serial console is disabled' $evidence) }\n            return New-SubscriptionFinding (New-Fail 'The serial console is enabled' $evidence)\n        }\n        #without a registered provider the setting cannot exist, so the console has its default: enabled\n        $provider = @(Get-IngestData 'subscription/providers' | Where-Object { $_ -and $_.namespace -eq 'Microsoft.SerialConsole' }) | Select-Object -First 1\n        $evidence = [ordered]@{ providerRegistration = $provider.registrationState; machines = $machines.Count }\n        if ($provider -and $provider.registrationState -eq 'NotRegistered') { return New-SubscriptionFinding (New-Fail 'The serial console has its default, enabled: the Microsoft.SerialConsole provider was never registered to turn it off' $evidence) }\n        New-SubscriptionFinding (New-Unknown \"The serial console setting could not be read: $(Get-IngestSectionProblem 'subscription/serialConsole')\" $evidence)\n    " }, (S, O) => {
+        R.ln = F + 395;
+        S["machines"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.type -in 'Microsoft.Compute/virtualMachines', 'Microsoft.Compute/virtualMachineScaleSets' " }, (S, O) => {
+            R.ln = F + 395;
+            R.e(O, (R.t((S["_"] ?? null)) && R.t(R.in(R.m((S["_"] ?? null), "type"), [R.v("Microsoft.Compute/virtualMachines"), R.v("Microsoft.Compute/virtualMachineScaleSets")]))));
+        })], R.cmd(S, "Get-IngestData", ["subscription/resources"], null));
+        R.ln = F + 396;
+        if (!R.t((S["machines"] ?? null))) {
+            R.ln = F + 396;
+            R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-NotApplicable", ["No virtual machines or scale sets"], null))], null));
+            return;
+        }
+        R.ln = F + 397;
+        if (R.t(R.u(R.cmd(S, "Test-IngestSection", ["subscription/serialConsole"], null)))) {
+            R.ln = F + 398;
+            S["disabled"] = R.c("bool", R.m(R.m(R.u(R.cmd(S, "Get-IngestData", ["subscription/serialConsole"], null)), "properties"), "disabled"));
+            R.ln = F + 399;
+            S["evidence"] = R.ht(["disabled", (S["disabled"] ?? null), "machines", R.m((S["machines"] ?? null), "Count")], true);
+            R.ln = F + 400;
+            if (R.t((S["disabled"] ?? null))) {
+                R.ln = F + 400;
+                R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Pass", ["The serial console is disabled", (S["evidence"] ?? null)], null))], null));
+                return;
+            }
+            R.ln = F + 401;
+            R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Fail", ["The serial console is enabled", (S["evidence"] ?? null)], null))], null));
+            return;
+        }
+        R.ln = F + 404;
+        S["provider"] = R.u(R.cmd(S, "Select-Object", [R.np("First"), 1], R.pi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.namespace -eq 'Microsoft.SerialConsole' " }, (S, O) => {
+            R.ln = F + 404;
+            R.e(O, (R.t((S["_"] ?? null)) && R.t(R.eq(R.m((S["_"] ?? null), "namespace"), "Microsoft.SerialConsole"))));
+        })], R.cmd(S, "Get-IngestData", ["subscription/providers"], null)))));
+        R.ln = F + 405;
+        S["evidence"] = R.ht(["providerRegistration", R.m((S["provider"] ?? null), "registrationState"), "machines", R.m((S["machines"] ?? null), "Count")], true);
+        R.ln = F + 406;
+        if ((R.t((S["provider"] ?? null)) && R.t(R.eq(R.m((S["provider"] ?? null), "registrationState"), "NotRegistered")))) {
+            R.ln = F + 406;
+            R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Fail", ["The serial console has its default, enabled: the Microsoft.SerialConsole provider was never registered to turn it off", (S["evidence"] ?? null)], null))], null));
+            return;
+        }
+        R.ln = F + 407;
+        R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Unknown", [("The serial console setting could not be read: " + R.str(R.u(R.cmd(S, "Get-IngestSectionProblem", ["subscription/serialConsole"], null)))), (S["evidence"] ?? null)], null))], null));
     })], false)], null));
 });

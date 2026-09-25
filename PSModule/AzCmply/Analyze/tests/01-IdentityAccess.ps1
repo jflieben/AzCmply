@@ -50,7 +50,6 @@ Add-AzTest @{
     Rationale   = 'A single owner is a single point of failure for administration; more than three owners widens the group that can take full control of the subscription, including granting access to others.'
     Remediation = 'Keep two or three Owner assignments on the subscription, preferably PIM eligible groups. Remove extra owners (az role assignment delete --role Owner --assignee <principal> --scope /subscriptions/<id>) or add a second one.'
     References  = @('https://learn.microsoft.com/azure/role-based-access-control/best-practices')
-    Frameworks  = @{ MCSB = 'PA-1'; CIS = '5.7'; WAF = 'SE:05' }
     Defender    = @{ '6f90a6d6-d4d6-0794-0ec1-98fa77878c2e' = 'A maximum of 3 owners should be designated for subscriptions'; '2c79b4af-f830-b61e-92b9-63dfa30f16e4' = 'There should be more than one owner assigned to subscriptions' }
     Policy      = @{ '4f11b553-d42e-4e3a-89be-32ca364cad4c' = 'A maximum of 3 owners should be designated for your subscription'; '09024ccc-0c5f-475e-9457-b7c0d9ed487b' = 'There should be more than one owner assigned to your subscription' }
     Requires    = @('rbac/roleAssignments')
@@ -76,7 +75,6 @@ Add-AzTest @{
     Rationale   = 'Standing privileged access is available to an attacker the moment an account is compromised. Just-in-time activation through Privileged Identity Management limits the exposure window and adds MFA, justification and approval.'
     Remediation = 'Convert permanent privileged assignments for users and groups to PIM eligible assignments (Privileged Identity Management > Azure resources > Assignments > Update to eligible), and remove the permanent active assignment.'
     References  = @('https://learn.microsoft.com/entra/id-governance/privileged-identity-management/pim-resource-roles-assign-roles')
-    Frameworks  = @{ MCSB = 'PA-2'; WAF = 'SE:05' }
     Requires    = @('rbac/roleAssignmentScheduleInstances')
     Run         = {
         $instances = @(Get-IngestData 'rbac/roleAssignmentScheduleInstances' | Where-Object { $_ -and $_.properties.principalType -in 'User', 'Group' -and (Test-RolePrivileged $_.properties.roleDefinitionId) })
@@ -107,7 +105,6 @@ Add-AzTest @{
     Rationale   = 'Workload identities cannot use MFA or PIM. A leaked credential, a compromised pipeline or a compromised resource with such an identity gives an attacker control over every resource in the subscription.'
     Remediation = 'Scope workload identity assignments to the resource groups or resources they manage and use the least privileged built-in role. Replace Owner/User Access Administrator with Role Based Access Control Administrator with conditions where the identity must assign roles.'
     References  = @('https://learn.microsoft.com/azure/role-based-access-control/best-practices')
-    Frameworks  = @{ MCSB = @('PA-7', 'IM-3'); WAF = 'SE:05' }
     Requires    = @('rbac/roleAssignments')
     Run         = {
         $assignments = @(Get-ActiveRoleAssignments | Where-Object { $_.properties.principalType -eq 'ServicePrincipal' -and (Test-RolePrivileged $_.properties.roleDefinitionId) })
@@ -151,7 +148,6 @@ Add-AzTest @{
     Rationale   = 'Guest accounts are governed by another organization: their credential hygiene, MFA and offboarding are outside your control, and they are a common path for unmonitored access.'
     Remediation = 'Remove the role assignment or the guest from the group. Where external administration is required, use PIM eligible assignments with approval and access reviews, or Azure Lighthouse for managed service providers.'
     References  = @('https://learn.microsoft.com/entra/id-governance/manage-guest-access-with-access-reviews')
-    Frameworks  = @{ MCSB = @('PA-4', 'PA-1'); CIS = '5.3.2'; WAF = 'SE:05' }
     Defender    = @{ '20606e75-05c4-48c0-9d97-add6daa2109a' = 'Guest accounts with owner permissions on Azure resources should be removed'; '0354476c-a12a-4fcc-a79d-f0ab7ffffdbb' = 'Guest accounts with write permissions on Azure resources should be removed' }
     Policy      = @{ '339353f6-2387-4a45-abe4-7f529d121046' = 'Guest accounts with owner permissions on Azure resources should be removed'; '94e1c2ac-cbbe-4cac-a2b5-389c812dee87' = 'Guest accounts with write permissions on Azure resources should be removed' }
     Requires    = @('rbac/roleAssignments', 'rbac/roleDefinitions', 'identity/directoryObjects', 'identity/users', 'identity/groups')
@@ -169,7 +165,6 @@ Add-AzTest @{
     Rationale   = 'Read access exposes configuration, network layout and sometimes data to accounts managed by another organization, which helps attackers plan further steps.'
     Remediation = 'Remove guest read access that is no longer needed and review remaining guest access periodically with access reviews.'
     References  = @('https://learn.microsoft.com/entra/id-governance/manage-guest-access-with-access-reviews')
-    Frameworks  = @{ MCSB = 'PA-4'; CIS = '5.3.2' }
     Defender    = @{ '422107c6-5b9a-46a6-bb1d-26ef1cc52d65' = 'Guest accounts with read permissions on Azure resources should be removed' }
     Policy      = @{ 'e9ac8f8e-ce22-4355-8f04-99b911d6be52' = 'Guest accounts with read permissions on Azure resources should be removed' }
     Requires    = @('rbac/roleAssignments', 'rbac/roleDefinitions', 'identity/directoryObjects', 'identity/users', 'identity/groups')
@@ -186,7 +181,6 @@ Add-AzTest @{
     Description = 'Finds disabled user accounts that still have Azure role assignments, directly or through group membership.'
     Rationale   = 'Access of disabled (often departed) users lingers until someone re-enables the account, which attackers and insiders abuse. Role assignments should follow the account lifecycle.'
     Remediation = 'Remove role assignments and group memberships of disabled accounts as part of the leaver process.'
-    Frameworks  = @{ MCSB = @('PA-4', 'PA-3'); CIS = '5.3.5' }
     Defender    = @{ '050ac097-3dda-4d24-ab6d-82568e7a50cf' = 'Disabled accounts with owner permissions on Azure resources should be removed' }
     Policy      = @{ '0cfea604-3201-4e14-88fc-fae4c427a6c5' = 'Blocked accounts with owner permissions on Azure resources should be removed'; '8d7e1fde-fe26-4b5f-8108-f8e432cbc2be' = 'Blocked accounts with read and write permissions on Azure resources should be removed' }
     Requires    = @('rbac/roleAssignments', 'rbac/roleDefinitions', 'identity/users', 'identity/groups')
@@ -216,7 +210,6 @@ Add-AzTest @{
     Description = 'Finds active and eligible role assignments whose principal no longer exists in the directory ("Identity not found"). Soft deleted principals are named from the Entra recycle bin.'
     Rationale   = 'Orphaned assignments hide the real access picture, and a restored principal (within 30 days) silently regains its access.'
     Remediation = 'Delete the orphaned role assignments (Access control (IAM) > Role assignments, filter on Identity not found). Assignments inherited from the tenant root or a management group must be removed at that scope.'
-    Frameworks  = @{ MCSB = @('PA-4', 'PA-3') }
     Requires    = @('rbac/roleAssignments', 'identity/directoryObjects', 'identity/unresolvedPrincipalIds')
     Run         = {
         $unresolved = @{}
@@ -254,7 +247,6 @@ Add-AzTest @{
     Rationale   = 'Custom roles with all actions hide Owner level access behind an unfamiliar name, bypass reviews that focus on built-in privileged roles and violate least privilege.'
     Remediation = 'Replace wildcard custom roles with built-in roles or custom roles that list only the required actions, then delete the wildcard role.'
     References  = @('https://learn.microsoft.com/azure/role-based-access-control/custom-roles')
-    Frameworks  = @{ MCSB = 'PA-7'; CIS = '5.4' }
     Policy      = @{ 'a451c1ef-c6ca-483d-87ed-f49761e3ffb5' = 'Audit usage of custom RBAC roles' }
     Requires    = @('rbac/roleDefinitions')
     Run         = {
@@ -279,7 +271,6 @@ Add-AzTest @{
     Rationale   = 'Root scope privileged access controls all Azure resources in the tenant. Elevated access is meant for break-glass situations and must be removed right after use.'
     Remediation = "Remove the assignment at '/' (a Global Administrator can remove elevated access under Entra ID > Properties > Access management for Azure resources). Assign roles at management group or subscription scope instead."
     References  = @('https://learn.microsoft.com/azure/role-based-access-control/elevate-access-global-admin')
-    Frameworks  = @{ MCSB = @('PA-1', 'PA-7'); CIS = '5.3.3'; WAF = 'SE:05' }
     Requires    = @('rbac/roleAssignments')
     Run         = {
         $root = @(Get-ActiveRoleAssignments | Where-Object { $_.properties.scope -eq '/' })
@@ -303,7 +294,6 @@ Add-AzTest @{
     Rationale   = 'Direct user assignments are hard to review and are often forgotten when people change roles. Group based (and PIM for Groups) assignments make access reviews and lifecycle management manageable.'
     Remediation = 'Create role based groups, assign the role to the group and replace the direct user assignment by group membership.'
     References  = @('https://learn.microsoft.com/azure/role-based-access-control/best-practices')
-    Frameworks  = @{ MCSB = 'PA-7'; WAF = 'SE:05' }
     Requires    = @('rbac/roleAssignments')
     Run         = {
         $scope = Get-SubscriptionScope
@@ -337,7 +327,6 @@ Add-AzTest @{
     Rationale   = 'Eligible assignments only reduce risk when activation is protected. Without MFA and approval, a stolen session can activate the role; long activations recreate standing access.'
     Remediation = 'In Privileged Identity Management > Azure resources > <subscription> > Settings, edit each role: require Azure MFA or a Conditional Access authentication context, require justification, set the maximum activation duration to 8 hours or less, and require approval for roles that can grant access.'
     References  = @('https://learn.microsoft.com/entra/id-governance/privileged-identity-management/pim-resource-roles-configure-role-settings')
-    Frameworks  = @{ MCSB = @('PA-2', 'PA-6'); WAF = 'SE:05' }
     Requires    = @('rbac/roleManagementPolicyAssignments')
     Run         = {
         foreach ($policy in @(Get-RolePolicies)) {
@@ -370,7 +359,6 @@ Add-AzTest @{
     Rationale   = 'When permanent active assignment is allowed, administrators can bypass just-in-time activation and create standing privileged access.'
     Remediation = "In the PIM role settings, under Assignment, clear 'Allow permanent active assignment' and set an expiry (for example 15 days) for active assignments."
     References  = @('https://learn.microsoft.com/entra/id-governance/privileged-identity-management/pim-resource-roles-configure-role-settings')
-    Frameworks  = @{ MCSB = 'PA-2' }
     Requires    = @('rbac/roleManagementPolicyAssignments')
     Run         = {
         foreach ($policy in @(Get-RolePolicies)) {
@@ -421,7 +409,6 @@ Add-AzTest @{
     Rationale   = 'Client secrets are bearer credentials that end up in configuration files, pipelines and scripts. Managed identities, workload identity federation or certificates remove or reduce that exposure.'
     Remediation = 'Replace the workload with a managed identity or workload identity federation where possible, otherwise use a certificate stored in Key Vault. Then remove the client secrets from the application and service principal.'
     References  = @('https://learn.microsoft.com/entra/workload-id/workload-identity-federation')
-    Frameworks  = @{ MCSB = @('IM-3', 'IM-8'); WAF = 'SE:09' }
     Requires    = @('rbac/roleAssignments', 'rbac/roleDefinitions', 'identity/servicePrincipals', 'identity/directoryObjects', 'identity/groups')
     Run         = {
         $identities = @(Get-AzureWorkloadIdentities)
@@ -445,7 +432,6 @@ Add-AzTest @{
     Rationale   = 'Long lived certificates stay valid long after the private key leaks and discourage rotation. Short lifetimes force a working rotation process.'
     Remediation = 'Issue new certificates valid for 12 months or less, automate rotation (for example with Key Vault), remove the long lived certificates and consider an application management policy that limits credential lifetime.'
     References  = @('https://learn.microsoft.com/graph/api/resources/applicationauthenticationmethodpolicy')
-    Frameworks  = @{ MCSB = @('IM-8', 'IM-3'); WAF = 'SE:09' }
     Requires    = @('rbac/roleAssignments', 'rbac/roleDefinitions', 'identity/servicePrincipals', 'identity/directoryObjects', 'identity/groups')
     Run         = {
         $identities = @(Get-AzureWorkloadIdentities)
@@ -470,7 +456,6 @@ Add-AzTest @{
     Rationale   = 'Owners of an application or service principal can add credentials to it and sign in as it. Every owner therefore effectively holds the privileged Azure role of the application, usually without MFA, PIM or review.'
     Remediation = 'Remove owners from applications and service principals that hold privileged Azure access, and manage them through Entra roles (Application Administrator with PIM) or a restricted administrative unit instead.'
     References  = @('https://learn.microsoft.com/entra/identity/enterprise-apps/assign-app-owners')
-    Frameworks  = @{ MCSB = @('PA-1', 'PA-7'); WAF = 'SE:05' }
     Requires    = @('rbac/roleAssignments', 'rbac/roleDefinitions', 'identity/servicePrincipals', 'identity/directoryObjects', 'identity/groups')
     Run         = {
         $identities = @(Get-AzureWorkloadIdentities | Where-Object { $_.Assignments | Where-Object { Test-RolePrivileged $_.properties.roleDefinitionId } })
@@ -495,7 +480,6 @@ Add-AzTest @{
     Rationale   = 'Anyone who controls the Azure resource (code deployment, Run Command, Automation, a Contributor) can obtain tokens for its identity. Tier 0 Graph permissions on that identity turn an Azure compromise into a full tenant compromise. A delegated grant consented for all users is equally dangerous whenever the application can act in the context of an administrator.'
     Remediation = 'Remove the Tier 0 permissions or replace them with scoped alternatives (for example Sites.Selected, RBAC for applications, administrative units). Revoke tenant wide admin consent for delegated scopes that are not needed. Where they are unavoidable, run the workload in an isolated subscription with minimal administrators.'
     References  = @('https://learn.microsoft.com/graph/permissions-reference')
-    Frameworks  = @{ MCSB = @('PA-7', 'PA-1'); WAF = 'SE:05' }
     Requires    = @('identity/servicePrincipals', 'identity/apiServicePrincipals')
     Run         = {
         $roleValues = @{}
@@ -539,7 +523,6 @@ Add-AzTest @{
     Rationale   = 'Microsoft recommends fewer than five Global Administrators, and at least two (including break-glass accounts) so the tenant cannot be locked out.'
     Remediation = 'Reduce Global Administrators to at most four by moving people to least privileged roles, and keep at least two cloud-only emergency access accounts.'
     References  = @('https://learn.microsoft.com/entra/identity/role-based-access-control/best-practices')
-    Frameworks  = @{ MCSB = 'PA-1' }
     Requires    = @('identity/directoryRoleAssignments')
     Run         = {
         $gaTemplate = '62e90394-69f5-4237-9190-012177145e10'
@@ -562,7 +545,6 @@ Add-AzTest @{
     Rationale   = 'A synchronized administrator can be taken over from on-premises (a compromised domain means a compromised cloud), and a guest administrator is governed by another organization. Privileged accounts should be cloud-only members.'
     Remediation = 'Create dedicated cloud-only administrator accounts, move the privileged roles to them (PIM eligible) and remove the roles from synchronized and guest accounts.'
     References  = @('https://learn.microsoft.com/entra/identity/role-based-access-control/best-practices')
-    Frameworks  = @{ MCSB = @('PA-1', 'IM-1') }
     Requires    = @('identity/directoryRoleAssignments', 'identity/directoryRoleDefinitions')
     Run         = {
         $findings = foreach ($item in @(Get-EntraRoleAssignments)) {
@@ -593,7 +575,6 @@ Add-AzTest @{
     Rationale   = 'Workload identities cannot be protected with MFA or Conditional Access for users. Anyone who obtains their credential, or controls the Azure resource of a managed identity, holds the directory role.'
     Remediation = 'Replace directory roles on workload identities with the specific Graph permissions or scoped (administrative unit) roles they need, and restrict who can manage those identities.'
     References  = @('https://learn.microsoft.com/entra/identity/role-based-access-control/best-practices')
-    Frameworks  = @{ MCSB = @('PA-1', 'PA-7') }
     Requires    = @('identity/directoryRoleAssignments', 'identity/directoryRoleDefinitions')
     Run         = {
         $findings = foreach ($item in @(Get-EntraRoleAssignments)) {
@@ -619,7 +600,6 @@ Add-AzTest @{
     Rationale   = 'Unused privileged access is pure risk: it is not needed by the business, is unlikely to be monitored and gives attackers dormant accounts to abuse.'
     Remediation = 'Remove the role assignments (or the group memberships) of inactive users, and schedule access reviews for privileged roles.'
     References  = @('https://learn.microsoft.com/entra/id-governance/access-reviews-overview')
-    Frameworks  = @{ MCSB = @('PA-4', 'PA-3') }
     Requires    = @('rbac/roleAssignments', 'rbac/roleDefinitions', 'identity/users', 'identity/groups')
     Run         = {
         if (-not $script:Ingest.Manifest.sections.'identity/users'.signInActivity) { return New-SubscriptionFinding (New-Unknown 'Sign-in activity was not collected (requires AuditLog.Read.All and Entra ID P1)') }
@@ -648,7 +628,6 @@ Add-AzTest @{
     Rationale   = 'Lighthouse gives principals in another tenant access that does not appear as regular role assignments. Standing write access by a provider extends the attack surface to that provider.'
     Remediation = 'Use eligible authorizations (just-in-time with MFA and approval) in the registration definition, limit roles to what the provider needs and remove delegations that are no longer used.'
     References  = @('https://learn.microsoft.com/azure/lighthouse/how-to/create-eligible-authorizations')
-    Frameworks  = @{ MCSB = @('PA-7', 'PA-8') }
     Requires    = @('subscription/lighthouseRegistrationAssignments', 'rbac/roleDefinitions')
     Run         = {
         $assignments = @(Get-IngestData 'subscription/lighthouseRegistrationAssignments' | Where-Object { $_ })
@@ -674,7 +653,6 @@ Add-AzTest @{
     Rationale   = 'A federated credential lets anyone who can make the external identity provider issue a token with the configured subject sign in as the workload, without any secret. A wildcard or overly broad subject (for example any branch or any pull request of a repository) lets a fork or an untrusted contributor obtain that token.'
     Remediation = 'Pin each federated credential to one issuer and one exact subject (for example repo:org/repo:ref:refs/heads/main or repo:org/repo:environment:production), remove credentials for issuers you do not control, and prefer protected environments with required reviewers for deployment credentials.'
     References  = @('https://learn.microsoft.com/entra/workload-id/workload-identity-federation-considerations')
-    Frameworks  = @{ MCSB = @('IM-3', 'IM-8'); WAF = 'SE:09' }
     Requires    = @('rbac/roleAssignments', 'rbac/roleDefinitions', 'identity/servicePrincipals', 'identity/directoryObjects', 'identity/groups')
     Run         = {
         $findings = @(foreach ($identity in (Get-AzureWorkloadIdentities)) {
@@ -720,7 +698,6 @@ Add-AzTest @{
     Rationale   = 'A deny assignment overrides role assignments, so access cannot be judged from role assignments alone. Every excluded principal is a standing exemption that no access review covers and that does not show up as a role assignment.'
     Remediation = 'Confirm that each excluded principal is the intended operator of the managed application, blueprint or deployment stack that owns the deny assignment, and remove the owning resource when it is no longer used.'
     References  = @('https://learn.microsoft.com/azure/role-based-access-control/deny-assignments')
-    Frameworks  = @{ MCSB = @('PA-7', 'PA-4') }
     Requires    = @('rbac/denyAssignments')
     Run         = {
         $assignments = @(Get-IngestData 'rbac/denyAssignments' | Where-Object { $_ })
@@ -749,29 +726,80 @@ Add-AzTest @{
 #the 'Windows Azure Service Management API' application: every Azure Resource Manager client (portal, CLI, PowerShell, SDKs)
 $azureManagementAppId = '797f4846-ba00-4fd7-ba43-dac1f8f63013'
 
-function Get-AzureMfaPolicyGap {
-    #$null when a Conditional Access policy requires MFA for Azure management for everyone; the reason it falls short when
-    #it is close; 'unrelated' when it does not target Azure management with MFA at all
-    param($Policy)
-    $conditions = $Policy.conditions
-    $apps = $conditions.applications
-    $grant = $Policy.grantControls
-    $targetsAzure = (@($apps.includeApplications) -contains 'All' -or @($apps.includeApplications) -contains $azureManagementAppId) -and @($apps.excludeApplications) -notcontains $azureManagementAppId
-    $controls = @($grant.builtInControls | Where-Object { $_ })
-    $requiresMfa = ($controls -contains 'mfa') -or [bool]$grant.authenticationStrength
-    if (-not ($targetsAzure -and $requiresMfa)) { return 'unrelated' }
+function Test-CaTarget {
+    #whether a Conditional Access policy covers the target: 'azure' (Azure management, directly or through all resources) or 'all' resources
+    param($Policy, [string]$Target)
+    $apps = $Policy.conditions.applications
+    $included = @($apps.includeApplications)
+    if ($Target -eq 'all') { return ($included -contains 'All') }
+    return (($included -contains 'All' -or $included -contains $azureManagementAppId) -and @($apps.excludeApplications) -notcontains $azureManagementAppId)
+}
+
+function Get-CaScopeGap {
+    #why a policy does not apply to every user of the target: report-only, off, some users only, excluded applications
+    param($Policy, [string]$Target)
     if ($Policy.state -eq 'enabledForReportingButNotEnforced') { return 'it is in report-only mode' }
     if ($Policy.state -ne 'enabled') { return 'it is turned off' }
-    if (@($conditions.users.includeUsers) -notcontains 'All') { return 'it applies to selected users, groups or roles only' }
-    $alternatives = @($controls | Where-Object { $_ -ne 'mfa' }).Count + @($grant.termsOfUse | Where-Object { $_ }).Count + @($grant.customAuthenticationFactors | Where-Object { $_ }).Count
-    if ($grant.operator -eq 'OR' -and $alternatives) { return 'MFA is one of several alternative grant controls' }
+    if (@($Policy.conditions.users.includeUsers) -notcontains 'All') { return 'it applies to selected users, groups or roles only' }
+    $excluded = @($Policy.conditions.applications.excludeApplications | Where-Object { $_ })
+    if ($Target -eq 'all' -and $excluded) { return "it excludes $($excluded.Count) application(s)" }
+    return $null
+}
+
+function Get-CaConditionGap {
+    #conditions that limit a policy to some sign-ins: client apps, platforms, locations, risk levels, device filters
+    param($Policy)
+    $conditions = $Policy.conditions
     $clients = @($conditions.clientAppTypes | Where-Object { $_ })
     if ($clients -and $clients -notcontains 'all' -and -not ($clients -contains 'browser' -and $clients -contains 'mobileAppsAndDesktopClients')) { return 'it applies to some client apps only' }
     if ($conditions.platforms -and @($conditions.platforms.includePlatforms) -notcontains 'all') { return 'it applies to some device platforms only' }
-    if ($conditions.locations -and (@($conditions.locations.includeLocations) -notcontains 'All' -or @($conditions.locations.excludeLocations | Where-Object { $_ }).Count)) { return 'MFA is skipped for some locations' }
+    if ($conditions.locations -and (@($conditions.locations.includeLocations) -notcontains 'All' -or @($conditions.locations.excludeLocations | Where-Object { $_ }).Count)) { return 'it is skipped for some locations' }
     if (@($conditions.signInRiskLevels | Where-Object { $_ }).Count -or @($conditions.userRiskLevels | Where-Object { $_ }).Count) { return 'it applies at elevated risk only' }
     if ($conditions.devices.deviceFilter) { return 'a device filter limits it' }
     return $null
+}
+
+function Get-MfaPolicyGap {
+    #$null when a Conditional Access policy requires MFA for everyone on the target ('azure' for Azure management, 'all' for
+    #all resources); the reason it falls short when it is close; 'unrelated' when it does not target it with MFA at all
+    param($Policy, [string]$Target)
+    $grant = $Policy.grantControls
+    $controls = @($grant.builtInControls | Where-Object { $_ })
+    $requiresMfa = ($controls -contains 'mfa') -or [bool]$grant.authenticationStrength
+    if (-not ((Test-CaTarget $Policy $Target) -and $requiresMfa)) { return 'unrelated' }
+    $gap = Get-CaScopeGap $Policy $Target
+    if ($gap) { return $gap }
+    $alternatives = @($controls | Where-Object { $_ -ne 'mfa' }).Count + @($grant.termsOfUse | Where-Object { $_ }).Count + @($grant.customAuthenticationFactors | Where-Object { $_ }).Count
+    if ($grant.operator -eq 'OR' -and $alternatives) { return 'MFA is one of several alternative grant controls' }
+    return (Get-CaConditionGap $Policy)
+}
+
+function Get-MfaPolicyFinding {
+    #IAM-024 and IAM-027: the qualifying Conditional Access policy or security defaults, otherwise the policies that come close
+    param([string]$Target)
+    $label = if ($Target -eq 'all') { 'all resources' } else { 'Azure management' }
+    $policies = @(Get-IngestData 'identity/conditionalAccessPolicies' | Where-Object { $_ } | Sort-Object displayName, id)
+    $qualifying = @($policies | Where-Object { $null -eq (Get-MfaPolicyGap $_ $Target) })
+    $nearMisses = @(foreach ($policy in $policies) { $gap = Get-MfaPolicyGap $policy $Target; if ($gap -and $gap -ne 'unrelated') { "$($policy.displayName): $gap" } })
+    if ($qualifying) {
+        $users = $qualifying[0].conditions.users
+        $evidence = [ordered]@{
+            policies         = @($qualifying | ForEach-Object { $_.displayName })
+            grant            = $(if ($qualifying[0].grantControls.authenticationStrength) { "authentication strength $($qualifying[0].grantControls.authenticationStrength.displayName)" } else { 'multifactor authentication' })
+            excludedUsers    = @($users.excludeUsers | Where-Object { $_ }).Count
+            excludedGroups   = @($users.excludeGroups | Where-Object { $_ }).Count
+            excludedRoles    = @($users.excludeRoles | Where-Object { $_ }).Count
+        }
+        return New-TenantFinding -Result (New-Pass "Policy '$($qualifying[0].displayName)' requires $($evidence.grant) for $label" $evidence) -Suffix '/conditionalAccess'
+    }
+    $evidence = [ordered]@{ enabledPolicies = @($policies | Where-Object { $_.state -eq 'enabled' }).Count; nearMisses = $nearMisses }
+    #security defaults can only be on while no Conditional Access policy is enabled
+    if (-not @($policies | Where-Object { $_.state -eq 'enabled' }).Count) {
+        if (-not (Test-IngestSection 'identity/securityDefaults')) { return New-TenantFinding -Result (New-Unknown 'No Conditional Access policy requires it, and security defaults could not be read' $evidence) -Suffix '/conditionalAccess' }
+        if ((Get-IngestData 'identity/securityDefaults').isEnabled) { return New-TenantFinding -Result (New-Pass "Security defaults require MFA for $label" $evidence) -Suffix '/conditionalAccess' }
+    }
+    $detail = if ($nearMisses) { "No enabled policy requires MFA for $label for all users ($($nearMisses -join '; '))" } else { "No Conditional Access policy requires MFA for $label" }
+    New-TenantFinding -Result (New-Fail $detail $evidence) -Suffix '/conditionalAccess'
 }
 
 Add-AzTest @{
@@ -784,31 +812,9 @@ Add-AzTest @{
     Rationale   = 'Every Azure management tool (portal, CLI, PowerShell, infrastructure as code) signs in to Azure Resource Manager. A policy the organization owns makes MFA there its own control: it covers every client, can require phishing resistant methods for administrators, and is evidence of strong authentication for privileged access.'
     Remediation = "Create a Conditional Access policy for all users (exclude only emergency access accounts) that targets 'Windows Azure Service Management API' or all resources and grants access with 'Require multifactor authentication' or a phishing resistant authentication strength. Check it in report-only mode, then turn it on."
     References  = @('https://learn.microsoft.com/entra/identity/conditional-access/policy-old-require-mfa-azure-mgmt', 'https://learn.microsoft.com/entra/fundamentals/security-defaults')
-    Frameworks  = @{ MCSB = @('IM-6', 'IM-7') }
     Requires    = @('identity/conditionalAccessPolicies')
     Run         = {
-        $policies = @(Get-IngestData 'identity/conditionalAccessPolicies' | Where-Object { $_ } | Sort-Object displayName, id)
-        $qualifying = @($policies | Where-Object { $null -eq (Get-AzureMfaPolicyGap $_) })
-        $nearMisses = @(foreach ($policy in $policies) { $gap = Get-AzureMfaPolicyGap $policy; if ($gap -and $gap -ne 'unrelated') { "$($policy.displayName): $gap" } })
-        if ($qualifying) {
-            $users = $qualifying[0].conditions.users
-            $evidence = [ordered]@{
-                policies         = @($qualifying | ForEach-Object { $_.displayName })
-                grant            = $(if ($qualifying[0].grantControls.authenticationStrength) { "authentication strength $($qualifying[0].grantControls.authenticationStrength.displayName)" } else { 'multifactor authentication' })
-                excludedUsers    = @($users.excludeUsers | Where-Object { $_ }).Count
-                excludedGroups   = @($users.excludeGroups | Where-Object { $_ }).Count
-                excludedRoles    = @($users.excludeRoles | Where-Object { $_ }).Count
-            }
-            return New-TenantFinding -Result (New-Pass "Policy '$($qualifying[0].displayName)' requires $($evidence.grant) for Azure management" $evidence) -Suffix '/conditionalAccess'
-        }
-        $evidence = [ordered]@{ enabledPolicies = @($policies | Where-Object { $_.state -eq 'enabled' }).Count; nearMisses = $nearMisses }
-        #security defaults can only be on while no Conditional Access policy is enabled
-        if (-not @($policies | Where-Object { $_.state -eq 'enabled' }).Count) {
-            if (-not (Test-IngestSection 'identity/securityDefaults')) { return New-TenantFinding -Result (New-Unknown 'No Conditional Access policy requires it, and security defaults could not be read' $evidence) -Suffix '/conditionalAccess' }
-            if ((Get-IngestData 'identity/securityDefaults').isEnabled) { return New-TenantFinding -Result (New-Pass 'Security defaults require MFA for Azure management' $evidence) -Suffix '/conditionalAccess' }
-        }
-        $detail = if ($nearMisses) { "No enabled policy requires MFA for Azure management for all users ($($nearMisses -join '; '))" } else { 'No Conditional Access policy requires MFA for Azure management' }
-        New-TenantFinding -Result (New-Fail $detail $evidence) -Suffix '/conditionalAccess'
+        Get-MfaPolicyFinding 'azure'
     }
 }
 
@@ -825,7 +831,6 @@ Add-AzTest @{
     Rationale   = 'Such an application is a third party with access to Azure resources: its publisher controls the code and the credentials. Every third party with access has to be known, assessed and recorded (for DORA in the register of information), and this list is where that inventory starts.'
     Remediation = 'Confirm that each application is expected and recorded as a third party, limit it to the roles and scopes it needs, and remove the assignments of applications that are no longer used.'
     References  = @('https://learn.microsoft.com/entra/identity-platform/single-and-multi-tenant-apps')
-    Frameworks  = @{ MCSB = 'PA-4'; DORA = 'Art. 28' }
     Requires    = @('rbac/roleAssignments', 'identity/directoryObjects')
     Run         = {
         $tenantId = [string]$script:Ingest.Manifest.subscription.tenantId
@@ -853,6 +858,304 @@ Add-AzTest @{
             New-Finding -ResourceId $assignment.id -ResourceType $assignment.type -ResourceName "$($evidence.role): $($evidence.principal)" -Result (New-Fail "$($principal.displayName), an application of organization $owner, holds $($evidence.role) on $($evidence.scope)" $evidence)
         }
         if (-not $findings) { return New-SubscriptionFinding (New-Pass 'No applications of other organizations hold Azure roles') }
+        $findings
+    }
+}
+
+Add-AzTest @{
+    Id          = 'AZ-IAM-026'
+    Title       = 'Security defaults are enabled when Conditional Access is not used'
+    Category    = 'Identity management'
+    Service     = 'Microsoft Entra ID'
+    Severity    = 'High'
+    Description = 'Checks that security defaults are enabled in a tenant without enabled Conditional Access policies. Tenants that use Conditional Access cannot turn on security defaults and are not applicable; AZ-IAM-024 and AZ-IAM-027 check their policies.'
+    Rationale   = 'Security defaults require every user to register for multifactor authentication, require it for administrators and Azure management, and block legacy authentication. A tenant with neither security defaults nor Conditional Access protects its accounts with passwords alone.'
+    Remediation = 'Enable security defaults (Entra admin center > Overview > Properties > Manage security defaults), or with Entra ID P1 create Conditional Access policies that require multifactor authentication and block legacy authentication.'
+    References  = @('https://learn.microsoft.com/entra/fundamentals/security-defaults')
+    Requires    = @('identity/securityDefaults')
+    Run         = {
+        $evidence = [ordered]@{ securityDefaults = [bool](Get-IngestData 'identity/securityDefaults').isEnabled }
+        if ($evidence.securityDefaults) { return New-TenantFinding -Result (New-Pass 'Security defaults are enabled' $evidence) -Suffix '/securityDefaults' }
+        if (-not (Test-IngestSection 'identity/conditionalAccessPolicies')) { return New-TenantFinding -Result (New-Unknown 'Security defaults are off, and Conditional Access policies could not be read' $evidence) -Suffix '/securityDefaults' }
+        $enabled = @(Get-IngestData 'identity/conditionalAccessPolicies' | Where-Object { $_ -and $_.state -eq 'enabled' })
+        $evidence.enabledConditionalAccessPolicies = $enabled.Count
+        if ($enabled) { return New-TenantFinding -Result (New-NotApplicable "Conditional Access is used instead ($($enabled.Count) enabled policies)" $evidence) -Suffix '/securityDefaults' }
+        New-TenantFinding -Result (New-Fail 'Security defaults are off and no Conditional Access policy is enabled' $evidence) -Suffix '/securityDefaults'
+    }
+}
+
+Add-AzTest @{
+    Id          = 'AZ-IAM-027'
+    Title       = 'Conditional Access requires multifactor authentication for all users on all resources'
+    Category    = 'Identity management'
+    Service     = 'Microsoft Entra ID'
+    Severity    = 'High'
+    Description = 'Looks for an enabled Conditional Access policy for all users that requires multifactor authentication or an authentication strength for all resources, without excluded applications and without conditions that limit it to some client apps, platforms, locations or risk levels. Security defaults count as well.'
+    Rationale   = 'Azure resources are reached through many applications besides Azure Resource Manager: Azure DevOps, data plane tools and every application that holds delegated permissions. A password alone must not open any of them.'
+    Remediation = "Create a Conditional Access policy for all users (exclude only emergency access accounts) that targets all resources and grants access with 'Require multifactor authentication' or an authentication strength. Check it in report-only mode, then turn it on."
+    References  = @('https://learn.microsoft.com/entra/identity/conditional-access/policy-all-users-mfa-strength')
+    Requires    = @('identity/conditionalAccessPolicies')
+    Run         = { Get-MfaPolicyFinding 'all' }
+}
+
+$globalAdministratorTemplateId = '62e90394-69f5-4237-9190-012177145e10'
+
+Add-AzTest @{
+    Id          = 'AZ-IAM-028'
+    Title       = 'An emergency access account is excluded from every Conditional Access policy'
+    Category    = 'Privileged access'
+    Service     = 'Microsoft Entra ID'
+    Severity    = 'High'
+    Description = 'Looks for a user with an active Global Administrator assignment that every enabled Conditional Access policy for all users or for Global Administrators excludes, directly, through a group or through the Global Administrator role. Policies scoped to other users or groups are not evaluated.'
+    Rationale   = 'A Conditional Access policy that is misconfigured, or that depends on a service that is down (MFA, a federation provider, device compliance), can lock every administrator out of the tenant and its Azure subscriptions. An emergency access account outside those policies is the way back in.'
+    Remediation = 'Keep two cloud-only emergency access accounts with a permanent Global Administrator assignment and phishing resistant credentials (passkeys or certificates), exclude them (or a group that holds them) from every Conditional Access policy, and alert on their sign-ins.'
+    References  = @('https://learn.microsoft.com/entra/identity/role-based-access-control/security-emergency-access')
+    Requires    = @('identity/conditionalAccessPolicies', 'identity/directoryRoleAssignments')
+    Run         = {
+        $policies = @(Get-IngestData 'identity/conditionalAccessPolicies' | Where-Object { $_ -and $_.state -eq 'enabled' } | Sort-Object displayName, id)
+        if (-not $policies) { return New-TenantFinding -Result (New-NotApplicable 'No Conditional Access policy is enabled, so none can lock an account out') -Suffix '/conditionalAccess/emergencyAccess' }
+        $administrators = [System.Collections.Generic.List[object]]::new()
+        foreach ($principal in @(Get-IngestData 'identity/directoryRoleAssignments' | Where-Object { $_ -and $_.roleDefinitionId -eq $globalAdministratorTemplateId -and $_.principal.'@odata.type' -eq '#microsoft.graph.user' } | ForEach-Object principal | Sort-Object userPrincipalName, id)) {
+            if (-not ($administrators | Where-Object { $_.id -eq $principal.id })) { $administrators.Add($principal) }
+        }
+        #members of the excluded groups; $null for a group whose members could not be read
+        $groupMembers = @{}
+        foreach ($group in @(Get-IngestData 'identity/conditionalAccessExcludedGroups' | Where-Object { $_ })) {
+            $groupMembers[$group.id] = if ($null -ne $group.members) { @($group.members | ForEach-Object id) } else { $null }
+        }
+        $excluded = [System.Collections.Generic.List[string]]::new()
+        $undetermined = [System.Collections.Generic.List[string]]::new()
+        $applying = [ordered]@{}
+        foreach ($administrator in $administrators) {
+            $blocking = 0
+            $unknown = $false
+            foreach ($policy in $policies) {
+                $users = $policy.conditions.users
+                $included = @($users.includeUsers) -contains 'All' -or @($users.includeUsers) -contains $administrator.id -or @($users.includeRoles) -contains $globalAdministratorTemplateId
+                if (-not $included) { continue }
+                if (@($users.excludeUsers) -contains $administrator.id -or @($users.excludeRoles) -contains $globalAdministratorTemplateId) { continue }
+                $groups = @($users.excludeGroups | Where-Object { $_ })
+                if ($groups | Where-Object { $null -ne $groupMembers[$_] -and $groupMembers[$_] -contains $administrator.id }) { continue }
+                if ($groups | Where-Object { $null -eq $groupMembers[$_] }) { $unknown = $true }
+                $blocking++
+            }
+            $label = if ($administrator.userPrincipalName) { $administrator.userPrincipalName } else { $administrator.id }
+            if (-not $blocking) { $excluded.Add($label) }
+            elseif ($unknown) { $undetermined.Add($label) }
+            $applying[$label] = $blocking
+        }
+        $evidence = [ordered]@{ enabledPolicies = $policies.Count; globalAdministrators = $administrators.Count; applyingPolicies = $applying }
+        if ($excluded.Count) {
+            $evidence.emergencyAccessAccounts = @($excluded)
+            return New-TenantFinding -Result (New-Pass "$($excluded.Count) Global Administrator(s) excluded from every enabled policy: $($excluded -join ', ')" $evidence) -Suffix '/conditionalAccess/emergencyAccess'
+        }
+        if ($undetermined.Count) { return New-TenantFinding -Result (New-Unknown 'No Global Administrator is excluded from every enabled policy that was fully read; the members of some excluded groups could not be read' $evidence) -Suffix '/conditionalAccess/emergencyAccess' }
+        New-TenantFinding -Result (New-Fail "Every active Global Administrator is subject to at least one of $($policies.Count) enabled Conditional Access policies" $evidence) -Suffix '/conditionalAccess/emergencyAccess'
+    }
+}
+
+function Get-CaRequirementGap {
+    #IAM-029 and IAM-030: $null when a policy enforces the requirement for all users on Azure management, the reason it
+    #falls short when it is close, 'unrelated' otherwise. 'session': sign-in frequency of at most 12 hours; 'device': a
+    #compliant or Microsoft Entra joined device
+    param($Policy, [string]$Requirement)
+    if (-not (Test-CaTarget $Policy 'azure')) { return 'unrelated' }
+    if ($Requirement -eq 'session') {
+        $frequency = $Policy.sessionControls.signInFrequency
+        if (-not $frequency.isEnabled) { return 'unrelated' }
+        $gap = Get-CaScopeGap $Policy 'azure'
+        if ($gap) { return $gap }
+        if ($frequency.frequencyInterval -ne 'everyTime') {
+            $hours = if ($frequency.type -eq 'days') { 24 * [int]$frequency.value } else { [int]$frequency.value }
+            if (-not $hours -or $hours -gt 12) { return "it asks to sign in again every $($frequency.value) $($frequency.type)" }
+        }
+        return (Get-CaConditionGap $Policy)
+    }
+    $grant = $Policy.grantControls
+    $controls = @($grant.builtInControls | Where-Object { $_ })
+    if (-not ($controls -contains 'compliantDevice' -or $controls -contains 'domainJoinedDevice')) { return 'unrelated' }
+    $gap = Get-CaScopeGap $Policy 'azure'
+    if ($gap) { return $gap }
+    $alternatives = @($controls | Where-Object { $_ -notin 'compliantDevice', 'domainJoinedDevice' }).Count + [int][bool]$grant.authenticationStrength + @($grant.termsOfUse | Where-Object { $_ }).Count
+    if ($grant.operator -eq 'OR' -and $alternatives) { return 'a managed device is one of several alternative grant controls' }
+    return (Get-CaConditionGap $Policy)
+}
+
+function Get-CaRequirementFinding {
+    #the qualifying Conditional Access policy, otherwise the policies that come close; security defaults offer neither requirement
+    param([string]$Requirement, [string]$Label, [string]$Suffix)
+    $policies = @(Get-IngestData 'identity/conditionalAccessPolicies' | Where-Object { $_ } | Sort-Object displayName, id)
+    $qualifying = @($policies | Where-Object { $null -eq (Get-CaRequirementGap $_ $Requirement) })
+    $nearMisses = @(foreach ($policy in $policies) { $gap = Get-CaRequirementGap $policy $Requirement; if ($gap -and $gap -ne 'unrelated') { "$($policy.displayName): $gap" } })
+    if ($qualifying) {
+        $policy = $qualifying[0]
+        $evidence = [ordered]@{ policies = @($qualifying | ForEach-Object { $_.displayName }) }
+        if ($Requirement -eq 'session') { $evidence.signInFrequency = $(if ($policy.sessionControls.signInFrequency.frequencyInterval -eq 'everyTime') { 'every time' } else { "$($policy.sessionControls.signInFrequency.value) $($policy.sessionControls.signInFrequency.type)" }) }
+        else { $evidence.grant = @($policy.grantControls.builtInControls | Where-Object { $_ }) }
+        $evidence.excludedUsers = @($policy.conditions.users.excludeUsers | Where-Object { $_ }).Count
+        $evidence.excludedGroups = @($policy.conditions.users.excludeGroups | Where-Object { $_ }).Count
+        return New-TenantFinding -Result (New-Pass "Policy '$($policy.displayName)' $Label" $evidence) -Suffix $Suffix
+    }
+    $evidence = [ordered]@{ enabledPolicies = @($policies | Where-Object { $_.state -eq 'enabled' }).Count; nearMisses = $nearMisses }
+    $detail = if ($nearMisses) { "No enabled policy for all users $Label ($($nearMisses -join '; '))" } else { "No Conditional Access policy $Label" }
+    New-TenantFinding -Result (New-Fail $detail $evidence) -Suffix $Suffix
+}
+
+Add-AzTest @{
+    Id          = 'AZ-IAM-029'
+    Title       = 'Azure management sessions require a new sign-in at least every 12 hours'
+    Category    = 'Identity management'
+    Service     = 'Microsoft Entra ID'
+    Severity    = 'Medium'
+    Description = 'Looks for an enabled Conditional Access policy for all users on Azure management (the Windows Azure Service Management API, or all resources) with a sign-in frequency of at most 12 hours, or every time, without conditions that limit it to some client apps, platforms, locations or risk levels.'
+    Rationale   = 'Without a sign-in frequency an Azure management session lasts as long as its refresh tokens, which is 90 days of activity. A stolen token or an unattended session then keeps working long after the user stopped. NIST SP 800-63B asks to re-authenticate at least every 12 hours at the highest assurance level.'
+    Remediation = "In the Conditional Access policy for Azure management, set Session > Sign-in frequency to 12 hours or less (or every time for privileged roles), for all users except emergency access accounts."
+    References  = @('https://learn.microsoft.com/entra/identity/conditional-access/concept-session-lifetime', 'https://pages.nist.gov/800-63-4/sp800-63b.html')
+    Requires    = @('identity/conditionalAccessPolicies')
+    Run         = { Get-CaRequirementFinding 'session' 'limits Azure management sessions to 12 hours or less' '/conditionalAccess/sessionLifetime' }
+}
+
+Add-AzTest @{
+    Id          = 'AZ-IAM-030'
+    Title       = 'Conditional Access requires a managed device for Azure management'
+    Category    = 'Privileged access'
+    Service     = 'Microsoft Entra ID'
+    Severity    = 'Medium'
+    Description = 'Looks for an enabled Conditional Access policy for all users on Azure management (the Windows Azure Service Management API, or all resources) that requires a compliant or Microsoft Entra hybrid joined device, not as one of several alternatives, and without conditions that limit it to some client apps, platforms, locations or risk levels.'
+    Rationale   = 'Credentials and tokens are stolen from unmanaged devices, and a phished session can be replayed from the attacker''s own device. Requiring a device that the organization manages keeps Azure administration on devices with known security configuration, and blocks access from anywhere else even with valid credentials.'
+    Remediation = "Create a Conditional Access policy for all users (exclude only emergency access accounts) that targets 'Windows Azure Service Management API' and grants access with 'Require device to be marked as compliant' or 'Require Microsoft Entra hybrid joined device'. Check it in report-only mode first: every administrator needs a managed device."
+    References  = @('https://learn.microsoft.com/entra/identity/conditional-access/policy-all-users-device-compliance', 'https://learn.microsoft.com/security/privileged-access-workstations/privileged-access-devices')
+    Requires    = @('identity/conditionalAccessPolicies')
+    Run         = { Get-CaRequirementFinding 'device' 'requires a managed device for Azure management' '/conditionalAccess/managedDevice' }
+}
+
+Add-AzTest @{
+    Id          = 'AZ-IAM-031'
+    Title       = 'Managed identities have no write access outside the resource group of their resource'
+    Category    = 'Privileged access'
+    Service     = 'Azure RBAC'
+    Severity    = 'High'
+    Description = 'For every resource with a system or user assigned managed identity, lists the write capable role assignments of that identity on other resource groups, or on resources in other resource groups. Assignments at subscription scope or above are AZ-IAM-003, and assignments on the managed application that owns the resource group are part of that application; assignments through group membership are not evaluated.'
+    Rationale   = 'Whoever can change a resource can act as its managed identity: run a command on the virtual machine, change the code of the function or the steps of the runbook or Logic App. An identity with rights in another resource group hands those rights to every contributor of its own resource group, a privilege escalation path that no single role assignment shows.'
+    Remediation = 'Limit the managed identity to what it needs in its own resource group, move the resource next to what it manages, or let a resource that only the owners of the target resource group can change do the work.'
+    References  = @('https://learn.microsoft.com/entra/identity/managed-identities-azure-resources/managed-identity-best-practice-recommendations')
+    Requires    = @('rbac/roleAssignments', 'rbac/roleDefinitions')
+    Run         = {
+        #identity principal id > the resources that act as it
+        $usedBy = @{}
+        foreach ($record in (Get-AzResourceRecords)) {
+            $identity = $record.resource.identity
+            if (-not $identity) { continue }
+            $principals = @($identity.principalId) + @(foreach ($assigned in @($identity.userAssignedIdentities.PSObject.Properties)) { $assigned.Value.principalId })
+            foreach ($principal in @($principals | Where-Object { $_ })) {
+                $key = ([string]$principal).ToLowerInvariant()
+                if (-not $usedBy.ContainsKey($key)) { $usedBy[$key] = [System.Collections.Generic.List[object]]::new() }
+                $usedBy[$key].Add($record)
+            }
+        }
+        #managed resource group > its managed application, which the resources in it act on by design
+        $managedBy = @{}
+        foreach ($application in (Get-AzResourceRecords -Type 'Microsoft.Solutions/applications')) {
+            $managed = [string]$application.resource.properties.managedResourceGroupId
+            if ($managed) { $managedBy[$managed.ToLowerInvariant()] = $application.id.ToLowerInvariant() }
+        }
+        #resource id (lowercase) > write capable assignments of its identities outside its resource group
+        $outside = [ordered]@{}
+        $records = @{}
+        foreach ($assignment in @(Get-ActiveRoleAssignments | Where-Object { $_.properties.principalType -eq 'ServicePrincipal' } | Sort-Object id)) {
+            $key = ([string]$assignment.properties.principalId).ToLowerInvariant()
+            if (-not $usedBy.ContainsKey($key)) { continue }
+            $scope = [string]$assignment.properties.scope
+            if ((Get-ScopeLevel $scope) -in 'root', 'managementGroup', 'subscription') { continue }
+            if (-not (Test-RoleCanWrite $assignment.properties.roleDefinitionId)) { continue }
+            foreach ($record in $usedBy[$key]) {
+                $resourceGroup = (($record.id -split '/')[0..4] -join '/').ToLowerInvariant()
+                $target = $scope.ToLowerInvariant()
+                if ($target -eq $resourceGroup -or $target.StartsWith("$resourceGroup/")) { continue }
+                if ($managedBy.ContainsKey($resourceGroup) -and ($target -eq $managedBy[$resourceGroup] -or $target.StartsWith("$($managedBy[$resourceGroup])/"))) { continue }
+                $id = $record.id.ToLowerInvariant()
+                if (-not $outside.Contains($id)) { $outside[$id] = [System.Collections.Generic.List[string]]::new(); $records[$id] = $record }
+                $outside[$id].Add("$(Get-RoleName $assignment.properties.roleDefinitionId) @ $scope")
+            }
+        }
+        if (-not $outside.Count) { return New-SubscriptionFinding (New-Pass 'No managed identity has write access outside the resource group of its resource') }
+        foreach ($id in $outside.Keys) {
+            $grants = @($outside[$id] | Sort-Object -Unique)
+            New-Finding -Record $records[$id] -Result (New-Fail "Its managed identity has write access outside its resource group: $($grants -join '; ')" ([ordered]@{ outsideAssignments = $grants }))
+        }
+    }
+}
+
+Add-AzTest @{
+    Id          = 'AZ-IAM-032'
+    Title       = 'Groups with privileged Azure access can only be changed by privileged administrators'
+    Category    = 'Privileged access'
+    Service     = 'Microsoft Entra ID'
+    Severity    = 'High'
+    Description = 'For groups with a write capable role assignment at subscription scope or above, checks that the group is role-assignable, has assigned (not dynamic) membership, is not synchronized from on-premises Active Directory and has no owners.'
+    Rationale   = 'Membership of such a group is control of the subscription. Members of a regular group can be added by Groups, User and other directory administrators and by the group owners; members of a dynamic group by anyone who can set the attribute its rule reads; members of a synchronized group by anyone who controls the on-premises directory. Each is a path from a lesser role, or from on-premises, to Azure.'
+    Remediation = 'Grant privileged Azure roles to a cloud-only, role-assignable security group with assigned membership and no owners (a new group created with isAssignableToRole, since the setting cannot be changed later), preferably with eligible membership through PIM for Groups.'
+    References  = @('https://learn.microsoft.com/entra/identity/role-based-access-control/groups-concept', 'https://learn.microsoft.com/entra/id-governance/privileged-identity-management/concept-pim-for-groups')
+    Requires    = @('rbac/roleAssignments', 'rbac/roleDefinitions', 'identity/groups')
+    Run         = {
+        $roles = [ordered]@{}
+        foreach ($assignment in @(Get-ActiveRoleAssignments | Where-Object { $_.properties.principalType -eq 'Group' -and (Get-ScopeLevel $_.properties.scope) -in 'root', 'managementGroup', 'subscription' -and (Test-RoleCanWrite $_.properties.roleDefinitionId) } | Sort-Object id)) {
+            $key = ([string]$assignment.properties.principalId).ToLowerInvariant()
+            if (-not $roles.Contains($key)) { $roles[$key] = [System.Collections.Generic.List[string]]::new() }
+            $roles[$key].Add("$(Get-RoleName $assignment.properties.roleDefinitionId) @ $($assignment.properties.scope)")
+        }
+        if (-not $roles.Count) { return New-SubscriptionFinding (New-Pass 'No group holds a write capable role at subscription scope or above') }
+        foreach ($id in @($roles.Keys | Sort-Object)) {
+            $record = (Get-GroupMap)[$id]
+            $label = Get-PrincipalLabel $id
+            $evidence = [ordered]@{ roles = @($roles[$id] | Sort-Object -Unique) }
+            if (-not $record -or $null -eq $record.properties -or $null -eq $record.owners) {
+                New-Finding -ResourceId "/groups/$id" -ResourceType 'Microsoft.Entra/groups' -ResourceName $label -Result (New-Unknown 'The properties or owners of the group could not be read' $evidence)
+                continue
+            }
+            $p = $record.properties
+            $owners = @($record.owners | Where-Object { $_ })
+            $evidence.isAssignableToRole = [bool]$p.isAssignableToRole
+            $evidence.dynamicMembership = [bool]($p.membershipRule -or @($p.groupTypes) -contains 'DynamicMembership')
+            $evidence.onPremisesSync = [bool]$p.onPremisesSyncEnabled
+            $evidence.owners = @($owners | ForEach-Object { if ($_.userPrincipalName) { $_.userPrincipalName } else { $_.displayName } } | Sort-Object)
+            $issues = @(
+                $(if (-not $evidence.isAssignableToRole) { 'not role-assignable' })
+                $(if ($evidence.dynamicMembership) { 'dynamic membership' })
+                $(if ($evidence.onPremisesSync) { 'synchronized from on-premises' })
+                $(if ($owners) { "$($owners.Count) owner(s)" })
+            ) | Where-Object { $_ }
+            $result = if ($issues) { New-Fail "$($roles[$id][0]) through a group that others can change: $($issues -join ', ')" $evidence } else { New-Pass 'Role-assignable, assigned membership, cloud-only, no owners' $evidence }
+            New-Finding -ResourceId "/groups/$id" -ResourceType 'Microsoft.Entra/groups' -ResourceName $label -Result $result
+        }
+    }
+}
+
+Add-AzTest @{
+    Id          = 'AZ-IAM-033'
+    Title       = 'Roles with data access are not assigned at subscription scope or above'
+    Category    = 'Privileged access'
+    Service     = 'Azure RBAC'
+    Severity    = 'Medium'
+    Description = 'Finds role assignments at subscription, management group or root scope of roles that grant data actions, for example Storage Blob Data Owner, Key Vault Secrets User or Azure Kubernetes Service RBAC Cluster Admin.'
+    Rationale   = 'A data role at subscription scope reads or changes the data in every storage account, key vault, cluster or other resource of that kind in the subscription, including the ones created later. That breadth is rarely needed, and it does not show on the resources whose data it opens.'
+    Remediation = 'Assign data roles on the resource (or the container, vault or namespace) that holds the data, and remove the broad assignment.'
+    References  = @('https://learn.microsoft.com/azure/role-based-access-control/role-definitions#control-and-data-actions', 'https://learn.microsoft.com/azure/role-based-access-control/best-practices')
+    Requires    = @('rbac/roleAssignments', 'rbac/roleDefinitions')
+    Run         = {
+        $findings = foreach ($assignment in @(Get-ActiveRoleAssignments | Where-Object { (Get-ScopeLevel $_.properties.scope) -in 'root', 'managementGroup', 'subscription' } | Sort-Object id)) {
+            $definition = (Get-RoleDefinitionMap)[(Get-RoleDefinitionGuid $assignment.properties.roleDefinitionId)]
+            $evidence = Get-AssignmentEvidence $assignment
+            if (-not $definition) {
+                New-Finding -ResourceId $assignment.id -ResourceType $assignment.type -ResourceName "$($evidence.role): $($evidence.principal)" -Result (New-Unknown 'The role definition could not be read' $evidence)
+                continue
+            }
+            $dataActions = @($definition.properties.permissions | ForEach-Object { $_.dataActions } | Where-Object { $_ })
+            if (-not $dataActions) { continue }
+            $evidence.dataActions = @($dataActions | Sort-Object -Unique)
+            New-Finding -ResourceId $assignment.id -ResourceType $assignment.type -ResourceName "$($evidence.role): $($evidence.principal)" -Result (New-Fail "$($evidence.principal) has data role $($evidence.role) at $($evidence.scope)" $evidence)
+        }
+        if (-not $findings) { return New-SubscriptionFinding (New-Pass 'No data role is assigned at subscription scope or above') }
         $findings
     }
 }

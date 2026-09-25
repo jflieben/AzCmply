@@ -41,7 +41,6 @@ Add-AzTest @{
     Rationale   = 'Deployment parameters and outputs are stored in the deployment history and are readable by anyone with Reader access. Secrets passed or returned as plain strings are exposed to them indefinitely.'
     Remediation = 'Use secureString/secureObject parameters and Key Vault references, never output secrets, rotate the exposed credentials and delete the affected deployments from the history.'
     References  = @('https://learn.microsoft.com/azure/azure-resource-manager/templates/best-practices#parameters')
-    Frameworks  = @{ MCSB = @('IM-8', 'DS-6'); WAF = 'SE:09' }
     Requires    = @('subscription/deployments')
     Run         = {
         $deployments = @(Get-IngestData 'subscription/deployments' | Where-Object { $_ })
@@ -69,7 +68,6 @@ Add-AzTest @{
     Rationale     = 'Runbook source is readable by anyone with Reader access on the Automation account and is often copied to source control; embedded credentials are exposed to all of them.'
     Remediation   = 'Use the Automation account managed identity, encrypted Automation credentials/variables or Key Vault instead of literals, and rotate the exposed credentials.'
     References    = @('https://learn.microsoft.com/azure/automation/automation-security-overview')
-    Frameworks    = @{ MCSB = @('IM-8', 'DS-6'); WAF = 'SE:09' }
     ResourceTypes = @('Microsoft.Automation/automationAccounts/runbooks')
     Evaluate      = {
         param($Record)
@@ -104,7 +102,6 @@ Add-AzTest @{
     Rationale     = 'userData and Custom Script Extension scripts are returned by the management API to every reader of the machine and run at boot with high privilege; operators routinely embed passwords, keys and SAS URLs in them. Custom data is write only in most responses but is scanned when present.'
     Remediation   = 'Pass bootstrap secrets through the VM managed identity and Key Vault, or through the extension protectedSettings, instead of embedding them in userData, custom data or script content, and rotate any exposed credentials.'
     References     = @('https://learn.microsoft.com/azure/virtual-machines/user-data')
-    Frameworks    = @{ MCSB = 'IM-8'; WAF = 'SE:09' }
     ResourceTypes = @('Microsoft.Compute/virtualMachines', 'Microsoft.Compute/virtualMachineScaleSets')
     Evaluate      = {
         param($Record)
@@ -144,7 +141,6 @@ Add-AzTest @{
     Rationale   = 'These settings are returned by the management API to every reader of the resource and are logged in deployment history; secrets belong in protected settings, secret references or Key Vault.'
     Remediation = 'Move secrets to protectedSettings, secureValue / secretRef or Key Vault references, and rotate the exposed credentials.'
     References  = @('https://learn.microsoft.com/azure/virtual-machines/extensions/overview')
-    Frameworks  = @{ MCSB = 'IM-8'; WAF = 'SE:09' }
     Run         = {
         $findings = foreach ($record in (Get-AzResourceRecords)) {
             $locations = [System.Collections.Generic.List[string]]::new()

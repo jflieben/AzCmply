@@ -28,7 +28,7 @@ function dosDateTime(date) {
     return { time, day };
 }
 
-//a zip (as a Blob) of [{ name, text | bytes }]
+//a zip (as a Blob) of [{ name, text }]
 export async function writeZip(files, date = new Date()) {
     const encoder = new TextEncoder();
     const parts = [];
@@ -36,7 +36,7 @@ export async function writeZip(files, date = new Date()) {
     let offset = 0;
     const { time, day } = dosDateTime(date);
     for (const file of files) {
-        const content = file.bytes ?? encoder.encode(file.text ?? '');
+        const content = encoder.encode(file.text);
         const compressed = await transform(content, new CompressionStream('deflate-raw'));
         const name = encoder.encode(file.name);
         const crc = crc32(content);

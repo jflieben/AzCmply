@@ -10,7 +10,7 @@ import { mount } from '../site/generated/index.js';
 
 const [command, ...args] = process.argv.slice(2);
 const log = [];
-const host = { write: t => log.push(t), warn: t => log.push('WARNING: ' + t), error: t => log.push('ERROR: ' + t) };
+const host = { write: t => log.push(t), warn: t => log.push('WARNING: ' + t) };
 
 function newVfs() {
     const vfs = new VFS();

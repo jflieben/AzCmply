@@ -267,9 +267,9 @@ $script:Catalog = $null
 $script:SeverityWeights = [ordered]@{ Critical = 8; High = 4; Medium = 2; Low = 1; Informational = 0 }
 
 function Add-AzTest {
-    #registers a test; tags are validated against catalog/frameworks.json
+    #registers a test; which framework controls it evidences is recorded in the framework catalogs, not on the test
     param([Parameter(Mandatory = $true)][hashtable]$Definition)
-    foreach ($field in 'Id', 'Title', 'Category', 'Service', 'Severity', 'Description', 'Rationale', 'Remediation', 'Frameworks') {
+    foreach ($field in 'Id', 'Title', 'Category', 'Service', 'Severity', 'Description', 'Rationale', 'Remediation') {
         if (-not $Definition[$field]) { throw "Test $($Definition.Id): missing $field" }
     }
     if ($Definition.Id -notmatch '^AZ-[A-Z]+-\d{3}$') { throw "Test id $($Definition.Id) does not match AZ-<AREA>-<NNN>" }
@@ -277,17 +277,34 @@ function Add-AzTest {
     if (-not $script:SeverityWeights.Contains($Definition.Severity)) { throw "Test $($Definition.Id): invalid severity $($Definition.Severity)" }
     if (-not ($Definition.Evaluate -or $Definition.Run)) { throw "Test $($Definition.Id): needs Evaluate (per resource) or Run" }
     if ($Definition.Evaluate -and -not $Definition.ResourceTypes) { throw "Test $($Definition.Id): Evaluate requires ResourceTypes" }
-    foreach ($framework in $Definition.Frameworks.Keys) {
-        if (-not $script:Catalog.Contains($framework) -or -not $script:Catalog[$framework].controls) { throw "Test $($Definition.Id): unknown or derived framework $framework" }
-        foreach ($control in @($Definition.Frameworks[$framework])) {
-            if (-not $script:Catalog[$framework].controls.Contains($control)) { throw "Test $($Definition.Id): $framework control '$control' not in catalog" }
-        }
-    }
-    #MCSB is a security benchmark; a resilience check outside it carries a crosswalk tag (DORA) instead
-    $crosswalkTags = @($Definition.Frameworks.Keys | Where-Object { $script:Catalog[$_].kind -eq 'crosswalk' })
-    if (-not $Definition.Frameworks.MCSB -and -not $crosswalkTags) { throw "Test $($Definition.Id): at least one MCSB control is required" }
     if (-not $Definition.Version) { $Definition.Version = 1 }
     $script:Tests.Add([pscustomobject]$Definition)
+}
+
+function Import-FrameworkCatalogs {
+    #one catalog per framework (catalog\frameworks\*.json), keyed by framework in display order
+    param([Parameter(Mandatory = $true)][string]$Path)
+    $catalogs = foreach ($file in (Get-ChildItem -Path $Path -Filter '*.json' | Sort-Object Name)) { Get-Content -Path $file.FullName -Raw | ConvertFrom-Json -AsHashtable }
+    $ordered = [ordered]@{}
+    foreach ($catalog in @($catalogs | Sort-Object { [int]$_.order }, { $_.key })) { $ordered[$catalog.key] = $catalog }
+    return $ordered
+}
+
+function Test-FrameworkCatalogs {
+    #catalogs may only name registered tests, and every test has to evidence at least one control
+    $known = @{}
+    foreach ($test in $script:Tests) { $known[$test.Id] = $true }
+    $mapped = @{}
+    foreach ($framework in $script:Catalog.Keys) {
+        foreach ($control in $script:Catalog[$framework].controls.GetEnumerator()) {
+            foreach ($testId in @($control.Value.tests | Where-Object { $_ })) {
+                if (-not $known.ContainsKey($testId)) { throw "Framework $framework control $($control.Key) names unknown test $testId" }
+                $mapped[$testId] = $true
+            }
+        }
+    }
+    $unmapped = @($script:Tests | Where-Object { -not $mapped.ContainsKey($_.Id) } | ForEach-Object Id)
+    if ($unmapped.Count) { throw "Tests not mapped to any framework control: $($unmapped -join ', ')" }
 }
 
 #endregion

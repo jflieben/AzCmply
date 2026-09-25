@@ -7,281 +7,354 @@ export default R.script("/app/Analyze/tests/13-AI.ps1", { params: [], adv: 0 }, 
     R.ln = F + 4;
     S["mltype"] = R.a("Microsoft.MachineLearningServices/workspaces");
     R.ln = F + 6;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-AI-001", "Title", "Azure AI Services accounts disable key access", "Category", "Identity management", "Service", "Azure AI Services", "Severity", "High", "Description", "Checks disableLocalAuth on Azure AI Services, Azure OpenAI and Foundry accounts.", "Rationale", "API keys are shared secrets that end up in code and prompts tooling; anyone holding a key can use the models and data connections at your cost and under your identity, without RBAC or Conditional Access.", "Remediation", "Move clients to Entra ID (Cognitive Services OpenAI User and similar roles with managed identities) and disable local authentication (az cognitiveservices account update --custom-domain ... --api-properties disableLocalAuth=true, or set properties.disableLocalAuth).", "References", R.a("https://learn.microsoft.com/azure/ai-services/disable-local-auth"), "Frameworks", R.ht(["MCSB", R.a([R.v("IM-1"), R.v("IM-3")]), "WAF", "SE:05", "ALZ", R.a([R.v("Enforce-GR-CogServ0"), R.v("Enforce-GR-OpenAI0")])], false), "Policy", R.ht(["71ef260a-8f18-47b7-abcb-62d0673d94dc", "Azure AI Services resources should have key access disabled (disable local authentication)"], false), "ResourceTypes", (S["aitype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $value = $Record.resource.properties.disableLocalAuth\n        if ($value -eq $true) { return New-Pass 'Key access disabled' ([ordered]@{ disableLocalAuth = $true; kind = $Record.resource.kind }) }\n        New-Fail 'Key access enabled' ([ordered]@{ disableLocalAuth = $value; kind = $Record.resource.kind })\n    " }, (S, O) => {
-        R.ln = F + 21;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-AI-001", "Title", "Azure AI Services accounts disable key access", "Category", "Identity management", "Service", "Azure AI Services", "Severity", "High", "Description", "Checks disableLocalAuth on Azure AI Services, Azure OpenAI and Foundry accounts.", "Rationale", "API keys are shared secrets that end up in code and prompts tooling; anyone holding a key can use the models and data connections at your cost and under your identity, without RBAC or Conditional Access.", "Remediation", "Move clients to Entra ID (Cognitive Services OpenAI User and similar roles with managed identities) and disable local authentication (az cognitiveservices account update --custom-domain ... --api-properties disableLocalAuth=true, or set properties.disableLocalAuth).", "References", R.a("https://learn.microsoft.com/azure/ai-services/disable-local-auth"), "Policy", R.ht(["71ef260a-8f18-47b7-abcb-62d0673d94dc", "Azure AI Services resources should have key access disabled (disable local authentication)"], false), "ResourceTypes", (S["aitype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $value = $Record.resource.properties.disableLocalAuth\n        if ($value -eq $true) { return New-Pass 'Key access disabled' ([ordered]@{ disableLocalAuth = $true; kind = $Record.resource.kind }) }\n        New-Fail 'Key access enabled' ([ordered]@{ disableLocalAuth = $value; kind = $Record.resource.kind })\n    " }, (S, O) => {
+        R.ln = F + 20;
         S["value"] = R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "disableLocalAuth");
-        R.ln = F + 22;
+        R.ln = F + 21;
         if (R.t(R.eq((S["value"] ?? null), true))) {
-            R.ln = F + 22;
+            R.ln = F + 21;
             R.pa(O, R.cmd(S, "New-Pass", ["Key access disabled", (R.ht(["disableLocalAuth", true, "kind", R.m(R.m((S["record"] ?? null), "resource"), "kind")], true))], null));
             return;
         }
-        R.ln = F + 23;
+        R.ln = F + 22;
         R.pa(O, R.cmd(S, "New-Fail", ["Key access enabled", (R.ht(["disableLocalAuth", (S["value"] ?? null), "kind", R.m(R.m((S["record"] ?? null), "resource"), "kind")], true))], null));
     })], false)], null));
-    R.ln = F + 27;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-AI-002", "Title", "Azure AI Services accounts restrict network access", "Category", "Network security", "Service", "Azure AI Services", "Severity", "Medium", "Description", "Checks that public network access is disabled or the network ACL denies access by default.", "Rationale", "An open endpoint lets a leaked key or token be used from anywhere and exposes the models and any grounded data to the Internet.", "Remediation", "Use private endpoints and disable public network access, or set the default network action to Deny with specific IP and virtual network rules.", "References", R.a("https://learn.microsoft.com/azure/ai-services/cognitive-services-virtual-networks"), "Frameworks", R.ht(["MCSB", "NS-2", "WAF", "SE:06", "ALZ", R.a([R.v("Enforce-GR-CogServ0"), R.v("Enforce-GR-OpenAI0"), R.v("Deny-Public-Endpoints")])], false), "Policy", R.ht(["037eea7a-bd0a-46c5-9a66-03aea78705d3", "Azure AI Services resources should restrict network access", "d6759c02-b87f-42b7-892e-71b3f471d782", "Azure AI Services resources should use Azure Private Link"], false), "ResourceTypes", (S["aitype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $p = $Record.resource.properties\n        $evidence = [ordered]@{ publicNetworkAccess = $p.publicNetworkAccess; defaultAction = $p.networkAcls.defaultAction }\n        if ($p.publicNetworkAccess -eq 'Disabled') { return New-Pass 'Public network access disabled' $evidence }\n        if ($p.networkAcls.defaultAction -eq 'Deny') { return New-Pass 'Default network action Deny' $evidence }\n        New-Fail 'Open to all networks' $evidence\n    " }, (S, O) => {
-        R.ln = F + 42;
+    R.ln = F + 26;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-AI-002", "Title", "Azure AI Services accounts restrict network access", "Category", "Network security", "Service", "Azure AI Services", "Severity", "Medium", "Description", "Checks that public network access is disabled or the network ACL denies access by default.", "Rationale", "An open endpoint lets a leaked key or token be used from anywhere and exposes the models and any grounded data to the Internet.", "Remediation", "Use private endpoints and disable public network access, or set the default network action to Deny with specific IP and virtual network rules.", "References", R.a("https://learn.microsoft.com/azure/ai-services/cognitive-services-virtual-networks"), "Policy", R.ht(["037eea7a-bd0a-46c5-9a66-03aea78705d3", "Azure AI Services resources should restrict network access", "d6759c02-b87f-42b7-892e-71b3f471d782", "Azure AI Services resources should use Azure Private Link"], false), "ResourceTypes", (S["aitype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $p = $Record.resource.properties\n        $evidence = [ordered]@{ publicNetworkAccess = $p.publicNetworkAccess; defaultAction = $p.networkAcls.defaultAction }\n        if ($p.publicNetworkAccess -eq 'Disabled') { return New-Pass 'Public network access disabled' $evidence }\n        if ($p.networkAcls.defaultAction -eq 'Deny') { return New-Pass 'Default network action Deny' $evidence }\n        New-Fail 'Open to all networks' $evidence\n    " }, (S, O) => {
+        R.ln = F + 40;
         S["p"] = R.m(R.m((S["record"] ?? null), "resource"), "properties");
-        R.ln = F + 43;
+        R.ln = F + 41;
         S["evidence"] = R.ht(["publicNetworkAccess", R.m((S["p"] ?? null), "publicNetworkAccess"), "defaultAction", R.m(R.m((S["p"] ?? null), "networkAcls"), "defaultAction")], true);
-        R.ln = F + 44;
+        R.ln = F + 42;
         if (R.t(R.eq(R.m((S["p"] ?? null), "publicNetworkAccess"), "Disabled"))) {
-            R.ln = F + 44;
+            R.ln = F + 42;
             R.pa(O, R.cmd(S, "New-Pass", ["Public network access disabled", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 45;
+        R.ln = F + 43;
         if (R.t(R.eq(R.m(R.m((S["p"] ?? null), "networkAcls"), "defaultAction"), "Deny"))) {
-            R.ln = F + 45;
+            R.ln = F + 43;
             R.pa(O, R.cmd(S, "New-Pass", ["Default network action Deny", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 46;
+        R.ln = F + 44;
         R.pa(O, R.cmd(S, "New-Fail", ["Open to all networks", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 50;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-AI-003", "Title", "Azure AI Services accounts restrict outbound access", "Category", "AI security", "Service", "Azure AI Services", "Severity", "Low", "Description", "Checks restrictOutboundNetworkAccess with an allowed FQDN list, which limits the endpoints the service can reach (for example for grounding, tools and data sources).", "Rationale", "Unrestricted egress lets prompt injection or a misconfigured data connection send data to arbitrary destinations.", "Remediation", "Enable outbound restrictions and list only the required FQDNs (properties.restrictOutboundNetworkAccess and allowedFqdnList).", "References", R.a("https://learn.microsoft.com/azure/ai-services/cognitive-services-data-loss-prevention"), "Frameworks", R.ht(["MCSB", R.a([R.v("AI-4"), R.v("DP-2")]), "WAF", "SE:06"], false), "ResourceTypes", (S["aitype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $p = $Record.resource.properties\n        $evidence = [ordered]@{ restrictOutboundNetworkAccess = [bool]$p.restrictOutboundNetworkAccess; allowedFqdns = @($p.allowedFqdnList).Count }\n        if ($p.restrictOutboundNetworkAccess) { return New-Pass \"Outbound access limited to $(@($p.allowedFqdnList).Count) FQDN(s)\" $evidence }\n        New-Fail 'Outbound access unrestricted' $evidence\n    " }, (S, O) => {
-        R.ln = F + 64;
+    R.ln = F + 48;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-AI-003", "Title", "Azure AI Services accounts restrict outbound access", "Category", "AI security", "Service", "Azure AI Services", "Severity", "Low", "Description", "Checks restrictOutboundNetworkAccess with an allowed FQDN list, which limits the endpoints the service can reach (for example for grounding, tools and data sources).", "Rationale", "Unrestricted egress lets prompt injection or a misconfigured data connection send data to arbitrary destinations.", "Remediation", "Enable outbound restrictions and list only the required FQDNs (properties.restrictOutboundNetworkAccess and allowedFqdnList).", "References", R.a("https://learn.microsoft.com/azure/ai-services/cognitive-services-data-loss-prevention"), "ResourceTypes", (S["aitype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $p = $Record.resource.properties\n        $evidence = [ordered]@{ restrictOutboundNetworkAccess = [bool]$p.restrictOutboundNetworkAccess; allowedFqdns = @($p.allowedFqdnList).Count }\n        if ($p.restrictOutboundNetworkAccess) { return New-Pass \"Outbound access limited to $(@($p.allowedFqdnList).Count) FQDN(s)\" $evidence }\n        New-Fail 'Outbound access unrestricted' $evidence\n    " }, (S, O) => {
+        R.ln = F + 61;
         S["p"] = R.m(R.m((S["record"] ?? null), "resource"), "properties");
-        R.ln = F + 65;
+        R.ln = F + 62;
         S["evidence"] = R.ht(["restrictOutboundNetworkAccess", R.c("bool", R.m((S["p"] ?? null), "restrictOutboundNetworkAccess")), "allowedFqdns", R.m(R.a(R.m((S["p"] ?? null), "allowedFqdnList")), "Count")], true);
-        R.ln = F + 66;
+        R.ln = F + 63;
         if (R.t(R.m((S["p"] ?? null), "restrictOutboundNetworkAccess"))) {
-            R.ln = F + 66;
+            R.ln = F + 63;
             R.pa(O, R.cmd(S, "New-Pass", [("Outbound access limited to " + R.str(R.u(R.pi(R.m(R.a(R.m((S["p"] ?? null), "allowedFqdnList")), "Count")))) + " FQDN(s)"), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 67;
+        R.ln = F + 64;
         R.pa(O, R.cmd(S, "New-Fail", ["Outbound access unrestricted", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 71;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-AI-004", "Version", 2, "Title", "AI model deployments use content filtering and prompt shields", "Category", "AI security", "Service", "Azure AI Services", "Severity", "High", "Description", "Checks each model deployment for a content filter (RAI) policy. Default Microsoft policies pass; custom policies fail when a harm category filter or the jailbreak (prompt shield) filter is disabled or not blocking.", "Rationale", "Content filters and prompt shields block harmful output and jailbreak or prompt injection attempts; disabling them removes a primary AI safety layer.", "Remediation", "Assign Microsoft.DefaultV2 or a custom content filter with all harm categories and jailbreak detection enabled in blocking mode. Filter modifications require an approved exception from Microsoft and should be documented.", "References", R.a("https://learn.microsoft.com/azure/ai-foundry/openai/concepts/content-filter"), "Frameworks", R.ht(["MCSB", R.a([R.v("AI-2"), R.v("AI-3")])], false), "Policy", R.ht(["af253d37-136a-42f8-a1fc-30010c083d41", "[Preview]: Cognitive Services Deployments should only use allowed completion content filtering", "f3a9c2e0-7b4d-4d8f-9c3a-2e1f6b9a8d4e", "[Preview]: Cognitive Services Deployments should only use allowed prompt content filtering"], false), "Run", R.sb({ params: [], adv: 0, text: "\n        foreach ($account in (Get-AzResourceRecords -Type 'Microsoft.CognitiveServices/accounts')) {\n            if (-not (Test-ChildCollected $account 'deployments')) { New-Finding -Record $account -Result (New-Unknown 'Model deployments could not be listed'); continue }\n            $policiesCollected = Test-ChildCollected $account 'raiPolicies'\n            $policies = @{}\n            foreach ($policy in @(Get-Child $account 'raiPolicies' | Where-Object { $_ })) { $policies[$policy.name.ToLowerInvariant()] = $policy }\n            foreach ($deployment in @(Get-Child $account 'deployments' | Where-Object { $_ })) {\n                $name = $deployment.properties.raiPolicyName\n                $evidence = [ordered]@{ account = $account.resource.name; model = \"$($deployment.properties.model.name) $($deployment.properties.model.version)\"; raiPolicyName = $name }\n                $policy = if ($name) { $policies[$name.ToLowerInvariant()] } else { $null }\n                if (-not $name -or $name -like 'Microsoft.*') {\n                    $result = New-Pass \"Default content filter ($(if ($name) { $name } else { 'Microsoft.Default' }))\" $evidence\n                } elseif (-not $policy) {\n                    #a custom policy name whose definition was not read says nothing about how strict it is\n                    $result = if ($policiesCollected) { New-Unknown \"Custom content filter '$name' is not among the account's policies\" $evidence } else { New-Unknown \"Custom content filter '$name' could not be read\" $evidence }\n                } else {\n                    $weak = @($policy.properties.contentFilters | Where-Object { $_ -and ($_.enabled -eq $false -or ($_.PSObject.Properties.Name -contains 'blocking' -and $_.blocking -eq $false)) } | ForEach-Object { \"$($_.source) $($_.name)\" } | Sort-Object)\n                    $jailbreak = @($policy.properties.contentFilters | Where-Object { $_ -and $_.name -match 'jailbreak' -and $_.enabled -and $_.blocking -ne $false })\n                    $evidence.weakenedFilters = $weak\n                    $evidence.jailbreakBlocking = [bool]$jailbreak\n                    $result = if ($weak -or -not $jailbreak) { New-Fail \"Custom filter $name weakens protection$(if ($weak) { \": $($weak -join ', ')\" })$(if (-not $jailbreak) { ' (no blocking prompt shield)' })\" $evidence } else { New-Pass \"Custom filter $name keeps all filters blocking\" $evidence }\n                }\n                New-Finding -ResourceId $deployment.id -ResourceType 'Microsoft.CognitiveServices/accounts/deployments' -ResourceName \"$($account.resource.name)/$($deployment.name)\" -Result $result\n            }\n        }\n    " }, (S, O) => {
-        R.ln = F + 85;
+    R.ln = F + 68;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-AI-004", "Version", 2, "Title", "AI model deployments use content filtering and prompt shields", "Category", "AI security", "Service", "Azure AI Services", "Severity", "High", "Description", "Checks each model deployment for a content filter (RAI) policy. Default Microsoft policies pass; custom policies fail when a harm category filter or the jailbreak (prompt shield) filter is disabled or not blocking.", "Rationale", "Content filters and prompt shields block harmful output and jailbreak or prompt injection attempts; disabling them removes a primary AI safety layer.", "Remediation", "Assign Microsoft.DefaultV2 or a custom content filter with all harm categories and jailbreak detection enabled in blocking mode. Filter modifications require an approved exception from Microsoft and should be documented.", "References", R.a("https://learn.microsoft.com/azure/ai-foundry/openai/concepts/content-filter"), "Policy", R.ht(["af253d37-136a-42f8-a1fc-30010c083d41", "[Preview]: Cognitive Services Deployments should only use allowed completion content filtering", "f3a9c2e0-7b4d-4d8f-9c3a-2e1f6b9a8d4e", "[Preview]: Cognitive Services Deployments should only use allowed prompt content filtering"], false), "Run", R.sb({ params: [], adv: 0, text: "\n        foreach ($account in (Get-AzResourceRecords -Type 'Microsoft.CognitiveServices/accounts')) {\n            if (-not (Test-ChildCollected $account 'deployments')) { New-Finding -Record $account -Result (New-Unknown 'Model deployments could not be listed'); continue }\n            $policiesCollected = Test-ChildCollected $account 'raiPolicies'\n            $policies = @{}\n            foreach ($policy in @(Get-Child $account 'raiPolicies' | Where-Object { $_ })) { $policies[$policy.name.ToLowerInvariant()] = $policy }\n            foreach ($deployment in @(Get-Child $account 'deployments' | Where-Object { $_ })) {\n                $name = $deployment.properties.raiPolicyName\n                $evidence = [ordered]@{ account = $account.resource.name; model = \"$($deployment.properties.model.name) $($deployment.properties.model.version)\"; raiPolicyName = $name }\n                $policy = if ($name) { $policies[$name.ToLowerInvariant()] } else { $null }\n                if (-not $name -or $name -like 'Microsoft.*') {\n                    $result = New-Pass \"Default content filter ($(if ($name) { $name } else { 'Microsoft.Default' }))\" $evidence\n                } elseif (-not $policy) {\n                    #a custom policy name whose definition was not read says nothing about how strict it is\n                    $result = if ($policiesCollected) { New-Unknown \"Custom content filter '$name' is not among the account's policies\" $evidence } else { New-Unknown \"Custom content filter '$name' could not be read\" $evidence }\n                } else {\n                    $weak = @($policy.properties.contentFilters | Where-Object { $_ -and ($_.enabled -eq $false -or ($_.PSObject.Properties.Name -contains 'blocking' -and $_.blocking -eq $false)) } | ForEach-Object { \"$($_.source) $($_.name)\" } | Sort-Object)\n                    $jailbreak = @($policy.properties.contentFilters | Where-Object { $_ -and $_.name -match 'jailbreak' -and $_.enabled -and $_.blocking -ne $false })\n                    $evidence.weakenedFilters = $weak\n                    $evidence.jailbreakBlocking = [bool]$jailbreak\n                    $result = if ($weak -or -not $jailbreak) { New-Fail \"Custom filter $name weakens protection$(if ($weak) { \": $($weak -join ', ')\" })$(if (-not $jailbreak) { ' (no blocking prompt shield)' })\" $evidence } else { New-Pass \"Custom filter $name keeps all filters blocking\" $evidence }\n                }\n                New-Finding -ResourceId $deployment.id -ResourceType 'Microsoft.CognitiveServices/accounts/deployments' -ResourceName \"$($account.resource.name)/$($deployment.name)\" -Result $result\n            }\n        }\n    " }, (S, O) => {
+        R.ln = F + 81;
         for (const it1 of R.fi(R.u(R.cmd(S, "Get-AzResourceRecords", [R.np("Type"), "Microsoft.CognitiveServices/accounts"], null)))) {
             S["account"] = it1;
-            R.ln = F + 86;
+            R.ln = F + 82;
             if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["account"] ?? null), "deployments"], null)))) {
-                R.ln = F + 86;
+                R.ln = F + 82;
                 R.pa(O, R.cmd(S, "New-Finding", [R.np("Record"), (S["account"] ?? null), R.np("Result"), R.u(R.cmd(S, "New-Unknown", ["Model deployments could not be listed"], null))], null));
                 continue;
             }
-            R.ln = F + 87;
+            R.ln = F + 83;
             S["policiescollected"] = R.u(R.cmd(S, "Test-ChildCollected", [(S["account"] ?? null), "raiPolicies"], null));
-            R.ln = F + 88;
+            R.ln = F + 84;
             S["policies"] = R.ht([], false);
-            R.ln = F + 89;
+            R.ln = F + 85;
             for (const it2 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                R.ln = F + 89;
+                R.ln = F + 85;
                 R.e(O, (S["_"] ?? null));
             })], R.cmd(S, "Get-Child", [(S["account"] ?? null), "raiPolicies"], null)))) {
                 S["policy"] = it2;
-                R.ln = F + 89;
+                R.ln = F + 85;
                 R.si((S["policies"] ?? null), R.im(R.m((S["policy"] ?? null), "name"), "ToLowerInvariant", []), (S["policy"] ?? null));
             }
-            R.ln = F + 90;
+            R.ln = F + 86;
             for (const it3 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                R.ln = F + 90;
+                R.ln = F + 86;
                 R.e(O, (S["_"] ?? null));
             })], R.cmd(S, "Get-Child", [(S["account"] ?? null), "deployments"], null)))) {
                 S["deployment"] = it3;
-                R.ln = F + 91;
+                R.ln = F + 87;
                 S["name"] = R.m(R.m((S["deployment"] ?? null), "properties"), "raiPolicyName");
-                R.ln = F + 92;
+                R.ln = F + 88;
                 S["evidence"] = R.ht(["account", R.m(R.m((S["account"] ?? null), "resource"), "name"), "model", ("" + R.str(R.u(R.pi(R.m(R.m(R.m((S["deployment"] ?? null), "properties"), "model"), "name")))) + " " + R.str(R.u(R.pi(R.m(R.m(R.m((S["deployment"] ?? null), "properties"), "model"), "version"))))), "raiPolicyName", (S["name"] ?? null)], true);
-                R.ln = F + 93;
+                R.ln = F + 89;
                 const v4 = [];
-                R.ln = F + 93;
+                R.ln = F + 89;
                 if (R.t((S["name"] ?? null))) {
-                    R.ln = F + 93;
+                    R.ln = F + 89;
                     R.e(v4, R.i((S["policies"] ?? null), R.im((S["name"] ?? null), "ToLowerInvariant", [])));
                 } else {
-                    R.ln = F + 93;
+                    R.ln = F + 89;
                     R.e(v4, null);
                 }
                 S["policy"] = R.u(v4);
-                R.ln = F + 94;
+                R.ln = F + 90;
                 if ((!R.t((S["name"] ?? null)) || R.t(R.like((S["name"] ?? null), "Microsoft.*")))) {
-                    R.ln = F + 95;
+                    R.ln = F + 91;
                     S["result"] = R.u(R.cmd(S, "New-Pass", [("Default content filter (" + R.str((() => {
                         const v5 = [];
-                        R.ln = F + 95;
+                        R.ln = F + 91;
                         if (R.t((S["name"] ?? null))) {
-                            R.ln = F + 95;
+                            R.ln = F + 91;
                             R.e(v5, (S["name"] ?? null));
                         } else {
-                            R.ln = F + 95;
+                            R.ln = F + 91;
                             R.e(v5, "Microsoft.Default");
                         }
                         return R.u(v5);
                     })()) + ")"), (S["evidence"] ?? null)], null));
                 } else if (!R.t((S["policy"] ?? null))) {
-                    R.ln = F + 98;
+                    R.ln = F + 94;
                     const v6 = [];
-                    R.ln = F + 98;
+                    R.ln = F + 94;
                     if (R.t((S["policiescollected"] ?? null))) {
-                        R.ln = F + 98;
+                        R.ln = F + 94;
                         R.pa(v6, R.cmd(S, "New-Unknown", [("Custom content filter '" + R.str((S["name"] ?? null)) + "' is not among the account's policies"), (S["evidence"] ?? null)], null));
                     } else {
-                        R.ln = F + 98;
+                        R.ln = F + 94;
                         R.pa(v6, R.cmd(S, "New-Unknown", [("Custom content filter '" + R.str((S["name"] ?? null)) + "' could not be read"), (S["evidence"] ?? null)], null));
                     }
                     S["result"] = R.u(v6);
                 } else {
-                    R.ln = F + 100;
+                    R.ln = F + 96;
                     S["weak"] = R.cmd(S, "Sort-Object", [], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " \"$($_.source) $($_.name)\" " }, (S, O) => {
-                        R.ln = F + 100;
+                        R.ln = F + 96;
                         R.e(O, ("" + R.str(R.u(R.pi(R.m((S["_"] ?? null), "source")))) + " " + R.str(R.u(R.pi(R.m((S["_"] ?? null), "name"))))));
                     })], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and ($_.enabled -eq $false -or ($_.PSObject.Properties.Name -contains 'blocking' -and $_.blocking -eq $false)) " }, (S, O) => {
-                        R.ln = F + 100;
+                        R.ln = F + 96;
                         R.e(O, (R.t((S["_"] ?? null)) && (R.t(R.eq(R.m((S["_"] ?? null), "enabled"), false)) || (R.t(R.cont(R.m(R.m(R.m((S["_"] ?? null), "PSObject"), "Properties"), "Name"), "blocking")) && R.t(R.eq(R.m((S["_"] ?? null), "blocking"), false))))));
                     })], R.pi(R.m(R.m((S["policy"] ?? null), "properties"), "contentFilters")))));
-                    R.ln = F + 101;
+                    R.ln = F + 97;
                     S["jailbreak"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.name -match 'jailbreak' -and $_.enabled -and $_.blocking -ne $false " }, (S, O) => {
-                        R.ln = F + 101;
+                        R.ln = F + 97;
                         R.e(O, (((R.t((S["_"] ?? null)) && R.t(R.match(S, R.m((S["_"] ?? null), "name"), "jailbreak"))) && R.t(R.m((S["_"] ?? null), "enabled"))) && R.t(R.ne(R.m((S["_"] ?? null), "blocking"), false))));
                     })], R.pi(R.m(R.m((S["policy"] ?? null), "properties"), "contentFilters")));
-                    R.ln = F + 102;
+                    R.ln = F + 98;
                     R.sm((S["evidence"] ?? null), "weakenedFilters", (S["weak"] ?? null));
-                    R.ln = F + 103;
+                    R.ln = F + 99;
                     R.sm((S["evidence"] ?? null), "jailbreakBlocking", R.c("bool", (S["jailbreak"] ?? null)));
-                    R.ln = F + 104;
+                    R.ln = F + 100;
                     const v7 = [];
-                    R.ln = F + 104;
+                    R.ln = F + 100;
                     if ((R.t((S["weak"] ?? null)) || !R.t((S["jailbreak"] ?? null)))) {
-                        R.ln = F + 104;
+                        R.ln = F + 100;
                         R.pa(v7, R.cmd(S, "New-Fail", [("Custom filter " + R.str((S["name"] ?? null)) + " weakens protection" + R.str((() => {
                             const v8 = [];
-                            R.ln = F + 104;
+                            R.ln = F + 100;
                             if (R.t((S["weak"] ?? null))) {
-                                R.ln = F + 104;
+                                R.ln = F + 100;
                                 R.e(v8, (": " + R.str(R.u(R.pi(R.join((S["weak"] ?? null), ", "))))));
                             }
                             return R.u(v8);
                         })()) + R.str((() => {
                             const v9 = [];
-                            R.ln = F + 104;
+                            R.ln = F + 100;
                             if (!R.t((S["jailbreak"] ?? null))) {
-                                R.ln = F + 104;
+                                R.ln = F + 100;
                                 R.e(v9, " (no blocking prompt shield)");
                             }
                             return R.u(v9);
                         })())), (S["evidence"] ?? null)], null));
                     } else {
-                        R.ln = F + 104;
+                        R.ln = F + 100;
                         R.pa(v7, R.cmd(S, "New-Pass", [("Custom filter " + R.str((S["name"] ?? null)) + " keeps all filters blocking"), (S["evidence"] ?? null)], null));
                     }
                     S["result"] = R.u(v7);
                 }
-                R.ln = F + 106;
+                R.ln = F + 102;
                 R.pa(O, R.cmd(S, "New-Finding", [R.np("ResourceId"), R.m((S["deployment"] ?? null), "id"), R.np("ResourceType"), "Microsoft.CognitiveServices/accounts/deployments", R.np("ResourceName"), ("" + R.str(R.u(R.pi(R.m(R.m((S["account"] ?? null), "resource"), "name")))) + "/" + R.str(R.u(R.pi(R.m((S["deployment"] ?? null), "name"))))), R.np("Result"), (S["result"] ?? null)], null));
             }
         }
     })], false)], null));
-    R.ln = F + 112;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-AI-005", "Title", "Machine Learning and Foundry hub workspaces disable public network access", "Category", "Network security", "Service", "Azure Machine Learning", "Severity", "Medium", "Description", "Checks public network access of Azure Machine Learning and Foundry hub workspaces.", "Rationale", "Workspaces hold data connections, credentials for datastores and model artifacts; a public endpoint exposes them to token theft from any network.", "Remediation", "Use private endpoints and set public network access to Disabled (az ml workspace update --public-network-access Disabled ...).", "References", R.a("https://learn.microsoft.com/azure/machine-learning/how-to-configure-private-link"), "Frameworks", R.ht(["MCSB", "NS-2", "WAF", "SE:06", "ALZ", R.a([R.v("Enforce-GR-MachLearn0"), R.v("Deny-Public-Endpoints")])], false), "Policy", R.ht(["438c38d2-3772-465a-a9cc-7a6666a275ce", "Azure Machine Learning Workspaces should disable public network access", "45e05259-1eb5-4f70-9574-baf73e9d219b", "Azure Machine Learning workspaces should use private link"], false), "ResourceTypes", (S["mltype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $value = $Record.resource.properties.publicNetworkAccess\n        if ($value -eq 'Disabled') { return New-Pass 'Public network access disabled' ([ordered]@{ publicNetworkAccess = $value }) }\n        New-Fail 'Public network access enabled' ([ordered]@{ publicNetworkAccess = $value })\n    " }, (S, O) => {
-        R.ln = F + 127;
+    R.ln = F + 108;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-AI-005", "Title", "Machine Learning and Foundry hub workspaces disable public network access", "Category", "Network security", "Service", "Azure Machine Learning", "Severity", "Medium", "Description", "Checks public network access of Azure Machine Learning and Foundry hub workspaces.", "Rationale", "Workspaces hold data connections, credentials for datastores and model artifacts; a public endpoint exposes them to token theft from any network.", "Remediation", "Use private endpoints and set public network access to Disabled (az ml workspace update --public-network-access Disabled ...).", "References", R.a("https://learn.microsoft.com/azure/machine-learning/how-to-configure-private-link"), "Policy", R.ht(["438c38d2-3772-465a-a9cc-7a6666a275ce", "Azure Machine Learning Workspaces should disable public network access", "45e05259-1eb5-4f70-9574-baf73e9d219b", "Azure Machine Learning workspaces should use private link"], false), "ResourceTypes", (S["mltype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $value = $Record.resource.properties.publicNetworkAccess\n        if ($value -eq 'Disabled') { return New-Pass 'Public network access disabled' ([ordered]@{ publicNetworkAccess = $value }) }\n        New-Fail 'Public network access enabled' ([ordered]@{ publicNetworkAccess = $value })\n    " }, (S, O) => {
+        R.ln = F + 122;
         S["value"] = R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "publicNetworkAccess");
-        R.ln = F + 128;
+        R.ln = F + 123;
         if (R.t(R.eq((S["value"] ?? null), "Disabled"))) {
-            R.ln = F + 128;
+            R.ln = F + 123;
             R.pa(O, R.cmd(S, "New-Pass", ["Public network access disabled", (R.ht(["publicNetworkAccess", (S["value"] ?? null)], true))], null));
             return;
         }
-        R.ln = F + 129;
+        R.ln = F + 124;
         R.pa(O, R.cmd(S, "New-Fail", ["Public network access enabled", (R.ht(["publicNetworkAccess", (S["value"] ?? null)], true))], null));
     })], false)], null));
-    R.ln = F + 133;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-AI-006", "Title", "Machine Learning managed networks only allow approved outbound traffic", "Category", "Network security", "Service", "Azure Machine Learning", "Severity", "Medium", "Description", "Checks that the workspace managed virtual network uses isolation mode 'AllowOnlyApprovedOutbound'.", "Rationale", "Without outbound restrictions, compute running untrusted code, notebooks or models can exfiltrate training data and credentials to any Internet destination.", "Remediation", "Set the managed network isolation mode to AllowOnlyApprovedOutbound and add outbound rules for required destinations.", "References", R.a("https://learn.microsoft.com/azure/machine-learning/how-to-managed-network"), "Frameworks", R.ht(["MCSB", R.a([R.v("NS-2"), R.v("DP-2")]), "ALZ", "Enforce-GR-MachLearn0"], false), "Policy", R.ht(["6ddb1705-c8cf-450e-aa4b-19ad6703c440", "Azure Machine Learning and Ai Studio should use Allow Only Approved Outbound Managed Vnet mode"], false), "ResourceTypes", (S["mltype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $mode = $Record.resource.properties.managedNetwork.isolationMode\n        $evidence = [ordered]@{ isolationMode = $mode }\n        if ($mode -eq 'AllowOnlyApprovedOutbound') { return New-Pass 'Only approved outbound traffic' $evidence }\n        New-Fail \"Isolation mode $(if ($mode) { $mode } else { 'Disabled' })\" $evidence\n    " }, (S, O) => {
-        R.ln = F + 148;
+    R.ln = F + 128;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-AI-006", "Title", "Machine Learning managed networks only allow approved outbound traffic", "Category", "Network security", "Service", "Azure Machine Learning", "Severity", "Medium", "Description", "Checks that the workspace managed virtual network uses isolation mode 'AllowOnlyApprovedOutbound'.", "Rationale", "Without outbound restrictions, compute running untrusted code, notebooks or models can exfiltrate training data and credentials to any Internet destination.", "Remediation", "Set the managed network isolation mode to AllowOnlyApprovedOutbound and add outbound rules for required destinations.", "References", R.a("https://learn.microsoft.com/azure/machine-learning/how-to-managed-network"), "Policy", R.ht(["6ddb1705-c8cf-450e-aa4b-19ad6703c440", "Azure Machine Learning and Ai Studio should use Allow Only Approved Outbound Managed Vnet mode"], false), "ResourceTypes", (S["mltype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $mode = $Record.resource.properties.managedNetwork.isolationMode\n        $evidence = [ordered]@{ isolationMode = $mode }\n        if ($mode -eq 'AllowOnlyApprovedOutbound') { return New-Pass 'Only approved outbound traffic' $evidence }\n        New-Fail \"Isolation mode $(if ($mode) { $mode } else { 'Disabled' })\" $evidence\n    " }, (S, O) => {
+        R.ln = F + 142;
         S["mode"] = R.m(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "managedNetwork"), "isolationMode");
-        R.ln = F + 149;
+        R.ln = F + 143;
         S["evidence"] = R.ht(["isolationMode", (S["mode"] ?? null)], true);
-        R.ln = F + 150;
+        R.ln = F + 144;
         if (R.t(R.eq((S["mode"] ?? null), "AllowOnlyApprovedOutbound"))) {
-            R.ln = F + 150;
+            R.ln = F + 144;
             R.pa(O, R.cmd(S, "New-Pass", ["Only approved outbound traffic", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 151;
+        R.ln = F + 145;
         R.pa(O, R.cmd(S, "New-Fail", [("Isolation mode " + R.str((() => {
             const v10 = [];
-            R.ln = F + 151;
+            R.ln = F + 145;
             if (R.t((S["mode"] ?? null))) {
-                R.ln = F + 151;
+                R.ln = F + 145;
                 R.e(v10, (S["mode"] ?? null));
             } else {
-                R.ln = F + 151;
+                R.ln = F + 145;
                 R.e(v10, "Disabled");
             }
             return R.u(v10);
         })())), (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 155;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-AI-007", "Title", "Machine Learning compute disables local authentication and public access", "Category", "Identity management", "Service", "Azure Machine Learning", "Severity", "Medium", "Description", "Checks Machine Learning compute instances and clusters for local authentication, public SSH access and node public IP addresses.", "Rationale", "Local accounts and public SSH give access to compute that holds workspace credentials, data and managed identity tokens, bypassing Entra ID.", "Remediation", "Recreate compute with local authentication disabled, SSH public access disabled and no public IP (in a managed virtual network).", "References", R.a("https://learn.microsoft.com/azure/machine-learning/how-to-secure-training-vnet"), "Frameworks", R.ht(["MCSB", R.a([R.v("IM-1"), R.v("NS-2")]), "ALZ", "Enforce-GR-MachLearn0"], false), "Policy", R.ht(["e96a9a5f-07ca-471b-9bc5-6a0f33cbd68f", "Azure Machine Learning Computes should have local authentication methods disabled"], false), "Run", R.sb({ params: [], adv: 0, text: "\n        foreach ($workspace in (Get-AzResourceRecords -Type 'Microsoft.MachineLearningServices/workspaces')) {\n            #without the compute list, \"no compute in scope\" cannot be distinguished from \"compute unknown\"\n            if (-not (Test-ChildCollected $workspace 'computes')) { New-Finding -Record $workspace -Result (New-Unknown 'Machine Learning compute could not be listed'); continue }\n            foreach ($compute in @(Get-Child $workspace 'computes' | Where-Object { $_ -and $_.properties.computeType -in 'ComputeInstance', 'AmlCompute' })) {\n                $p = $compute.properties\n                $inner = $p.properties\n                $problems = @()\n                if ($p.disableLocalAuth -ne $true) { $problems += 'local authentication enabled' }\n                if ($inner.sshSettings.sshPublicAccess -eq 'Enabled' -or $inner.remoteLoginPortPublicAccess -eq 'Enabled') { $problems += 'public SSH access' }\n                if ($inner.enableNodePublicIp -ne $false) { $problems += 'public IP' }\n                $evidence = [ordered]@{ workspace = $workspace.resource.name; computeType = $p.computeType; disableLocalAuth = $p.disableLocalAuth; sshPublicAccess = if ($inner.sshSettings) { $inner.sshSettings.sshPublicAccess } else { $inner.remoteLoginPortPublicAccess }; enableNodePublicIp = $inner.enableNodePublicIp }\n                $result = if ($problems) { New-Fail ($problems -join ', ') $evidence } else { New-Pass 'Local authentication and public access disabled' $evidence }\n                New-Finding -ResourceId $compute.id -ResourceType 'Microsoft.MachineLearningServices/workspaces/computes' -ResourceName \"$($workspace.resource.name)/$($compute.name)\" -Result $result\n            }\n        }\n    " }, (S, O) => {
-        R.ln = F + 168;
+    R.ln = F + 149;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-AI-007", "Title", "Machine Learning compute disables local authentication and public access", "Category", "Identity management", "Service", "Azure Machine Learning", "Severity", "Medium", "Description", "Checks Machine Learning compute instances and clusters for local authentication, public SSH access and node public IP addresses.", "Rationale", "Local accounts and public SSH give access to compute that holds workspace credentials, data and managed identity tokens, bypassing Entra ID.", "Remediation", "Recreate compute with local authentication disabled, SSH public access disabled and no public IP (in a managed virtual network).", "References", R.a("https://learn.microsoft.com/azure/machine-learning/how-to-secure-training-vnet"), "Policy", R.ht(["e96a9a5f-07ca-471b-9bc5-6a0f33cbd68f", "Azure Machine Learning Computes should have local authentication methods disabled"], false), "Run", R.sb({ params: [], adv: 0, text: "\n        foreach ($workspace in (Get-AzResourceRecords -Type 'Microsoft.MachineLearningServices/workspaces')) {\n            #without the compute list, \"no compute in scope\" cannot be distinguished from \"compute unknown\"\n            if (-not (Test-ChildCollected $workspace 'computes')) { New-Finding -Record $workspace -Result (New-Unknown 'Machine Learning compute could not be listed'); continue }\n            foreach ($compute in @(Get-Child $workspace 'computes' | Where-Object { $_ -and $_.properties.computeType -in 'ComputeInstance', 'AmlCompute' })) {\n                $p = $compute.properties\n                $inner = $p.properties\n                $problems = @()\n                if ($p.disableLocalAuth -ne $true) { $problems += 'local authentication enabled' }\n                if ($inner.sshSettings.sshPublicAccess -eq 'Enabled' -or $inner.remoteLoginPortPublicAccess -eq 'Enabled') { $problems += 'public SSH access' }\n                if ($inner.enableNodePublicIp -ne $false) { $problems += 'public IP' }\n                $evidence = [ordered]@{ workspace = $workspace.resource.name; computeType = $p.computeType; disableLocalAuth = $p.disableLocalAuth; sshPublicAccess = if ($inner.sshSettings) { $inner.sshSettings.sshPublicAccess } else { $inner.remoteLoginPortPublicAccess }; enableNodePublicIp = $inner.enableNodePublicIp }\n                $result = if ($problems) { New-Fail ($problems -join ', ') $evidence } else { New-Pass 'Local authentication and public access disabled' $evidence }\n                New-Finding -ResourceId $compute.id -ResourceType 'Microsoft.MachineLearningServices/workspaces/computes' -ResourceName \"$($workspace.resource.name)/$($compute.name)\" -Result $result\n            }\n        }\n    " }, (S, O) => {
+        R.ln = F + 161;
         for (const it11 of R.fi(R.u(R.cmd(S, "Get-AzResourceRecords", [R.np("Type"), "Microsoft.MachineLearningServices/workspaces"], null)))) {
             S["workspace"] = it11;
-            R.ln = F + 170;
+            R.ln = F + 163;
             if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["workspace"] ?? null), "computes"], null)))) {
-                R.ln = F + 170;
+                R.ln = F + 163;
                 R.pa(O, R.cmd(S, "New-Finding", [R.np("Record"), (S["workspace"] ?? null), R.np("Result"), R.u(R.cmd(S, "New-Unknown", ["Machine Learning compute could not be listed"], null))], null));
                 continue;
             }
-            R.ln = F + 171;
+            R.ln = F + 164;
             for (const it12 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.properties.computeType -in 'ComputeInstance', 'AmlCompute' " }, (S, O) => {
-                R.ln = F + 171;
+                R.ln = F + 164;
                 R.e(O, (R.t((S["_"] ?? null)) && R.t(R.in(R.m(R.m((S["_"] ?? null), "properties"), "computeType"), [R.v("ComputeInstance"), R.v("AmlCompute")]))));
             })], R.cmd(S, "Get-Child", [(S["workspace"] ?? null), "computes"], null)))) {
                 S["compute"] = it12;
-                R.ln = F + 172;
+                R.ln = F + 165;
                 S["p"] = R.m((S["compute"] ?? null), "properties");
-                R.ln = F + 173;
+                R.ln = F + 166;
                 S["inner"] = R.m((S["p"] ?? null), "properties");
-                R.ln = F + 174;
+                R.ln = F + 167;
                 S["problems"] = [];
-                R.ln = F + 175;
+                R.ln = F + 168;
                 if (R.t(R.ne(R.m((S["p"] ?? null), "disableLocalAuth"), true))) {
-                    R.ln = F + 175;
+                    R.ln = F + 168;
                     S["problems"] = R.add(S["problems"] ?? null, "local authentication enabled");
                 }
-                R.ln = F + 176;
+                R.ln = F + 169;
                 if ((R.t(R.eq(R.m(R.m((S["inner"] ?? null), "sshSettings"), "sshPublicAccess"), "Enabled")) || R.t(R.eq(R.m((S["inner"] ?? null), "remoteLoginPortPublicAccess"), "Enabled")))) {
-                    R.ln = F + 176;
+                    R.ln = F + 169;
                     S["problems"] = R.add(S["problems"] ?? null, "public SSH access");
                 }
-                R.ln = F + 177;
+                R.ln = F + 170;
                 if (R.t(R.ne(R.m((S["inner"] ?? null), "enableNodePublicIp"), false))) {
-                    R.ln = F + 177;
+                    R.ln = F + 170;
                     S["problems"] = R.add(S["problems"] ?? null, "public IP");
                 }
-                R.ln = F + 178;
+                R.ln = F + 171;
                 S["evidence"] = R.ht(["workspace", R.m(R.m((S["workspace"] ?? null), "resource"), "name"), "computeType", R.m((S["p"] ?? null), "computeType"), "disableLocalAuth", R.m((S["p"] ?? null), "disableLocalAuth"), "sshPublicAccess", (() => {
                     const v13 = [];
-                    R.ln = F + 178;
+                    R.ln = F + 171;
                     if (R.t(R.m((S["inner"] ?? null), "sshSettings"))) {
-                        R.ln = F + 178;
+                        R.ln = F + 171;
                         R.e(v13, R.m(R.m((S["inner"] ?? null), "sshSettings"), "sshPublicAccess"));
                     } else {
-                        R.ln = F + 178;
+                        R.ln = F + 171;
                         R.e(v13, R.m((S["inner"] ?? null), "remoteLoginPortPublicAccess"));
                     }
                     return R.u(v13);
                 })(), "enableNodePublicIp", R.m((S["inner"] ?? null), "enableNodePublicIp")], true);
-                R.ln = F + 179;
+                R.ln = F + 172;
                 const v14 = [];
-                R.ln = F + 179;
+                R.ln = F + 172;
                 if (R.t((S["problems"] ?? null))) {
-                    R.ln = F + 179;
+                    R.ln = F + 172;
                     R.pa(v14, R.cmd(S, "New-Fail", [(R.join((S["problems"] ?? null), ", ")), (S["evidence"] ?? null)], null));
                 } else {
-                    R.ln = F + 179;
+                    R.ln = F + 172;
                     R.pa(v14, R.cmd(S, "New-Pass", ["Local authentication and public access disabled", (S["evidence"] ?? null)], null));
                 }
                 S["result"] = R.u(v14);
-                R.ln = F + 180;
+                R.ln = F + 173;
                 R.pa(O, R.cmd(S, "New-Finding", [R.np("ResourceId"), R.m((S["compute"] ?? null), "id"), R.np("ResourceType"), "Microsoft.MachineLearningServices/workspaces/computes", R.np("ResourceName"), ("" + R.str(R.u(R.pi(R.m(R.m((S["workspace"] ?? null), "resource"), "name")))) + "/" + R.str(R.u(R.pi(R.m((S["compute"] ?? null), "name"))))), R.np("Result"), (S["result"] ?? null)], null));
             }
         }
+    })], false)], null));
+    R.ln = F + 179;
+    S["bottype"] = R.a("Microsoft.BotService/botServices");
+    R.ln = F + 181;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-BOT-001", "Title", "Bot Service bots are isolated from the Internet", "Category", "Network security", "Service", "Azure AI Bot Service", "Severity", "Medium", "Description", "Checks Azure AI Bot Service bots for disabled public network access (isolated mode) and an approved private endpoint.", "Rationale", "In isolated mode the bot only talks to clients through Direct Line App Service Extension over private endpoints, and channels that need the public Internet are turned off. Conversations and the bot credentials then stay on private networks.", "Remediation", "Create a private endpoint for the bot, move clients to the Direct Line App Service Extension, then set public network access to Disabled.", "References", R.a("https://learn.microsoft.com/azure/bot-service/dl-network-isolation-concept"), "ResourceTypes", (S["bottype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $p = $Record.resource.properties\n        $approved = @($p.privateEndpointConnections | Where-Object { $_ -and $_.properties.privateLinkServiceConnectionState.status -eq 'Approved' })\n        $evidence = [ordered]@{ publicNetworkAccess = $p.publicNetworkAccess; approvedPrivateEndpoints = $approved.Count }\n        if ($p.publicNetworkAccess -ne 'Disabled') { return New-Fail \"Public network access $(if ($p.publicNetworkAccess) { $p.publicNetworkAccess } else { 'Enabled (default)' })\" $evidence }\n        if (-not $approved) { return New-Fail 'Public network access disabled, but no approved private endpoint' $evidence }\n        New-Pass 'Isolated: public network access disabled, reachable through a private endpoint' $evidence\n    " }, (S, O) => {
+        R.ln = F + 194;
+        S["p"] = R.m(R.m((S["record"] ?? null), "resource"), "properties");
+        R.ln = F + 195;
+        S["approved"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.properties.privateLinkServiceConnectionState.status -eq 'Approved' " }, (S, O) => {
+            R.ln = F + 195;
+            R.e(O, (R.t((S["_"] ?? null)) && R.t(R.eq(R.m(R.m(R.m((S["_"] ?? null), "properties"), "privateLinkServiceConnectionState"), "status"), "Approved"))));
+        })], R.pi(R.m((S["p"] ?? null), "privateEndpointConnections")));
+        R.ln = F + 196;
+        S["evidence"] = R.ht(["publicNetworkAccess", R.m((S["p"] ?? null), "publicNetworkAccess"), "approvedPrivateEndpoints", R.m((S["approved"] ?? null), "Count")], true);
+        R.ln = F + 197;
+        if (R.t(R.ne(R.m((S["p"] ?? null), "publicNetworkAccess"), "Disabled"))) {
+            R.ln = F + 197;
+            R.pa(O, R.cmd(S, "New-Fail", [("Public network access " + R.str((() => {
+                const v15 = [];
+                R.ln = F + 197;
+                if (R.t(R.m((S["p"] ?? null), "publicNetworkAccess"))) {
+                    R.ln = F + 197;
+                    R.e(v15, R.m((S["p"] ?? null), "publicNetworkAccess"));
+                } else {
+                    R.ln = F + 197;
+                    R.e(v15, "Enabled (default)");
+                }
+                return R.u(v15);
+            })())), (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 198;
+        if (!R.t((S["approved"] ?? null))) {
+            R.ln = F + 198;
+            R.pa(O, R.cmd(S, "New-Fail", ["Public network access disabled, but no approved private endpoint", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 199;
+        R.pa(O, R.cmd(S, "New-Pass", ["Isolated: public network access disabled, reachable through a private endpoint", (S["evidence"] ?? null)], null));
+    })], false)], null));
+    R.ln = F + 203;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-BOT-002", "Title", "Bot Service bots disable local authentication", "Category", "Identity management", "Service", "Azure AI Bot Service", "Severity", "Medium", "Description", "Checks Azure AI Bot Service bots for disabled local authentication, so that the bot and its channels authenticate with Microsoft Entra ID only.", "Rationale", "Local authentication accepts channel keys and secrets that are not tied to an identity and are not covered by Conditional Access or sign-in logs.", "Remediation", "Move the clients and channels to Microsoft Entra ID authentication, then disable local authentication on the bot.", "References", R.a("https://learn.microsoft.com/azure/bot-service/bot-service-resources-bot-framework-faq"), "ResourceTypes", (S["bottype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $evidence = [ordered]@{ disableLocalAuth = $Record.resource.properties.disableLocalAuth }\n        if ($Record.resource.properties.disableLocalAuth -eq $true) { return New-Pass 'Local authentication disabled' $evidence }\n        New-Fail 'Local authentication enabled' $evidence\n    " }, (S, O) => {
+        R.ln = F + 216;
+        S["evidence"] = R.ht(["disableLocalAuth", R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "disableLocalAuth")], true);
+        R.ln = F + 217;
+        if (R.t(R.eq(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "disableLocalAuth"), true))) {
+            R.ln = F + 217;
+            R.pa(O, R.cmd(S, "New-Pass", ["Local authentication disabled", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 218;
+        R.pa(O, R.cmd(S, "New-Fail", ["Local authentication enabled", (S["evidence"] ?? null)], null));
+    })], false)], null));
+    R.ln = F + 222;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-BOT-003", "Title", "Bot Service messaging endpoints use HTTPS", "Category", "Data protection", "Service", "Azure AI Bot Service", "Severity", "Medium", "Description", "Checks that the messaging endpoint of Azure AI Bot Service bots is an HTTPS URI.", "Rationale", "The Bot Connector service sends every user message and the bearer token that authenticates it to the messaging endpoint. Over plain HTTP both can be read and changed on the way.", "Remediation", "Serve the bot over HTTPS with a valid certificate and set the messaging endpoint to its https:// address.", "References", R.a("https://learn.microsoft.com/azure/bot-service/bot-builder-security-guidelines"), "ResourceTypes", (S["bottype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $endpoint = [string]$Record.resource.properties.endpoint\n        $evidence = [ordered]@{ endpoint = $endpoint }\n        if (-not $endpoint) { return New-NotApplicable 'No messaging endpoint configured' $evidence }\n        if ($endpoint -like 'https://*') { return New-Pass 'Messaging endpoint uses HTTPS' $evidence }\n        New-Fail 'Messaging endpoint does not use HTTPS' $evidence\n    " }, (S, O) => {
+        R.ln = F + 235;
+        S["endpoint"] = R.c("string", R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "endpoint"));
+        R.ln = F + 236;
+        S["evidence"] = R.ht(["endpoint", (S["endpoint"] ?? null)], true);
+        R.ln = F + 237;
+        if (!R.t((S["endpoint"] ?? null))) {
+            R.ln = F + 237;
+            R.pa(O, R.cmd(S, "New-NotApplicable", ["No messaging endpoint configured", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 238;
+        if (R.t(R.like((S["endpoint"] ?? null), "https://*"))) {
+            R.ln = F + 238;
+            R.pa(O, R.cmd(S, "New-Pass", ["Messaging endpoint uses HTTPS", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 239;
+        R.pa(O, R.cmd(S, "New-Fail", ["Messaging endpoint does not use HTTPS", (S["evidence"] ?? null)], null));
     })], false)], null));
 });

@@ -15,8 +15,7 @@ R.configure({
     vfs,
     host: {
         write: text => post({ type: 'log', text }),
-        warn: text => post({ type: 'log', text: `WARNING: ${text}`, level: 'warn' }),
-        error: text => post({ type: 'log', text: `ERROR: ${text}`, level: 'error' })
+        warn: text => post({ type: 'log', text: `WARNING: ${text}` })
     }
 });
 

@@ -90,7 +90,6 @@ Add-AzTest @{
     Rationale     = 'Such rules expose the database endpoint to every attacker on the Internet, leaving authentication as the only control against brute force and credential stuffing.'
     Remediation   = 'Delete the rule and allow only specific client addresses, or better, disable public network access and use private endpoints.'
     References    = @('https://learn.microsoft.com/azure/azure-sql/database/firewall-configure')
-    Frameworks    = @{ MCSB = 'NS-2'; WAF = 'SE:06'; ALZ = 'Deny-Public-Endpoints' }
     ResourceTypes = $firewallTypes
     Evaluate      = {
         param($Record)
@@ -120,7 +119,6 @@ Add-AzTest @{
     Rationale     = 'The rule admits connections from any Azure resource of any customer, not just your own, so anyone can host a client in Azure and reach the database endpoint.'
     Remediation   = 'Remove the rule and use private endpoints, virtual network rules or managed identity based access for your Azure workloads.'
     References    = @('https://learn.microsoft.com/azure/azure-sql/database/firewall-configure')
-    Frameworks    = @{ MCSB = 'NS-2'; WAF = 'SE:06' }
     ResourceTypes = $firewallTypes
     Filter        = { param($Record) $Record.type -ne 'Microsoft.Cache/Redis' }
     Evaluate      = {
@@ -144,7 +142,6 @@ Add-AzTest @{
     Rationale     = 'SQL auditing records logins, queries and permission changes. Without it, data theft and misuse of database access cannot be detected or investigated.'
     Remediation   = 'Enable server auditing to a Log Analytics workspace (az sql server audit-policy update --state Enabled --lats Enabled --lawri <workspace id> ...).'
     References    = @('https://learn.microsoft.com/azure/azure-sql/database/auditing-overview')
-    Frameworks    = @{ MCSB = 'LT-3'; WAF = 'SE:10'; ALZ = 'Deploy-AzSqlDb-Auditing' }
     Policy        = @{ 'a6fb4358-5bf4-4ad7-ba82-2cd2f41ce5e9' = 'Auditing on SQL server should be enabled' }
     ResourceTypes = @('Microsoft.Sql/servers')
     Evaluate      = {
@@ -169,7 +166,6 @@ Add-AzTest @{
     Rationale     = 'Database access logs are needed for investigations that start long after the activity.'
     Remediation   = 'Set the audit retention to 90 days or more, or 0 for unlimited (az sql server audit-policy update --retention-days 90 ...).'
     References    = @('https://learn.microsoft.com/azure/azure-sql/database/auditing-overview')
-    Frameworks    = @{ MCSB = 'LT-6' }
     Policy        = @{ '89099bee-89e0-4b26-a5f4-165451757743' = 'SQL servers with auditing to storage account destination should be configured with 90 days retention or higher' }
     ResourceTypes = @('Microsoft.Sql/servers')
     Evaluate      = {
@@ -211,7 +207,6 @@ Add-AzTest @{
     Rationale     = 'Entra authentication enables MFA, Conditional Access, managed identities and central account lifecycle for database access; it requires an Entra administrator.'
     Remediation   = 'Set an Entra group as administrator (az sql server ad-admin create --display-name <group> --object-id <id> ...).'
     References    = @('https://learn.microsoft.com/azure/azure-sql/database/authentication-aad-configure')
-    Frameworks    = @{ MCSB = 'IM-1'; WAF = 'SE:05'; ALZ = 'Enforce-GR-SQL0' }
     Policy        = @{ '1f314764-cb73-4fc9-b863-8eca98ac36e9' = 'An Azure Active Directory administrator should be provisioned for SQL servers' }
     ResourceTypes = @('Microsoft.Sql/servers', 'Microsoft.Sql/managedInstances', 'Microsoft.Synapse/workspaces')
     Evaluate      = {
@@ -234,7 +229,6 @@ Add-AzTest @{
     Rationale     = 'SQL logins are passwords without MFA, lockout policies or central lifecycle management and are a common brute force target, including the server administrator login.'
     Remediation   = 'Move applications to Entra authentication (managed identities), then enable Entra-only authentication (az sql server ad-only-auth enable ...).'
     References    = @('https://learn.microsoft.com/azure/azure-sql/database/authentication-azure-ad-only-authentication')
-    Frameworks    = @{ MCSB = @('IM-1', 'IM-3'); WAF = 'SE:05'; ALZ = 'Enforce-GR-SQL0' }
     Policy        = @{ 'abda6d70-9778-44e7-84a8-06713e6db027' = 'Azure SQL logical servers should have Microsoft Entra-only authentication enabled during creation'; '78215662-041e-49ed-a9dd-5385911b3a1f' = 'Azure SQL Managed Instances should have Microsoft Entra-only authentication enabled during creation' }
     ResourceTypes = @('Microsoft.Sql/servers', 'Microsoft.Sql/managedInstances', 'Microsoft.Synapse/workspaces')
     Evaluate      = {
@@ -257,7 +251,6 @@ Add-AzTest @{
     Rationale     = 'A public endpoint depends solely on firewall rules and authentication; private endpoints remove Internet exposure entirely.'
     Remediation   = 'Create private endpoints and set public network access to Disabled (az sql server update --enable-public-network false ...); disable the public data endpoint on managed instances.'
     References    = @('https://learn.microsoft.com/azure/azure-sql/database/connectivity-settings')
-    Frameworks    = @{ MCSB = 'NS-2'; WAF = 'SE:06'; ALZ = @('Deny-Public-Endpoints', 'Enforce-GR-SQL0') }
     Policy        = @{ '1b8ca024-1d5c-4dec-8995-b1a932b41780' = 'Public network access on Azure SQL Database should be disabled'; '9dfea752-dd46-4766-aed1-c355fa93fb91' = 'Azure SQL Managed Instances should disable public network access' }
     ResourceTypes = @('Microsoft.Sql/servers', 'Microsoft.Sql/managedInstances')
     Evaluate      = {
@@ -284,7 +277,6 @@ Add-AzTest @{
     Rationale     = 'Older TLS versions have known weaknesses. From 31 July 2026 Azure SQL requires TLS 1.2 for all connections; the setting should state it explicitly.'
     Remediation   = 'Set the minimal TLS version to 1.2 (az sql server update --minimal-tls-version 1.2 ...).'
     References    = @('https://learn.microsoft.com/azure/azure-sql/database/connectivity-settings')
-    Frameworks    = @{ MCSB = 'DP-3'; WAF = 'SE:07'; ALZ = 'Enforce-TLS-SSL-Q225' }
     Policy        = @{ '32e6bbec-16b6-44c2-be37-c5b672d103cf' = 'Azure SQL Database should be running TLS version 1.2 or newer' }
     ResourceTypes = @('Microsoft.Sql/servers', 'Microsoft.Sql/managedInstances')
     Evaluate      = {
@@ -306,7 +298,6 @@ Add-AzTest @{
     Rationale     = 'TDE encrypts database files, backups and logs at rest, protecting data against theft of storage media and backup copies.'
     Remediation   = 'Enable TDE (az sql db tde set --status Enabled ...).'
     References    = @('https://learn.microsoft.com/azure/azure-sql/database/transparent-data-encryption-tde-overview')
-    Frameworks    = @{ MCSB = 'DP-4'; WAF = 'SE:07'; ALZ = 'Deploy-SQL-TDE' }
     Policy        = @{ '17k78e20-9358-41c9-923c-fb736d382a12' = 'Transparent Data Encryption on SQL databases should be enabled' }
     ResourceTypes = @('Microsoft.Sql/servers/databases', 'Microsoft.Sql/managedInstances/databases')
     Filter        = { param($Record) $Record.resource.name -ne 'master' -and [string]$Record.resource.kind -notmatch 'system' }
@@ -330,7 +321,6 @@ Add-AzTest @{
     Rationale     = 'A customer-managed TDE protector gives control over key rotation and revocation; only required where data classification or regulation demands it.'
     Remediation   = 'Configure a Key Vault key as TDE protector with auto-rotation (az sql server tde-key set --server-key-type AzureKeyVault ...).'
     References    = @('https://learn.microsoft.com/azure/azure-sql/database/transparent-data-encryption-byok-overview')
-    Frameworks    = @{ MCSB = 'DP-5'; ALZ = 'Enforce-Encrypt-CMK0' }
     Policy        = @{ '0a370ff3-6cab-4e85-8995-295fd854c5b8' = 'SQL servers should use customer-managed keys to encrypt data at rest' }
     ResourceTypes = @('Microsoft.Sql/servers', 'Microsoft.Sql/managedInstances')
     Evaluate      = {
@@ -353,7 +343,6 @@ Add-AzTest @{
     Rationale     = 'Vulnerability assessment finds misconfigurations, excessive permissions and unprotected sensitive data in databases, and tracks drift from a baseline.'
     Remediation   = 'Enable Microsoft Defender for SQL, which turns on the express vulnerability assessment configuration.'
     References    = @('https://learn.microsoft.com/azure/defender-for-cloud/sql-azure-vulnerability-assessment-overview')
-    Frameworks    = @{ MCSB = 'PV-5' }
     Policy        = @{ 'ef2a8f2a-b3d9-49cd-a8a8-9a3aaaf647d9' = 'Vulnerability assessment should be enabled on your SQL servers' }
     ResourceTypes = @('Microsoft.Sql/servers', 'Microsoft.Sql/managedInstances')
     Evaluate      = {
@@ -364,6 +353,32 @@ Add-AzTest @{
         if ($express -or $classic) { return New-Pass 'Vulnerability assessment enabled' $evidence }
         if (-not (Test-ChildCollected $Record 'sqlVulnerabilityAssessments') -and -not (Test-ChildCollected $Record 'vulnerabilityAssessments')) { return New-Unknown 'Vulnerability assessment settings could not be read' }
         New-Fail 'Vulnerability assessment disabled' $evidence
+    }
+}
+
+Add-AzTest @{
+    Id            = 'AZ-SQL-010'
+    Title         = 'Columns classified as sensitive are masked'
+    Category      = 'Data protection'
+    Service       = 'Azure SQL'
+    Severity      = 'Low'
+    Description   = 'For SQL databases with data classification, checks that every column labeled with rank Medium or higher (Confidential and up in the default policy) has an enabled dynamic data masking rule. Databases without such columns are not applicable.'
+    Rationale     = 'Dynamic data masking hides sensitive values from users and applications that do not need them, without changing the data. The classification already names the columns that hold such data; masking them limits exposure through reporting tools, support staff and compromised low privileged accounts.'
+    Remediation   = 'Add masking rules for the classified columns (database > Dynamic Data Masking) and grant the UNMASK permission only to the principals that need the real values. Administrators always see unmasked data.'
+    References    = @('https://learn.microsoft.com/azure/azure-sql/database/dynamic-data-masking-overview', 'https://learn.microsoft.com/azure/azure-sql/database/data-discovery-and-classification-overview')
+    ResourceTypes = @('Microsoft.Sql/servers/databases')
+    Filter        = { param($Record) $Record.resource.name -ne 'master' -and [string]$Record.resource.kind -notmatch '(?i)system' }
+    Evaluate      = {
+        param($Record)
+        if (-not (Test-ChildCollected $Record 'currentSensitivityLabels')) { return New-Unknown 'The data classification could not be read' }
+        $classified = @(Get-Child $Record 'currentSensitivityLabels' | Where-Object { $_ -and -not $_.properties.isDisabled -and $_.properties.rank -in 'Medium', 'High', 'Critical' } | ForEach-Object { "$($_.properties.schemaName).$($_.properties.tableName).$($_.properties.columnName)" } | Sort-Object -Unique)
+        if (-not $classified) { return New-NotApplicable 'No columns are classified with rank Medium or higher' }
+        if (-not (Test-ChildCollected $Record 'dataMaskingPolicies/Default/rules')) { return New-Unknown 'The masking rules could not be read' ([ordered]@{ classifiedColumns = $classified }) }
+        $masked = @(Get-Child $Record 'dataMaskingPolicies/Default/rules' | Where-Object { $_ -and $_.properties.ruleState -ne 'Disabled' } | ForEach-Object { "$($_.properties.schemaName).$($_.properties.tableName).$($_.properties.columnName)" })
+        $unmasked = @($classified | Where-Object { $_ -notin $masked })
+        $evidence = [ordered]@{ classifiedColumns = $classified; unmaskedColumns = $unmasked }
+        if ($unmasked) { return New-Fail "$($unmasked.Count) of $($classified.Count) classified column(s) are not masked" $evidence }
+        New-Pass "All $($classified.Count) classified column(s) are masked" $evidence
     }
 }
 
@@ -380,7 +395,6 @@ Add-AzTest @{
     Rationale     = 'Unencrypted or weakly encrypted database connections expose credentials and data on the network.'
     Remediation   = "Set require_secure_transport to ON and ssl_min_protocol_version to TLSv1.2 or TLSv1.3 (az postgres flexible-server parameter set ...)."
     References    = @('https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-networking-ssl-tls')
-    Frameworks    = @{ MCSB = 'DP-3'; WAF = 'SE:07'; ALZ = @('Enforce-TLS-SSL-Q225', 'Enforce-GR-PostgreSQL0') }
     Policy        = @{ 'c29c38cb-74a7-4505-9a06-e588ab86620a' = 'Enforce SSL connection should be enabled for PostgreSQL flexible servers'; 'a43d5475-c569-45ce-a268-28fa79f4e87a' = 'PostgreSQL flexible servers should be running TLS version 1.2 or newer' }
     ResourceTypes = $postgresType
     Evaluate      = {
@@ -407,7 +421,6 @@ Add-AzTest @{
     Rationale     = 'Connection logs show who connected from where and when; they are needed to detect brute force and unauthorized access.'
     Remediation   = 'Set log_connections, log_disconnections and log_checkpoints to on and send PostgreSQL logs to Log Analytics.'
     References    = @('https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-logging')
-    Frameworks    = @{ MCSB = 'LT-3' }
     ResourceTypes = $postgresType
     Evaluate      = {
         param($Record)
@@ -430,7 +443,6 @@ Add-AzTest @{
     Rationale     = 'pgAudit records DDL, role changes and data access statements, which standard PostgreSQL logging does not capture reliably.'
     Remediation   = "Add pgaudit to shared_preload_libraries, restart, create the extension and set pgaudit.log (for example 'ddl,role,write')."
     References    = @('https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-audit')
-    Frameworks    = @{ MCSB = 'LT-3' }
     Policy        = @{ '4eb5e667-e871-4292-9c5d-8bbb94e0c908' = 'Auditing with PgAudit should be enabled for PostgreSQL flexible servers' }
     ResourceTypes = $postgresType
     Evaluate      = {
@@ -455,7 +467,6 @@ Add-AzTest @{
     Rationale     = 'Database passwords lack MFA and central lifecycle management and are the main brute force target of Internet reachable servers.'
     Remediation   = 'Add an Entra administrator group, move clients to Entra tokens (managed identities), then disable password authentication.'
     References    = @('https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-azure-ad-authentication')
-    Frameworks    = @{ MCSB = @('IM-1', 'IM-3'); WAF = 'SE:05'; ALZ = 'Enforce-GR-PostgreSQL0' }
     Policy        = @{ 'fa498b91-8a7e-4710-9578-da944c68d1fe' = '[Preview]: Azure PostgreSQL flexible server should have Microsoft Entra Only Authentication enabled'; 'ce39a96d-bf09-4b60-8c32-e85d52abea0f' = 'A Microsoft Entra administrator should be provisioned for PostgreSQL flexible servers' }
     ResourceTypes = $postgresType
     Evaluate      = {
@@ -479,7 +490,6 @@ Add-AzTest @{
     Rationale     = 'Unencrypted or weakly encrypted database connections expose credentials and data on the network.'
     Remediation   = "Set require_secure_transport to ON and tls_version to TLSv1.2,TLSv1.3 (az mysql flexible-server parameter set ...)."
     References    = @('https://learn.microsoft.com/azure/mysql/flexible-server/concepts-networking#tls-and-ssl')
-    Frameworks    = @{ MCSB = 'DP-3'; WAF = 'SE:07'; ALZ = @('Enforce-TLS-SSL-Q225', 'Enforce-GR-MySQL0') }
     ResourceTypes = $mysqlType
     Evaluate      = {
         param($Record)
@@ -506,7 +516,6 @@ Add-AzTest @{
     Rationale     = 'Audit logs record connections and statements and are needed to detect and investigate unauthorized database access.'
     Remediation   = "Set audit_log_enabled to ON with audit_log_events including CONNECTION, and send the MySqlAuditLogs category to Log Analytics."
     References    = @('https://learn.microsoft.com/azure/mysql/flexible-server/concepts-audit-logs')
-    Frameworks    = @{ MCSB = 'LT-3' }
     ResourceTypes = $mysqlType
     Evaluate      = {
         param($Record)
@@ -530,7 +539,6 @@ Add-AzTest @{
     Rationale     = 'Database passwords lack MFA and central lifecycle management and are the main brute force target of Internet reachable servers.'
     Remediation   = 'Configure an Entra administrator with a user-assigned identity, move clients to Entra tokens and set aad_auth_only to ON.'
     References    = @('https://learn.microsoft.com/azure/mysql/flexible-server/concepts-azure-ad-authentication')
-    Frameworks    = @{ MCSB = @('IM-1', 'IM-3'); WAF = 'SE:05'; ALZ = 'Enforce-GR-MySQL0' }
     Policy        = @{ '40e85574-ef33-47e8-a854-7a65c7500560' = 'Azure MySQL flexible server should have Microsoft Entra Only Authentication enabled'; '146412e9-005c-472b-9e48-c87b72ac229e' = 'A Microsoft Entra administrator should be provisioned for MySQL servers' }
     ResourceTypes = $mysqlType
     Evaluate      = {
@@ -556,7 +564,6 @@ Add-AzTest @{
     Rationale     = 'Account keys give full data access, are shared secrets without identity and bypass data plane RBAC and its audit trail.'
     Remediation   = 'Move clients to Entra ID with Cosmos DB data plane RBAC, then set disableLocalAuth to true.'
     References    = @('https://learn.microsoft.com/azure/cosmos-db/how-to-setup-rbac#disable-local-auth')
-    Frameworks    = @{ MCSB = @('IM-1', 'IM-3'); WAF = 'SE:05'; ALZ = 'Enforce-GR-CosmosDb0' }
     Policy        = @{ '5450f5bd-9c72-4390-a9c4-a7aba4edfdd2' = 'Cosmos DB database accounts should have local authentication methods disabled' }
     ResourceTypes = $cosmosType
     Evaluate      = {
@@ -577,7 +584,6 @@ Add-AzTest @{
     Rationale     = 'Without network restrictions the account endpoint accepts connections from the whole Internet, leaving keys and tokens as the only control.'
     Remediation   = 'Use private endpoints and disable public network access, or configure IP and virtual network rules.'
     References    = @('https://learn.microsoft.com/azure/cosmos-db/how-to-configure-firewall')
-    Frameworks    = @{ MCSB = 'NS-2'; WAF = 'SE:06'; ALZ = @('Deny-Public-Endpoints', 'Enforce-GR-CosmosDb0') }
     Policy        = @{ '862e97cf-49fc-4a5c-9de4-40d4e2e7c8eb' = 'Azure Cosmos DB accounts should have firewall rules'; '797b37f7-06b8-444c-b1ad-fc62867f335a' = 'Azure Cosmos DB should disable public network access' }
     ResourceTypes = $cosmosType
     Evaluate      = {
@@ -600,7 +606,6 @@ Add-AzTest @{
     Rationale     = 'With the setting enabled, resource changes must go through Azure Resource Manager and are subject to RBAC, locks, policy and the activity log.'
     Remediation   = 'Set disableKeyBasedMetadataWriteAccess to true (az cosmosdb update --disable-key-based-metadata-write-access true ...).'
     References    = @('https://learn.microsoft.com/azure/cosmos-db/audit-control-plane-logs')
-    Frameworks    = @{ MCSB = 'PA-7' }
     Policy        = @{ '4750c32b-89c0-46af-bfcb-2e4541a818d5' = 'Azure Cosmos DB key based metadata write access should be disabled' }
     ResourceTypes = $cosmosType
     Evaluate      = {
@@ -621,7 +626,6 @@ Add-AzTest @{
     Rationale     = 'The non-TLS port transfers the access key and all cached data in clear text.'
     Remediation   = 'Disable the non-TLS port (az redis update --set enableNonSslPort=false ...).'
     References    = @('https://learn.microsoft.com/azure/azure-cache-for-redis/cache-remove-tls-10-11')
-    Frameworks    = @{ MCSB = 'DP-3'; WAF = 'SE:07'; ALZ = 'Enforce-TLS-SSL-Q225' }
     Policy        = @{ '22bee202-a82f-4305-9a2a-6d7f44d4dedb' = 'Only secure connections to your Azure Cache for Redis should be enabled' }
     ResourceTypes = @('Microsoft.Cache/Redis')
     Evaluate      = {
@@ -642,7 +646,6 @@ Add-AzTest @{
     Rationale     = 'The access key is a shared secret with full access that is not tied to an identity.'
     Remediation   = 'Enable Microsoft Entra authentication, grant data access policies to identities, then disable access key authentication.'
     References    = @('https://learn.microsoft.com/azure/azure-cache-for-redis/cache-azure-active-directory-for-authentication')
-    Frameworks    = @{ MCSB = @('IM-1', 'IM-3') }
     Policy        = @{ '3827af20-8f80-4b15-8300-6db0873ec901' = 'Azure Cache for Redis should not use access keys for authentication' }
     ResourceTypes = @('Microsoft.Cache/Redis')
     Evaluate      = {

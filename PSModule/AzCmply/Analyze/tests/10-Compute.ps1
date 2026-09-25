@@ -1,4 +1,4 @@
-#Compute: virtual machines, scale sets, Arc machines and managed disks
+#Compute: virtual machines, scale sets, Arc machines, managed disks and Azure Virtual Desktop
 
 $vmType = 'Microsoft.Compute/virtualMachines'
 $vmssType = 'Microsoft.Compute/virtualMachineScaleSets'
@@ -43,7 +43,6 @@ Add-AzTest @{
     Rationale     = 'Unmanaged (page blob) disks live in storage accounts that can be read with an account key or SAS, lack disk level RBAC, encryption at host and network access policies, and are being retired.'
     Remediation   = 'Convert the virtual machine to managed disks (az vm convert ...).'
     References    = @('https://learn.microsoft.com/azure/virtual-machines/windows/convert-unmanaged-to-managed-disks')
-    Frameworks    = @{ MCSB = @('PV-3', 'DP-4'); ALZ = 'Deny-UnmanagedDisk' }
     Policy        = @{ '06a78e20-9358-41c9-923c-fb736d382a4d' = 'Audit VMs that do not use managed disks' }
     ResourceTypes = @($vmType)
     Evaluate      = {
@@ -65,7 +64,6 @@ Add-AzTest @{
     Rationale     = 'Encryption at host encrypts temporary disks, caches and data flows to storage end to end; server side encryption alone leaves the temp disk and cache unencrypted.'
     Remediation   = 'Register the EncryptionAtHost feature, deallocate the VM and enable encryption at host (az vm update --set securityProfile.encryptionAtHost=true ...). Azure Disk Encryption is scheduled for retirement; prefer encryption at host.'
     References    = @('https://learn.microsoft.com/azure/virtual-machines/disk-encryption-overview')
-    Frameworks    = @{ MCSB = 'DP-4'; WAF = 'SE:07'; ALZ = 'Enforce-GR-Compute0' }
     Defender      = @{ 'efbbd784-656d-473a-9863-ea7693bfcd2a' = 'Virtual machines and virtual machine scale sets should have encryption at host enabled' }
     Policy        = @{ 'fc4d8e41-e223-45ea-9bf5-eada37891d87' = 'Virtual machines and virtual machine scale sets should have encryption at host enabled' }
     ResourceTypes = @($vmType, $vmssType)
@@ -88,7 +86,6 @@ Add-AzTest @{
     Rationale     = 'Secure Boot and a virtual TPM protect against boot kits, rootkits and kernel level malware and enable boot integrity monitoring.'
     Remediation   = 'Enable Trusted Launch with Secure Boot and vTPM (existing Gen2 VMs can be upgraded in place: az vm update --security-type TrustedLaunch --enable-secure-boot true --enable-vtpm true ...).'
     References    = @('https://learn.microsoft.com/azure/virtual-machines/trusted-launch')
-    Frameworks    = @{ MCSB = @('PV-3', 'PV-4'); WAF = 'SE:08'; ALZ = @('Audit-TrustedLaunch', 'Deploy-GuestAttest') }
     Policy        = @{ '97566dd7-78ae-4997-8b36-1c7bfe0d8121' = '[Preview]: Secure Boot should be enabled on supported Windows virtual machines'; '1c30f9cd-b84c-49cc-aa2c-9288447cc3b3' = '[Preview]: vTPM should be enabled on supported virtual machines' }
     ResourceTypes = @($vmType, $vmssType)
     Evaluate      = {
@@ -114,7 +111,6 @@ Add-AzTest @{
     Rationale     = 'Password based SSH is exposed to brute force and password reuse; SSH keys (or Entra login for Linux) are far stronger.'
     Remediation   = 'Configure SSH keys or the Entra login extension and set disablePasswordAuthentication to true; for existing VMs disable PasswordAuthentication in sshd_config.'
     References    = @('https://learn.microsoft.com/azure/virtual-machines/linux/create-ssh-keys-detailed')
-    Frameworks    = @{ MCSB = 'IM-6'; WAF = 'SE:05'; ALZ = 'Enforce-ACSB' }
     Policy        = @{ '630c64f9-8b6b-4c64-b511-6544ceff6fd6' = 'Authentication to Linux machines should require SSH keys' }
     ResourceTypes = @($vmType, $vmssType)
     Filter        = { param($Record) (Get-MachineOsType $Record) -eq 'Linux' }
@@ -139,7 +135,6 @@ Add-AzTest @{
     Rationale     = 'Without periodic assessment, missing security updates are not reported and unpatched vulnerabilities go unnoticed.'
     Remediation   = "Enable periodic assessment (az vm update --set osProfile.windowsConfiguration.patchSettings.assessmentMode=AutomaticByPlatform ...) or assign the 'Configure periodic checking for missing system updates' policy."
     References    = @('https://learn.microsoft.com/azure/update-manager/assessment-options')
-    Frameworks    = @{ MCSB = @('PV-6', 'PV-5'); CIS = '8.1.10'; WAF = 'SE:08'; ALZ = 'Enable-AUM-CheckUpdates' }
     Defender      = @{ '90386950-71ca-4357-a12e-486d1679427c' = 'Machines should be configured to periodically check for missing system updates' }
     Policy        = @{ 'bd876905-5b84-4f73-ab2d-2e7a7c4568d9' = 'Machines should be configured to periodically check for missing system updates' }
     ResourceTypes = @($vmType)
@@ -165,7 +160,6 @@ Add-AzTest @{
     Rationale     = 'Without EDR, malware, ransomware and hands-on-keyboard attacks on the machine are neither prevented nor detected.'
     Remediation   = 'Enable Defender for Servers with the endpoint protection component, which deploys the MDE extension automatically, or onboard the machine to Defender for Endpoint directly.'
     References    = @('https://learn.microsoft.com/azure/defender-for-cloud/integration-defender-for-endpoint')
-    Frameworks    = @{ MCSB = @('ES-1', 'ES-2'); WAF = 'SE:10'; ALZ = @('Deploy-MDEndpoints', 'Deploy-MDEndpointsAMA') }
     Defender      = @{ '06e3a6db-6c0c-4ad9-943f-31d9d73ecf6c' = 'EDR solution should be installed on Virtual Machines' }
     ResourceTypes = @($vmType, $vmssType, $arcType)
     Evaluate      = {
@@ -189,7 +183,6 @@ Add-AzTest @{
     Rationale     = 'Machine configuration audits the operating system against the Azure compute security baseline and custom baselines; without it OS hardening drift is not measured.'
     Remediation   = "Assign the 'Deploy prerequisites to enable Guest Configuration policies on virtual machines' initiative, which adds the extension and identity."
     References    = @('https://learn.microsoft.com/azure/governance/machine-configuration/overview')
-    Frameworks    = @{ MCSB = @('PV-4', 'PV-3'); ALZ = 'Enforce-ACSB' }
     Defender      = @{ '6c99f570-2ce7-46bc-8175-cde013df43bc' = 'Guest Configuration extension should be installed on machines'; '69133b6b-695a-43eb-a763-221e19556755' = "Virtual machines' Guest Configuration extension should be deployed with system-assigned managed identity" }
     Policy        = @{ 'ae89ebca-1c92-4898-ac2c-9f63decb045c' = 'Guest Configuration extension should be installed on your machines' }
     ResourceTypes = @($vmType)
@@ -216,7 +209,6 @@ Add-AzTest @{
     Rationale     = 'The Azure Monitor Agent collects security events, syslog and performance data for Sentinel and Defender; without it host level activity is invisible to the SOC.'
     Remediation   = 'Install the Azure Monitor Agent (az vm extension set --name AzureMonitorWindowsAgent|AzureMonitorLinuxAgent --publisher Microsoft.Azure.Monitor ...) and associate data collection rules.'
     References    = @('https://learn.microsoft.com/azure/azure-monitor/agents/azure-monitor-agent-overview')
-    Frameworks    = @{ MCSB = @('LT-3', 'LT-5'); WAF = 'SE:10'; ALZ = 'Deploy-VM-Monitoring' }
     ResourceTypes = @($vmType, $vmssType, $arcType)
     Evaluate      = {
         param($Record)
@@ -239,7 +231,6 @@ Add-AzTest @{
     Rationale     = 'The retired agent no longer receives security updates or support, and its data collection may stop working at any time.'
     Remediation   = 'Migrate data collection to the Azure Monitor Agent with data collection rules, then remove the legacy extension.'
     References    = @('https://learn.microsoft.com/azure/azure-monitor/agents/azure-monitor-agent-migration')
-    Frameworks    = @{ MCSB = @('LT-3', 'PV-6') }
     Policy        = @{ 'd2185817-5b7e-473c-aadd-9de6ac114280' = 'The legacy Log Analytics extension should not be installed on virtual machines'; 'ba6881f9-ab93-498b-8bad-bb91b1d755bf' = 'The legacy Log Analytics extension should not be installed on virtual machine scale sets' }
     ResourceTypes = @($vmType, $vmssType, $arcType)
     Evaluate      = {
@@ -277,7 +268,6 @@ Add-AzTest @{
     Rationale     = 'Without backups a VM cannot be restored after ransomware, destructive attacks or accidental deletion.'
     Remediation   = 'Enable backup for the VM with an enhanced policy in a vault with immutability and soft delete (az backup protection enable-for-vm ...). VMs backed up by a vault in another subscription or by another product must be verified manually.'
     References    = @('https://learn.microsoft.com/azure/backup/backup-azure-vms-introduction')
-    Frameworks    = @{ MCSB = 'BR-1'; WAF = 'SE:12'; ALZ = 'Deploy-VM-Backup' }
     Policy        = @{ '013e242c-8828-4970-87b3-ab247555486d' = 'Azure Backup should be enabled for Virtual Machines' }
     ResourceTypes = @($vmType)
     Evaluate      = {
@@ -299,7 +289,6 @@ Add-AzTest @{
     Rationale     = "With 'AllowAll' anyone with Contributor rights can generate a SAS URL and download the whole disk (including credentials and data) from the Internet."
     Remediation   = 'Set the network access policy to DenyAll, or AllowPrivate with a disk access resource, and disable public network access (az disk update --network-access-policy DenyAll --public-network-access Disabled ...).'
     References    = @('https://learn.microsoft.com/azure/virtual-machines/disks-enable-private-links-for-import-export-portal')
-    Frameworks    = @{ MCSB = @('NS-2', 'DP-2'); WAF = 'SE:06' }
     Defender      = @{ 'f635fb12-4c7f-e9a8-5ed1-c005728ea849' = 'Managed disks should disable public network access' }
     Policy        = @{ '8405fdab-1faf-48aa-b702-999c9c172094' = 'Managed disks should disable public network access' }
     ResourceTypes = @('Microsoft.Compute/disks')
@@ -322,7 +311,6 @@ Add-AzTest @{
     Rationale     = "A snapshot is a full copy of a disk and is often left behind long after the disk is gone. With an 'AllowAll' network policy anyone with Contributor rights can mint a SAS URL and download it, including credentials and data, from the Internet. An active export session means such a URL is live right now."
     Remediation   = 'Set the snapshot network access policy to DenyAll, or AllowPrivate with a disk access resource, and disable public network access (az snapshot update --network-access-policy DenyAll --public-network-access Disabled ...). Revoke any active export with az snapshot revoke-access and delete snapshots that are no longer needed.'
     References     = @('https://learn.microsoft.com/azure/virtual-machines/disks-enable-private-links-for-import-export-portal')
-    Frameworks    = @{ MCSB = @('NS-2', 'DP-2'); WAF = 'SE:06' }
     ResourceTypes = @('Microsoft.Compute/snapshots')
     Evaluate      = {
         param($Record)
@@ -333,3 +321,90 @@ Add-AzTest @{
         New-Fail 'Snapshot export over the Internet is allowed' $evidence
     }
 }
+
+$dataCollectionRuleAssociationsPath = 'providers/Microsoft.Insights/dataCollectionRuleAssociations'
+
+Add-AzTest @{
+    Id            = 'AZ-VM-013'
+    Title         = 'Change Tracking and Inventory is enabled on machines'
+    Category      = 'Asset management'
+    Service       = 'Virtual machines'
+    Severity      = 'Low'
+    Description   = 'Checks virtual machines, scale sets and Arc machines for the Change Tracking extension with the Azure Monitor Agent, and for an associated data collection rule that collects change tracking data. Scale sets managed by AKS are left out.'
+    Rationale     = 'Change Tracking and Inventory records the software, services, files and registry keys of each machine and every change to them. It is the software inventory of the fleet and shows unauthorized installations and configuration drift.'
+    Remediation   = "Enable Change Tracking and Inventory (machine > Operations > Inventory), or assign the built-in initiatives 'Enable ChangeTracking and Inventory for virtual machines', 'for virtual machine scale sets' and 'for Arc-enabled virtual machines'."
+    References    = @('https://learn.microsoft.com/azure/automation/change-tracking/overview-monitoring-agent')
+    ResourceTypes = @($vmType, $vmssType, $arcType)
+    Filter        = { param($Record) -not ($Record.type -eq $vmssType -and @($Record.resource.tags.PSObject.Properties.Name | Where-Object { $_ -like 'aks-managed-*' }).Count) }
+    Evaluate      = {
+        param($Record)
+        if (-not (Test-MachineExtensionsCollected $Record)) { return New-Unknown 'Installed extensions could not be read' }
+        $extensions = @(Get-MachineExtensions $Record)
+        $evidence = [ordered]@{
+            changeTrackingExtension = [bool]@($extensions | Where-Object { $_ -match '^Microsoft\.Azure\.ChangeTrackingAndInventory/ChangeTracking-(Windows|Linux)$' }).Count
+            azureMonitorAgent       = [bool]@($extensions | Where-Object { $_ -match '/AzureMonitor(Windows|Linux)Agent$' }).Count
+        }
+        if (-not $evidence.changeTrackingExtension) { return New-Fail 'No Change Tracking extension' $evidence }
+        if (-not $evidence.azureMonitorAgent) { return New-Fail 'Change Tracking extension without the Azure Monitor Agent' $evidence }
+        if (-not (Test-ChildCollected $Record $dataCollectionRuleAssociationsPath)) { return New-Unknown 'Data collection rule associations could not be read' $evidence }
+        $ruleIds = @(Get-Child $Record $dataCollectionRuleAssociationsPath | Where-Object { $_ -and $_.properties.dataCollectionRuleId } | ForEach-Object { [string]$_.properties.dataCollectionRuleId } | Sort-Object -Unique)
+        $evidence.dataCollectionRules = @($ruleIds | ForEach-Object { ($_ -split '/')[-1] })
+        $unread = 0
+        foreach ($ruleId in $ruleIds) {
+            $rule = Get-AzResourceRecord $ruleId
+            if (-not $rule) { $unread++; continue }
+            if (@($rule.resource.properties.dataSources.extensions | Where-Object { $_ -and [string]$_.extensionName -match '^ChangeTracking-(Windows|Linux)$' }).Count) { return New-Pass "Data collection rule '$($rule.resource.name)' collects change tracking data" $evidence }
+        }
+        if ($unread) { return New-Unknown "No readable data collection rule collects change tracking data; $unread associated rule(s) could not be read" $evidence }
+        New-Fail 'No associated data collection rule collects change tracking data' $evidence
+    }
+}
+
+Add-AzTest @{
+    Id            = 'AZ-AVD-001'
+    Title         = 'Azure Virtual Desktop host pools and workspaces disable public network access'
+    Category      = 'Network security'
+    Service       = 'Azure Virtual Desktop'
+    Severity      = 'Medium'
+    Description   = 'Checks the public network access setting of Azure Virtual Desktop host pools and workspaces.'
+    Rationale     = 'With public network access, session hosts and users reach the host pool and the workspace feed over the Internet. Private Link keeps both connections on private networks, so only clients on those networks can discover and open the desktops.'
+    Remediation   = 'Create private endpoints for the host pool (connection) and the workspaces (feed and global), then set public network access to Disabled.'
+    References    = @('https://learn.microsoft.com/azure/virtual-desktop/private-link-overview')
+    ResourceTypes = @('Microsoft.DesktopVirtualization/hostPools', 'Microsoft.DesktopVirtualization/workspaces')
+    Evaluate      = {
+        param($Record)
+        $access = $Record.resource.properties.publicNetworkAccess
+        $evidence = [ordered]@{ publicNetworkAccess = $access }
+        if ($access -eq 'Disabled') { return New-Pass 'Public network access disabled' $evidence }
+        New-Fail "Public network access $(if ($access) { $access } else { 'Enabled (default)' })" $evidence
+    }
+}
+
+Add-AzTest @{
+    Id          = 'AZ-VM-014'
+    Title       = 'The serial console is disabled for the subscription'
+    Category    = 'Privileged access'
+    Service     = 'Virtual machines'
+    Severity    = 'Low'
+    Description = 'Checks the serial console setting of the subscription when it has virtual machines or scale sets. The setting only exists once the Microsoft.SerialConsole resource provider is registered; until then the serial console is enabled.'
+    Rationale   = 'The serial console opens a text console on a virtual machine through the Azure portal, outside its network: network security groups, Bastion, just-in-time access and firewalls do not apply. Anyone who can change the machine and read the keys of its boot diagnostics storage (Contributor, for example) can open it, and with a local password or the single user mode of Linux it is a way in that bypasses every network control.'
+    Remediation = 'Disable the serial console for the subscription (az resource invoke-action --action disableConsole --ids /subscriptions/<id>/providers/Microsoft.SerialConsole/consoleServices/default --api-version 2023-01-01) and enable it again only for a recovery.'
+    References  = @('https://learn.microsoft.com/troubleshoot/azure/virtual-machines/windows/serial-console-enable-disable')
+    Requires    = @('subscription/resources')
+    Run         = {
+        $machines = @(Get-IngestData 'subscription/resources' | Where-Object { $_ -and $_.type -in 'Microsoft.Compute/virtualMachines', 'Microsoft.Compute/virtualMachineScaleSets' })
+        if (-not $machines) { return New-SubscriptionFinding (New-NotApplicable 'No virtual machines or scale sets') }
+        if (Test-IngestSection 'subscription/serialConsole') {
+            $disabled = [bool](Get-IngestData 'subscription/serialConsole').properties.disabled
+            $evidence = [ordered]@{ disabled = $disabled; machines = $machines.Count }
+            if ($disabled) { return New-SubscriptionFinding (New-Pass 'The serial console is disabled' $evidence) }
+            return New-SubscriptionFinding (New-Fail 'The serial console is enabled' $evidence)
+        }
+        #without a registered provider the setting cannot exist, so the console has its default: enabled
+        $provider = @(Get-IngestData 'subscription/providers' | Where-Object { $_ -and $_.namespace -eq 'Microsoft.SerialConsole' }) | Select-Object -First 1
+        $evidence = [ordered]@{ providerRegistration = $provider.registrationState; machines = $machines.Count }
+        if ($provider -and $provider.registrationState -eq 'NotRegistered') { return New-SubscriptionFinding (New-Fail 'The serial console has its default, enabled: the Microsoft.SerialConsole provider was never registered to turn it off' $evidence) }
+        New-SubscriptionFinding (New-Unknown "The serial console setting could not be read: $(Get-IngestSectionProblem 'subscription/serialConsole')" $evidence)
+    }
+}
+

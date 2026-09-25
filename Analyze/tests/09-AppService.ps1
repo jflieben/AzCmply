@@ -19,7 +19,6 @@ Add-AzTest @{
     Rationale     = 'Without HTTPS Only, clients can use plain HTTP, exposing session cookies, tokens and data to interception and manipulation.'
     Remediation   = 'Enable HTTPS Only (az webapp update --https-only true ...).'
     References    = @('https://learn.microsoft.com/azure/app-service/configure-ssl-bindings#enforce-https')
-    Frameworks    = @{ MCSB = 'DP-3'; WAF = 'SE:07'; ALZ = @('Enforce-TLS-SSL-Q225', 'Enforce-GR-AppServices0') }
     Defender      = @{ '1b351b29-41ca-6df5-946c-c190a56be5fe' = 'Web Application should only be accessible over HTTPS'; 'cb0acdc6-0846-fd48-debe-9905af151b6d' = 'Function App should only be accessible over HTTPS' }
     Policy        = @{ 'a4af4a39-4135-47fb-b175-47fbdf85311d' = 'App Service apps should only be accessible over HTTPS'; '6d555dd1-86f2-4f1c-8ed7-5abae7c6cbab' = 'Function apps should only be accessible over HTTPS' }
     ResourceTypes = $siteTypes
@@ -41,7 +40,6 @@ Add-AzTest @{
     Rationale     = 'TLS 1.0 and 1.1 have known weaknesses; the SCM site handles deployment credentials and code and needs the same protection as the app.'
     Remediation   = 'Set the minimum inbound TLS version and SCM minimum TLS version to 1.2 or 1.3 (az webapp config set --min-tls-version 1.2 ...).'
     References    = @('https://learn.microsoft.com/azure/app-service/overview-tls')
-    Frameworks    = @{ MCSB = @('DP-3', 'NS-8'); WAF = 'SE:07'; ALZ = @('Enforce-TLS-SSL-Q225', 'Enforce-GR-AppServices0') }
     Defender      = @{ '2a54c352-7ca4-4bae-ad46-47ecd9595bd2' = 'TLS should be updated to the latest version for web apps'; '15be5f3c-e0a4-c0fa-fbff-8e50339b4b22' = 'TLS should be updated to the latest version for function apps' }
     Policy        = @{ 'f0e6e85b-9b9f-4a4b-b67b-f730d42f1b0b' = 'App Service apps should use the latest TLS version' }
     ResourceTypes = $siteTypes
@@ -68,7 +66,6 @@ Add-AzTest @{
     Rationale     = 'Plain FTP sends deployment credentials and code in clear text.'
     Remediation   = 'Set the FTP state to Disabled (preferred) or FtpsOnly (az webapp config set --ftps-state Disabled ...).'
     References    = @('https://learn.microsoft.com/azure/app-service/deploy-ftp#enforce-ftps')
-    Frameworks    = @{ MCSB = @('DP-3', 'NS-8'); WAF = 'SE:08'; ALZ = 'Enforce-GR-AppServices0' }
     Defender      = @{ '19beaa2a-a126-b4dd-6d35-617f6cc83fca' = 'FTPS should be required in web apps'; '972a6579-f38f-c0b9-1b4b-a5bbeba3ab5b' = 'FTPS should be required in function apps' }
     Policy        = @{ '4d24b6d4-5e53-4a4f-a7f4-618fa573ee4b' = 'App Service apps should require FTPS only'; '399b2637-a50f-4f95-96f8-3a145476eb15' = 'Function apps should require FTPS only' }
     ResourceTypes = $siteTypes
@@ -92,7 +89,6 @@ Add-AzTest @{
     Rationale     = 'Basic authentication uses publishing profile passwords that are not bound to a user, bypass MFA and Conditional Access, and are easily leaked through publish profiles.'
     Remediation   = "Disable 'SCM Basic Auth Publishing Credentials' and 'FTP Basic Auth Publishing Credentials' and deploy with Entra authenticated methods (GitHub Actions OIDC, az webapp deploy)."
     References    = @('https://learn.microsoft.com/azure/app-service/configure-basic-auth-disable')
-    Frameworks    = @{ MCSB = @('IM-1', 'IM-3'); WAF = 'SE:05'; ALZ = 'Enforce-GR-AppServices0' }
     Policy        = @{ '871b205b-57cf-4e1e-a234-492616998bf7' = 'App Service apps should have local authentication methods disabled for FTP deployments'; 'aede300b-d67f-480a-ae26-4b3dfb1a1fdc' = 'App Service apps should have local authentication methods disabled for SCM site deployments' }
     ResourceTypes = $siteTypes
     Evaluate      = {
@@ -114,7 +110,6 @@ Add-AzTest @{
     Description   = 'Checks the remote debugging setting of apps and slots.'
     Rationale     = 'Remote debugging opens additional inbound ports and debugging endpoints; it should only be on temporarily during troubleshooting.'
     Remediation   = 'Turn off remote debugging (az webapp config set --remote-debugging-enabled false ...).'
-    Frameworks    = @{ MCSB = @('PV-2', 'NS-8'); WAF = 'SE:08'; ALZ = 'Enforce-GR-AppServices0' }
     Defender      = @{ '64b8637e-4e1d-76a9-0fc9-c1e487a97ed8' = 'Remote debugging should be turned off for Web Applications'; '093c685b-56dd-13a3-8ed5-887a001837a2' = 'Remote debugging should be turned off for Function App' }
     Policy        = @{ 'cb510bfd-1cba-4d9f-a230-cb0976f4bb71' = 'App Service apps should have remote debugging turned off'; '0e60b895-3786-45da-8377-9c6b4b6ac5f9' = 'Function apps should have remote debugging turned off' }
     ResourceTypes = $siteTypes
@@ -138,7 +133,6 @@ Add-AzTest @{
     Rationale     = 'Apps without a managed identity typically hold connection strings, keys or client secrets in their configuration to reach other services.'
     Remediation   = 'Enable a managed identity (az webapp identity assign ...), grant it RBAC roles on the target services and remove stored credentials.'
     References    = @('https://learn.microsoft.com/azure/app-service/overview-managed-identity')
-    Frameworks    = @{ MCSB = 'IM-3'; WAF = 'SE:09' }
     Defender      = @{ '4a3d7cd3-f17c-637a-1ffc-614a01dd03cf' = 'Managed identity should be enabled on web apps'; '23aa9cbe-c2fb-6a2f-6c97-885a6d48c4d1' = 'Managed identity should be enabled on function apps' }
     Policy        = @{ '2b9ad585-36bc-4615-b300-fd4435808332' = 'App Service apps should use managed identity' }
     ResourceTypes = $siteTypes
@@ -161,7 +155,6 @@ Add-AzTest @{
     Rationale     = 'A wildcard CORS policy lets any website call the API from a victim browser and read responses, weakening protections against cross-site data theft.'
     Remediation   = 'Replace * with the specific origins that need access (az webapp cors remove --allowed-origins * ...).'
     References    = @('https://learn.microsoft.com/azure/app-service/app-service-web-tutorial-rest-api#add-cors-functionality')
-    Frameworks    = @{ MCSB = 'PV-2'; WAF = 'SE:08' }
     Defender      = @{ 'df4d1739-47f0-60c7-1706-3731fea6ab03' = 'CORS should not allow every resource to access Web Applications'; '7b3d4796-9400-2904-692b-4a5ede7f0a1e' = 'CORS should not allow every resource to access Function Apps' }
     Policy        = @{ '5744710e-cc2f-4ee8-8809-3b11e89f4bc9' = 'App Service apps should not have CORS configured to allow every resource to access your apps' }
     ResourceTypes = $siteTypes
@@ -186,7 +179,6 @@ Add-AzTest @{
     Rationale     = 'An app that is reachable directly from the Internet bypasses the WAF and any network controls in front of it; internal apps should not be public at all.'
     Remediation   = "Disable public network access and use private endpoints for internal apps; for public apps restrict inbound access to the Front Door or Application Gateway (service tag and X-Azure-FDID header)."
     References    = @('https://learn.microsoft.com/azure/app-service/app-service-ip-restrictions')
-    Frameworks    = @{ MCSB = 'NS-2'; WAF = 'SE:06'; ALZ = 'Deny-Public-Endpoints' }
     Policy        = @{ '1b5ef780-c53c-4a64-87f3-bb9c8c8094ba' = 'App Service apps should disable public network access'; '969ac98b-88a8-449f-883c-2e9adb123127' = 'Function apps should disable public network access' }
     ResourceTypes = $siteTypes
     Evaluate      = {
@@ -212,7 +204,6 @@ Add-AzTest @{
     Rationale     = 'Anonymous functions accept calls from anyone who knows the URL. Unless the function authenticates callers itself (for example webhook signatures or App Service authentication), it is an open endpoint.'
     Remediation   = "Use authLevel 'function' or enable App Service authentication (Easy Auth) with Entra ID, and validate signatures for webhooks."
     References    = @('https://learn.microsoft.com/azure/azure-functions/security-concepts#authorization-scopes-function-level')
-    Frameworks    = @{ MCSB = @('IM-7', 'IM-5'); WAF = 'SE:05' }
     ResourceTypes = $siteTypes
     Filter        = { param($Record) [string]$Record.resource.kind -match 'functionapp' }
     Evaluate      = {
@@ -234,5 +225,67 @@ Add-AzTest @{
         if ($unprotected) { return New-Fail "Anonymous HTTP function(s) reachable without authentication: $($unprotected -join ', ')" $evidence }
         if ($anonymous) { return New-Pass 'Anonymous functions are behind required App Service authentication' $evidence }
         New-Pass 'No anonymous HTTP functions' $evidence
+    }
+}
+
+function Test-SiteRestricted {
+    #whether access restrictions limit who can connect: a deny default, or an allow rule for something narrower than any address
+    param($Rules, [string]$DefaultAction)
+    if ($DefaultAction -eq 'Deny') { return $true }
+    return [bool]@($Rules | Where-Object { $_ -and $_.action -eq 'Allow' -and $_.ipAddress -ne 'Any' }).Count
+}
+
+function Get-HeaderValues {
+    #values of one header of an access restriction rule, whatever the casing of its name
+    param($Headers, [string]$Name)
+    foreach ($header in @($Headers.PSObject.Properties)) { if ($header.Name -eq $Name) { @($header.Value | Where-Object { $_ }) } }
+}
+
+Add-AzTest @{
+    Id            = 'AZ-APP-010'
+    Title         = 'App Service access restrictions for Front Door check the Front Door id'
+    Category      = 'Network security'
+    Service       = 'App Service'
+    Severity      = 'High'
+    Description   = 'For App Service apps and slots with an access restriction that allows the AzureFrontDoor.Backend service tag, on the app or on its deployment (SCM) site, checks that the rule also requires the X-Azure-FDID header of your own Front Door profile.'
+    Rationale     = 'The AzureFrontDoor.Backend addresses are shared by every Front Door customer. Without the X-Azure-FDID check anyone can create a Front Door profile, point it at the app and reach it around the Web Application Firewall, rules and authentication of your own Front Door.'
+    Remediation   = 'Add the X-Azure-FDID header with the id of your Front Door profile to the rule (az webapp config access-restriction add --service-tag AzureFrontDoor.Backend --http-header x-azure-fdid=<profile id> ...).'
+    References    = @('https://learn.microsoft.com/azure/app-service/app-service-ip-restrictions#restrict-access-to-a-specific-azure-front-door-instance', 'https://learn.microsoft.com/azure/frontdoor/origin-security')
+    ResourceTypes = @('Microsoft.Web/sites', 'Microsoft.Web/sites/slots')
+    Evaluate      = {
+        param($Record)
+        if (-not (Test-ChildCollected $Record 'config/web')) { return New-Unknown 'The site configuration could not be read' }
+        $config = Get-SiteConfig $Record
+        $frontDoorRules = @(@($config.ipSecurityRestrictions) + @($config.scmIpSecurityRestrictions) | Where-Object { $_ -and $_.action -eq 'Allow' -and [string]$_.ipAddress -like 'AzureFrontDoor.Backend*' })
+        if (-not $frontDoorRules) { return $null }
+        $unchecked = @($frontDoorRules | Where-Object { -not @(Get-HeaderValues $_.headers 'x-azure-fdid').Count } | ForEach-Object { $_.name } | Sort-Object -Unique)
+        $evidence = [ordered]@{ frontDoorRules = @($frontDoorRules | ForEach-Object { $_.name } | Sort-Object -Unique); withoutFrontDoorId = $unchecked }
+        if ($unchecked) { return New-Fail "Rule(s) $($unchecked -join ', ') admit every Front Door profile" $evidence }
+        New-Pass 'Every Front Door rule checks the Front Door id' $evidence
+    }
+}
+
+Add-AzTest @{
+    Id            = 'AZ-APP-011'
+    Title         = 'App Service deployment sites are not more open than the app'
+    Category      = 'Network security'
+    Service       = 'App Service'
+    Severity      = 'High'
+    Description   = 'For App Service apps and slots whose own access is restricted, checks that the deployment (SCM, Kudu) site uses the same restrictions or has its own. Apps without public network access pass; apps reachable from any network are AZ-APP-008.'
+    Rationale     = 'The deployment site deploys code, opens a console on the app and shows its environment, including connection strings and keys. When the app is restricted to a Front Door, a gateway or office addresses but the deployment site is not, stolen credentials and tokens reach the deployment site from anywhere, around the network controls of the app.'
+    Remediation   = "Turn on 'Use main site rules' for the deployment site (scmIpSecurityRestrictionsUseMain), or add access restrictions to it that admit only your build agents and administrators."
+    References    = @('https://learn.microsoft.com/azure/app-service/app-service-ip-restrictions#restrict-access-to-an-scm-site')
+    ResourceTypes = @('Microsoft.Web/sites', 'Microsoft.Web/sites/slots')
+    Evaluate      = {
+        param($Record)
+        if (-not (Test-ChildCollected $Record 'config/web')) { return New-Unknown 'The site configuration could not be read' }
+        $config = Get-SiteConfig $Record
+        $access = if ($Record.resource.properties.publicNetworkAccess) { $Record.resource.properties.publicNetworkAccess } else { $config.publicNetworkAccess }
+        $evidence = [ordered]@{ publicNetworkAccess = $access; scmUsesMainRules = [bool]$config.scmIpSecurityRestrictionsUseMain; scmDefaultAction = $config.scmIpSecurityRestrictionsDefaultAction; scmAllowRules = @($config.scmIpSecurityRestrictions | Where-Object { $_ -and $_.action -eq 'Allow' -and $_.ipAddress -ne 'Any' }).Count }
+        if ($access -eq 'Disabled') { return New-Pass 'Public network access disabled' $evidence }
+        if (-not (Test-SiteRestricted $config.ipSecurityRestrictions $config.ipSecurityRestrictionsDefaultAction)) { return New-NotApplicable 'The app itself is reachable from any network (AZ-APP-008)' $evidence }
+        if ($config.scmIpSecurityRestrictionsUseMain) { return New-Pass 'The deployment site uses the access restrictions of the app' $evidence }
+        if (Test-SiteRestricted $config.scmIpSecurityRestrictions $config.scmIpSecurityRestrictionsDefaultAction) { return New-Pass 'The deployment site has its own access restrictions' $evidence }
+        New-Fail 'The app is restricted, but its deployment site is reachable from any network' $evidence
     }
 }

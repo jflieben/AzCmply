@@ -155,12 +155,6 @@ export async function getToken(resource) {
     return json.access_token;
 }
 
-//the delegated permissions granted in a token, for showing what the sign-in can read
-export function grantedScopes(token) {
-    const claims = decodeJwt(token);
-    return (claims.scp ?? '').split(' ').filter(Boolean);
-}
-
 export function signOut() {
     session = null;
     accessTokens.clear();

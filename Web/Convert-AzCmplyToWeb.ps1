@@ -5,7 +5,7 @@
     .DESCRIPTION
     Converts the analyzer (Analyze\lib, Analyze\tests, Invoke-AzureAnalyze.ps1), the comparison (Compare-AzureAnalysis.ps1)
     and the report (Report\New-AzureSecurityReport.ps1) to JavaScript modules that run on the runtime in site\js\runtime,
-    copies the framework catalog, extracts the collection maps of the ingestion, and bundles a synthetic demo ingestion.
+    copies the framework catalogs, extracts the collection maps of the ingestion, and bundles a synthetic demo ingestion.
     Output goes to site\generated and is never edited by hand: change the PowerShell and run this again.
     It also stamps a build id (the version plus a hash of every file the page loads) into site\index.html, so browsers
     load an upload fresh; run it after any change under site as well.
@@ -31,7 +31,6 @@ Param(
 )
 
 $ErrorActionPreference = 'Stop'
-$generatorVersion = 1
 $repo = Split-Path -Path $PSScriptRoot -Parent
 $site = Join-Path $PSScriptRoot 'site'
 $target = Join-Path $site 'generated'
@@ -86,7 +85,10 @@ $scriptSources = Get-OrdinalSorted -Key { Get-RelativePath $_.FullName } -Items 
     Get-Item -Path (Join-Path $repo 'Analyze\Compare-AzureAnalysis.ps1')
     Get-Item -Path (Join-Path $repo 'Report\New-AzureSecurityReport.ps1')
 )
-$assetSources = @(Get-Item -Path (Join-Path $repo 'Analyze\catalog\frameworks.json'))
+$assetSources = Get-OrdinalSorted -Key { Get-RelativePath $_.FullName } -Items @(
+    @(Get-ChildItem -Path (Join-Path $repo 'Analyze\catalog\frameworks') -Filter '*.json' -File)
+    Get-Item -Path (Join-Path $repo 'VERSION')
+)
 $ingestSource = Join-Path $repo 'Ingest\Invoke-AzureIngest.ps1'
 $fixtureSource = Join-Path $repo 'Analyze\selftest\New-FixtureIngest.ps1'
 
@@ -143,7 +145,7 @@ try {
 
     #collection maps of the ingestion
     Write-Host 'Extracting the ingestion collection plan'
-    Set-OutputFile -Root $output -Relative 'ingest-plan.js' -Text (ConvertTo-IngestPlanModule -Path $ingestSource -SourceName (Get-RelativePath $ingestSource))
+    Set-OutputFile -Root $output -Relative 'ingest-plan.js' -Text (ConvertTo-IngestPlanModule -Path $ingestSource -SourceName (Get-RelativePath $ingestSource) -Version $version)
 
     #demo ingestion: the non-compliant self-test fixture, so the page can be tried without signing in
     Write-Host 'Building the demo ingestion'
@@ -169,7 +171,6 @@ try {
     for ($i = 0; $i -lt $modules.Count; $i++) { $index.Add("import s$i from './$($modules[$i].Js)';") }
     $index.Add('')
     $index.Add("export const version = $(ConvertTo-JsString $version);")
-    $index.Add("export const generatorVersion = $generatorVersion;")
     $index.Add('export const scripts = {')
     for ($i = 0; $i -lt $modules.Count; $i++) { $index.Add("    $(ConvertTo-JsString $modules[$i].VirtualPath): s$i,") }
     $index.Add('};')
@@ -208,7 +209,6 @@ try {
     $build = "$version-$((Get-Sha256 ([System.Text.Encoding]::UTF8.GetBytes($buildInput.ToString()))).Substring(0, 10))"
 
     $manifest = [ordered]@{
-        generatorVersion = $generatorVersion
         version          = $version
         build            = $build
         sources          = $sourceHashes

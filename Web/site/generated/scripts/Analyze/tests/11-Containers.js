@@ -7,327 +7,327 @@ export default R.script("/app/Analyze/tests/11-Containers.ps1", { params: [], ad
     R.ln = F + 4;
     S["acrtype"] = R.a("Microsoft.ContainerRegistry/registries");
     R.ln = F + 6;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-AKS-001", "Title", "AKS clusters disable local accounts", "Category", "Identity management", "Service", "Azure Kubernetes Service", "Severity", "High", "Description", "Checks disableLocalAccounts, which removes the static cluster admin credential.", "Rationale", "The local admin kubeconfig is a non-expiring certificate with cluster-admin rights that bypasses Entra ID, MFA and Conditional Access and cannot be attributed to a person.", "Remediation", "Enable Entra integration and disable local accounts (az aks update --disable-local-accounts ...), then rotate the cluster certificates to invalidate issued admin kubeconfigs.", "References", R.a("https://learn.microsoft.com/azure/aks/manage-local-accounts-managed-azure-ad"), "Frameworks", R.ht(["MCSB", "IM-1", "WAF", "SE:05", "ALZ", "Enforce-GR-Kubernetes0"], false), "Policy", R.ht(["993c2fcd-2b29-49d2-9eb0-df2c3a730c32", "Azure Kubernetes Service Clusters should have local authentication methods disabled"], false), "ResourceTypes", (S["akstype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $value = $Record.resource.properties.disableLocalAccounts\n        if ($value -eq $true) { return New-Pass 'Local accounts disabled' ([ordered]@{ disableLocalAccounts = $true }) }\n        New-Fail 'Local accounts enabled' ([ordered]@{ disableLocalAccounts = $value })\n    " }, (S, O) => {
-        R.ln = F + 21;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-AKS-001", "Title", "AKS clusters disable local accounts", "Category", "Identity management", "Service", "Azure Kubernetes Service", "Severity", "High", "Description", "Checks disableLocalAccounts, which removes the static cluster admin credential.", "Rationale", "The local admin kubeconfig is a non-expiring certificate with cluster-admin rights that bypasses Entra ID, MFA and Conditional Access and cannot be attributed to a person.", "Remediation", "Enable Entra integration and disable local accounts (az aks update --disable-local-accounts ...), then rotate the cluster certificates to invalidate issued admin kubeconfigs.", "References", R.a("https://learn.microsoft.com/azure/aks/manage-local-accounts-managed-azure-ad"), "Policy", R.ht(["993c2fcd-2b29-49d2-9eb0-df2c3a730c32", "Azure Kubernetes Service Clusters should have local authentication methods disabled"], false), "ResourceTypes", (S["akstype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $value = $Record.resource.properties.disableLocalAccounts\n        if ($value -eq $true) { return New-Pass 'Local accounts disabled' ([ordered]@{ disableLocalAccounts = $true }) }\n        New-Fail 'Local accounts enabled' ([ordered]@{ disableLocalAccounts = $value })\n    " }, (S, O) => {
+        R.ln = F + 20;
         S["value"] = R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "disableLocalAccounts");
-        R.ln = F + 22;
+        R.ln = F + 21;
         if (R.t(R.eq((S["value"] ?? null), true))) {
-            R.ln = F + 22;
+            R.ln = F + 21;
             R.pa(O, R.cmd(S, "New-Pass", ["Local accounts disabled", (R.ht(["disableLocalAccounts", true], true))], null));
             return;
         }
-        R.ln = F + 23;
+        R.ln = F + 22;
         R.pa(O, R.cmd(S, "New-Fail", ["Local accounts enabled", (R.ht(["disableLocalAccounts", (S["value"] ?? null)], true))], null));
     })], false)], null));
-    R.ln = F + 27;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-AKS-002", "Title", "AKS clusters use Entra ID with Azure RBAC for Kubernetes authorization", "Category", "Identity management", "Service", "Azure Kubernetes Service", "Severity", "Medium", "Description", "Checks for managed Entra ID integration with Azure RBAC for Kubernetes authorization.", "Rationale", "Entra integration applies MFA and Conditional Access to kubectl access; Azure RBAC makes cluster permissions visible and reviewable alongside other Azure access, including PIM.", "Remediation", "Enable managed Entra integration and Azure RBAC (az aks update --enable-aad --enable-azure-rbac ...).", "References", R.a("https://learn.microsoft.com/azure/aks/manage-azure-rbac"), "Frameworks", R.ht(["MCSB", R.a([R.v("IM-1"), R.v("PA-7")]), "WAF", "SE:05"], false), "Policy", R.ht(["450d2877-ebea-41e8-b00c-e286317d21bf", "Azure Kubernetes Service Clusters should enable Microsoft Entra ID integration"], false), "ResourceTypes", (S["akstype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $profile = $Record.resource.properties.aadProfile\n        $evidence = [ordered]@{ managedEntraIntegration = [bool]$profile.managed; azureRbac = [bool]$profile.enableAzureRBAC }\n        if ($profile.managed -and $profile.enableAzureRBAC) { return New-Pass 'Entra ID with Azure RBAC' $evidence }\n        New-Fail $(if (-not $profile) { 'No Entra ID integration' } else { 'Kubernetes RBAC without Azure RBAC' }) $evidence\n    " }, (S, O) => {
-        R.ln = F + 42;
+    R.ln = F + 26;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-AKS-002", "Title", "AKS clusters use Entra ID with Azure RBAC for Kubernetes authorization", "Category", "Identity management", "Service", "Azure Kubernetes Service", "Severity", "Medium", "Description", "Checks for managed Entra ID integration with Azure RBAC for Kubernetes authorization.", "Rationale", "Entra integration applies MFA and Conditional Access to kubectl access; Azure RBAC makes cluster permissions visible and reviewable alongside other Azure access, including PIM.", "Remediation", "Enable managed Entra integration and Azure RBAC (az aks update --enable-aad --enable-azure-rbac ...).", "References", R.a("https://learn.microsoft.com/azure/aks/manage-azure-rbac"), "Policy", R.ht(["450d2877-ebea-41e8-b00c-e286317d21bf", "Azure Kubernetes Service Clusters should enable Microsoft Entra ID integration"], false), "ResourceTypes", (S["akstype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $profile = $Record.resource.properties.aadProfile\n        $evidence = [ordered]@{ managedEntraIntegration = [bool]$profile.managed; azureRbac = [bool]$profile.enableAzureRBAC }\n        if ($profile.managed -and $profile.enableAzureRBAC) { return New-Pass 'Entra ID with Azure RBAC' $evidence }\n        New-Fail $(if (-not $profile) { 'No Entra ID integration' } else { 'Kubernetes RBAC without Azure RBAC' }) $evidence\n    " }, (S, O) => {
+        R.ln = F + 40;
         S["profile"] = R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "aadProfile");
-        R.ln = F + 43;
+        R.ln = F + 41;
         S["evidence"] = R.ht(["managedEntraIntegration", R.c("bool", R.m((S["profile"] ?? null), "managed")), "azureRbac", R.c("bool", R.m((S["profile"] ?? null), "enableAzureRBAC"))], true);
-        R.ln = F + 44;
+        R.ln = F + 42;
         if ((R.t(R.m((S["profile"] ?? null), "managed")) && R.t(R.m((S["profile"] ?? null), "enableAzureRBAC")))) {
-            R.ln = F + 44;
+            R.ln = F + 42;
             R.pa(O, R.cmd(S, "New-Pass", ["Entra ID with Azure RBAC", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 45;
+        R.ln = F + 43;
         R.pa(O, R.cmd(S, "New-Fail", [(() => {
             const v1 = [];
-            R.ln = F + 45;
+            R.ln = F + 43;
             if (!R.t((S["profile"] ?? null))) {
-                R.ln = F + 45;
+                R.ln = F + 43;
                 R.e(v1, "No Entra ID integration");
             } else {
-                R.ln = F + 45;
+                R.ln = F + 43;
                 R.e(v1, "Kubernetes RBAC without Azure RBAC");
             }
             return R.u(v1);
         })(), (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 49;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-AKS-003", "Title", "AKS API servers are private or restricted to authorized IP ranges", "Category", "Network security", "Service", "Azure Kubernetes Service", "Severity", "High", "Description", "Checks for a private cluster, API server VNet integration or authorized IP ranges on the API server.", "Rationale", "A public API server without IP restrictions can be probed and attacked from anywhere, and any leaked credential gives direct cluster access.", "Remediation", "Use a private cluster or API server VNet integration, or restrict access with authorized IP ranges (az aks update --api-server-authorized-ip-ranges ...).", "References", R.a("https://learn.microsoft.com/azure/aks/api-server-authorized-ip-ranges"), "Frameworks", R.ht(["MCSB", "NS-2", "WAF", "SE:06", "ALZ", "Enforce-GR-Kubernetes0"], false), "Policy", R.ht(["040732e8-d947-40b8-95d6-854c95024bf8", "Azure Kubernetes Service Private Clusters should be enabled", "0e246bcf-5f6f-4f87-bc6f-775d4712c7ea", "Authorized IP ranges should be defined on Kubernetes Services"], false), "ResourceTypes", (S["akstype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $access = $Record.resource.properties.apiServerAccessProfile\n        $evidence = [ordered]@{ privateCluster = [bool]$access.enablePrivateCluster; vnetIntegration = [bool]$access.enableVnetIntegration; authorizedIpRanges = @($access.authorizedIPRanges) }\n        if ($access.enablePrivateCluster) { return New-Pass 'Private cluster' $evidence }\n        if (@($access.authorizedIPRanges | Where-Object { $_ -and $_ -ne '0.0.0.0/0' }).Count) { return New-Pass 'Authorized IP ranges configured' $evidence }\n        New-Fail 'Public API server open to all networks' $evidence\n    " }, (S, O) => {
-        R.ln = F + 64;
+    R.ln = F + 47;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-AKS-003", "Title", "AKS API servers are private or restricted to authorized IP ranges", "Category", "Network security", "Service", "Azure Kubernetes Service", "Severity", "High", "Description", "Checks for a private cluster, API server VNet integration or authorized IP ranges on the API server.", "Rationale", "A public API server without IP restrictions can be probed and attacked from anywhere, and any leaked credential gives direct cluster access.", "Remediation", "Use a private cluster or API server VNet integration, or restrict access with authorized IP ranges (az aks update --api-server-authorized-ip-ranges ...).", "References", R.a("https://learn.microsoft.com/azure/aks/api-server-authorized-ip-ranges"), "Policy", R.ht(["040732e8-d947-40b8-95d6-854c95024bf8", "Azure Kubernetes Service Private Clusters should be enabled", "0e246bcf-5f6f-4f87-bc6f-775d4712c7ea", "Authorized IP ranges should be defined on Kubernetes Services"], false), "ResourceTypes", (S["akstype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $access = $Record.resource.properties.apiServerAccessProfile\n        $evidence = [ordered]@{ privateCluster = [bool]$access.enablePrivateCluster; vnetIntegration = [bool]$access.enableVnetIntegration; authorizedIpRanges = @($access.authorizedIPRanges) }\n        if ($access.enablePrivateCluster) { return New-Pass 'Private cluster' $evidence }\n        if (@($access.authorizedIPRanges | Where-Object { $_ -and $_ -ne '0.0.0.0/0' }).Count) { return New-Pass 'Authorized IP ranges configured' $evidence }\n        New-Fail 'Public API server open to all networks' $evidence\n    " }, (S, O) => {
+        R.ln = F + 61;
         S["access"] = R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "apiServerAccessProfile");
-        R.ln = F + 65;
+        R.ln = F + 62;
         S["evidence"] = R.ht(["privateCluster", R.c("bool", R.m((S["access"] ?? null), "enablePrivateCluster")), "vnetIntegration", R.c("bool", R.m((S["access"] ?? null), "enableVnetIntegration")), "authorizedIpRanges", R.a(R.m((S["access"] ?? null), "authorizedIPRanges"))], true);
-        R.ln = F + 66;
+        R.ln = F + 63;
         if (R.t(R.m((S["access"] ?? null), "enablePrivateCluster"))) {
-            R.ln = F + 66;
+            R.ln = F + 63;
             R.pa(O, R.cmd(S, "New-Pass", ["Private cluster", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 67;
+        R.ln = F + 64;
         if (R.t(R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_ -ne '0.0.0.0/0' " }, (S, O) => {
-            R.ln = F + 67;
+            R.ln = F + 64;
             R.e(O, (R.t((S["_"] ?? null)) && R.t(R.ne((S["_"] ?? null), "0.0.0.0/0"))));
         })], R.pi(R.m((S["access"] ?? null), "authorizedIPRanges"))), "Count"))) {
-            R.ln = F + 67;
+            R.ln = F + 64;
             R.pa(O, R.cmd(S, "New-Pass", ["Authorized IP ranges configured", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 68;
+        R.ln = F + 65;
         R.pa(O, R.cmd(S, "New-Fail", ["Public API server open to all networks", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 72;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-AKS-004", "Title", "The Azure Policy add-on is enabled on AKS clusters", "Category", "Posture and vulnerability management", "Service", "Azure Kubernetes Service", "Severity", "Medium", "Description", "Checks the azurepolicy add-on, which enforces pod security and other guardrails with Gatekeeper.", "Rationale", "Without admission control, privileged containers, host mounts and other risky workloads can be deployed freely.", "Remediation", "Enable the add-on (az aks enable-addons --addons azure-policy ...) and assign the Kubernetes pod security baseline or restricted initiative.", "References", R.a("https://learn.microsoft.com/azure/governance/policy/concepts/policy-for-kubernetes"), "Frameworks", R.ht(["MCSB", R.a([R.v("PV-2"), R.v("PV-4")]), "ALZ", R.a([R.v("Enforce-GR-Kubernetes0"), R.v("Deny-Privileged-AKS"), R.v("Deny-Priv-Esc-AKS")])], false), "Policy", R.ht(["0a15ec92-a229-4763-bb14-0ea34a568f8d", "Azure Policy Add-on for Kubernetes service (AKS) should be installed and enabled on your clusters"], false), "ResourceTypes", (S["akstype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $enabled = [bool]$Record.resource.properties.addonProfiles.azurepolicy.enabled\n        if ($enabled) { return New-Pass 'Azure Policy add-on enabled' ([ordered]@{ azurepolicy = $true }) }\n        New-Fail 'Azure Policy add-on not enabled' ([ordered]@{ azurepolicy = $false })\n    " }, (S, O) => {
-        R.ln = F + 87;
+    R.ln = F + 69;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-AKS-004", "Title", "The Azure Policy add-on is enabled on AKS clusters", "Category", "Posture and vulnerability management", "Service", "Azure Kubernetes Service", "Severity", "Medium", "Description", "Checks the azurepolicy add-on, which enforces pod security and other guardrails with Gatekeeper.", "Rationale", "Without admission control, privileged containers, host mounts and other risky workloads can be deployed freely.", "Remediation", "Enable the add-on (az aks enable-addons --addons azure-policy ...) and assign the Kubernetes pod security baseline or restricted initiative.", "References", R.a("https://learn.microsoft.com/azure/governance/policy/concepts/policy-for-kubernetes"), "Policy", R.ht(["0a15ec92-a229-4763-bb14-0ea34a568f8d", "Azure Policy Add-on for Kubernetes service (AKS) should be installed and enabled on your clusters"], false), "ResourceTypes", (S["akstype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $enabled = [bool]$Record.resource.properties.addonProfiles.azurepolicy.enabled\n        if ($enabled) { return New-Pass 'Azure Policy add-on enabled' ([ordered]@{ azurepolicy = $true }) }\n        New-Fail 'Azure Policy add-on not enabled' ([ordered]@{ azurepolicy = $false })\n    " }, (S, O) => {
+        R.ln = F + 83;
         S["enabled"] = R.c("bool", R.m(R.m(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "addonProfiles"), "azurepolicy"), "enabled"));
-        R.ln = F + 88;
+        R.ln = F + 84;
         if (R.t((S["enabled"] ?? null))) {
-            R.ln = F + 88;
+            R.ln = F + 84;
             R.pa(O, R.cmd(S, "New-Pass", ["Azure Policy add-on enabled", (R.ht(["azurepolicy", true], true))], null));
             return;
         }
-        R.ln = F + 89;
+        R.ln = F + 85;
         R.pa(O, R.cmd(S, "New-Fail", ["Azure Policy add-on not enabled", (R.ht(["azurepolicy", false], true))], null));
     })], false)], null));
-    R.ln = F + 93;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-AKS-005", "Title", "AKS command invoke is disabled", "Category", "Privileged access", "Service", "Azure Kubernetes Service", "Severity", "Medium", "Description", "Checks apiServerAccessProfile.disableRunCommand.", "Rationale", "Command invoke runs kubectl commands with cluster admin level credentials through the Azure API, bypassing private cluster network controls for anyone with the right Azure role.", "Remediation", "Disable run command (az aks command invoke is then blocked): az aks update --disable-run-command ...", "References", R.a("https://learn.microsoft.com/azure/aks/access-private-cluster"), "Frameworks", R.ht(["MCSB", "PA-7"], false), "Policy", R.ht(["89f2d532-c53c-4f8f-9afa-4927b1114a0d", "Azure Kubernetes Service Clusters should disable Command Invoke"], false), "ResourceTypes", (S["akstype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $value = [bool]$Record.resource.properties.apiServerAccessProfile.disableRunCommand\n        if ($value) { return New-Pass 'Command invoke disabled' ([ordered]@{ disableRunCommand = $true }) }\n        New-Fail 'Command invoke enabled' ([ordered]@{ disableRunCommand = $false })\n    " }, (S, O) => {
-        R.ln = F + 108;
+    R.ln = F + 89;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-AKS-005", "Title", "AKS command invoke is disabled", "Category", "Privileged access", "Service", "Azure Kubernetes Service", "Severity", "Medium", "Description", "Checks apiServerAccessProfile.disableRunCommand.", "Rationale", "Command invoke runs kubectl commands with cluster admin level credentials through the Azure API, bypassing private cluster network controls for anyone with the right Azure role.", "Remediation", "Disable run command (az aks command invoke is then blocked): az aks update --disable-run-command ...", "References", R.a("https://learn.microsoft.com/azure/aks/access-private-cluster"), "Policy", R.ht(["89f2d532-c53c-4f8f-9afa-4927b1114a0d", "Azure Kubernetes Service Clusters should disable Command Invoke"], false), "ResourceTypes", (S["akstype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $value = [bool]$Record.resource.properties.apiServerAccessProfile.disableRunCommand\n        if ($value) { return New-Pass 'Command invoke disabled' ([ordered]@{ disableRunCommand = $true }) }\n        New-Fail 'Command invoke enabled' ([ordered]@{ disableRunCommand = $false })\n    " }, (S, O) => {
+        R.ln = F + 103;
         S["value"] = R.c("bool", R.m(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "apiServerAccessProfile"), "disableRunCommand"));
-        R.ln = F + 109;
+        R.ln = F + 104;
         if (R.t((S["value"] ?? null))) {
-            R.ln = F + 109;
+            R.ln = F + 104;
             R.pa(O, R.cmd(S, "New-Pass", ["Command invoke disabled", (R.ht(["disableRunCommand", true], true))], null));
             return;
         }
-        R.ln = F + 110;
+        R.ln = F + 105;
         R.pa(O, R.cmd(S, "New-Fail", ["Command invoke enabled", (R.ht(["disableRunCommand", false], true))], null));
     })], false)], null));
-    R.ln = F + 114;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-AKS-006", "Title", "AKS clusters upgrade automatically", "Category", "Posture and vulnerability management", "Service", "Azure Kubernetes Service", "Severity", "Medium", "Description", "Checks the cluster auto-upgrade channel and the node OS upgrade channel.", "Rationale", "Kubernetes versions leave support quickly and node images receive security patches weekly; without automatic upgrades clusters fall behind on security fixes.", "Remediation", "Set an auto-upgrade channel (patch or stable) and the node OS upgrade channel to NodeImage or SecurityPatch, with a planned maintenance window.", "References", R.a("https://learn.microsoft.com/azure/aks/auto-upgrade-cluster"), "Frameworks", R.ht(["MCSB", "PV-6"], false), "ResourceTypes", (S["akstype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $profile = $Record.resource.properties.autoUpgradeProfile\n        $evidence = [ordered]@{ upgradeChannel = $profile.upgradeChannel; nodeOSUpgradeChannel = $profile.nodeOSUpgradeChannel; kubernetesVersion = $Record.resource.properties.kubernetesVersion }\n        $problems = @()\n        if (-not $profile.upgradeChannel -or $profile.upgradeChannel -eq 'none') { $problems += 'no cluster auto-upgrade' }\n        if (-not $profile.nodeOSUpgradeChannel -or $profile.nodeOSUpgradeChannel -in 'None', 'Unmanaged') { $problems += 'no node OS upgrades' }\n        if ($problems) { return New-Fail ($problems -join ', ') $evidence }\n        New-Pass \"Auto-upgrade $($profile.upgradeChannel), node OS $($profile.nodeOSUpgradeChannel)\" $evidence\n    " }, (S, O) => {
-        R.ln = F + 128;
+    R.ln = F + 109;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-AKS-006", "Title", "AKS clusters upgrade automatically", "Category", "Posture and vulnerability management", "Service", "Azure Kubernetes Service", "Severity", "Medium", "Description", "Checks the cluster auto-upgrade channel and the node OS upgrade channel.", "Rationale", "Kubernetes versions leave support quickly and node images receive security patches weekly; without automatic upgrades clusters fall behind on security fixes.", "Remediation", "Set an auto-upgrade channel (patch or stable) and the node OS upgrade channel to NodeImage or SecurityPatch, with a planned maintenance window.", "References", R.a("https://learn.microsoft.com/azure/aks/auto-upgrade-cluster"), "ResourceTypes", (S["akstype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $profile = $Record.resource.properties.autoUpgradeProfile\n        $evidence = [ordered]@{ upgradeChannel = $profile.upgradeChannel; nodeOSUpgradeChannel = $profile.nodeOSUpgradeChannel; kubernetesVersion = $Record.resource.properties.kubernetesVersion }\n        $problems = @()\n        if (-not $profile.upgradeChannel -or $profile.upgradeChannel -eq 'none') { $problems += 'no cluster auto-upgrade' }\n        if (-not $profile.nodeOSUpgradeChannel -or $profile.nodeOSUpgradeChannel -in 'None', 'Unmanaged') { $problems += 'no node OS upgrades' }\n        if ($problems) { return New-Fail ($problems -join ', ') $evidence }\n        New-Pass \"Auto-upgrade $($profile.upgradeChannel), node OS $($profile.nodeOSUpgradeChannel)\" $evidence\n    " }, (S, O) => {
+        R.ln = F + 122;
         S["profile"] = R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "autoUpgradeProfile");
-        R.ln = F + 129;
+        R.ln = F + 123;
         S["evidence"] = R.ht(["upgradeChannel", R.m((S["profile"] ?? null), "upgradeChannel"), "nodeOSUpgradeChannel", R.m((S["profile"] ?? null), "nodeOSUpgradeChannel"), "kubernetesVersion", R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "kubernetesVersion")], true);
-        R.ln = F + 130;
+        R.ln = F + 124;
         S["problems"] = [];
-        R.ln = F + 131;
+        R.ln = F + 125;
         if ((!R.t(R.m((S["profile"] ?? null), "upgradeChannel")) || R.t(R.eq(R.m((S["profile"] ?? null), "upgradeChannel"), "none")))) {
-            R.ln = F + 131;
+            R.ln = F + 125;
             S["problems"] = R.add(S["problems"] ?? null, "no cluster auto-upgrade");
         }
-        R.ln = F + 132;
+        R.ln = F + 126;
         if ((!R.t(R.m((S["profile"] ?? null), "nodeOSUpgradeChannel")) || R.t(R.in(R.m((S["profile"] ?? null), "nodeOSUpgradeChannel"), [R.v("None"), R.v("Unmanaged")])))) {
-            R.ln = F + 132;
+            R.ln = F + 126;
             S["problems"] = R.add(S["problems"] ?? null, "no node OS upgrades");
         }
-        R.ln = F + 133;
+        R.ln = F + 127;
         if (R.t((S["problems"] ?? null))) {
-            R.ln = F + 133;
+            R.ln = F + 127;
             R.pa(O, R.cmd(S, "New-Fail", [(R.join((S["problems"] ?? null), ", ")), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 134;
+        R.ln = F + 128;
         R.pa(O, R.cmd(S, "New-Pass", [("Auto-upgrade " + R.str(R.u(R.pi(R.m((S["profile"] ?? null), "upgradeChannel")))) + ", node OS " + R.str(R.u(R.pi(R.m((S["profile"] ?? null), "nodeOSUpgradeChannel"))))), (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 138;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-AKS-007", "Title", "AKS clusters enforce network policies", "Category", "Network security", "Service", "Azure Kubernetes Service", "Severity", "Medium", "Description", "Checks that a network policy engine (Azure, Calico or Cilium) is configured.", "Rationale", "Without a network policy engine every pod can reach every other pod, so one compromised workload can move laterally through the cluster.", "Remediation", "Enable a network policy engine (az aks update --network-policy azure|calico|cilium ...) and apply default deny policies per namespace.", "References", R.a("https://learn.microsoft.com/azure/aks/use-network-policies"), "Frameworks", R.ht(["MCSB", "NS-1", "WAF", "SE:04"], false), "ResourceTypes", (S["akstype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $network = $Record.resource.properties.networkProfile\n        $evidence = [ordered]@{ networkPlugin = $network.networkPlugin; networkPolicy = $network.networkPolicy; dataplane = $network.networkDataplane }\n        if ($network.networkPolicy -and $network.networkPolicy -ne 'none') { return New-Pass \"Network policy $($network.networkPolicy)\" $evidence }\n        New-Fail 'No network policy engine' $evidence\n    " }, (S, O) => {
-        R.ln = F + 152;
+    R.ln = F + 132;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-AKS-007", "Title", "AKS clusters enforce network policies", "Category", "Network security", "Service", "Azure Kubernetes Service", "Severity", "Medium", "Description", "Checks that a network policy engine (Azure, Calico or Cilium) is configured.", "Rationale", "Without a network policy engine every pod can reach every other pod, so one compromised workload can move laterally through the cluster.", "Remediation", "Enable a network policy engine (az aks update --network-policy azure|calico|cilium ...) and apply default deny policies per namespace.", "References", R.a("https://learn.microsoft.com/azure/aks/use-network-policies"), "ResourceTypes", (S["akstype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $network = $Record.resource.properties.networkProfile\n        $evidence = [ordered]@{ networkPlugin = $network.networkPlugin; networkPolicy = $network.networkPolicy; dataplane = $network.networkDataplane }\n        if ($network.networkPolicy -and $network.networkPolicy -ne 'none') { return New-Pass \"Network policy $($network.networkPolicy)\" $evidence }\n        New-Fail 'No network policy engine' $evidence\n    " }, (S, O) => {
+        R.ln = F + 145;
         S["network"] = R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "networkProfile");
-        R.ln = F + 153;
+        R.ln = F + 146;
         S["evidence"] = R.ht(["networkPlugin", R.m((S["network"] ?? null), "networkPlugin"), "networkPolicy", R.m((S["network"] ?? null), "networkPolicy"), "dataplane", R.m((S["network"] ?? null), "networkDataplane")], true);
-        R.ln = F + 154;
+        R.ln = F + 147;
         if ((R.t(R.m((S["network"] ?? null), "networkPolicy")) && R.t(R.ne(R.m((S["network"] ?? null), "networkPolicy"), "none")))) {
-            R.ln = F + 154;
+            R.ln = F + 147;
             R.pa(O, R.cmd(S, "New-Pass", [("Network policy " + R.str(R.u(R.pi(R.m((S["network"] ?? null), "networkPolicy"))))), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 155;
+        R.ln = F + 148;
         R.pa(O, R.cmd(S, "New-Fail", ["No network policy engine", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 159;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-AKS-008", "Title", "AKS clusters use managed identities", "Category", "Identity management", "Service", "Azure Kubernetes Service", "Severity", "Medium", "Description", "Checks that the cluster identity is a managed identity instead of a service principal with a client secret.", "Rationale", "Service principal based clusters store a client secret on every node, which expires and is often long lived and widely privileged.", "Remediation", "Update the cluster to use a managed identity (az aks update --enable-managed-identity ...).", "References", R.a("https://learn.microsoft.com/azure/aks/use-managed-identity"), "Frameworks", R.ht(["MCSB", "IM-3", "WAF", "SE:09"], false), "Policy", R.ht(["da6e2401-19da-4532-9141-fb8fbde08431", "Azure Kubernetes Service Clusters should use managed identities"], false), "ResourceTypes", (S["akstype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $type = $Record.resource.identity.type\n        $evidence = [ordered]@{ identityType = $type; servicePrincipalClientId = $Record.resource.properties.servicePrincipalProfile.clientId }\n        if ($type -and $type -ne 'None') { return New-Pass \"Managed identity ($type)\" $evidence }\n        New-Fail 'Service principal based cluster identity' $evidence\n    " }, (S, O) => {
-        R.ln = F + 174;
+    R.ln = F + 152;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-AKS-008", "Title", "AKS clusters use managed identities", "Category", "Identity management", "Service", "Azure Kubernetes Service", "Severity", "Medium", "Description", "Checks that the cluster identity is a managed identity instead of a service principal with a client secret.", "Rationale", "Service principal based clusters store a client secret on every node, which expires and is often long lived and widely privileged.", "Remediation", "Update the cluster to use a managed identity (az aks update --enable-managed-identity ...).", "References", R.a("https://learn.microsoft.com/azure/aks/use-managed-identity"), "Policy", R.ht(["da6e2401-19da-4532-9141-fb8fbde08431", "Azure Kubernetes Service Clusters should use managed identities"], false), "ResourceTypes", (S["akstype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $type = $Record.resource.identity.type\n        $evidence = [ordered]@{ identityType = $type; servicePrincipalClientId = $Record.resource.properties.servicePrincipalProfile.clientId }\n        if ($type -and $type -ne 'None') { return New-Pass \"Managed identity ($type)\" $evidence }\n        New-Fail 'Service principal based cluster identity' $evidence\n    " }, (S, O) => {
+        R.ln = F + 166;
         S["type"] = R.m(R.m(R.m((S["record"] ?? null), "resource"), "identity"), "type");
-        R.ln = F + 175;
+        R.ln = F + 167;
         S["evidence"] = R.ht(["identityType", (S["type"] ?? null), "servicePrincipalClientId", R.m(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "servicePrincipalProfile"), "clientId")], true);
-        R.ln = F + 176;
+        R.ln = F + 168;
         if ((R.t((S["type"] ?? null)) && R.t(R.ne((S["type"] ?? null), "None")))) {
-            R.ln = F + 176;
+            R.ln = F + 168;
             R.pa(O, R.cmd(S, "New-Pass", [("Managed identity (" + R.str((S["type"] ?? null)) + ")"), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 177;
+        R.ln = F + 169;
         R.pa(O, R.cmd(S, "New-Fail", ["Service principal based cluster identity", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 181;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-AKS-009", "Title", "AKS encrypts Kubernetes secrets with Key Vault KMS", "Category", "Data protection", "Service", "Azure Kubernetes Service", "Severity", "Low", "Description", "Checks for Key Management Service (KMS) etcd encryption with a Key Vault key.", "Rationale", "KMS adds envelope encryption of Kubernetes secrets in etcd with a customer controlled key that can be rotated and revoked.", "Remediation", "Enable KMS etcd encryption (az aks update --enable-azure-keyvault-kms --azure-keyvault-kms-key-id ...), or keep application secrets in Key Vault via the Secrets Store CSI driver.", "References", R.a("https://learn.microsoft.com/azure/aks/use-kms-etcd-encryption"), "Frameworks", R.ht(["MCSB", "DP-6"], false), "Policy", R.ht(["dbbdc317-9734-4dd8-9074-993b29c69008", "Azure Kubernetes Clusters should enable Key Management Service (KMS)"], false), "ResourceTypes", (S["akstype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $kms = $Record.resource.properties.securityProfile.azureKeyVaultKms\n        if ($kms.enabled) { return New-Pass 'KMS enabled' ([ordered]@{ kmsEnabled = $true; keyVaultNetworkAccess = $kms.keyVaultNetworkAccess }) }\n        New-Fail 'KMS not enabled' ([ordered]@{ kmsEnabled = $false })\n    " }, (S, O) => {
-        R.ln = F + 196;
+    R.ln = F + 173;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-AKS-009", "Title", "AKS encrypts Kubernetes secrets with Key Vault KMS", "Category", "Data protection", "Service", "Azure Kubernetes Service", "Severity", "Low", "Description", "Checks for Key Management Service (KMS) etcd encryption with a Key Vault key.", "Rationale", "KMS adds envelope encryption of Kubernetes secrets in etcd with a customer controlled key that can be rotated and revoked.", "Remediation", "Enable KMS etcd encryption (az aks update --enable-azure-keyvault-kms --azure-keyvault-kms-key-id ...), or keep application secrets in Key Vault via the Secrets Store CSI driver.", "References", R.a("https://learn.microsoft.com/azure/aks/use-kms-etcd-encryption"), "Policy", R.ht(["dbbdc317-9734-4dd8-9074-993b29c69008", "Azure Kubernetes Clusters should enable Key Management Service (KMS)"], false), "ResourceTypes", (S["akstype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $kms = $Record.resource.properties.securityProfile.azureKeyVaultKms\n        if ($kms.enabled) { return New-Pass 'KMS enabled' ([ordered]@{ kmsEnabled = $true; keyVaultNetworkAccess = $kms.keyVaultNetworkAccess }) }\n        New-Fail 'KMS not enabled' ([ordered]@{ kmsEnabled = $false })\n    " }, (S, O) => {
+        R.ln = F + 187;
         S["kms"] = R.m(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "securityProfile"), "azureKeyVaultKms");
-        R.ln = F + 197;
+        R.ln = F + 188;
         if (R.t(R.m((S["kms"] ?? null), "enabled"))) {
-            R.ln = F + 197;
+            R.ln = F + 188;
             R.pa(O, R.cmd(S, "New-Pass", ["KMS enabled", (R.ht(["kmsEnabled", true, "keyVaultNetworkAccess", R.m((S["kms"] ?? null), "keyVaultNetworkAccess")], true))], null));
             return;
         }
-        R.ln = F + 198;
+        R.ln = F + 189;
         R.pa(O, R.cmd(S, "New-Fail", ["KMS not enabled", (R.ht(["kmsEnabled", false], true))], null));
     })], false)], null));
-    R.ln = F + 202;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-ACR-001", "Title", "Container registries disable the admin user", "Category", "Identity management", "Service", "Container Registry", "Severity", "Medium", "Description", "Checks adminUserEnabled on container registries.", "Rationale", "The admin user is a shared username and password with push and pull rights on every repository, not tied to an identity.", "Remediation", "Use Entra identities (managed identities, service principals) with ACR RBAC roles and disable the admin user (az acr update --admin-enabled false ...).", "References", R.a("https://learn.microsoft.com/azure/container-registry/container-registry-authentication"), "Frameworks", R.ht(["MCSB", R.a([R.v("IM-1"), R.v("IM-3")]), "WAF", "SE:05", "ALZ", "Enforce-GR-ContReg0"], false), "Policy", R.ht(["dc921057-6b28-4fbe-9b83-f7bec05db6c2", "Container registries should have local admin account disabled."], false), "ResourceTypes", (S["acrtype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $value = [bool]$Record.resource.properties.adminUserEnabled\n        if ($value) { return New-Fail 'Admin user enabled' ([ordered]@{ adminUserEnabled = $true }) }\n        New-Pass 'Admin user disabled' ([ordered]@{ adminUserEnabled = $false })\n    " }, (S, O) => {
-        R.ln = F + 217;
+    R.ln = F + 193;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-ACR-001", "Title", "Container registries disable the admin user", "Category", "Identity management", "Service", "Container Registry", "Severity", "Medium", "Description", "Checks adminUserEnabled on container registries.", "Rationale", "The admin user is a shared username and password with push and pull rights on every repository, not tied to an identity.", "Remediation", "Use Entra identities (managed identities, service principals) with ACR RBAC roles and disable the admin user (az acr update --admin-enabled false ...).", "References", R.a("https://learn.microsoft.com/azure/container-registry/container-registry-authentication"), "Policy", R.ht(["dc921057-6b28-4fbe-9b83-f7bec05db6c2", "Container registries should have local admin account disabled."], false), "ResourceTypes", (S["acrtype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $value = [bool]$Record.resource.properties.adminUserEnabled\n        if ($value) { return New-Fail 'Admin user enabled' ([ordered]@{ adminUserEnabled = $true }) }\n        New-Pass 'Admin user disabled' ([ordered]@{ adminUserEnabled = $false })\n    " }, (S, O) => {
+        R.ln = F + 207;
         S["value"] = R.c("bool", R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "adminUserEnabled"));
-        R.ln = F + 218;
+        R.ln = F + 208;
         if (R.t((S["value"] ?? null))) {
-            R.ln = F + 218;
+            R.ln = F + 208;
             R.pa(O, R.cmd(S, "New-Fail", ["Admin user enabled", (R.ht(["adminUserEnabled", true], true))], null));
             return;
         }
-        R.ln = F + 219;
+        R.ln = F + 209;
         R.pa(O, R.cmd(S, "New-Pass", ["Admin user disabled", (R.ht(["adminUserEnabled", false], true))], null));
     })], false)], null));
-    R.ln = F + 223;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-ACR-002", "Title", "Container registries disable anonymous pull", "Category", "Identity management", "Service", "Container Registry", "Severity", "High", "Description", "Checks anonymousPullEnabled on container registries.", "Rationale", "Anonymous pull lets anyone download images, which often contain proprietary code, configuration and embedded secrets.", "Remediation", "Disable anonymous pull (az acr update --anonymous-pull-enabled false ...).", "References", R.a("https://learn.microsoft.com/azure/container-registry/anonymous-pull-access"), "Frameworks", R.ht(["MCSB", R.a([R.v("IM-1"), R.v("DP-2")]), "ALZ", "Enforce-GR-ContReg0"], false), "Policy", R.ht(["9f2dea28-e834-476c-99c5-3507b4728395", "Container registries should have anonymous authentication disabled."], false), "ResourceTypes", (S["acrtype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $value = [bool]$Record.resource.properties.anonymousPullEnabled\n        if ($value) { return New-Fail 'Anonymous pull enabled' ([ordered]@{ anonymousPullEnabled = $true }) }\n        New-Pass 'Anonymous pull disabled' ([ordered]@{ anonymousPullEnabled = $false })\n    " }, (S, O) => {
-        R.ln = F + 238;
+    R.ln = F + 213;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-ACR-002", "Title", "Container registries disable anonymous pull", "Category", "Identity management", "Service", "Container Registry", "Severity", "High", "Description", "Checks anonymousPullEnabled on container registries.", "Rationale", "Anonymous pull lets anyone download images, which often contain proprietary code, configuration and embedded secrets.", "Remediation", "Disable anonymous pull (az acr update --anonymous-pull-enabled false ...).", "References", R.a("https://learn.microsoft.com/azure/container-registry/anonymous-pull-access"), "Policy", R.ht(["9f2dea28-e834-476c-99c5-3507b4728395", "Container registries should have anonymous authentication disabled."], false), "ResourceTypes", (S["acrtype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $value = [bool]$Record.resource.properties.anonymousPullEnabled\n        if ($value) { return New-Fail 'Anonymous pull enabled' ([ordered]@{ anonymousPullEnabled = $true }) }\n        New-Pass 'Anonymous pull disabled' ([ordered]@{ anonymousPullEnabled = $false })\n    " }, (S, O) => {
+        R.ln = F + 227;
         S["value"] = R.c("bool", R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "anonymousPullEnabled"));
-        R.ln = F + 239;
+        R.ln = F + 228;
         if (R.t((S["value"] ?? null))) {
-            R.ln = F + 239;
+            R.ln = F + 228;
             R.pa(O, R.cmd(S, "New-Fail", ["Anonymous pull enabled", (R.ht(["anonymousPullEnabled", true], true))], null));
             return;
         }
-        R.ln = F + 240;
+        R.ln = F + 229;
         R.pa(O, R.cmd(S, "New-Pass", ["Anonymous pull disabled", (R.ht(["anonymousPullEnabled", false], true))], null));
     })], false)], null));
-    R.ln = F + 244;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-ACR-003", "Title", "Container registries restrict network access", "Category", "Network security", "Service", "Container Registry", "Severity", "Medium", "Description", "Checks that public network access is disabled or the network rule set denies access by default (Premium SKU).", "Rationale", "A registry open to all networks can be reached with a leaked token from anywhere, allowing image theft or poisoning.", "Remediation", "Use the Premium SKU with private endpoints and disable public network access, or set the default network action to Deny with specific IP rules.", "References", R.a("https://learn.microsoft.com/azure/container-registry/container-registry-access-selected-networks"), "Frameworks", R.ht(["MCSB", "NS-2", "WAF", "SE:06", "ALZ", R.a([R.v("Enforce-GR-ContReg0"), R.v("Deny-Public-Endpoints")])], false), "Policy", R.ht(["d0793b48-0edc-4296-a390-4c75d1bdfd71", "Container registries should not allow unrestricted network access", "e8eef0a8-67cf-4eb4-9386-14b0e78733d4", "Container registries should use private link"], false), "ResourceTypes", (S["acrtype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $p = $Record.resource.properties\n        $evidence = [ordered]@{ publicNetworkAccess = $p.publicNetworkAccess; defaultAction = $p.networkRuleSet.defaultAction; sku = $Record.resource.sku.name }\n        if ($p.publicNetworkAccess -eq 'Disabled') { return New-Pass 'Public network access disabled' $evidence }\n        if ($p.networkRuleSet.defaultAction -eq 'Deny') { return New-Pass 'Default network action Deny' $evidence }\n        New-Fail 'Open to all networks' $evidence\n    " }, (S, O) => {
-        R.ln = F + 259;
+    R.ln = F + 233;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-ACR-003", "Title", "Container registries restrict network access", "Category", "Network security", "Service", "Container Registry", "Severity", "Medium", "Description", "Checks that public network access is disabled or the network rule set denies access by default (Premium SKU).", "Rationale", "A registry open to all networks can be reached with a leaked token from anywhere, allowing image theft or poisoning.", "Remediation", "Use the Premium SKU with private endpoints and disable public network access, or set the default network action to Deny with specific IP rules.", "References", R.a("https://learn.microsoft.com/azure/container-registry/container-registry-access-selected-networks"), "Policy", R.ht(["d0793b48-0edc-4296-a390-4c75d1bdfd71", "Container registries should not allow unrestricted network access", "e8eef0a8-67cf-4eb4-9386-14b0e78733d4", "Container registries should use private link"], false), "ResourceTypes", (S["acrtype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $p = $Record.resource.properties\n        $evidence = [ordered]@{ publicNetworkAccess = $p.publicNetworkAccess; defaultAction = $p.networkRuleSet.defaultAction; sku = $Record.resource.sku.name }\n        if ($p.publicNetworkAccess -eq 'Disabled') { return New-Pass 'Public network access disabled' $evidence }\n        if ($p.networkRuleSet.defaultAction -eq 'Deny') { return New-Pass 'Default network action Deny' $evidence }\n        New-Fail 'Open to all networks' $evidence\n    " }, (S, O) => {
+        R.ln = F + 247;
         S["p"] = R.m(R.m((S["record"] ?? null), "resource"), "properties");
-        R.ln = F + 260;
+        R.ln = F + 248;
         S["evidence"] = R.ht(["publicNetworkAccess", R.m((S["p"] ?? null), "publicNetworkAccess"), "defaultAction", R.m(R.m((S["p"] ?? null), "networkRuleSet"), "defaultAction"), "sku", R.m(R.m(R.m((S["record"] ?? null), "resource"), "sku"), "name")], true);
-        R.ln = F + 261;
+        R.ln = F + 249;
         if (R.t(R.eq(R.m((S["p"] ?? null), "publicNetworkAccess"), "Disabled"))) {
-            R.ln = F + 261;
+            R.ln = F + 249;
             R.pa(O, R.cmd(S, "New-Pass", ["Public network access disabled", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 262;
+        R.ln = F + 250;
         if (R.t(R.eq(R.m(R.m((S["p"] ?? null), "networkRuleSet"), "defaultAction"), "Deny"))) {
-            R.ln = F + 262;
+            R.ln = F + 250;
             R.pa(O, R.cmd(S, "New-Pass", ["Default network action Deny", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 263;
+        R.ln = F + 251;
         R.pa(O, R.cmd(S, "New-Fail", ["Open to all networks", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 267;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-ACR-004", "Title", "Container registries disable ARM audience token authentication", "Category", "Identity management", "Service", "Container Registry", "Severity", "Low", "Description", "Checks the azureADAuthenticationAsArmPolicy, which decides whether general Azure Resource Manager tokens are accepted for registry access.", "Rationale", "Accepting ARM audience tokens means any token issued for management.azure.com can be used against the registry; registry scoped tokens limit the blast radius of a stolen token.", "Remediation", "Disable ARM audience tokens (az acr config authentication-as-arm update --status disabled ...).", "References", R.a("https://learn.microsoft.com/azure/container-registry/container-registry-disable-authentication-as-arm"), "Frameworks", R.ht(["MCSB", "IM-1"], false), "Policy", R.ht(["42781ec6-6127-4c30-bdfa-fb423a0047d3", "Container registries should have ARM audience token authentication disabled."], false), "ResourceTypes", (S["acrtype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $status = $Record.resource.properties.policies.azureADAuthenticationAsArmPolicy.status\n        $evidence = [ordered]@{ azureADAuthenticationAsArmPolicy = $status }\n        if ($status -eq 'disabled') { return New-Pass 'ARM audience tokens disabled' $evidence }\n        New-Fail 'ARM audience tokens accepted' $evidence\n    " }, (S, O) => {
-        R.ln = F + 282;
+    R.ln = F + 255;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-ACR-004", "Title", "Container registries disable ARM audience token authentication", "Category", "Identity management", "Service", "Container Registry", "Severity", "Low", "Description", "Checks the azureADAuthenticationAsArmPolicy, which decides whether general Azure Resource Manager tokens are accepted for registry access.", "Rationale", "Accepting ARM audience tokens means any token issued for management.azure.com can be used against the registry; registry scoped tokens limit the blast radius of a stolen token.", "Remediation", "Disable ARM audience tokens (az acr config authentication-as-arm update --status disabled ...).", "References", R.a("https://learn.microsoft.com/azure/container-registry/container-registry-disable-authentication-as-arm"), "Policy", R.ht(["42781ec6-6127-4c30-bdfa-fb423a0047d3", "Container registries should have ARM audience token authentication disabled."], false), "ResourceTypes", (S["acrtype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $status = $Record.resource.properties.policies.azureADAuthenticationAsArmPolicy.status\n        $evidence = [ordered]@{ azureADAuthenticationAsArmPolicy = $status }\n        if ($status -eq 'disabled') { return New-Pass 'ARM audience tokens disabled' $evidence }\n        New-Fail 'ARM audience tokens accepted' $evidence\n    " }, (S, O) => {
+        R.ln = F + 269;
         S["status"] = R.m(R.m(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "policies"), "azureADAuthenticationAsArmPolicy"), "status");
-        R.ln = F + 283;
+        R.ln = F + 270;
         S["evidence"] = R.ht(["azureADAuthenticationAsArmPolicy", (S["status"] ?? null)], true);
-        R.ln = F + 284;
+        R.ln = F + 271;
         if (R.t(R.eq((S["status"] ?? null), "disabled"))) {
-            R.ln = F + 284;
+            R.ln = F + 271;
             R.pa(O, R.cmd(S, "New-Pass", ["ARM audience tokens disabled", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 285;
+        R.ln = F + 272;
         R.pa(O, R.cmd(S, "New-Fail", ["ARM audience tokens accepted", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 289;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-ACR-005", "Title", "Container registries do not use repository scoped access tokens", "Category", "Identity management", "Service", "Container Registry", "Severity", "Low", "Description", "Finds enabled repository scoped tokens on container registries.", "Rationale", "Repository scoped tokens are passwords that are not tied to an Entra identity and bypass Conditional Access and RBAC reviews.", "Remediation", "Replace tokens with Entra identities and ACR ABAC repository permissions, then disable or delete the tokens.", "References", R.a("https://learn.microsoft.com/azure/container-registry/container-registry-repository-scoped-permissions"), "Frameworks", R.ht(["MCSB", R.a([R.v("IM-1"), R.v("IM-8")])], false), "Policy", R.ht(["ff05e24e-195c-447e-b322-5e90c9f9f366", "Container registries should have repository scoped access token disabled."], false), "ResourceTypes", (S["acrtype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not (Test-ChildCollected $Record 'tokens')) { return New-Unknown 'Tokens could not be listed' }\n        $enabled = @(Get-Child $Record 'tokens' | Where-Object { $_ -and $_.properties.status -eq 'enabled' } | ForEach-Object name | Sort-Object)\n        $evidence = [ordered]@{ enabledTokens = $enabled }\n        if ($enabled) { return New-Fail \"Enabled token(s): $($enabled -join ', ')\" $evidence }\n        New-Pass 'No enabled repository scoped tokens' $evidence\n    " }, (S, O) => {
-        R.ln = F + 304;
+    R.ln = F + 276;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-ACR-005", "Title", "Container registries do not use repository scoped access tokens", "Category", "Identity management", "Service", "Container Registry", "Severity", "Low", "Description", "Finds enabled repository scoped tokens on container registries.", "Rationale", "Repository scoped tokens are passwords that are not tied to an Entra identity and bypass Conditional Access and RBAC reviews.", "Remediation", "Replace tokens with Entra identities and ACR ABAC repository permissions, then disable or delete the tokens.", "References", R.a("https://learn.microsoft.com/azure/container-registry/container-registry-repository-scoped-permissions"), "Policy", R.ht(["ff05e24e-195c-447e-b322-5e90c9f9f366", "Container registries should have repository scoped access token disabled."], false), "ResourceTypes", (S["acrtype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not (Test-ChildCollected $Record 'tokens')) { return New-Unknown 'Tokens could not be listed' }\n        $enabled = @(Get-Child $Record 'tokens' | Where-Object { $_ -and $_.properties.status -eq 'enabled' } | ForEach-Object name | Sort-Object)\n        $evidence = [ordered]@{ enabledTokens = $enabled }\n        if ($enabled) { return New-Fail \"Enabled token(s): $($enabled -join ', ')\" $evidence }\n        New-Pass 'No enabled repository scoped tokens' $evidence\n    " }, (S, O) => {
+        R.ln = F + 290;
         if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "tokens"], null)))) {
-            R.ln = F + 304;
+            R.ln = F + 290;
             R.pa(O, R.cmd(S, "New-Unknown", ["Tokens could not be listed"], null));
             return;
         }
-        R.ln = F + 305;
+        R.ln = F + 291;
         S["enabled"] = R.cmd(S, "Sort-Object", [], R.cmd(S, "ForEach-Object", ["name"], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.properties.status -eq 'enabled' " }, (S, O) => {
-            R.ln = F + 305;
+            R.ln = F + 291;
             R.e(O, (R.t((S["_"] ?? null)) && R.t(R.eq(R.m(R.m((S["_"] ?? null), "properties"), "status"), "enabled"))));
         })], R.cmd(S, "Get-Child", [(S["record"] ?? null), "tokens"], null))));
-        R.ln = F + 306;
+        R.ln = F + 292;
         S["evidence"] = R.ht(["enabledTokens", (S["enabled"] ?? null)], true);
-        R.ln = F + 307;
+        R.ln = F + 293;
         if (R.t((S["enabled"] ?? null))) {
-            R.ln = F + 307;
+            R.ln = F + 293;
             R.pa(O, R.cmd(S, "New-Fail", [("Enabled token(s): " + R.str(R.u(R.pi(R.join((S["enabled"] ?? null), ", "))))), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 308;
+        R.ln = F + 294;
         R.pa(O, R.cmd(S, "New-Pass", ["No enabled repository scoped tokens", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 312;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-CAPP-001", "Title", "Container Apps only accept HTTPS", "Category", "Data protection", "Service", "Container Apps", "Severity", "High", "Description", "Checks that ingress of container apps does not allow insecure (HTTP) connections.", "Rationale", "Allowing insecure connections exposes tokens, cookies and data to interception.", "Remediation", "Set ingress allowInsecure to false (az containerapp ingress update --allow-insecure false ...).", "References", R.a("https://learn.microsoft.com/azure/container-apps/ingress-overview"), "Frameworks", R.ht(["MCSB", "DP-3", "WAF", "SE:07", "ALZ", "Enforce-GR-ContApps0"], false), "Policy", R.ht(["0e80e269-43a4-4ae9-b5bc-178126b8a5cb", "Container Apps should only be accessible over HTTPS"], false), "ResourceTypes", R.a("Microsoft.App/containerApps"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $ingress = $Record.resource.properties.configuration.ingress\n        if (-not $ingress) { return New-NotApplicable 'No ingress' }\n        $evidence = [ordered]@{ allowInsecure = [bool]$ingress.allowInsecure; external = [bool]$ingress.external }\n        if ($ingress.allowInsecure) { return New-Fail 'Insecure HTTP allowed' $evidence }\n        New-Pass 'HTTPS only' $evidence\n    " }, (S, O) => {
-        R.ln = F + 327;
+    R.ln = F + 298;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-CAPP-001", "Title", "Container Apps only accept HTTPS", "Category", "Data protection", "Service", "Container Apps", "Severity", "High", "Description", "Checks that ingress of container apps does not allow insecure (HTTP) connections.", "Rationale", "Allowing insecure connections exposes tokens, cookies and data to interception.", "Remediation", "Set ingress allowInsecure to false (az containerapp ingress update --allow-insecure false ...).", "References", R.a("https://learn.microsoft.com/azure/container-apps/ingress-overview"), "Policy", R.ht(["0e80e269-43a4-4ae9-b5bc-178126b8a5cb", "Container Apps should only be accessible over HTTPS"], false), "ResourceTypes", R.a("Microsoft.App/containerApps"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $ingress = $Record.resource.properties.configuration.ingress\n        if (-not $ingress) { return New-NotApplicable 'No ingress' }\n        $evidence = [ordered]@{ allowInsecure = [bool]$ingress.allowInsecure; external = [bool]$ingress.external }\n        if ($ingress.allowInsecure) { return New-Fail 'Insecure HTTP allowed' $evidence }\n        New-Pass 'HTTPS only' $evidence\n    " }, (S, O) => {
+        R.ln = F + 312;
         S["ingress"] = R.m(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "configuration"), "ingress");
-        R.ln = F + 328;
+        R.ln = F + 313;
         if (!R.t((S["ingress"] ?? null))) {
-            R.ln = F + 328;
+            R.ln = F + 313;
             R.pa(O, R.cmd(S, "New-NotApplicable", ["No ingress"], null));
             return;
         }
-        R.ln = F + 329;
+        R.ln = F + 314;
         S["evidence"] = R.ht(["allowInsecure", R.c("bool", R.m((S["ingress"] ?? null), "allowInsecure")), "external", R.c("bool", R.m((S["ingress"] ?? null), "external"))], true);
-        R.ln = F + 330;
+        R.ln = F + 315;
         if (R.t(R.m((S["ingress"] ?? null), "allowInsecure"))) {
-            R.ln = F + 330;
+            R.ln = F + 315;
             R.pa(O, R.cmd(S, "New-Fail", ["Insecure HTTP allowed", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 331;
+        R.ln = F + 316;
         R.pa(O, R.cmd(S, "New-Pass", ["HTTPS only", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 335;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-CAPP-002", "Title", "Container Apps ingress is not exposed externally unless required", "Category", "Network security", "Service", "Container Apps", "Severity", "Low", "Description", "Finds container apps with external ingress that has no IP security restrictions.", "Rationale", "External ingress publishes the app to the Internet; internal services should use internal ingress, and public apps should sit behind a WAF or IP restrictions.", "Remediation", "Use internal ingress for internal services, or add IP security restrictions / publish through Front Door with WAF.", "References", R.a("https://learn.microsoft.com/azure/container-apps/ip-restrictions"), "Frameworks", R.ht(["MCSB", "NS-2", "WAF", "SE:06"], false), "Policy", R.ht(["783ea2a8-b8fd-46be-896a-9ae79643a0b1", "Container Apps should disable external network access"], false), "ResourceTypes", R.a("Microsoft.App/containerApps"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $ingress = $Record.resource.properties.configuration.ingress\n        if (-not $ingress) { return New-NotApplicable 'No ingress' }\n        $restrictions = @($ingress.ipSecurityRestrictions | Where-Object { $_ })\n        $evidence = [ordered]@{ external = [bool]$ingress.external; ipSecurityRestrictions = $restrictions.Count }\n        if (-not $ingress.external) { return New-Pass 'Internal ingress' $evidence }\n        if ($restrictions) { return New-Pass 'External ingress with IP restrictions' $evidence }\n        New-Fail 'External ingress open to the Internet' $evidence\n    " }, (S, O) => {
-        R.ln = F + 350;
+    R.ln = F + 320;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-CAPP-002", "Title", "Container Apps ingress is not exposed externally unless required", "Category", "Network security", "Service", "Container Apps", "Severity", "Low", "Description", "Finds container apps with external ingress that has no IP security restrictions.", "Rationale", "External ingress publishes the app to the Internet; internal services should use internal ingress, and public apps should sit behind a WAF or IP restrictions.", "Remediation", "Use internal ingress for internal services, or add IP security restrictions / publish through Front Door with WAF.", "References", R.a("https://learn.microsoft.com/azure/container-apps/ip-restrictions"), "Policy", R.ht(["783ea2a8-b8fd-46be-896a-9ae79643a0b1", "Container Apps should disable external network access"], false), "ResourceTypes", R.a("Microsoft.App/containerApps"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $ingress = $Record.resource.properties.configuration.ingress\n        if (-not $ingress) { return New-NotApplicable 'No ingress' }\n        $restrictions = @($ingress.ipSecurityRestrictions | Where-Object { $_ })\n        $evidence = [ordered]@{ external = [bool]$ingress.external; ipSecurityRestrictions = $restrictions.Count }\n        if (-not $ingress.external) { return New-Pass 'Internal ingress' $evidence }\n        if ($restrictions) { return New-Pass 'External ingress with IP restrictions' $evidence }\n        New-Fail 'External ingress open to the Internet' $evidence\n    " }, (S, O) => {
+        R.ln = F + 334;
         S["ingress"] = R.m(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "configuration"), "ingress");
-        R.ln = F + 351;
+        R.ln = F + 335;
         if (!R.t((S["ingress"] ?? null))) {
-            R.ln = F + 351;
+            R.ln = F + 335;
             R.pa(O, R.cmd(S, "New-NotApplicable", ["No ingress"], null));
             return;
         }
-        R.ln = F + 352;
+        R.ln = F + 336;
         S["restrictions"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 352;
+            R.ln = F + 336;
             R.e(O, (S["_"] ?? null));
         })], R.pi(R.m((S["ingress"] ?? null), "ipSecurityRestrictions")));
-        R.ln = F + 353;
+        R.ln = F + 337;
         S["evidence"] = R.ht(["external", R.c("bool", R.m((S["ingress"] ?? null), "external")), "ipSecurityRestrictions", R.m((S["restrictions"] ?? null), "Count")], true);
-        R.ln = F + 354;
+        R.ln = F + 338;
         if (!R.t(R.m((S["ingress"] ?? null), "external"))) {
-            R.ln = F + 354;
+            R.ln = F + 338;
             R.pa(O, R.cmd(S, "New-Pass", ["Internal ingress", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 355;
+        R.ln = F + 339;
         if (R.t((S["restrictions"] ?? null))) {
-            R.ln = F + 355;
+            R.ln = F + 339;
             R.pa(O, R.cmd(S, "New-Pass", ["External ingress with IP restrictions", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 356;
+        R.ln = F + 340;
         R.pa(O, R.cmd(S, "New-Fail", ["External ingress open to the Internet", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 360;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-ACI-001", "Title", "Container instances are not exposed with a public IP address", "Category", "Network security", "Service", "Container Instances", "Severity", "Medium", "Description", "Finds container groups with a public IP address.", "Rationale", "Public container groups have no network security group or WAF in front of them; every exposed port is reachable from the Internet.", "Remediation", "Deploy the container group into a virtual network (private IP) and publish it through Application Gateway or a load balancer if it must be reachable.", "References", R.a("https://learn.microsoft.com/azure/container-instances/container-instances-vnet"), "Frameworks", R.ht(["MCSB", "NS-2", "WAF", "SE:06", "ALZ", "Enforce-GR-ContInst0"], false), "ResourceTypes", R.a("Microsoft.ContainerInstance/containerGroups"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $address = $Record.resource.properties.ipAddress\n        $evidence = [ordered]@{ ipAddressType = $address.type; ports = @($address.ports | ForEach-Object { \"$($_.protocol)/$($_.port)\" }) }\n        if ($address.type -eq 'Public') { return New-Fail \"Public IP with ports $($evidence.ports -join ', ')\" $evidence }\n        New-Pass $(if ($address) { 'Private IP address' } else { 'No IP address' }) $evidence\n    " }, (S, O) => {
-        R.ln = F + 374;
+    R.ln = F + 344;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-ACI-001", "Title", "Container instances are not exposed with a public IP address", "Category", "Network security", "Service", "Container Instances", "Severity", "Medium", "Description", "Finds container groups with a public IP address.", "Rationale", "Public container groups have no network security group or WAF in front of them; every exposed port is reachable from the Internet.", "Remediation", "Deploy the container group into a virtual network (private IP) and publish it through Application Gateway or a load balancer if it must be reachable.", "References", R.a("https://learn.microsoft.com/azure/container-instances/container-instances-vnet"), "ResourceTypes", R.a("Microsoft.ContainerInstance/containerGroups"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $address = $Record.resource.properties.ipAddress\n        $evidence = [ordered]@{ ipAddressType = $address.type; ports = @($address.ports | ForEach-Object { \"$($_.protocol)/$($_.port)\" }) }\n        if ($address.type -eq 'Public') { return New-Fail \"Public IP with ports $($evidence.ports -join ', ')\" $evidence }\n        New-Pass $(if ($address) { 'Private IP address' } else { 'No IP address' }) $evidence\n    " }, (S, O) => {
+        R.ln = F + 357;
         S["address"] = R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "ipAddress");
-        R.ln = F + 375;
+        R.ln = F + 358;
         S["evidence"] = R.ht(["ipAddressType", R.m((S["address"] ?? null), "type"), "ports", R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " \"$($_.protocol)/$($_.port)\" " }, (S, O) => {
-            R.ln = F + 375;
+            R.ln = F + 358;
             R.e(O, ("" + R.str(R.u(R.pi(R.m((S["_"] ?? null), "protocol")))) + "/" + R.str(R.u(R.pi(R.m((S["_"] ?? null), "port"))))));
         })], R.pi(R.m((S["address"] ?? null), "ports")))], true);
-        R.ln = F + 376;
+        R.ln = F + 359;
         if (R.t(R.eq(R.m((S["address"] ?? null), "type"), "Public"))) {
-            R.ln = F + 376;
+            R.ln = F + 359;
             R.pa(O, R.cmd(S, "New-Fail", [("Public IP with ports " + R.str(R.u(R.pi(R.join(R.m((S["evidence"] ?? null), "ports"), ", "))))), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 377;
+        R.ln = F + 360;
         R.pa(O, R.cmd(S, "New-Pass", [(() => {
             const v2 = [];
-            R.ln = F + 377;
+            R.ln = F + 360;
             if (R.t((S["address"] ?? null))) {
-                R.ln = F + 377;
+                R.ln = F + 360;
                 R.e(v2, "Private IP address");
             } else {
-                R.ln = F + 377;
+                R.ln = F + 360;
                 R.e(v2, "No IP address");
             }
             return R.u(v2);

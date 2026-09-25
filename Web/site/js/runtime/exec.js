@@ -3,7 +3,7 @@ import {
     ANULL, isNull, PSHashtable, PSDate, ScriptBlock, PSFunction, PSError, ErrorRecord, NamedArg, NativeObject,
     isPSObject, isEnumerable, toArray, objectKeys, findObjectKey, DictionaryEntry
 } from './types.js';
-import { toStr, truthy, cast, formatDate, toNumber, typeName } from './convert.js';
+import { toStr, truthy, cast, toNumber, typeName } from './convert.js';
 import { pipeItems, unwrap, emit, val, eq, ne, gt, ge, lt, le, like, notLike, contains, match, notMatch } from './ops.js';
 import { getMember, setBlockInvoker } from './members.js';
 import { introSort, psCompare } from './sort.js';
@@ -15,7 +15,7 @@ import { isType } from './convert.js';
 
 export const state = {
     vfs: null,
-    host: { write: t => console.log(t), warn: t => console.warn(t), error: t => console.error(t) },
+    host: { write: t => console.log(t), warn: t => console.warn(t) },
     quietDepth: 0,
     ln: 0,
     files: [],
@@ -253,11 +253,7 @@ export function defineFunction(S, name, meta, body) {
 }
 
 const ALIASES = {
-    '%': 'foreach-object', 'foreach': 'foreach-object', '?': 'where-object', 'where': 'where-object', 'sort': 'sort-object',
-    'group': 'group-object', 'select': 'select-object', 'measure': 'measure-object', 'gci': 'get-childitem', 'ls': 'get-childitem',
-    'dir': 'get-childitem', 'gc': 'get-content', 'cat': 'get-content', 'echo': 'write-output', 'write': 'write-output',
-    'rm': 'remove-item', 'del': 'remove-item', 'ni': 'new-item', 'pwd': 'get-location', 'gl': 'get-location', 'sleep': 'start-sleep',
-    'rvpa': 'resolve-path', 'epal': 'export-alias', 'gcm': 'get-command', 'oh': 'out-host'
+    '%': 'foreach-object', '?': 'where-object'
 };
 
 export function callCommand(S, name, args, input = null) {
@@ -386,8 +382,6 @@ function propertyList(v) {
     if (v === undefined || isNull(v)) { return []; }
     return isEnumerable(v) ? toArray(v) : [v];
 }
-
-function inputItems(input) { return input ?? []; }
 
 function sortEntries(S, items, props, descendingAll, caseSensitive) {
     const entries = items.filter(x => !isNull(x)).map(item => {
@@ -692,11 +686,6 @@ export const CMDLETS = {
         }
         return out;
     }),
-    'set-content': spec(['Path', 'Value', 'Encoding', sw('NoNewline'), sw('Force')], (S, b, input) => {
-        const value = input ?? pipeItems(arg(b, 'value', 1));
-        vfs().writeText(toStr(arg(b, 'path', 0)), value.map(toStr).join('\r\n') + (b.named.nonewline ? '' : '\r\n'));
-        return [];
-    }),
     'new-item': spec(['Path', 'ItemType', 'Name', 'Value', sw('Force')], (S, b) => {
         let path = toStr(arg(b, 'path', 0));
         if (b.named.name !== undefined) { path = path + '/' + toStr(b.named.name); }
@@ -718,7 +707,7 @@ export const CMDLETS = {
         return [];
     }),
     'expand-archive': spec(['Path', 'DestinationPath', sw('Force'), 'LiteralPath'], () => {
-        throw new PSError('Expand-Archive is not available here; open the zip in the page, which unpacks it before the analysis starts.');
+        throw new PSError('Expand-Archive is not available in the browser.');
     }),
     'get-location': spec([], () => [pathInfo(vfs().cwd)]),
     'get-command': spec(['Name', 'CommandType', 'Module'], (S, b) => {
@@ -741,37 +730,7 @@ export const CMDLETS = {
         return [];
     }),
     'write-warning': spec(['Message'], (S, b) => { hostWarn(toStr(arg(b, 'message', 0))); return []; }),
-    'write-verbose': spec(['Message'], () => []),
-    'write-debug': spec(['Message'], () => []),
-    'write-information': spec(['MessageData', 'Tags'], (S, b) => { hostWrite(toStr(arg(b, 'messagedata', 0))); return []; }),
-    'write-progress': spec(['Activity', 'Status', 'PercentComplete', 'Id', sw('Completed'), 'CurrentOperation'], () => []),
-    'write-output': spec(['InputObject', sw('NoEnumerate')], (S, b, input) => {
-        if (input !== null) { return input; }
-        const out = [];
-        for (const v of b.positional.length ? b.positional : [b.named.inputobject]) {
-            if (b.named.noenumerate) { out.push(val(v)); } else { emit(out, v); }
-        }
-        return out;
-    }),
-    'write-error': spec(['Message', 'Exception', 'ErrorRecord', 'Category', 'ErrorId', 'TargetObject'], (S, b) => {
-        const message = toStr(b.named.message ?? b.positional[0] ?? b.named.exception);
-        const pref = toStr(S['erroractionpreference'] ?? 'Continue').toLowerCase();
-        const ea = b.named['erroraction'] !== undefined ? toStr(b.named['erroraction']).toLowerCase() : pref;
-        if (ea === 'stop') { throw new PSError(message); }
-        if (ea !== 'silentlycontinue' && ea !== 'ignore') { state.host.error(message); }
-        return [];
-    }),
-    'out-null': spec(['InputObject'], () => []),
-    'out-string': spec(['InputObject', sw('Stream'), 'Width'], (S, b, input) => [(input ?? pipeItems(b.named.inputobject)).map(toStr).join('\r\n') + '\r\n']),
-    'start-sleep': spec(['Seconds', 'Milliseconds', 'Duration'], () => []),
-    'get-date': spec(['Date', 'Format', 'UFormat', sw('AsUTC'), 'Year', 'Month', 'Day'], (S, b) => {
-        let d = b.named.date !== undefined ? cast('datetime', b.named.date) : new PSDate(Date.now(), 'Local');
-        if (b.named.asutc) { d = d.toUniversal(); }
-        if (b.named.format !== undefined) { return [formatDate(d, toStr(b.named.format))]; }
-        return [d];
-    }),
-    'set-strictmode': spec(['Version', sw('Off')], () => []),
-    'set-location': spec(['Path'], (S, b) => { vfs().cwd = vfs().resolve(toStr(arg(b, 'path', 0))); return []; })
+    'out-null': spec(['InputObject'], () => [])
 };
 
 function emitAll(out, items) { for (const x of items) { out.push(x); } }
