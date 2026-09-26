@@ -128,6 +128,8 @@ $coreApiVersions = [ordered]@{
     diagnosticSettings = '2021-05-01-preview'
     resourceGraph      = '2022-10-01'
     activityLog        = '2015-04-01'
+    metrics            = '2023-10-01'
+    managedApis        = '2016-06-01'
 }
 $resourceListExpand = 'createdTime,changedTime,provisioningState'
 
@@ -288,6 +290,7 @@ $childResourceMap = @{
     'microsoft.network/firewallpolicies'               = @('ruleCollectionGroups')
     'microsoft.network/dnszones'                       = @('recordsets')
     'microsoft.network/dnsresolverpolicies'            = @('virtualNetworkLinks')
+    'microsoft.network/dnsforwardingrulesets'          = @('forwardingRules')
     'microsoft.network/privatednszones'                = @('virtualNetworkLinks', 'ALL')
     'microsoft.network/expressroutecircuits'           = @('authorizations', 'peerings')
     'microsoft.network/virtualhubs'                    = @('hubVirtualNetworkConnections', 'routingIntent', 'hubRouteTables')
@@ -340,6 +343,15 @@ $resourceExpandMap = @{
     'microsoft.compute/virtualmachinescalesets' = '$expand=userData'
 }
 
+#Azure Monitor platform metrics per resource type, stored as child 'metrics': daily totals over the $metricsDays days
+#before the ingestion (platform metrics are kept 93 days), one response per $metricsWindowDays days because the metrics
+#API returns at most about 30 days per query
+$metricsDays = 75
+$metricsWindowDays = 25
+$resourceMetricsMap = @{
+    'microsoft.logic/workflows' = 'RunsStarted,RunsCompleted,RunsFailed,TriggersCompleted,TriggersFailed'
+}
+
 #child resource types that also support diagnostic settings (all top level types are tried)
 $diagnosticSettingsChildTypes = @(
     'microsoft.sql/servers/databases', 'microsoft.sql/managedinstances/databases', 'microsoft.web/sites/slots',
@@ -360,7 +372,7 @@ $resourceGraphTables = @(
 #region shared helpers
 #These also run in the parallel workers and read these variables from the caller's scope:
 #$cloudEndpoints, $RequestFailures, $CompactJson, $apiVersions, $childResourceMap, $resourceExpandMap, $textContentMap, $diagnosticSettingsChildTypes,
-#$resourceGroupEndpoints, $coreApiVersions and a Get-AccessToken function.
+#$resourceGroupEndpoints, $coreApiVersions, $resourceMetricsMap, $metricsTimespans and a Get-AccessToken function.
 
 function Write-Log {
     param([string]$Message, [switch]$Warning)
@@ -772,6 +784,22 @@ function Export-ResourceDetail {
                 $failures.Add([ordered]@{ path = "$($Item.Id)/$path"; apiVersion = $record.apiVersion; statusCode = $response.StatusCode; errorCode = $response.ErrorCode })
             }
         }
+        $metricNames = $resourceMetricsMap[$typeKey]
+        if ($metricNames) {
+            #all windows or nothing, so that totals are never computed from part of the period
+            $path = 'providers/Microsoft.Insights/metrics'
+            $windows = [System.Collections.Generic.List[System.Text.Json.JsonElement]]::new()
+            foreach ($timespan in $metricsTimespans) {
+                $response = Invoke-AzRest -Uri "$($Item.Id)/$($path)?metricnames=$metricNames&aggregation=Total&interval=P1D&timespan=$timespan&api-version=$($coreApiVersions.metrics)" -Context $Item.Id -ExpectedStatus 400, 404 -MaxTransientRetries 1
+                if (-not (Test-Success $response)) {
+                    $windows = $null
+                    $failures.Add([ordered]@{ path = "$($Item.Id)/$path"; apiVersion = $coreApiVersions.metrics; statusCode = $response.StatusCode; errorCode = $response.ErrorCode })
+                    break
+                }
+                $windows.Add($response.Json)
+            }
+            $record.children['metrics'] = $windows
+        }
     }
 
     Write-JsonFile -Path $Item.FullPath -Value $record
@@ -787,6 +815,8 @@ function Export-ResourceDetail {
         Status       = if ($null -ne $record.resource) { 'ok' } else { 'failed' }
         FailureCount = $failures.Count
         PrincipalIds = [string[]]@($principalIds)
+        #the connector of an API connection, whose metadata is collected after the resources
+        ManagedApiId = if ($typeKey -eq 'microsoft.web/connections') { Get-JsonProp -Element $record.resource -Path 'properties.api.id' } else { $null }
     }
 }
 
@@ -1340,6 +1370,11 @@ try {
     )
     $workerFunctions = @{}
     foreach ($functionName in $workerFunctionNames) { $workerFunctions[$functionName] = (Get-Command -Name $functionName -CommandType Function).ScriptBlock.ToString() }
+    #metric query windows ('start/end'), newest first
+    $invariant = [System.Globalization.CultureInfo]::InvariantCulture
+    $metricsTimespans = @(for ($daysBack = 0; $daysBack -lt $metricsDays; $daysBack += $metricsWindowDays) {
+            "$($startTime.AddDays(-[math]::Min($daysBack + $metricsWindowDays, $metricsDays)).ToString('yyyy-MM-ddTHH:mm:ssZ', $invariant))/$($startTime.AddDays(-$daysBack).ToString('yyyy-MM-ddTHH:mm:ssZ', $invariant))"
+        })
     $itemResults = [System.Collections.Generic.List[object]]::new()
     $chunkSize = 200
     Write-Log "Collecting $($resourceGroups.Count) resource groups and $($resources.Count) resources ($ThrottleLimit threads)"
@@ -1364,6 +1399,8 @@ try {
             $diagnosticSettingsChildTypes = $using:diagnosticSettingsChildTypes
             $resourceGroupEndpoints = $using:resourceGroupEndpoints
             $textContentMap = $using:textContentMap
+            $resourceMetricsMap = $using:resourceMetricsMap
+            $metricsTimespans = $using:metricsTimespans
             $item = $_
             try {
                 if ($item.Kind -eq 'ResourceGroup') { Export-ResourceGroupDetail -Item $item } else { Export-ResourceDetail -Item $item }
@@ -1383,6 +1420,18 @@ try {
     Write-JsonFile -Path (Join-Path $runFolder 'index.json') -Value @($index)
     $counts.itemsFailed = @($itemResults | Where-Object { $_.Status -ne 'ok' }).Count
     foreach ($errorResult in ($itemResults | Where-Object { $_.Status -like 'error:*' })) { Write-Log "$($errorResult.Id): $($errorResult.Status)" -Warning }
+
+    #connector metadata of the API connections: which connection parameters hold a secret. One call per connector
+    $managedApiIds = @($itemResults | ForEach-Object { $_.ManagedApiId } | Where-Object { $_ } | ForEach-Object { $_.ToLowerInvariant() } | Sort-Object -Unique)
+    Write-Log "Connector metadata ($($managedApiIds.Count) connectors)"
+    $managedApis = [System.Collections.Generic.List[System.Text.Json.JsonElement]]::new()
+    $managedApisFailed = 0
+    foreach ($managedApiId in $managedApiIds) {
+        $response = Invoke-AzRest -Uri "$managedApiId`?api-version=$($coreApiVersions.managedApis)" -Context 'web/managedApis.json'
+        if (Test-Success $response) { $managedApis.Add($response.Json) } else { $managedApisFailed++ }
+    }
+    Write-JsonFile -Path (Join-Path $runFolder 'web/managedApis.json') -Value $managedApis
+    $sections['web/managedApis'] = [ordered]@{ status = if (-not $managedApisFailed) { 'ok' } elseif ($managedApis.Count) { 'partial' } else { 'failed' }; count = $managedApis.Count; failed = $managedApisFailed }
 
     if (-not $SkipResourceGraph) {
         Write-Log 'Resource Graph tables'

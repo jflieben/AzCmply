@@ -408,3 +408,404 @@ Add-AzTest @{
     }
 }
 
+#domain controller signals (AZ-VM-015, AZ-VM-016). Ports only a domain controller serves: Kerberos, Kerberos password change, global
+#catalog and AD Web Services. LDAP is left out, AD LDS and other directories serve it too.
+$dcPorts = @(88, 464, 3268, 3269, 9389)
+$adDsPromotionPattern = '(?i)\b(Install-ADDS(Forest|DomainController|Domain)|ADDSDeployment|AD-Domain-Services|dcpromo|(Create|Configure|Prepare)AD[PB]DC|CreateADForest|xADDomain(Controller)?)\b'
+$dcNamePattern = '(?i)(^|[^a-z0-9])(ad)?dc([^a-z]|$)|dc\d{1,3}$|domaincontroller'
+
+function Test-AddressInPrefix {
+    #true when an IPv4 address lies in an address or CIDR prefix
+    param([string]$Address, [string]$Prefix)
+    $parts = @($Prefix -split '/')
+    if ($parts.Count -gt 2 -or ($parts.Count -eq 2 -and $parts[1] -notmatch '^\d{1,2}$')) { return $false }
+    $bits = if ($parts.Count -eq 2) { [int]$parts[1] } else { 32 }
+    $network = ConvertTo-IPv4Number $parts[0]
+    $value = ConvertTo-IPv4Number $Address
+    if ($null -eq $network -or $null -eq $value -or $bits -gt 32) { return $false }
+    return (($value -shr (32 - $bits)) -eq ($network -shr (32 - $bits)))
+}
+
+function Get-DnsServerReferences {
+    #address -> where it is set as DNS server (virtual networks, network interfaces, Azure Firewall, DNS forwarding rules),
+    #and the sources that could not be read
+    if (-not $script:Ingest.Cache.ContainsKey('#dnsServers')) {
+        $entries = [System.Collections.Generic.List[object]]::new()
+        foreach ($vnet in (Get-AzResourceRecords -Type 'Microsoft.Network/virtualNetworks')) {
+            foreach ($address in @($vnet.resource.properties.dhcpOptions.dnsServers)) { $entries.Add([pscustomobject]@{ Address = $address; Source = "virtual network $($vnet.resource.name)" }) }
+        }
+        foreach ($nic in (Get-AzResourceRecords -Type 'Microsoft.Network/networkInterfaces')) {
+            foreach ($address in @($nic.resource.properties.dnsSettings.dnsServers)) { $entries.Add([pscustomobject]@{ Address = $address; Source = "network interface $($nic.resource.name)" }) }
+        }
+        foreach ($policy in (Get-AzResourceRecords -Type 'Microsoft.Network/firewallPolicies')) {
+            foreach ($address in @($policy.resource.properties.dnsSettings.servers)) { $entries.Add([pscustomobject]@{ Address = $address; Source = "firewall policy $($policy.resource.name)" }) }
+        }
+        foreach ($firewall in (Get-AzResourceRecords -Type 'Microsoft.Network/azureFirewalls')) {
+            #a firewall without a policy keeps its DNS servers in additionalProperties
+            foreach ($address in @([string]$firewall.resource.properties.additionalProperties.'Network.DNS.Servers' -split ',')) { $entries.Add([pscustomobject]@{ Address = $address; Source = "firewall $($firewall.resource.name)" }) }
+        }
+        $unread = [System.Collections.Generic.List[string]]::new()
+        foreach ($ruleset in (Get-AzResourceRecords -Type 'Microsoft.Network/dnsForwardingRulesets')) {
+            if (-not (Test-ChildCollected $ruleset 'forwardingRules')) { $unread.Add("forwarding rules of $($ruleset.resource.name)"); continue }
+            foreach ($rule in @(Get-Child $ruleset 'forwardingRules' | Where-Object { $_ -and $_.properties.forwardingRuleState -ne 'Disabled' })) {
+                foreach ($target in @($rule.properties.targetDnsServers | Where-Object { $_ })) { $entries.Add([pscustomobject]@{ Address = $target.ipAddress; Source = "forwarding rule for $($rule.properties.domainName) in $($ruleset.resource.name)" }) }
+            }
+        }
+        foreach ($id in (Get-FailedResourceIds -Type 'Microsoft.Network/virtualNetworks', 'Microsoft.Network/networkInterfaces', 'Microsoft.Network/firewallPolicies', 'Microsoft.Network/azureFirewalls', 'Microsoft.Network/dnsForwardingRulesets')) {
+            $unread.Add(($id -replace '(?i)^.*/providers/Microsoft\.Network/', ''))
+        }
+        $servers = @{}
+        foreach ($entry in $entries) {
+            $address = ([string]$entry.Address).Trim()
+            if (-not $address) { continue }
+            if (-not $servers.ContainsKey($address)) { $servers[$address] = [System.Collections.Generic.List[string]]::new() }
+            if (-not $servers[$address].Contains($entry.Source)) { $servers[$address].Add($entry.Source) }
+        }
+        $script:Ingest.Cache['#dnsServers'] = [pscustomobject]@{ Servers = $servers; Unread = @($unread | Sort-Object -Unique) }
+    }
+    return $script:Ingest.Cache['#dnsServers']
+}
+
+function Get-RuleDcPorts {
+    #domain controller ports an inbound allow rule names explicitly: a single port or a range of at most 10, never '*'
+    param($Rule)
+    $p = $Rule.properties
+    if ($p.direction -ne 'Inbound' -or $p.access -ne 'Allow' -or $p.protocol -notin '*', 'Tcp', 'Udp') { return }
+    $ranges = [System.Collections.Generic.List[string]]::new()
+    foreach ($range in @(@($p.destinationPortRange) + @($p.destinationPortRanges) | Where-Object { $_ })) {
+        if ([string]$range -match '^\d+$') { $ranges.Add([string]$range); continue }
+        if ([string]$range -match '^(\d+)-(\d+)$' -and ([int]$Matches[2] - [int]$Matches[1]) -le 10) { $ranges.Add([string]$range) }
+    }
+    foreach ($port in $dcPorts) {
+        if (@($ranges | Where-Object { Test-PortInRange -Range $_ -Port $port }).Count) { $port }
+    }
+}
+
+function Test-RuleTargetsMachine {
+    #true when the destination of an NSG rule includes one of the addresses or application security groups of a machine
+    param($Rule, [string[]]$Addresses, [string[]]$SecurityGroups)
+    $p = $Rule.properties
+    $groups = @($p.destinationApplicationSecurityGroups | Where-Object { $_.id } | ForEach-Object { ([string]$_.id).ToLowerInvariant() })
+    if ($groups.Count) { return [bool]@($groups | Where-Object { $_ -in $SecurityGroups }).Count }
+    foreach ($prefix in @(@($p.destinationAddressPrefix) + @($p.destinationAddressPrefixes) | Where-Object { $_ })) {
+        if ($prefix -in '*', 'Any', 'VirtualNetwork') { return $true }
+        if (@($Addresses | Where-Object { Test-AddressInPrefix $_ $prefix }).Count) { return $true }
+    }
+    return $false
+}
+
+function Get-DomainControllerSignals {
+    #what the Azure configuration shows of a Windows virtual machine being a domain controller. Confidence is Likely (two
+    #signals or an AD DS promotion), Possible (one signal) or $null; NotRead lists the sources that could not be read.
+    param($Record)
+    if (-not $script:Ingest.Cache.ContainsKey('#dcSignals')) { $script:Ingest.Cache['#dcSignals'] = @{} }
+    $cache = $script:Ingest.Cache['#dcSignals']
+    $key = $Record.id.ToLowerInvariant()
+    if ($cache.ContainsKey($key)) { return $cache[$key] }
+
+    $p = $Record.resource.properties
+    $unread = [System.Collections.Generic.List[string]]::new()
+    $addresses = [System.Collections.Generic.List[string]]::new()
+    $securityGroups = [System.Collections.Generic.List[string]]::new()
+    $nsgIds = [ordered]@{}
+    $static = $false
+    $nicReferences = @($p.networkProfile.networkInterfaces | Where-Object { $_.id })
+    if (-not $nicReferences) { $unread.Add('network interfaces') }
+    foreach ($reference in $nicReferences) {
+        $nic = Get-AzResourceRecord $reference.id
+        if (-not $nic) { $unread.Add("network interface $(Get-ResourceName $reference.id)"); continue }
+        if ($nic.resource.properties.networkSecurityGroup.id) { $nsgIds[([string]$nic.resource.properties.networkSecurityGroup.id).ToLowerInvariant()] = $true }
+        foreach ($configuration in @($nic.resource.properties.ipConfigurations | Where-Object { $_ })) {
+            $c = $configuration.properties
+            if ($c.privateIPAddress) { $addresses.Add([string]$c.privateIPAddress) }
+            if ($c.privateIPAllocationMethod -eq 'Static') { $static = $true }
+            foreach ($group in @($c.applicationSecurityGroups | Where-Object { $_.id })) { $securityGroups.Add(([string]$group.id).ToLowerInvariant()) }
+            if (-not $c.subnet.id) { continue }
+            $subnetId = [string]$c.subnet.id
+            $vnetId = $subnetId -replace '(?i)/subnets/[^/]+$', ''
+            $vnet = Get-AzResourceRecord $vnetId
+            if (-not $vnet) { $unread.Add("virtual network $(Get-ResourceName $vnetId)"); continue }
+            $subnet = @($vnet.resource.properties.subnets | Where-Object { $_.id -and $_.id -eq $subnetId }) | Select-Object -First 1
+            if ($subnet.properties.networkSecurityGroup.id) { $nsgIds[([string]$subnet.properties.networkSecurityGroup.id).ToLowerInvariant()] = $true }
+        }
+    }
+
+    $dns = Get-DnsServerReferences
+    $dnsFor = @($addresses | ForEach-Object { $dns.Servers[$_] } | ForEach-Object { $_ } | Sort-Object -Unique)
+
+    $portRules = [System.Collections.Generic.List[string]]::new()
+    foreach ($nsgId in @($nsgIds.Keys)) {
+        $nsg = Get-AzResourceRecord $nsgId
+        if (-not $nsg) { $unread.Add("network security group $(Get-ResourceName $nsgId)"); continue }
+        foreach ($rule in @($nsg.resource.properties.securityRules | Where-Object { $_ } | Sort-Object { [int]$_.properties.priority }, name)) {
+            $ports = @(Get-RuleDcPorts $rule)
+            if ($ports.Count -and (Test-RuleTargetsMachine $rule $addresses $securityGroups)) { $portRules.Add("$($nsg.resource.name)/$($rule.name) ($($ports -join ', '))") }
+        }
+    }
+
+    #AD DS promotion in userData, custom data or extension settings (names and public settings; protected settings are never returned)
+    $surfaces = [ordered]@{}
+    if ($p.userData) { $surfaces['userData'] = Convert-FromBase64Utf8 ([string]$p.userData) }
+    if ($p.osProfile.customData) { $surfaces['custom data'] = Convert-FromBase64Utf8 ([string]$p.osProfile.customData) }
+    if (Test-ChildCollected $Record 'extensions') {
+        foreach ($extension in @(Get-Child $Record 'extensions' | Where-Object { $_ } | Sort-Object name)) {
+            $settings = $extension.properties.settings
+            $text = "$($extension.name) $(if ($null -ne $settings) { $settings | ConvertTo-Json -Depth 20 -Compress })"
+            $script = Get-Prop $settings 'script'
+            if ($script) { $text += " $(Convert-FromBase64Utf8 ([string]$script))" }
+            $surfaces["extension $($extension.name)"] = $text
+        }
+    } else {
+        $unread.Add('installed extensions')
+    }
+    $promotion = @(foreach ($name in $surfaces.Keys) { if ([string]$surfaces[$name] -match $adDsPromotionPattern) { "$name ($($Matches[1]))" } })
+
+    $dcName = @(@($Record.resource.name, $p.osProfile.computerName) | Where-Object { $_ -and [string]$_ -match $dcNamePattern }) | Select-Object -First 1
+    $evidence = [ordered]@{
+        privateIpAddresses          = @($addresses | Sort-Object)
+        dnsServerFor                = $dnsFor
+        domainControllerPortRules   = @($portRules)
+        adDsPromotion               = $promotion
+        domainControllerName        = $dcName
+        staticPrivateIp             = $static
+        dataDisksWithoutHostCaching = @($p.storageProfile.dataDisks | Where-Object { $_ -and $_.caching -eq 'None' }).Count
+    }
+    $notRead = @(@($unread) + @($dns.Unread) | Where-Object { $_ } | Sort-Object -Unique)
+    if ($notRead) { $evidence.signalsNotRead = $notRead }
+
+    $signals = [System.Collections.Generic.List[string]]::new()
+    if ($dnsFor) { $signals.Add('DNS server') }
+    if ($portRules.Count) { $signals.Add('domain controller ports') }
+    if ($promotion) { $signals.Add('AD DS promotion') }
+    if ($dcName) { $signals.Add('name') }
+    $confidence = if ($promotion -or $signals.Count -ge 2) { 'Likely' } elseif ($signals.Count) { 'Possible' } else { $null }
+    $cache[$key] = [pscustomobject]@{ Confidence = $confidence; Signals = @($signals); NotRead = $notRead; Evidence = $evidence }
+    return $cache[$key]
+}
+
+function Get-DomainControllerIds {
+    #lowercase ids of the Windows virtual machines that are likely or possible domain controllers
+    if (-not $script:Ingest.Cache.ContainsKey('#dcIds')) {
+        $ids = [System.Collections.Generic.HashSet[string]]::new()
+        foreach ($machine in (Get-AzResourceRecords -Type $vmType)) {
+            if ((Get-MachineOsType $machine) -eq 'Windows' -and (Get-DomainControllerSignals $machine).Confidence) { $null = $ids.Add($machine.id.ToLowerInvariant()) }
+        }
+        $script:Ingest.Cache['#dcIds'] = $ids
+    }
+    return , $script:Ingest.Cache['#dcIds']
+}
+
+#roles that can take over a domain controller through Azure: run code on it, change it, copy its disks or restore its
+#backup elsewhere. A role that can assign roles can grant itself any of these.
+$dcTakeoverActions = @(
+    'Microsoft.Compute/virtualMachines/runCommand/action', 'Microsoft.Compute/virtualMachines/runCommands/write',
+    'Microsoft.Compute/virtualMachines/extensions/write', 'Microsoft.Compute/virtualMachines/write',
+    'Microsoft.GuestConfiguration/guestConfigurationAssignments/write', 'Microsoft.Compute/disks/beginGetAccess/action',
+    'Microsoft.Compute/snapshots/write', 'Microsoft.RecoveryServices/vaults/backupFabrics/protectionContainers/protectedItems/recoveryPoints/restore/action'
+)
+$roleAssignmentWriteAction = 'Microsoft.Authorization/roleAssignments/write'
+#resource types of the domain controllers themselves and of shared plumbing; anything else in a scope is another workload
+$dcSupportingTypes = @(
+    'Microsoft.Network/*', 'Microsoft.Compute/disks', 'Microsoft.Compute/snapshots', 'Microsoft.Compute/availabilitySets',
+    'Microsoft.Compute/proximityPlacementGroups', 'Microsoft.Compute/restorePointCollections', 'Microsoft.Compute/diskEncryptionSets',
+    'Microsoft.RecoveryServices/vaults', 'Microsoft.DataProtection/backupVaults', 'Microsoft.KeyVault/vaults', 'Microsoft.Storage/storageAccounts',
+    'Microsoft.ManagedIdentity/userAssignedIdentities', 'Microsoft.Insights/*', 'Microsoft.OperationalInsights/*',
+    'Microsoft.OperationsManagement/*', 'Microsoft.AlertsManagement/*', 'Microsoft.Maintenance/*'
+)
+
+function Test-RoleGrantsAction {
+    #true when a role definition allows an action in one of its permission blocks (actions minus notActions, with wildcards)
+    param($Definition, [string]$Action)
+    foreach ($permission in @($Definition.properties.permissions | Where-Object { $_ })) {
+        if (-not @($permission.actions | Where-Object { $_ -and $Action -like $_ }).Count) { continue }
+        if (@($permission.notActions | Where-Object { $_ -and $Action -like $_ }).Count) { continue }
+        return $true
+    }
+    return $false
+}
+
+function Test-ScopeCovers {
+    #true when a role assignment scope applies to one of the (lowercase) resource ids; management group and root
+    #assignments in the ingestion are the ones this subscription inherits
+    param([string]$Scope, [string[]]$ResourceIds)
+    if ((Get-ScopeLevel $Scope) -in 'root', 'managementGroup') { return $true }
+    $prefix = $Scope.TrimEnd('/').ToLowerInvariant()
+    return [bool]@($ResourceIds | Where-Object { $_ -eq $prefix -or $_.StartsWith("$prefix/") }).Count
+}
+
+function Get-ScopeLabel {
+    param([string]$Scope)
+    switch (Get-ScopeLevel $Scope) {
+        'root' { return 'the tenant root' }
+        'managementGroup' { return "management group $(Get-ResourceName $Scope)" }
+        'subscription' { return 'the subscription' }
+        'resourceGroup' { return "resource group $(Get-ResourceName $Scope)" }
+    }
+    return Get-ResourceName $Scope
+}
+
+function Get-ScopeWorkloads {
+    #resources in a subscription or resource group that are neither domain controllers nor shared plumbing (Others), and
+    #virtual machines there that could not be read, so may be domain controllers (Unread)
+    param([string]$Scope)
+    if (-not $script:Ingest.Cache.ContainsKey('#dcScopes')) { $script:Ingest.Cache['#dcScopes'] = @{} }
+    $cache = $script:Ingest.Cache['#dcScopes']
+    $prefix = $Scope.TrimEnd('/').ToLowerInvariant()
+    if (-not $cache.ContainsKey($prefix)) {
+        $controllers = Get-DomainControllerIds
+        $others = [System.Collections.Generic.List[string]]::new()
+        $unread = [System.Collections.Generic.List[string]]::new()
+        foreach ($resource in @(Get-IngestData 'subscription/resources' | Where-Object { $_ -and $_.id } | Sort-Object { ([string]$_.id).ToLowerInvariant() })) {
+            $id = ([string]$resource.id).ToLowerInvariant()
+            if (-not $id.StartsWith("$prefix/")) { continue }
+            if ($id -match '^(/subscriptions/[^/]+/resourcegroups/[^/]+/providers/microsoft\.compute/virtualmachines/[^/]+)') {
+                #a machine and its child resources (extensions, run commands) belong to the machine
+                $machineId = $Matches[1]
+                if ($machineId -ne $id -or $controllers.Contains($machineId)) { continue }
+                if (Get-AzResourceRecord $machineId) { $others.Add([string]$resource.name) } else { $unread.Add("virtual machine $($resource.name)") }
+                continue
+            }
+            if (@($dcSupportingTypes | Where-Object { [string]$resource.type -like $_ }).Count) { continue }
+            $others.Add([string]$resource.name)
+        }
+        $cache[$prefix] = [pscustomobject]@{ Others = @($others); Unread = @($unread) }
+    }
+    return $cache[$prefix]
+}
+
+function Get-DomainControllerProtection {
+    #Tier 0 protection of a domain controller: no role that can take it over is delegated on a subscription or resource
+    #group shared with other workloads, held by a workload identity, or held permanently by a user or group
+    param($Record, $Signals)
+    $p = $Record.resource.properties
+    $machineId = $Record.id.ToLowerInvariant()
+    $notRead = [System.Collections.Generic.List[string]]::new()
+    $resourceIds = [System.Collections.Generic.List[string]]::new()
+    $resourceIds.Add($machineId)
+    foreach ($disk in @(@($p.storageProfile.osDisk) + @($p.storageProfile.dataDisks) | Where-Object { $_.managedDisk.id })) { $resourceIds.Add(([string]$disk.managedDisk.id).ToLowerInvariant()) }
+    #vaults that back the machine up: their restore right is a takeover right too
+    foreach ($id in (Get-FailedResourceIds -Type 'Microsoft.RecoveryServices/vaults')) { $notRead.Add("vault $(Get-ResourceName $id)") }
+    foreach ($vault in (Get-AzResourceRecords -Type 'Microsoft.RecoveryServices/vaults')) {
+        if (-not (Test-ChildCollected $vault 'backupProtectedItems')) { $notRead.Add("protected items of vault $($vault.resource.name)"); continue }
+        foreach ($item in @(Get-Child $vault 'backupProtectedItems' | Where-Object { $_ })) {
+            if (@(@($item.properties.sourceResourceId, $item.properties.virtualMachineId) | Where-Object { $_ -and ([string]$_).ToLowerInvariant() -eq $machineId }).Count) { $resourceIds.Add($vault.id.ToLowerInvariant()); break }
+        }
+    }
+
+    $candidates = [System.Collections.Generic.List[object]]::new()
+    foreach ($assignment in (Get-ActiveRoleAssignments)) { $candidates.Add([pscustomobject]@{ Item = $assignment; Kind = 'active' }) }
+    if (Test-IngestSection 'rbac/roleEligibilitySchedules') {
+        foreach ($schedule in @(Get-IngestData 'rbac/roleEligibilitySchedules' | Where-Object { $_ })) { $candidates.Add([pscustomobject]@{ Item = $schedule; Kind = 'eligible' }) }
+    } else {
+        $notRead.Add('eligible role assignments')
+    }
+    $instancesRead = Test-IngestSection 'rbac/roleAssignmentScheduleInstances'
+    $instances = @{}
+    if ($instancesRead) {
+        foreach ($instance in @(Get-IngestData 'rbac/roleAssignmentScheduleInstances' | Where-Object { $_ -and $_.properties.originRoleAssignmentId })) { $instances[([string]$instance.properties.originRoleAssignmentId).ToLowerInvariant()] = $instance }
+    }
+
+    $takeover = [System.Collections.Generic.List[string]]::new()
+    $shared = [System.Collections.Generic.List[string]]::new()
+    $workload = [System.Collections.Generic.List[string]]::new()
+    $standing = [System.Collections.Generic.List[string]]::new()
+    foreach ($candidate in $candidates) {
+        $a = $candidate.Item.properties
+        if (-not $a.scope -or -not (Test-ScopeCovers $a.scope $resourceIds)) { continue }
+        $definition = (Get-RoleDefinitionMap)[(Get-RoleDefinitionGuid $a.roleDefinitionId)]
+        if (-not $definition) { $notRead.Add("role definition $(Get-RoleName $a.roleDefinitionId)"); continue }
+        $assignsRoles = Test-RoleGrantsAction $definition $roleAssignmentWriteAction
+        if (-not $assignsRoles -and -not @($dcTakeoverActions | Where-Object { Test-RoleGrantsAction $definition $_ }).Count) { continue }
+        $label = "$($definition.properties.roleName) for $(Get-PrincipalLabel $a.principalId) on $(Get-ScopeLabel $a.scope)"
+        $takeover.Add("$label ($($candidate.Kind))")
+        if ($a.principalType -eq 'ServicePrincipal') {
+            $workload.Add($label)
+        } elseif ($a.principalType -eq 'Group') {
+            if (Test-GroupMembersComplete $a.principalId) {
+                foreach ($member in @(Get-GroupMembers $a.principalId | Where-Object { $_.'@odata.type' -eq '#microsoft.graph.servicePrincipal' })) { $workload.Add("$label, through $($member.displayName)") }
+            } else {
+                $notRead.Add("members of $(Get-PrincipalLabel $a.principalId)")
+            }
+        }
+        if ($candidate.Kind -eq 'active' -and $a.principalType -in 'User', 'Group') {
+            $instance = $instances[([string]$candidate.Item.id).ToLowerInvariant()]
+            if (-not $instancesRead) { $notRead.Add('role assignment schedules') }
+            elseif (-not $instance) { $notRead.Add("assignment schedule of $label") }
+            elseif ($instance.properties.assignmentType -eq 'Assigned' -and -not $instance.properties.endDateTime) { $standing.Add($label) }
+        }
+        #roles that assign roles control the scope itself and count as Tier 0 administration there
+        if (-not $assignsRoles -and (Get-ScopeLevel $a.scope) -in 'subscription', 'resourceGroup') {
+            $scope = Get-ScopeWorkloads $a.scope
+            if ($scope.Others.Count) { $shared.Add("$label, shared with $($scope.Others.Count) other resource(s): $(@($scope.Others | Select-Object -First 3) -join ', ')") }
+            foreach ($item in $scope.Unread) { $notRead.Add($item) }
+        }
+    }
+
+    $evidence = [ordered]@{}
+    foreach ($name in $Signals.Evidence.Keys) { $evidence[$name] = $Signals.Evidence[$name] }
+    $evidence.takeoverRoles = @($takeover | Sort-Object -Unique)
+    $evidence.sharedScopes = @($shared | Sort-Object -Unique)
+    $evidence.workloadIdentities = @($workload | Sort-Object -Unique)
+    $evidence.standingAccess = @($standing | Sort-Object -Unique)
+    $protectionNotRead = @($notRead | Sort-Object -Unique)
+    if ($protectionNotRead) { $evidence.protectionNotRead = $protectionNotRead }
+
+    $issues = [System.Collections.Generic.List[string]]::new()
+    foreach ($item in $evidence.sharedScopes) { $issues.Add("delegated on a shared scope: $item") }
+    foreach ($item in $evidence.workloadIdentities) { $issues.Add("workload identity: $item") }
+    foreach ($item in $evidence.standingAccess) { $issues.Add("permanent: $item") }
+    $subject = "$($Signals.Confidence) domain controller ($($Signals.Signals -join ', '))"
+    if ($issues.Count) {
+        $more = if ($issues.Count -gt 3) { "; and $($issues.Count - 3) more" } else { '' }
+        return New-Fail "$subject without Tier 0 protection: $(@($issues | Select-Object -First 3) -join '; ')$more" $evidence
+    }
+    if ($protectionNotRead) { return New-Unknown "$subject, Tier 0 protection not established; not read: $($protectionNotRead -join ', ')" $evidence }
+    New-Pass "$subject with Tier 0 protection: $($takeover.Count) role assignment(s) can take it over, none delegated on a shared scope, held by a workload identity or permanent" $evidence
+}
+
+$dcDetection = 'A Windows virtual machine is a likely domain controller with an AD DS promotion or two of these signals, a possible one with one: its private address is the DNS server of a virtual network, network interface, Azure Firewall or DNS forwarding rule; a network security group rule allows Kerberos (88, 464), the global catalog (3268, 3269) or AD Web Services (9389) to it; its userData, custom data or extension settings promote it (Install-ADDSForest, CreateADPDC); its name is one (DC01, vm-dc-02).'
+$dcProtection = 'Tier 0 protection: no role that can take the machine over (run command, extensions, changing the machine, disk export, snapshots, restore from its backup vault, or assigning roles) is delegated on a subscription or resource group that also holds other workloads, held by a service principal or managed identity (also through a group), or held permanently by a user or group instead of through PIM. Roles that assign roles are Tier 0 administration of their scope and do not count as delegated; management group and root roles count for the last two checks.'
+$dcRationale = 'A domain controller holds the password hashes of every account in the domain. Anyone who can run commands on it, install an extension, change it, copy its disks or restore its backup through Azure controls the domain: Virtual Machine Contributor on a domain controller amounts to Domain Admin. Those rights have to stay with Tier 0 administrators, not with the administrators of other workloads in the same subscription or resource group, not with pipelines and automation that cannot use MFA, and not permanently available to an account that is phished.'
+$dcRemediation = 'Place domain controllers in a subscription or resource group of their own (the identity landing zone) and remove the delegated roles other teams hold there. Grant the remaining roles through PIM eligibility to role-assignable groups, remove workload identities, and alert on run command (AZ-LOG-029).'
+$dcReferences = @('https://learn.microsoft.com/azure/architecture/example-scenario/identity/adds-extend-domain', 'https://learn.microsoft.com/security/privileged-access-workstations/privileged-access-access-model')
+
+Add-AzTest @{
+    Id            = 'AZ-VM-015'
+    Title         = 'No virtual machine acts as a domain controller without Tier 0 protection'
+    Category      = 'Privileged access'
+    Service       = 'Virtual machines'
+    Severity      = 'High'
+    Description   = "Checks the Tier 0 protection of likely domain controllers. $dcDetection $dcProtection Best effort: a domain controller promoted from inside the machine, with another name, and used as DNS server only outside this subscription shows no signal. A machine whose signals could not all be read is reported as unknown here; possible domain controllers are AZ-VM-016."
+    Rationale     = $dcRationale
+    Remediation   = $dcRemediation
+    References    = $dcReferences
+    Requires      = @('rbac/roleAssignments', 'rbac/roleDefinitions', 'subscription/resources')
+    ResourceTypes = @($vmType)
+    Filter        = { param($Record) (Get-MachineOsType $Record) -eq 'Windows' }
+    Evaluate      = {
+        param($Record)
+        $signals = Get-DomainControllerSignals $Record
+        if ($signals.Confidence -eq 'Likely') { return Get-DomainControllerProtection $Record $signals }
+        if ($signals.NotRead) { return New-Unknown "Not ruled out as a likely domain controller; not read: $($signals.NotRead -join ', ')" $signals.Evidence }
+    }
+}
+
+Add-AzTest @{
+    Id            = 'AZ-VM-016'
+    Title         = 'No virtual machine that may be a domain controller runs without Tier 0 protection'
+    Category      = 'Privileged access'
+    Service       = 'Virtual machines'
+    Severity      = 'Informational'
+    Description   = "Checks the Tier 0 protection of possible domain controllers: machines with one signal, which AZ-VM-015 leaves out. $dcDetection $dcProtection"
+    Rationale     = "$dcRationale One signal is not proof: confirm whether the machine is a domain controller."
+    Remediation   = "Confirm whether the machine is a domain controller. If it is: $dcRemediation"
+    References    = $dcReferences
+    Requires      = @('rbac/roleAssignments', 'rbac/roleDefinitions', 'subscription/resources')
+    ResourceTypes = @($vmType)
+    Filter        = { param($Record) (Get-MachineOsType $Record) -eq 'Windows' }
+    Evaluate      = {
+        param($Record)
+        $signals = Get-DomainControllerSignals $Record
+        if ($signals.Confidence -eq 'Possible') { return Get-DomainControllerProtection $Record $signals }
+    }
+}

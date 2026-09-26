@@ -586,4 +586,997 @@ export default R.script("/app/Analyze/tests/10-Compute.ps1", { params: [], adv: 
         R.ln = F + 407;
         R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Unknown", [("The serial console setting could not be read: " + R.str(R.u(R.cmd(S, "Get-IngestSectionProblem", ["subscription/serialConsole"], null)))), (S["evidence"] ?? null)], null))], null));
     })], false)], null));
+    R.ln = F + 413;
+    S["dcports"] = R.a([R.v(88), R.v(464), R.v(3268), R.v(3269), R.v(9389)]);
+    R.ln = F + 414;
+    S["addspromotionpattern"] = "(?i)\\b(Install-ADDS(Forest|DomainController|Domain)|ADDSDeployment|AD-Domain-Services|dcpromo|(Create|Configure|Prepare)AD[PB]DC|CreateADForest|xADDomain(Controller)?)\\b";
+    R.ln = F + 415;
+    S["dcnamepattern"] = "(?i)(^|[^a-z0-9])(ad)?dc([^a-z]|$)|dc\\d{1,3}$|domaincontroller";
+    R.ln = F + 417;
+    R.def(S, "Test-AddressInPrefix", { params: [{ n: "Address", t: "string", pos: null }, { n: "Prefix", t: "string", pos: null }], adv: 0, h: "ea3726ef9d504432" }, (S, O) => {
+        R.ln = F + 420;
+        S["parts"] = R.a(R.split((S["prefix"] ?? null), "/"));
+        R.ln = F + 421;
+        if ((R.t(R.gt(R.m((S["parts"] ?? null), "Count"), 2)) || (R.t(R.eq(R.m((S["parts"] ?? null), "Count"), 2)) && R.t(R.nmatch(S, R.i((S["parts"] ?? null), 1), "^\\d{1,2}$"))))) {
+            R.ln = F + 421;
+            R.e(O, false);
+            return;
+        }
+        R.ln = F + 422;
+        const v11 = [];
+        R.ln = F + 422;
+        if (R.t(R.eq(R.m((S["parts"] ?? null), "Count"), 2))) {
+            R.ln = F + 422;
+            R.e(v11, R.c("int", R.i((S["parts"] ?? null), 1)));
+        } else {
+            R.ln = F + 422;
+            R.e(v11, 32);
+        }
+        S["bits"] = R.u(v11);
+        R.ln = F + 423;
+        S["network"] = R.u(R.cmd(S, "ConvertTo-IPv4Number", [R.i((S["parts"] ?? null), 0)], null));
+        R.ln = F + 424;
+        S["value"] = R.u(R.cmd(S, "ConvertTo-IPv4Number", [(S["address"] ?? null)], null));
+        R.ln = F + 425;
+        if (((R.t(R.eq(null, (S["network"] ?? null))) || R.t(R.eq(null, (S["value"] ?? null)))) || R.t(R.gt((S["bits"] ?? null), 32)))) {
+            R.ln = F + 425;
+            R.e(O, false);
+            return;
+        }
+        R.ln = F + 426;
+        R.e(O, (R.eq((R.shr((S["value"] ?? null), (R.sub(32, (S["bits"] ?? null))))), (R.shr((S["network"] ?? null), (R.sub(32, (S["bits"] ?? null))))))));
+        return;
+    });
+    R.ln = F + 429;
+    R.def(S, "Get-DnsServerReferences", { params: [], adv: 0, h: "95c7c5956ce8e903" }, (S, O) => {
+        R.ln = F + 432;
+        if (!R.t(R.im(R.m((R.ss(S)["script:ingest"] ?? null), "Cache"), "ContainsKey", ["#dnsServers"]))) {
+            R.ln = F + 433;
+            S["entries"] = R.sc("System.Collections.Generic.List[object]", "new", []);
+            R.ln = F + 434;
+            for (const it12 of R.fi(R.u(R.cmd(S, "Get-AzResourceRecords", [R.np("Type"), "Microsoft.Network/virtualNetworks"], null)))) {
+                S["vnet"] = it12;
+                R.ln = F + 435;
+                for (const it13 of R.fi(R.a(R.m(R.m(R.m(R.m((S["vnet"] ?? null), "resource"), "properties"), "dhcpOptions"), "dnsServers")))) {
+                    S["address"] = it13;
+                    R.ln = F + 435;
+                    R.e(O, R.im((S["entries"] ?? null), "Add", [R.pso(["Address", (S["address"] ?? null), "Source", ("virtual network " + R.str(R.u(R.pi(R.m(R.m((S["vnet"] ?? null), "resource"), "name")))))])]));
+                }
+            }
+            R.ln = F + 437;
+            for (const it14 of R.fi(R.u(R.cmd(S, "Get-AzResourceRecords", [R.np("Type"), "Microsoft.Network/networkInterfaces"], null)))) {
+                S["nic"] = it14;
+                R.ln = F + 438;
+                for (const it15 of R.fi(R.a(R.m(R.m(R.m(R.m((S["nic"] ?? null), "resource"), "properties"), "dnsSettings"), "dnsServers")))) {
+                    S["address"] = it15;
+                    R.ln = F + 438;
+                    R.e(O, R.im((S["entries"] ?? null), "Add", [R.pso(["Address", (S["address"] ?? null), "Source", ("network interface " + R.str(R.u(R.pi(R.m(R.m((S["nic"] ?? null), "resource"), "name")))))])]));
+                }
+            }
+            R.ln = F + 440;
+            for (const it16 of R.fi(R.u(R.cmd(S, "Get-AzResourceRecords", [R.np("Type"), "Microsoft.Network/firewallPolicies"], null)))) {
+                S["policy"] = it16;
+                R.ln = F + 441;
+                for (const it17 of R.fi(R.a(R.m(R.m(R.m(R.m((S["policy"] ?? null), "resource"), "properties"), "dnsSettings"), "servers")))) {
+                    S["address"] = it17;
+                    R.ln = F + 441;
+                    R.e(O, R.im((S["entries"] ?? null), "Add", [R.pso(["Address", (S["address"] ?? null), "Source", ("firewall policy " + R.str(R.u(R.pi(R.m(R.m((S["policy"] ?? null), "resource"), "name")))))])]));
+                }
+            }
+            R.ln = F + 443;
+            for (const it18 of R.fi(R.u(R.cmd(S, "Get-AzResourceRecords", [R.np("Type"), "Microsoft.Network/azureFirewalls"], null)))) {
+                S["firewall"] = it18;
+                R.ln = F + 445;
+                for (const it19 of R.fi(R.a(R.split(R.c("string", R.m(R.m(R.m(R.m((S["firewall"] ?? null), "resource"), "properties"), "additionalProperties"), "Network.DNS.Servers")), ",")))) {
+                    S["address"] = it19;
+                    R.ln = F + 445;
+                    R.e(O, R.im((S["entries"] ?? null), "Add", [R.pso(["Address", (S["address"] ?? null), "Source", ("firewall " + R.str(R.u(R.pi(R.m(R.m((S["firewall"] ?? null), "resource"), "name")))))])]));
+                }
+            }
+            R.ln = F + 447;
+            S["unread"] = R.sc("System.Collections.Generic.List[string]", "new", []);
+            R.ln = F + 448;
+            for (const it20 of R.fi(R.u(R.cmd(S, "Get-AzResourceRecords", [R.np("Type"), "Microsoft.Network/dnsForwardingRulesets"], null)))) {
+                S["ruleset"] = it20;
+                R.ln = F + 449;
+                if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["ruleset"] ?? null), "forwardingRules"], null)))) {
+                    R.ln = F + 449;
+                    R.e(O, R.im((S["unread"] ?? null), "Add", [("forwarding rules of " + R.str(R.u(R.pi(R.m(R.m((S["ruleset"] ?? null), "resource"), "name")))))]));
+                    continue;
+                }
+                R.ln = F + 450;
+                for (const it21 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.properties.forwardingRuleState -ne 'Disabled' " }, (S, O) => {
+                    R.ln = F + 450;
+                    R.e(O, (R.t((S["_"] ?? null)) && R.t(R.ne(R.m(R.m((S["_"] ?? null), "properties"), "forwardingRuleState"), "Disabled"))));
+                })], R.cmd(S, "Get-Child", [(S["ruleset"] ?? null), "forwardingRules"], null)))) {
+                    S["rule"] = it21;
+                    R.ln = F + 451;
+                    for (const it22 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+                        R.ln = F + 451;
+                        R.e(O, (S["_"] ?? null));
+                    })], R.pi(R.m(R.m((S["rule"] ?? null), "properties"), "targetDnsServers"))))) {
+                        S["target"] = it22;
+                        R.ln = F + 451;
+                        R.e(O, R.im((S["entries"] ?? null), "Add", [R.pso(["Address", R.m((S["target"] ?? null), "ipAddress"), "Source", ("forwarding rule for " + R.str(R.u(R.pi(R.m(R.m((S["rule"] ?? null), "properties"), "domainName")))) + " in " + R.str(R.u(R.pi(R.m(R.m((S["ruleset"] ?? null), "resource"), "name")))))])]));
+                    }
+                }
+            }
+            R.ln = F + 454;
+            for (const it23 of R.fi(R.u(R.cmd(S, "Get-FailedResourceIds", [R.np("Type"), [R.v("Microsoft.Network/virtualNetworks"), R.v("Microsoft.Network/networkInterfaces"), R.v("Microsoft.Network/firewallPolicies"), R.v("Microsoft.Network/azureFirewalls"), R.v("Microsoft.Network/dnsForwardingRulesets")]], null)))) {
+                S["id"] = it23;
+                R.ln = F + 455;
+                R.e(O, R.im((S["unread"] ?? null), "Add", [(R.rep((S["id"] ?? null), [R.v("(?i)^.*/providers/Microsoft\\.Network/"), R.v("")]))]));
+            }
+            R.ln = F + 457;
+            S["servers"] = R.ht([], false);
+            R.ln = F + 458;
+            for (const it24 of R.fi((S["entries"] ?? null))) {
+                S["entry"] = it24;
+                R.ln = F + 459;
+                S["address"] = R.im((R.c("string", R.m((S["entry"] ?? null), "Address"))), "Trim", []);
+                R.ln = F + 460;
+                if (!R.t((S["address"] ?? null))) {
+                    continue;
+                }
+                R.ln = F + 461;
+                if (!R.t(R.im((S["servers"] ?? null), "ContainsKey", [(S["address"] ?? null)]))) {
+                    R.ln = F + 461;
+                    R.si((S["servers"] ?? null), (S["address"] ?? null), R.sc("System.Collections.Generic.List[string]", "new", []));
+                }
+                R.ln = F + 462;
+                if (!R.t(R.im(R.i((S["servers"] ?? null), (S["address"] ?? null)), "Contains", [R.m((S["entry"] ?? null), "Source")]))) {
+                    R.ln = F + 462;
+                    R.e(O, R.im(R.i((S["servers"] ?? null), (S["address"] ?? null)), "Add", [R.m((S["entry"] ?? null), "Source")]));
+                }
+            }
+            R.ln = F + 464;
+            R.si(R.m((R.ss(S)["script:ingest"] ?? null), "Cache"), "#dnsServers", R.pso(["Servers", (S["servers"] ?? null), "Unread", R.cmd(S, "Sort-Object", [R.np("Unique")], R.pi((S["unread"] ?? null)))]));
+        }
+        R.ln = F + 466;
+        R.e(O, R.i(R.m((R.ss(S)["script:ingest"] ?? null), "Cache"), "#dnsServers"));
+        return;
+    });
+    R.ln = F + 469;
+    R.def(S, "Get-RuleDcPorts", { params: [{ n: "Rule", t: null, pos: null }], adv: 0, h: "73ae88106f78d0a4" }, (S, O) => {
+        R.ln = F + 472;
+        S["p"] = R.m((S["rule"] ?? null), "properties");
+        R.ln = F + 473;
+        if (((R.t(R.ne(R.m((S["p"] ?? null), "direction"), "Inbound")) || R.t(R.ne(R.m((S["p"] ?? null), "access"), "Allow"))) || R.t(R.nin(R.m((S["p"] ?? null), "protocol"), [R.v("*"), R.v("Tcp"), R.v("Udp")])))) {
+            R.ln = F + 473;
+            return;
+        }
+        R.ln = F + 474;
+        S["ranges"] = R.sc("System.Collections.Generic.List[string]", "new", []);
+        R.ln = F + 475;
+        for (const it25 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+            R.ln = F + 475;
+            R.e(O, (S["_"] ?? null));
+        })], R.pi(R.add(R.a(R.m((S["p"] ?? null), "destinationPortRange")), R.a(R.m((S["p"] ?? null), "destinationPortRanges"))))))) {
+            S["range"] = it25;
+            R.ln = F + 476;
+            if (R.t(R.match(S, R.c("string", (S["range"] ?? null)), "^\\d+$"))) {
+                R.ln = F + 476;
+                R.e(O, R.im((S["ranges"] ?? null), "Add", [R.c("string", (S["range"] ?? null))]));
+                continue;
+            }
+            R.ln = F + 477;
+            if ((R.t(R.match(S, R.c("string", (S["range"] ?? null)), "^(\\d+)-(\\d+)$")) && R.t(R.le((R.sub(R.c("int", R.i((S["matches"] ?? null), 2)), R.c("int", R.i((S["matches"] ?? null), 1)))), 10)))) {
+                R.ln = F + 477;
+                R.e(O, R.im((S["ranges"] ?? null), "Add", [R.c("string", (S["range"] ?? null))]));
+            }
+        }
+        R.ln = F + 479;
+        for (const it26 of R.fi((S["dcports"] ?? null))) {
+            S["port"] = it26;
+            R.ln = F + 480;
+            if (R.t(R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " Test-PortInRange -Range $_ -Port $port " }, (S, O) => {
+                R.ln = F + 480;
+                R.pa(O, R.cmd(S, "Test-PortInRange", [R.np("Range"), (S["_"] ?? null), R.np("Port"), (S["port"] ?? null)], null));
+            })], R.pi((S["ranges"] ?? null))), "Count"))) {
+                R.ln = F + 480;
+                R.e(O, (S["port"] ?? null));
+            }
+        }
+    });
+    R.ln = F + 484;
+    R.def(S, "Test-RuleTargetsMachine", { params: [{ n: "Rule", t: null, pos: null }, { n: "Addresses", t: "string[]", pos: null }, { n: "SecurityGroups", t: "string[]", pos: null }], adv: 0, h: "2b0b7853902ed49f" }, (S, O) => {
+        R.ln = F + 487;
+        S["p"] = R.m((S["rule"] ?? null), "properties");
+        R.ln = F + 488;
+        S["groups"] = R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " ([string]$_.id).ToLowerInvariant() " }, (S, O) => {
+            R.ln = F + 488;
+            R.e(O, R.im((R.c("string", R.m((S["_"] ?? null), "id"))), "ToLowerInvariant", []));
+        })], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.id " }, (S, O) => {
+            R.ln = F + 488;
+            R.e(O, R.m((S["_"] ?? null), "id"));
+        })], R.pi(R.m((S["p"] ?? null), "destinationApplicationSecurityGroups"))));
+        R.ln = F + 489;
+        if (R.t(R.m((S["groups"] ?? null), "Count"))) {
+            R.ln = F + 489;
+            R.e(O, R.c("bool", R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -in $SecurityGroups " }, (S, O) => {
+                R.ln = F + 489;
+                R.e(O, R.in((S["_"] ?? null), (S["securitygroups"] ?? null)));
+            })], R.pi((S["groups"] ?? null))), "Count")));
+            return;
+        }
+        R.ln = F + 490;
+        for (const it27 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+            R.ln = F + 490;
+            R.e(O, (S["_"] ?? null));
+        })], R.pi(R.add(R.a(R.m((S["p"] ?? null), "destinationAddressPrefix")), R.a(R.m((S["p"] ?? null), "destinationAddressPrefixes"))))))) {
+            S["prefix"] = it27;
+            R.ln = F + 491;
+            if (R.t(R.in((S["prefix"] ?? null), [R.v("*"), R.v("Any"), R.v("VirtualNetwork")]))) {
+                R.ln = F + 491;
+                R.e(O, true);
+                return;
+            }
+            R.ln = F + 492;
+            if (R.t(R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " Test-AddressInPrefix $_ $prefix " }, (S, O) => {
+                R.ln = F + 492;
+                R.pa(O, R.cmd(S, "Test-AddressInPrefix", [(S["_"] ?? null), (S["prefix"] ?? null)], null));
+            })], R.pi((S["addresses"] ?? null))), "Count"))) {
+                R.ln = F + 492;
+                R.e(O, true);
+                return;
+            }
+        }
+        R.ln = F + 494;
+        R.e(O, false);
+        return;
+    });
+    R.ln = F + 497;
+    R.def(S, "Get-DomainControllerSignals", { params: [{ n: "Record", t: null, pos: null }], adv: 0, h: "b820ef1fb1622ba4" }, (S, O) => {
+        R.ln = F + 501;
+        if (!R.t(R.im(R.m((R.ss(S)["script:ingest"] ?? null), "Cache"), "ContainsKey", ["#dcSignals"]))) {
+            R.ln = F + 501;
+            R.si(R.m((R.ss(S)["script:ingest"] ?? null), "Cache"), "#dcSignals", R.ht([], false));
+        }
+        R.ln = F + 502;
+        S["cache"] = R.i(R.m((R.ss(S)["script:ingest"] ?? null), "Cache"), "#dcSignals");
+        R.ln = F + 503;
+        S["key"] = R.im(R.m((S["record"] ?? null), "id"), "ToLowerInvariant", []);
+        R.ln = F + 504;
+        if (R.t(R.im((S["cache"] ?? null), "ContainsKey", [(S["key"] ?? null)]))) {
+            R.ln = F + 504;
+            R.e(O, R.i((S["cache"] ?? null), (S["key"] ?? null)));
+            return;
+        }
+        R.ln = F + 506;
+        S["p"] = R.m(R.m((S["record"] ?? null), "resource"), "properties");
+        R.ln = F + 507;
+        S["unread"] = R.sc("System.Collections.Generic.List[string]", "new", []);
+        R.ln = F + 508;
+        S["addresses"] = R.sc("System.Collections.Generic.List[string]", "new", []);
+        R.ln = F + 509;
+        S["securitygroups"] = R.sc("System.Collections.Generic.List[string]", "new", []);
+        R.ln = F + 510;
+        S["nsgids"] = R.ht([], true);
+        R.ln = F + 511;
+        S["static"] = false;
+        R.ln = F + 512;
+        S["nicreferences"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.id " }, (S, O) => {
+            R.ln = F + 512;
+            R.e(O, R.m((S["_"] ?? null), "id"));
+        })], R.pi(R.m(R.m((S["p"] ?? null), "networkProfile"), "networkInterfaces")));
+        R.ln = F + 513;
+        if (!R.t((S["nicreferences"] ?? null))) {
+            R.ln = F + 513;
+            R.e(O, R.im((S["unread"] ?? null), "Add", ["network interfaces"]));
+        }
+        R.ln = F + 514;
+        for (const it28 of R.fi((S["nicreferences"] ?? null))) {
+            S["reference"] = it28;
+            R.ln = F + 515;
+            S["nic"] = R.u(R.cmd(S, "Get-AzResourceRecord", [R.m((S["reference"] ?? null), "id")], null));
+            R.ln = F + 516;
+            if (!R.t((S["nic"] ?? null))) {
+                R.ln = F + 516;
+                R.e(O, R.im((S["unread"] ?? null), "Add", [("network interface " + R.str(R.u(R.cmd(S, "Get-ResourceName", [R.m((S["reference"] ?? null), "id")], null))))]));
+                continue;
+            }
+            R.ln = F + 517;
+            if (R.t(R.m(R.m(R.m(R.m((S["nic"] ?? null), "resource"), "properties"), "networkSecurityGroup"), "id"))) {
+                R.ln = F + 517;
+                R.si((S["nsgids"] ?? null), R.im((R.c("string", R.m(R.m(R.m(R.m((S["nic"] ?? null), "resource"), "properties"), "networkSecurityGroup"), "id"))), "ToLowerInvariant", []), true);
+            }
+            R.ln = F + 518;
+            for (const it29 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+                R.ln = F + 518;
+                R.e(O, (S["_"] ?? null));
+            })], R.pi(R.m(R.m(R.m((S["nic"] ?? null), "resource"), "properties"), "ipConfigurations"))))) {
+                S["configuration"] = it29;
+                R.ln = F + 519;
+                S["c"] = R.m((S["configuration"] ?? null), "properties");
+                R.ln = F + 520;
+                if (R.t(R.m((S["c"] ?? null), "privateIPAddress"))) {
+                    R.ln = F + 520;
+                    R.e(O, R.im((S["addresses"] ?? null), "Add", [R.c("string", R.m((S["c"] ?? null), "privateIPAddress"))]));
+                }
+                R.ln = F + 521;
+                if (R.t(R.eq(R.m((S["c"] ?? null), "privateIPAllocationMethod"), "Static"))) {
+                    R.ln = F + 521;
+                    S["static"] = true;
+                }
+                R.ln = F + 522;
+                for (const it30 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.id " }, (S, O) => {
+                    R.ln = F + 522;
+                    R.e(O, R.m((S["_"] ?? null), "id"));
+                })], R.pi(R.m((S["c"] ?? null), "applicationSecurityGroups"))))) {
+                    S["group"] = it30;
+                    R.ln = F + 522;
+                    R.e(O, R.im((S["securitygroups"] ?? null), "Add", [R.im((R.c("string", R.m((S["group"] ?? null), "id"))), "ToLowerInvariant", [])]));
+                }
+                R.ln = F + 523;
+                if (!R.t(R.m(R.m((S["c"] ?? null), "subnet"), "id"))) {
+                    continue;
+                }
+                R.ln = F + 524;
+                S["subnetid"] = R.c("string", R.m(R.m((S["c"] ?? null), "subnet"), "id"));
+                R.ln = F + 525;
+                S["vnetid"] = R.rep((S["subnetid"] ?? null), [R.v("(?i)/subnets/[^/]+$"), R.v("")]);
+                R.ln = F + 526;
+                S["vnet"] = R.u(R.cmd(S, "Get-AzResourceRecord", [(S["vnetid"] ?? null)], null));
+                R.ln = F + 527;
+                if (!R.t((S["vnet"] ?? null))) {
+                    R.ln = F + 527;
+                    R.e(O, R.im((S["unread"] ?? null), "Add", [("virtual network " + R.str(R.u(R.cmd(S, "Get-ResourceName", [(S["vnetid"] ?? null)], null))))]));
+                    continue;
+                }
+                R.ln = F + 528;
+                S["subnet"] = R.u(R.cmd(S, "Select-Object", [R.np("First"), 1], R.pi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.id -and $_.id -eq $subnetId " }, (S, O) => {
+                    R.ln = F + 528;
+                    R.e(O, (R.t(R.m((S["_"] ?? null), "id")) && R.t(R.eq(R.m((S["_"] ?? null), "id"), (S["subnetid"] ?? null)))));
+                })], R.pi(R.m(R.m(R.m((S["vnet"] ?? null), "resource"), "properties"), "subnets"))))));
+                R.ln = F + 529;
+                if (R.t(R.m(R.m(R.m((S["subnet"] ?? null), "properties"), "networkSecurityGroup"), "id"))) {
+                    R.ln = F + 529;
+                    R.si((S["nsgids"] ?? null), R.im((R.c("string", R.m(R.m(R.m((S["subnet"] ?? null), "properties"), "networkSecurityGroup"), "id"))), "ToLowerInvariant", []), true);
+                }
+            }
+        }
+        R.ln = F + 533;
+        S["dns"] = R.u(R.cmd(S, "Get-DnsServerReferences", [], null));
+        R.ln = F + 534;
+        S["dnsfor"] = R.cmd(S, "Sort-Object", [R.np("Unique")], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+            R.ln = F + 534;
+            R.e(O, (S["_"] ?? null));
+        })], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " $dns.Servers[$_] " }, (S, O) => {
+            R.ln = F + 534;
+            R.e(O, R.i(R.m((S["dns"] ?? null), "Servers"), (S["_"] ?? null)));
+        })], R.pi((S["addresses"] ?? null)))));
+        R.ln = F + 536;
+        S["portrules"] = R.sc("System.Collections.Generic.List[string]", "new", []);
+        R.ln = F + 537;
+        for (const it31 of R.fi(R.a(R.m((S["nsgids"] ?? null), "Keys")))) {
+            S["nsgid"] = it31;
+            R.ln = F + 538;
+            S["nsg"] = R.u(R.cmd(S, "Get-AzResourceRecord", [(S["nsgid"] ?? null)], null));
+            R.ln = F + 539;
+            if (!R.t((S["nsg"] ?? null))) {
+                R.ln = F + 539;
+                R.e(O, R.im((S["unread"] ?? null), "Add", [("network security group " + R.str(R.u(R.cmd(S, "Get-ResourceName", [(S["nsgid"] ?? null)], null))))]));
+                continue;
+            }
+            R.ln = F + 540;
+            for (const it32 of R.fi(R.cmd(S, "Sort-Object", [[R.v(R.sb({ params: [], adv: 0, text: " [int]$_.properties.priority " }, (S, O) => {
+                R.ln = F + 540;
+                R.e(O, R.c("int", R.m(R.m((S["_"] ?? null), "properties"), "priority")));
+            })), R.v("name")]], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+                R.ln = F + 540;
+                R.e(O, (S["_"] ?? null));
+            })], R.pi(R.m(R.m(R.m((S["nsg"] ?? null), "resource"), "properties"), "securityRules")))))) {
+                S["rule"] = it32;
+                R.ln = F + 541;
+                S["ports"] = R.cmd(S, "Get-RuleDcPorts", [(S["rule"] ?? null)], null);
+                R.ln = F + 542;
+                if ((R.t(R.m((S["ports"] ?? null), "Count")) && R.t(R.u(R.cmd(S, "Test-RuleTargetsMachine", [(S["rule"] ?? null), (S["addresses"] ?? null), (S["securitygroups"] ?? null)], null))))) {
+                    R.ln = F + 542;
+                    R.e(O, R.im((S["portrules"] ?? null), "Add", [("" + R.str(R.u(R.pi(R.m(R.m((S["nsg"] ?? null), "resource"), "name")))) + "/" + R.str(R.u(R.pi(R.m((S["rule"] ?? null), "name")))) + " (" + R.str(R.u(R.pi(R.join((S["ports"] ?? null), ", ")))) + ")")]));
+                }
+            }
+        }
+        R.ln = F + 547;
+        S["surfaces"] = R.ht([], true);
+        R.ln = F + 548;
+        if (R.t(R.m((S["p"] ?? null), "userData"))) {
+            R.ln = F + 548;
+            R.si((S["surfaces"] ?? null), "userData", R.u(R.cmd(S, "Convert-FromBase64Utf8", [(R.c("string", R.m((S["p"] ?? null), "userData")))], null)));
+        }
+        R.ln = F + 549;
+        if (R.t(R.m(R.m((S["p"] ?? null), "osProfile"), "customData"))) {
+            R.ln = F + 549;
+            R.si((S["surfaces"] ?? null), "custom data", R.u(R.cmd(S, "Convert-FromBase64Utf8", [(R.c("string", R.m(R.m((S["p"] ?? null), "osProfile"), "customData")))], null)));
+        }
+        R.ln = F + 550;
+        if (R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "extensions"], null)))) {
+            R.ln = F + 551;
+            for (const it33 of R.fi(R.cmd(S, "Sort-Object", ["name"], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+                R.ln = F + 551;
+                R.e(O, (S["_"] ?? null));
+            })], R.cmd(S, "Get-Child", [(S["record"] ?? null), "extensions"], null))))) {
+                S["extension"] = it33;
+                R.ln = F + 552;
+                S["settings"] = R.m(R.m((S["extension"] ?? null), "properties"), "settings");
+                R.ln = F + 553;
+                S["text"] = ("" + R.str(R.u(R.pi(R.m((S["extension"] ?? null), "name")))) + " " + R.str((() => {
+                    const v34 = [];
+                    R.ln = F + 553;
+                    if (R.t(R.ne(null, (S["settings"] ?? null)))) {
+                        R.ln = F + 553;
+                        R.pa(v34, R.cmd(S, "ConvertTo-Json", [R.np("Depth"), 20, R.np("Compress")], R.pi((S["settings"] ?? null))));
+                    }
+                    return R.u(v34);
+                })()));
+                R.ln = F + 554;
+                S["script"] = R.u(R.cmd(S, "Get-Prop", [(S["settings"] ?? null), "script"], null));
+                R.ln = F + 555;
+                if (R.t((S["script"] ?? null))) {
+                    R.ln = F + 555;
+                    S["text"] = R.add(S["text"] ?? null, (" " + R.str(R.u(R.cmd(S, "Convert-FromBase64Utf8", [(R.c("string", (S["script"] ?? null)))], null)))));
+                }
+                R.ln = F + 556;
+                R.si((S["surfaces"] ?? null), ("extension " + R.str(R.u(R.pi(R.m((S["extension"] ?? null), "name"))))), (S["text"] ?? null));
+            }
+        } else {
+            R.ln = F + 559;
+            R.e(O, R.im((S["unread"] ?? null), "Add", ["installed extensions"]));
+        }
+        R.ln = F + 561;
+        S["promotion"] = (() => {
+            const v35 = [];
+            R.ln = F + 561;
+            for (const it36 of R.fi(R.m((S["surfaces"] ?? null), "Keys"))) {
+                S["name"] = it36;
+                R.ln = F + 561;
+                if (R.t(R.match(S, R.c("string", R.i((S["surfaces"] ?? null), (S["name"] ?? null))), (S["addspromotionpattern"] ?? null)))) {
+                    R.ln = F + 561;
+                    R.e(v35, ("" + R.str((S["name"] ?? null)) + " (" + R.str(R.u(R.pi(R.i((S["matches"] ?? null), 1)))) + ")"));
+                }
+            }
+            return v35;
+        })();
+        R.ln = F + 563;
+        S["dcname"] = R.u(R.cmd(S, "Select-Object", [R.np("First"), 1], R.pi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and [string]$_ -match $dcNamePattern " }, (S, O) => {
+            R.ln = F + 563;
+            R.e(O, (R.t((S["_"] ?? null)) && R.t(R.match(S, R.c("string", (S["_"] ?? null)), (S["dcnamepattern"] ?? null)))));
+        })], R.pi(R.a([R.v(R.m(R.m((S["record"] ?? null), "resource"), "name")), R.v(R.m(R.m((S["p"] ?? null), "osProfile"), "computerName"))]))))));
+        R.ln = F + 564;
+        S["evidence"] = R.ht(["privateIpAddresses", R.cmd(S, "Sort-Object", [], R.pi((S["addresses"] ?? null))), "dnsServerFor", (S["dnsfor"] ?? null), "domainControllerPortRules", R.a((S["portrules"] ?? null)), "adDsPromotion", (S["promotion"] ?? null), "domainControllerName", (S["dcname"] ?? null), "staticPrivateIp", (S["static"] ?? null), "dataDisksWithoutHostCaching", R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.caching -eq 'None' " }, (S, O) => {
+            R.ln = F + 571;
+            R.e(O, (R.t((S["_"] ?? null)) && R.t(R.eq(R.m((S["_"] ?? null), "caching"), "None"))));
+        })], R.pi(R.m(R.m((S["p"] ?? null), "storageProfile"), "dataDisks"))), "Count")], true);
+        R.ln = F + 573;
+        S["notread"] = R.cmd(S, "Sort-Object", [R.np("Unique")], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+            R.ln = F + 573;
+            R.e(O, (S["_"] ?? null));
+        })], R.pi(R.add(R.a((S["unread"] ?? null)), R.a(R.m((S["dns"] ?? null), "Unread"))))));
+        R.ln = F + 574;
+        if (R.t((S["notread"] ?? null))) {
+            R.ln = F + 574;
+            R.sm((S["evidence"] ?? null), "signalsNotRead", (S["notread"] ?? null));
+        }
+        R.ln = F + 576;
+        S["signals"] = R.sc("System.Collections.Generic.List[string]", "new", []);
+        R.ln = F + 577;
+        if (R.t((S["dnsfor"] ?? null))) {
+            R.ln = F + 577;
+            R.e(O, R.im((S["signals"] ?? null), "Add", ["DNS server"]));
+        }
+        R.ln = F + 578;
+        if (R.t(R.m((S["portrules"] ?? null), "Count"))) {
+            R.ln = F + 578;
+            R.e(O, R.im((S["signals"] ?? null), "Add", ["domain controller ports"]));
+        }
+        R.ln = F + 579;
+        if (R.t((S["promotion"] ?? null))) {
+            R.ln = F + 579;
+            R.e(O, R.im((S["signals"] ?? null), "Add", ["AD DS promotion"]));
+        }
+        R.ln = F + 580;
+        if (R.t((S["dcname"] ?? null))) {
+            R.ln = F + 580;
+            R.e(O, R.im((S["signals"] ?? null), "Add", ["name"]));
+        }
+        R.ln = F + 581;
+        const v37 = [];
+        R.ln = F + 581;
+        if ((R.t((S["promotion"] ?? null)) || R.t(R.ge(R.m((S["signals"] ?? null), "Count"), 2)))) {
+            R.ln = F + 581;
+            R.e(v37, "Likely");
+        } else if (R.t(R.m((S["signals"] ?? null), "Count"))) {
+            R.ln = F + 581;
+            R.e(v37, "Possible");
+        } else {
+            R.ln = F + 581;
+            R.e(v37, null);
+        }
+        S["confidence"] = R.u(v37);
+        R.ln = F + 582;
+        R.si((S["cache"] ?? null), (S["key"] ?? null), R.pso(["Confidence", (S["confidence"] ?? null), "Signals", R.a((S["signals"] ?? null)), "NotRead", (S["notread"] ?? null), "Evidence", (S["evidence"] ?? null)]));
+        R.ln = F + 583;
+        R.e(O, R.i((S["cache"] ?? null), (S["key"] ?? null)));
+        return;
+    });
+    R.ln = F + 586;
+    R.def(S, "Get-DomainControllerIds", { params: [], adv: 0, h: "6b83667ffdf32ca3" }, (S, O) => {
+        R.ln = F + 588;
+        if (!R.t(R.im(R.m((R.ss(S)["script:ingest"] ?? null), "Cache"), "ContainsKey", ["#dcIds"]))) {
+            R.ln = F + 589;
+            S["ids"] = R.sc("System.Collections.Generic.HashSet[string]", "new", []);
+            R.ln = F + 590;
+            for (const it38 of R.fi(R.u(R.cmd(S, "Get-AzResourceRecords", [R.np("Type"), (S["vmtype"] ?? null)], null)))) {
+                S["machine"] = it38;
+                R.ln = F + 591;
+                if ((R.t(R.eq(R.u(R.cmd(S, "Get-MachineOsType", [(S["machine"] ?? null)], null)), "Windows")) && R.t(R.m(R.u(R.cmd(S, "Get-DomainControllerSignals", [(S["machine"] ?? null)], null)), "Confidence")))) {
+                    R.ln = F + 591;
+                    R.im((S["ids"] ?? null), "Add", [R.im(R.m((S["machine"] ?? null), "id"), "ToLowerInvariant", [])]);
+                }
+            }
+            R.ln = F + 593;
+            R.si(R.m((R.ss(S)["script:ingest"] ?? null), "Cache"), "#dcIds", (S["ids"] ?? null));
+        }
+        R.ln = F + 595;
+        R.e(O, [R.v(R.i(R.m((R.ss(S)["script:ingest"] ?? null), "Cache"), "#dcIds"))]);
+        return;
+    });
+    R.ln = F + 600;
+    S["dctakeoveractions"] = R.a([R.v("Microsoft.Compute/virtualMachines/runCommand/action"), R.v("Microsoft.Compute/virtualMachines/runCommands/write"), R.v("Microsoft.Compute/virtualMachines/extensions/write"), R.v("Microsoft.Compute/virtualMachines/write"), R.v("Microsoft.GuestConfiguration/guestConfigurationAssignments/write"), R.v("Microsoft.Compute/disks/beginGetAccess/action"), R.v("Microsoft.Compute/snapshots/write"), R.v("Microsoft.RecoveryServices/vaults/backupFabrics/protectionContainers/protectedItems/recoveryPoints/restore/action")]);
+    R.ln = F + 606;
+    S["roleassignmentwriteaction"] = "Microsoft.Authorization/roleAssignments/write";
+    R.ln = F + 608;
+    S["dcsupportingtypes"] = R.a([R.v("Microsoft.Network/*"), R.v("Microsoft.Compute/disks"), R.v("Microsoft.Compute/snapshots"), R.v("Microsoft.Compute/availabilitySets"), R.v("Microsoft.Compute/proximityPlacementGroups"), R.v("Microsoft.Compute/restorePointCollections"), R.v("Microsoft.Compute/diskEncryptionSets"), R.v("Microsoft.RecoveryServices/vaults"), R.v("Microsoft.DataProtection/backupVaults"), R.v("Microsoft.KeyVault/vaults"), R.v("Microsoft.Storage/storageAccounts"), R.v("Microsoft.ManagedIdentity/userAssignedIdentities"), R.v("Microsoft.Insights/*"), R.v("Microsoft.OperationalInsights/*"), R.v("Microsoft.OperationsManagement/*"), R.v("Microsoft.AlertsManagement/*"), R.v("Microsoft.Maintenance/*")]);
+    R.ln = F + 616;
+    R.def(S, "Test-RoleGrantsAction", { params: [{ n: "Definition", t: null, pos: null }, { n: "Action", t: "string", pos: null }], adv: 0, h: "adabb4582bfdb17d" }, (S, O) => {
+        R.ln = F + 619;
+        for (const it39 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+            R.ln = F + 619;
+            R.e(O, (S["_"] ?? null));
+        })], R.pi(R.m(R.m((S["definition"] ?? null), "properties"), "permissions"))))) {
+            S["permission"] = it39;
+            R.ln = F + 620;
+            if (!R.t(R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $Action -like $_ " }, (S, O) => {
+                R.ln = F + 620;
+                R.e(O, (R.t((S["_"] ?? null)) && R.t(R.like((S["action"] ?? null), (S["_"] ?? null)))));
+            })], R.pi(R.m((S["permission"] ?? null), "actions"))), "Count"))) {
+                continue;
+            }
+            R.ln = F + 621;
+            if (R.t(R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $Action -like $_ " }, (S, O) => {
+                R.ln = F + 621;
+                R.e(O, (R.t((S["_"] ?? null)) && R.t(R.like((S["action"] ?? null), (S["_"] ?? null)))));
+            })], R.pi(R.m((S["permission"] ?? null), "notActions"))), "Count"))) {
+                continue;
+            }
+            R.ln = F + 622;
+            R.e(O, true);
+            return;
+        }
+        R.ln = F + 624;
+        R.e(O, false);
+        return;
+    });
+    R.ln = F + 627;
+    R.def(S, "Test-ScopeCovers", { params: [{ n: "Scope", t: "string", pos: null }, { n: "ResourceIds", t: "string[]", pos: null }], adv: 0, h: "9355170e5698b5b8" }, (S, O) => {
+        R.ln = F + 631;
+        if (R.t(R.in(R.u(R.cmd(S, "Get-ScopeLevel", [(S["scope"] ?? null)], null)), [R.v("root"), R.v("managementGroup")]))) {
+            R.ln = F + 631;
+            R.e(O, true);
+            return;
+        }
+        R.ln = F + 632;
+        S["prefix"] = R.im(R.im((S["scope"] ?? null), "TrimEnd", ["/"]), "ToLowerInvariant", []);
+        R.ln = F + 633;
+        R.e(O, R.c("bool", R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -eq $prefix -or $_.StartsWith(\"$prefix/\") " }, (S, O) => {
+            R.ln = F + 633;
+            R.e(O, (R.t(R.eq((S["_"] ?? null), (S["prefix"] ?? null))) || R.t(R.im((S["_"] ?? null), "StartsWith", [("" + R.str((S["prefix"] ?? null)) + "/")]))));
+        })], R.pi((S["resourceids"] ?? null))), "Count")));
+        return;
+    });
+    R.ln = F + 636;
+    R.def(S, "Get-ScopeLabel", { params: [{ n: "Scope", t: "string", pos: null }], adv: 0, h: "7af2c94208bc60d1" }, (S, O) => {
+        R.ln = F + 638;
+        const had43 = Object.prototype.hasOwnProperty.call(S, '_'), prev42 = S['_'];
+        try {
+            for (const sw40 of R.cmd(S, "Get-ScopeLevel", [(S["scope"] ?? null)], null)) {
+                S['_'] = sw40;
+                let hit41 = false;
+                if (R.t(R.eq(sw40, "root", false))) {
+                    hit41 = true;
+                    R.ln = F + 639;
+                    R.e(O, "the tenant root");
+                    return;
+                }
+                if (R.t(R.eq(sw40, "managementGroup", false))) {
+                    hit41 = true;
+                    R.ln = F + 640;
+                    R.e(O, ("management group " + R.str(R.u(R.cmd(S, "Get-ResourceName", [(S["scope"] ?? null)], null)))));
+                    return;
+                }
+                if (R.t(R.eq(sw40, "subscription", false))) {
+                    hit41 = true;
+                    R.ln = F + 641;
+                    R.e(O, "the subscription");
+                    return;
+                }
+                if (R.t(R.eq(sw40, "resourceGroup", false))) {
+                    hit41 = true;
+                    R.ln = F + 642;
+                    R.e(O, ("resource group " + R.str(R.u(R.cmd(S, "Get-ResourceName", [(S["scope"] ?? null)], null)))));
+                    return;
+                }
+            }
+        } finally { if (had43) { S['_'] = prev42; } else { delete S['_']; } }
+        R.ln = F + 644;
+        R.pa(O, R.cmd(S, "Get-ResourceName", [(S["scope"] ?? null)], null));
+        return;
+    });
+    R.ln = F + 647;
+    R.def(S, "Get-ScopeWorkloads", { params: [{ n: "Scope", t: "string", pos: null }], adv: 0, h: "1dd5589298d908e4" }, (S, O) => {
+        R.ln = F + 651;
+        if (!R.t(R.im(R.m((R.ss(S)["script:ingest"] ?? null), "Cache"), "ContainsKey", ["#dcScopes"]))) {
+            R.ln = F + 651;
+            R.si(R.m((R.ss(S)["script:ingest"] ?? null), "Cache"), "#dcScopes", R.ht([], false));
+        }
+        R.ln = F + 652;
+        S["cache"] = R.i(R.m((R.ss(S)["script:ingest"] ?? null), "Cache"), "#dcScopes");
+        R.ln = F + 653;
+        S["prefix"] = R.im(R.im((S["scope"] ?? null), "TrimEnd", ["/"]), "ToLowerInvariant", []);
+        R.ln = F + 654;
+        if (!R.t(R.im((S["cache"] ?? null), "ContainsKey", [(S["prefix"] ?? null)]))) {
+            R.ln = F + 655;
+            S["controllers"] = R.u(R.cmd(S, "Get-DomainControllerIds", [], null));
+            R.ln = F + 656;
+            S["others"] = R.sc("System.Collections.Generic.List[string]", "new", []);
+            R.ln = F + 657;
+            S["unread"] = R.sc("System.Collections.Generic.List[string]", "new", []);
+            R.ln = F + 658;
+            for (const it44 of R.fi(R.cmd(S, "Sort-Object", [R.sb({ params: [], adv: 0, text: " ([string]$_.id).ToLowerInvariant() " }, (S, O) => {
+                R.ln = F + 658;
+                R.e(O, R.im((R.c("string", R.m((S["_"] ?? null), "id"))), "ToLowerInvariant", []));
+            })], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.id " }, (S, O) => {
+                R.ln = F + 658;
+                R.e(O, (R.t((S["_"] ?? null)) && R.t(R.m((S["_"] ?? null), "id"))));
+            })], R.cmd(S, "Get-IngestData", ["subscription/resources"], null))))) {
+                S["resource"] = it44;
+                R.ln = F + 659;
+                S["id"] = R.im((R.c("string", R.m((S["resource"] ?? null), "id"))), "ToLowerInvariant", []);
+                R.ln = F + 660;
+                if (!R.t(R.im((S["id"] ?? null), "StartsWith", [("" + R.str((S["prefix"] ?? null)) + "/")]))) {
+                    continue;
+                }
+                R.ln = F + 661;
+                if (R.t(R.match(S, (S["id"] ?? null), "^(/subscriptions/[^/]+/resourcegroups/[^/]+/providers/microsoft\\.compute/virtualmachines/[^/]+)"))) {
+                    R.ln = F + 663;
+                    S["machineid"] = R.i((S["matches"] ?? null), 1);
+                    R.ln = F + 664;
+                    if ((R.t(R.ne((S["machineid"] ?? null), (S["id"] ?? null))) || R.t(R.im((S["controllers"] ?? null), "Contains", [(S["machineid"] ?? null)])))) {
+                        continue;
+                    }
+                    R.ln = F + 665;
+                    if (R.t(R.u(R.cmd(S, "Get-AzResourceRecord", [(S["machineid"] ?? null)], null)))) {
+                        R.ln = F + 665;
+                        R.e(O, R.im((S["others"] ?? null), "Add", [R.c("string", R.m((S["resource"] ?? null), "name"))]));
+                    } else {
+                        R.ln = F + 665;
+                        R.e(O, R.im((S["unread"] ?? null), "Add", [("virtual machine " + R.str(R.u(R.pi(R.m((S["resource"] ?? null), "name")))))]));
+                    }
+                    continue;
+                }
+                R.ln = F + 668;
+                if (R.t(R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " [string]$resource.type -like $_ " }, (S, O) => {
+                    R.ln = F + 668;
+                    R.e(O, R.like(R.c("string", R.m((S["resource"] ?? null), "type")), (S["_"] ?? null)));
+                })], R.pi((S["dcsupportingtypes"] ?? null))), "Count"))) {
+                    continue;
+                }
+                R.ln = F + 669;
+                R.e(O, R.im((S["others"] ?? null), "Add", [R.c("string", R.m((S["resource"] ?? null), "name"))]));
+            }
+            R.ln = F + 671;
+            R.si((S["cache"] ?? null), (S["prefix"] ?? null), R.pso(["Others", R.a((S["others"] ?? null)), "Unread", R.a((S["unread"] ?? null))]));
+        }
+        R.ln = F + 673;
+        R.e(O, R.i((S["cache"] ?? null), (S["prefix"] ?? null)));
+        return;
+    });
+    R.ln = F + 676;
+    R.def(S, "Get-DomainControllerProtection", { params: [{ n: "Record", t: null, pos: null }, { n: "Signals", t: null, pos: null }], adv: 0, h: "5610b7eec7ced3a0" }, (S, O) => {
+        R.ln = F + 680;
+        S["p"] = R.m(R.m((S["record"] ?? null), "resource"), "properties");
+        R.ln = F + 681;
+        S["machineid"] = R.im(R.m((S["record"] ?? null), "id"), "ToLowerInvariant", []);
+        R.ln = F + 682;
+        S["notread"] = R.sc("System.Collections.Generic.List[string]", "new", []);
+        R.ln = F + 683;
+        S["resourceids"] = R.sc("System.Collections.Generic.List[string]", "new", []);
+        R.ln = F + 684;
+        R.e(O, R.im((S["resourceids"] ?? null), "Add", [(S["machineid"] ?? null)]));
+        R.ln = F + 685;
+        for (const it45 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.managedDisk.id " }, (S, O) => {
+            R.ln = F + 685;
+            R.e(O, R.m(R.m((S["_"] ?? null), "managedDisk"), "id"));
+        })], R.pi(R.add(R.a(R.m(R.m((S["p"] ?? null), "storageProfile"), "osDisk")), R.a(R.m(R.m((S["p"] ?? null), "storageProfile"), "dataDisks"))))))) {
+            S["disk"] = it45;
+            R.ln = F + 685;
+            R.e(O, R.im((S["resourceids"] ?? null), "Add", [R.im((R.c("string", R.m(R.m((S["disk"] ?? null), "managedDisk"), "id"))), "ToLowerInvariant", [])]));
+        }
+        R.ln = F + 687;
+        for (const it46 of R.fi(R.u(R.cmd(S, "Get-FailedResourceIds", [R.np("Type"), "Microsoft.RecoveryServices/vaults"], null)))) {
+            S["id"] = it46;
+            R.ln = F + 687;
+            R.e(O, R.im((S["notread"] ?? null), "Add", [("vault " + R.str(R.u(R.cmd(S, "Get-ResourceName", [(S["id"] ?? null)], null))))]));
+        }
+        R.ln = F + 688;
+        for (const it47 of R.fi(R.u(R.cmd(S, "Get-AzResourceRecords", [R.np("Type"), "Microsoft.RecoveryServices/vaults"], null)))) {
+            S["vault"] = it47;
+            R.ln = F + 689;
+            if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["vault"] ?? null), "backupProtectedItems"], null)))) {
+                R.ln = F + 689;
+                R.e(O, R.im((S["notread"] ?? null), "Add", [("protected items of vault " + R.str(R.u(R.pi(R.m(R.m((S["vault"] ?? null), "resource"), "name")))))]));
+                continue;
+            }
+            R.ln = F + 690;
+            for (const it48 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+                R.ln = F + 690;
+                R.e(O, (S["_"] ?? null));
+            })], R.cmd(S, "Get-Child", [(S["vault"] ?? null), "backupProtectedItems"], null)))) {
+                S["item"] = it48;
+                R.ln = F + 691;
+                if (R.t(R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and ([string]$_).ToLowerInvariant() -eq $machineId " }, (S, O) => {
+                    R.ln = F + 691;
+                    R.e(O, (R.t((S["_"] ?? null)) && R.t(R.eq(R.im((R.c("string", (S["_"] ?? null))), "ToLowerInvariant", []), (S["machineid"] ?? null)))));
+                })], R.pi(R.a([R.v(R.m(R.m((S["item"] ?? null), "properties"), "sourceResourceId")), R.v(R.m(R.m((S["item"] ?? null), "properties"), "virtualMachineId"))]))), "Count"))) {
+                    R.ln = F + 691;
+                    R.e(O, R.im((S["resourceids"] ?? null), "Add", [R.im(R.m((S["vault"] ?? null), "id"), "ToLowerInvariant", [])]));
+                    break;
+                }
+            }
+        }
+        R.ln = F + 695;
+        S["candidates"] = R.sc("System.Collections.Generic.List[object]", "new", []);
+        R.ln = F + 696;
+        for (const it49 of R.fi(R.u(R.cmd(S, "Get-ActiveRoleAssignments", [], null)))) {
+            S["assignment"] = it49;
+            R.ln = F + 696;
+            R.e(O, R.im((S["candidates"] ?? null), "Add", [R.pso(["Item", (S["assignment"] ?? null), "Kind", "active"])]));
+        }
+        R.ln = F + 697;
+        if (R.t(R.u(R.cmd(S, "Test-IngestSection", ["rbac/roleEligibilitySchedules"], null)))) {
+            R.ln = F + 698;
+            for (const it50 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+                R.ln = F + 698;
+                R.e(O, (S["_"] ?? null));
+            })], R.cmd(S, "Get-IngestData", ["rbac/roleEligibilitySchedules"], null)))) {
+                S["schedule"] = it50;
+                R.ln = F + 698;
+                R.e(O, R.im((S["candidates"] ?? null), "Add", [R.pso(["Item", (S["schedule"] ?? null), "Kind", "eligible"])]));
+            }
+        } else {
+            R.ln = F + 700;
+            R.e(O, R.im((S["notread"] ?? null), "Add", ["eligible role assignments"]));
+        }
+        R.ln = F + 702;
+        S["instancesread"] = R.u(R.cmd(S, "Test-IngestSection", ["rbac/roleAssignmentScheduleInstances"], null));
+        R.ln = F + 703;
+        S["instances"] = R.ht([], false);
+        R.ln = F + 704;
+        if (R.t((S["instancesread"] ?? null))) {
+            R.ln = F + 705;
+            for (const it51 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.properties.originRoleAssignmentId " }, (S, O) => {
+                R.ln = F + 705;
+                R.e(O, (R.t((S["_"] ?? null)) && R.t(R.m(R.m((S["_"] ?? null), "properties"), "originRoleAssignmentId"))));
+            })], R.cmd(S, "Get-IngestData", ["rbac/roleAssignmentScheduleInstances"], null)))) {
+                S["instance"] = it51;
+                R.ln = F + 705;
+                R.si((S["instances"] ?? null), R.im((R.c("string", R.m(R.m((S["instance"] ?? null), "properties"), "originRoleAssignmentId"))), "ToLowerInvariant", []), (S["instance"] ?? null));
+            }
+        }
+        R.ln = F + 708;
+        S["takeover"] = R.sc("System.Collections.Generic.List[string]", "new", []);
+        R.ln = F + 709;
+        S["shared"] = R.sc("System.Collections.Generic.List[string]", "new", []);
+        R.ln = F + 710;
+        S["workload"] = R.sc("System.Collections.Generic.List[string]", "new", []);
+        R.ln = F + 711;
+        S["standing"] = R.sc("System.Collections.Generic.List[string]", "new", []);
+        R.ln = F + 712;
+        for (const it52 of R.fi((S["candidates"] ?? null))) {
+            S["candidate"] = it52;
+            R.ln = F + 713;
+            S["a"] = R.m(R.m((S["candidate"] ?? null), "Item"), "properties");
+            R.ln = F + 714;
+            if ((!R.t(R.m((S["a"] ?? null), "scope")) || !R.t(R.u(R.cmd(S, "Test-ScopeCovers", [R.m((S["a"] ?? null), "scope"), (S["resourceids"] ?? null)], null))))) {
+                continue;
+            }
+            R.ln = F + 715;
+            S["definition"] = R.i(R.u(R.cmd(S, "Get-RoleDefinitionMap", [], null)), R.u(R.cmd(S, "Get-RoleDefinitionGuid", [R.m((S["a"] ?? null), "roleDefinitionId")], null)));
+            R.ln = F + 716;
+            if (!R.t((S["definition"] ?? null))) {
+                R.ln = F + 716;
+                R.e(O, R.im((S["notread"] ?? null), "Add", [("role definition " + R.str(R.u(R.cmd(S, "Get-RoleName", [R.m((S["a"] ?? null), "roleDefinitionId")], null))))]));
+                continue;
+            }
+            R.ln = F + 717;
+            S["assignsroles"] = R.u(R.cmd(S, "Test-RoleGrantsAction", [(S["definition"] ?? null), (S["roleassignmentwriteaction"] ?? null)], null));
+            R.ln = F + 718;
+            if ((!R.t((S["assignsroles"] ?? null)) && !R.t(R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " Test-RoleGrantsAction $definition $_ " }, (S, O) => {
+                R.ln = F + 718;
+                R.pa(O, R.cmd(S, "Test-RoleGrantsAction", [(S["definition"] ?? null), (S["_"] ?? null)], null));
+            })], R.pi((S["dctakeoveractions"] ?? null))), "Count")))) {
+                continue;
+            }
+            R.ln = F + 719;
+            S["label"] = ("" + R.str(R.u(R.pi(R.m(R.m((S["definition"] ?? null), "properties"), "roleName")))) + " for " + R.str(R.u(R.cmd(S, "Get-PrincipalLabel", [R.m((S["a"] ?? null), "principalId")], null))) + " on " + R.str(R.u(R.cmd(S, "Get-ScopeLabel", [R.m((S["a"] ?? null), "scope")], null))));
+            R.ln = F + 720;
+            R.e(O, R.im((S["takeover"] ?? null), "Add", [("" + R.str((S["label"] ?? null)) + " (" + R.str(R.u(R.pi(R.m((S["candidate"] ?? null), "Kind")))) + ")")]));
+            R.ln = F + 721;
+            if (R.t(R.eq(R.m((S["a"] ?? null), "principalType"), "ServicePrincipal"))) {
+                R.ln = F + 722;
+                R.e(O, R.im((S["workload"] ?? null), "Add", [(S["label"] ?? null)]));
+            } else if (R.t(R.eq(R.m((S["a"] ?? null), "principalType"), "Group"))) {
+                R.ln = F + 724;
+                if (R.t(R.u(R.cmd(S, "Test-GroupMembersComplete", [R.m((S["a"] ?? null), "principalId")], null)))) {
+                    R.ln = F + 725;
+                    for (const it53 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.'@odata.type' -eq '#microsoft.graph.servicePrincipal' " }, (S, O) => {
+                        R.ln = F + 725;
+                        R.e(O, R.eq(R.m((S["_"] ?? null), "@odata.type"), "#microsoft.graph.servicePrincipal"));
+                    })], R.cmd(S, "Get-GroupMembers", [R.m((S["a"] ?? null), "principalId")], null)))) {
+                        S["member"] = it53;
+                        R.ln = F + 725;
+                        R.e(O, R.im((S["workload"] ?? null), "Add", [("" + R.str((S["label"] ?? null)) + ", through " + R.str(R.u(R.pi(R.m((S["member"] ?? null), "displayName")))))]));
+                    }
+                } else {
+                    R.ln = F + 727;
+                    R.e(O, R.im((S["notread"] ?? null), "Add", [("members of " + R.str(R.u(R.cmd(S, "Get-PrincipalLabel", [R.m((S["a"] ?? null), "principalId")], null))))]));
+                }
+            }
+            R.ln = F + 730;
+            if ((R.t(R.eq(R.m((S["candidate"] ?? null), "Kind"), "active")) && R.t(R.in(R.m((S["a"] ?? null), "principalType"), [R.v("User"), R.v("Group")])))) {
+                R.ln = F + 731;
+                S["instance"] = R.i((S["instances"] ?? null), R.im((R.c("string", R.m(R.m((S["candidate"] ?? null), "Item"), "id"))), "ToLowerInvariant", []));
+                R.ln = F + 732;
+                if (!R.t((S["instancesread"] ?? null))) {
+                    R.ln = F + 732;
+                    R.e(O, R.im((S["notread"] ?? null), "Add", ["role assignment schedules"]));
+                } else if (!R.t((S["instance"] ?? null))) {
+                    R.ln = F + 733;
+                    R.e(O, R.im((S["notread"] ?? null), "Add", [("assignment schedule of " + R.str((S["label"] ?? null)))]));
+                } else if ((R.t(R.eq(R.m(R.m((S["instance"] ?? null), "properties"), "assignmentType"), "Assigned")) && !R.t(R.m(R.m((S["instance"] ?? null), "properties"), "endDateTime")))) {
+                    R.ln = F + 734;
+                    R.e(O, R.im((S["standing"] ?? null), "Add", [(S["label"] ?? null)]));
+                }
+            }
+            R.ln = F + 737;
+            if ((!R.t((S["assignsroles"] ?? null)) && R.t(R.in(R.u(R.cmd(S, "Get-ScopeLevel", [R.m((S["a"] ?? null), "scope")], null)), [R.v("subscription"), R.v("resourceGroup")])))) {
+                R.ln = F + 738;
+                S["scope"] = R.u(R.cmd(S, "Get-ScopeWorkloads", [R.m((S["a"] ?? null), "scope")], null));
+                R.ln = F + 739;
+                if (R.t(R.m(R.m((S["scope"] ?? null), "Others"), "Count"))) {
+                    R.ln = F + 739;
+                    R.e(O, R.im((S["shared"] ?? null), "Add", [("" + R.str((S["label"] ?? null)) + ", shared with " + R.str(R.u(R.pi(R.m(R.m((S["scope"] ?? null), "Others"), "Count")))) + " other resource(s): " + R.str(R.u(R.pi(R.join(R.cmd(S, "Select-Object", [R.np("First"), 3], R.pi(R.m((S["scope"] ?? null), "Others"))), ", ")))))]));
+                }
+                R.ln = F + 740;
+                for (const it54 of R.fi(R.m((S["scope"] ?? null), "Unread"))) {
+                    S["item"] = it54;
+                    R.ln = F + 740;
+                    R.e(O, R.im((S["notread"] ?? null), "Add", [(S["item"] ?? null)]));
+                }
+            }
+        }
+        R.ln = F + 744;
+        S["evidence"] = R.ht([], true);
+        R.ln = F + 745;
+        for (const it55 of R.fi(R.m(R.m((S["signals"] ?? null), "Evidence"), "Keys"))) {
+            S["name"] = it55;
+            R.ln = F + 745;
+            R.si((S["evidence"] ?? null), (S["name"] ?? null), R.i(R.m((S["signals"] ?? null), "Evidence"), (S["name"] ?? null)));
+        }
+        R.ln = F + 746;
+        R.sm((S["evidence"] ?? null), "takeoverRoles", R.cmd(S, "Sort-Object", [R.np("Unique")], R.pi((S["takeover"] ?? null))));
+        R.ln = F + 747;
+        R.sm((S["evidence"] ?? null), "sharedScopes", R.cmd(S, "Sort-Object", [R.np("Unique")], R.pi((S["shared"] ?? null))));
+        R.ln = F + 748;
+        R.sm((S["evidence"] ?? null), "workloadIdentities", R.cmd(S, "Sort-Object", [R.np("Unique")], R.pi((S["workload"] ?? null))));
+        R.ln = F + 749;
+        R.sm((S["evidence"] ?? null), "standingAccess", R.cmd(S, "Sort-Object", [R.np("Unique")], R.pi((S["standing"] ?? null))));
+        R.ln = F + 750;
+        S["protectionnotread"] = R.cmd(S, "Sort-Object", [R.np("Unique")], R.pi((S["notread"] ?? null)));
+        R.ln = F + 751;
+        if (R.t((S["protectionnotread"] ?? null))) {
+            R.ln = F + 751;
+            R.sm((S["evidence"] ?? null), "protectionNotRead", (S["protectionnotread"] ?? null));
+        }
+        R.ln = F + 753;
+        S["issues"] = R.sc("System.Collections.Generic.List[string]", "new", []);
+        R.ln = F + 754;
+        for (const it56 of R.fi(R.m((S["evidence"] ?? null), "sharedScopes"))) {
+            S["item"] = it56;
+            R.ln = F + 754;
+            R.e(O, R.im((S["issues"] ?? null), "Add", [("delegated on a shared scope: " + R.str((S["item"] ?? null)))]));
+        }
+        R.ln = F + 755;
+        for (const it57 of R.fi(R.m((S["evidence"] ?? null), "workloadIdentities"))) {
+            S["item"] = it57;
+            R.ln = F + 755;
+            R.e(O, R.im((S["issues"] ?? null), "Add", [("workload identity: " + R.str((S["item"] ?? null)))]));
+        }
+        R.ln = F + 756;
+        for (const it58 of R.fi(R.m((S["evidence"] ?? null), "standingAccess"))) {
+            S["item"] = it58;
+            R.ln = F + 756;
+            R.e(O, R.im((S["issues"] ?? null), "Add", [("permanent: " + R.str((S["item"] ?? null)))]));
+        }
+        R.ln = F + 757;
+        S["subject"] = ("" + R.str(R.u(R.pi(R.m((S["signals"] ?? null), "Confidence")))) + " domain controller (" + R.str(R.u(R.pi(R.join(R.m((S["signals"] ?? null), "Signals"), ", ")))) + ")");
+        R.ln = F + 758;
+        if (R.t(R.m((S["issues"] ?? null), "Count"))) {
+            R.ln = F + 759;
+            const v59 = [];
+            R.ln = F + 759;
+            if (R.t(R.gt(R.m((S["issues"] ?? null), "Count"), 3))) {
+                R.ln = F + 759;
+                R.e(v59, ("; and " + R.str(R.u(R.pi(R.sub(R.m((S["issues"] ?? null), "Count"), 3)))) + " more"));
+            } else {
+                R.ln = F + 759;
+                R.e(v59, "");
+            }
+            S["more"] = R.u(v59);
+            R.ln = F + 760;
+            R.pa(O, R.cmd(S, "New-Fail", [("" + R.str((S["subject"] ?? null)) + " without Tier 0 protection: " + R.str(R.u(R.pi(R.join(R.cmd(S, "Select-Object", [R.np("First"), 3], R.pi((S["issues"] ?? null))), "; ")))) + R.str((S["more"] ?? null))), (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 762;
+        if (R.t((S["protectionnotread"] ?? null))) {
+            R.ln = F + 762;
+            R.pa(O, R.cmd(S, "New-Unknown", [("" + R.str((S["subject"] ?? null)) + ", Tier 0 protection not established; not read: " + R.str(R.u(R.pi(R.join((S["protectionnotread"] ?? null), ", "))))), (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 763;
+        R.pa(O, R.cmd(S, "New-Pass", [("" + R.str((S["subject"] ?? null)) + " with Tier 0 protection: " + R.str(R.u(R.pi(R.m((S["takeover"] ?? null), "Count")))) + " role assignment(s) can take it over, none delegated on a shared scope, held by a workload identity or permanent"), (S["evidence"] ?? null)], null));
+    });
+    R.ln = F + 766;
+    S["dcdetection"] = "A Windows virtual machine is a likely domain controller with an AD DS promotion or two of these signals, a possible one with one: its private address is the DNS server of a virtual network, network interface, Azure Firewall or DNS forwarding rule; a network security group rule allows Kerberos (88, 464), the global catalog (3268, 3269) or AD Web Services (9389) to it; its userData, custom data or extension settings promote it (Install-ADDSForest, CreateADPDC); its name is one (DC01, vm-dc-02).";
+    R.ln = F + 767;
+    S["dcprotection"] = "Tier 0 protection: no role that can take the machine over (run command, extensions, changing the machine, disk export, snapshots, restore from its backup vault, or assigning roles) is delegated on a subscription or resource group that also holds other workloads, held by a service principal or managed identity (also through a group), or held permanently by a user or group instead of through PIM. Roles that assign roles are Tier 0 administration of their scope and do not count as delegated; management group and root roles count for the last two checks.";
+    R.ln = F + 768;
+    S["dcrationale"] = "A domain controller holds the password hashes of every account in the domain. Anyone who can run commands on it, install an extension, change it, copy its disks or restore its backup through Azure controls the domain: Virtual Machine Contributor on a domain controller amounts to Domain Admin. Those rights have to stay with Tier 0 administrators, not with the administrators of other workloads in the same subscription or resource group, not with pipelines and automation that cannot use MFA, and not permanently available to an account that is phished.";
+    R.ln = F + 769;
+    S["dcremediation"] = "Place domain controllers in a subscription or resource group of their own (the identity landing zone) and remove the delegated roles other teams hold there. Grant the remaining roles through PIM eligibility to role-assignable groups, remove workload identities, and alert on run command (AZ-LOG-029).";
+    R.ln = F + 770;
+    S["dcreferences"] = R.a([R.v("https://learn.microsoft.com/azure/architecture/example-scenario/identity/adds-extend-domain"), R.v("https://learn.microsoft.com/security/privileged-access-workstations/privileged-access-access-model")]);
+    R.ln = F + 772;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-VM-015", "Title", "No virtual machine acts as a domain controller without Tier 0 protection", "Category", "Privileged access", "Service", "Virtual machines", "Severity", "High", "Description", ("Checks the Tier 0 protection of likely domain controllers. " + R.str((S["dcdetection"] ?? null)) + " " + R.str((S["dcprotection"] ?? null)) + " Best effort: a domain controller promoted from inside the machine, with another name, and used as DNS server only outside this subscription shows no signal. A machine whose signals could not all be read is reported as unknown here; possible domain controllers are AZ-VM-016."), "Rationale", (S["dcrationale"] ?? null), "Remediation", (S["dcremediation"] ?? null), "References", (S["dcreferences"] ?? null), "Requires", R.a([R.v("rbac/roleAssignments"), R.v("rbac/roleDefinitions"), R.v("subscription/resources")]), "ResourceTypes", R.a((S["vmtype"] ?? null)), "Filter", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) (Get-MachineOsType $Record) -eq 'Windows' " }, (S, O) => {
+        R.ln = F + 784;
+        R.e(O, R.eq(R.u(R.cmd(S, "Get-MachineOsType", [(S["record"] ?? null)], null)), "Windows"));
+    }), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $signals = Get-DomainControllerSignals $Record\n        if ($signals.Confidence -eq 'Likely') { return Get-DomainControllerProtection $Record $signals }\n        if ($signals.NotRead) { return New-Unknown \"Not ruled out as a likely domain controller; not read: $($signals.NotRead -join ', ')\" $signals.Evidence }\n    " }, (S, O) => {
+        R.ln = F + 787;
+        S["signals"] = R.u(R.cmd(S, "Get-DomainControllerSignals", [(S["record"] ?? null)], null));
+        R.ln = F + 788;
+        if (R.t(R.eq(R.m((S["signals"] ?? null), "Confidence"), "Likely"))) {
+            R.ln = F + 788;
+            R.pa(O, R.cmd(S, "Get-DomainControllerProtection", [(S["record"] ?? null), (S["signals"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 789;
+        if (R.t(R.m((S["signals"] ?? null), "NotRead"))) {
+            R.ln = F + 789;
+            R.pa(O, R.cmd(S, "New-Unknown", [("Not ruled out as a likely domain controller; not read: " + R.str(R.u(R.pi(R.join(R.m((S["signals"] ?? null), "NotRead"), ", "))))), R.m((S["signals"] ?? null), "Evidence")], null));
+            return;
+        }
+    })], false)], null));
+    R.ln = F + 793;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-VM-016", "Title", "No virtual machine that may be a domain controller runs without Tier 0 protection", "Category", "Privileged access", "Service", "Virtual machines", "Severity", "Informational", "Description", ("Checks the Tier 0 protection of possible domain controllers: machines with one signal, which AZ-VM-015 leaves out. " + R.str((S["dcdetection"] ?? null)) + " " + R.str((S["dcprotection"] ?? null))), "Rationale", ("" + R.str((S["dcrationale"] ?? null)) + " One signal is not proof: confirm whether the machine is a domain controller."), "Remediation", ("Confirm whether the machine is a domain controller. If it is: " + R.str((S["dcremediation"] ?? null))), "References", (S["dcreferences"] ?? null), "Requires", R.a([R.v("rbac/roleAssignments"), R.v("rbac/roleDefinitions"), R.v("subscription/resources")]), "ResourceTypes", R.a((S["vmtype"] ?? null)), "Filter", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) (Get-MachineOsType $Record) -eq 'Windows' " }, (S, O) => {
+        R.ln = F + 805;
+        R.e(O, R.eq(R.u(R.cmd(S, "Get-MachineOsType", [(S["record"] ?? null)], null)), "Windows"));
+    }), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $signals = Get-DomainControllerSignals $Record\n        if ($signals.Confidence -eq 'Possible') { return Get-DomainControllerProtection $Record $signals }\n    " }, (S, O) => {
+        R.ln = F + 808;
+        S["signals"] = R.u(R.cmd(S, "Get-DomainControllerSignals", [(S["record"] ?? null)], null));
+        R.ln = F + 809;
+        if (R.t(R.eq(R.m((S["signals"] ?? null), "Confidence"), "Possible"))) {
+            R.ln = F + 809;
+            R.pa(O, R.cmd(S, "Get-DomainControllerProtection", [(S["record"] ?? null), (S["signals"] ?? null)], null));
+            return;
+        }
+    })], false)], null));
 });

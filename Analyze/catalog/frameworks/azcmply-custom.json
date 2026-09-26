@@ -3,13 +3,13 @@
   "order": 13,
   "name": "AzCmply custom controls",
   "shortName": "AzCmply Custom",
-  "version": "2026.09",
+  "version": "2026.09.2",
   "publisher": "JSolve B.V.",
   "type": "custom",
   "url": "https://jsolve.nl",
-  "retrieved": "2026-09-24",
+  "retrieved": "2026-09-26",
   "mapping": "native",
-  "note": "Controls by JSolve B.V. for Azure attack paths that none of the other frameworks covers, based on published attack research and breaches. Each control is checked by the tests listed with it.",
+  "note": "Controls by JSolve B.V. for Azure attack paths and risks that none of the other frameworks covers, based on published attack research and breaches. Each control is checked by the tests listed with it.",
   "controls": {
     "AZC-01": {"title":"Network rules do not trust addresses that other Azure customers share","coverage":"full","tests":["AZ-APP-010","AZ-NET-026"]},
     "AZC-02": {"title":"No access path bypasses the network controls of a workload (deployment sites, Bastion shareable links, serial console)","coverage":"full","tests":["AZ-APP-011","AZ-NET-027","AZ-VM-014"]},
@@ -19,6 +19,9 @@
     "AZC-06": {"title":"Storage firewalls only admit resources of the own tenant","coverage":"full","tests":["AZ-STG-027"]},
     "AZC-07": {"title":"Published APIs authenticate every caller with a subscription key or a validated token","coverage":"full","tests":["AZ-APIM-008"]},
     "AZC-08": {"title":"Unexpected cost reaches the owners of a subscription","coverage":"full","tests":["AZ-GOV-014"]},
-    "AZC-09": {"title":"Takeover actions raise an alert (role assignments, removed locks, run command)","coverage":"full","tests":["AZ-LOG-027","AZ-LOG-028","AZ-LOG-029"]}
+    "AZC-09": {"title":"Takeover actions raise an alert (role assignments, removed locks, run command)","coverage":"full","tests":["AZ-LOG-027","AZ-LOG-028","AZ-LOG-029"]},
+    "AZC-10": {"title":"Only Tier 0 administrators can take over domain controllers on virtual machines through Azure","coverage":"partial","tests":["AZ-VM-015","AZ-VM-016"]},
+    "AZC-11": {"title":"Workflows that anyone can call have no write access in Azure","coverage":"partial","tests":["AZ-LOGIC-002"]},
+    "AZC-12": {"title":"Workflows do not keep failing unnoticed","coverage":"partial","tests":["AZ-LOGIC-009"]}
   }
 }

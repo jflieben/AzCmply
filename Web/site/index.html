@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <!-- Convert-AzCmplyToWeb.ps1 adds the hash of every inline script to script-src here, in .htaccess and in staticwebapp.config.json -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.googletagmanager.com 'sha256-DvkLc5mJnDWMZJk8Qv0G58wmBQYkFN2L9usbdTnt9/A='; style-src 'self'; img-src 'self' data: https://*.google-analytics.com https://*.googletagmanager.com; connect-src 'self' https://login.microsoftonline.com https://management.azure.com https://graph.microsoft.com https://login.microsoftonline.us https://management.usgovcloudapi.net https://graph.microsoft.us https://login.chinacloudapi.cn https://management.chinacloudapi.cn https://microsoftgraph.chinacloudapi.cn https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com; worker-src 'self'; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.googletagmanager.com 'sha256-Fk6Tn1655p4F9bQl/5NqP86ML0E5Kwp3R/wkWCC5QNY='; style-src 'self'; img-src 'self' data: https://*.google-analytics.com https://*.googletagmanager.com; connect-src 'self' https://login.microsoftonline.com https://management.azure.com https://graph.microsoft.com https://login.microsoftonline.us https://management.usgovcloudapi.net https://graph.microsoft.us https://login.chinacloudapi.cn https://management.chinacloudapi.cn https://microsoftgraph.chinacloudapi.cn https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com; worker-src 'self'; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="description" content="AzCmply: security assessment of an Azure subscription against MCSB, CIS, WAF and ALZ, run entirely in your browser.">
 <!-- link previews (LinkedIn, Teams); the image needs an absolute address -->
@@ -15,17 +15,17 @@
 <title>AzCmply</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 1l6 2.5v4c0 3.5-2.6 6.3-6 7.5-3.4-1.2-6-4-6-7.5v-4z' fill='%23256abf'/%3E%3C/svg%3E">
 <!-- ?v= is the build id Convert-AzCmplyToWeb.ps1 stamps here, so an upload always loads its own files -->
-<link rel="stylesheet" href="css/app.css?v=1.0.0-d8f4961a0e">
-<script type="module" src="js/boot.js?v=1.0.0-d8f4961a0e"></script>
+<link rel="stylesheet" href="css/app.css?v=1.0.2-5f8ad1acf2">
+<script type="module" src="js/boot.js?v=1.0.2-5f8ad1acf2"></script>
 <!-- Google Analytics (GDPR Compliant) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-20PYJ8S2G7"></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-M6KB05FDNL"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
   // not on the return from Microsoft sign-in: that URL carries the authorization code, which must not reach Google
   if (!/[?&](code|error|admin_consent)=/.test(location.search)) {
     gtag('js', new Date());
-    gtag('config', 'G-20PYJ8S2G7', { 'page_location': location.origin + location.pathname, 'anonymize_ip': true, 'storage': 'none', 'client_storage': 'none' });
+    gtag('config', 'G-M6KB05FDNL', { 'page_location': location.origin + location.pathname, 'anonymize_ip': true, 'storage': 'none', 'client_storage': 'none' });
   }
   gtag('consent', 'default', { 'ad_storage': 'denied', 'ad_user_data': 'denied', 'ad_personalization': 'denied', 'analytics_storage': 'denied' });
 </script>

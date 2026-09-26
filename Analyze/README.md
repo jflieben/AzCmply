@@ -1,6 +1,6 @@
 # Azure security analysis
 
-`Invoke-AzureAnalyze.ps1` runs 289 security tests against an ingestion made by `..\Ingest\Invoke-AzureIngest.ps1` and writes one result per test, with a finding per evaluated resource. PowerShell 7.2+, no modules, no network access.
+`Invoke-AzureAnalyze.ps1` runs 301 security tests against an ingestion made by `..\Ingest\Invoke-AzureIngest.ps1` and writes one result per test, with a finding per evaluated resource. PowerShell 7.2+, no modules, no network access.
 
 ```powershell
 .\Invoke-AzureAnalyze.ps1 -IngestPath ..\Ingest\AzureIngest\<subscriptionId>_<timestamp>          # folder or .zip
@@ -27,12 +27,12 @@ Each framework has its own catalog in `catalog\frameworks\`: every control of th
 | [PCI DSS](https://www.pcisecuritystandards.org/standards/pci-dss/) | v4.0.1, requirements 1 to 12 | JSolve | 249 |
 | [DORA](https://eur-lex.europa.eu/eli/reg/2022/2554/oj/eng) | (EU) 2022/2554 and RTS 2024/1774, technical articles | JSolve | 26 |
 | [CMMC](https://www.ecfr.gov/current/title-32/subtitle-A/chapter-I/subchapter-G/part-170) | 2.0, Levels 1 to 3 (32 CFR 170) | JSolve | 149 |
-| AzCmply Custom | 2026.09 | JSolve's own controls | 9 |
+| AzCmply Custom | 2026.09.2 | JSolve's own controls | 12 |
 
 - The framework's own Azure checks: MCSB, CIS Azure, WAF and ALZ describe Azure configuration, and each test implements the check it is mapped to. CIS Azure recommendations and ALZ assignments of a single policy are fully covered by their tests. MCSB controls, WAF items and ALZ initiatives also ask for things AzCmply does not check, so they are partial; the Bot Service, Data Explorer and Virtual Desktop guardrail initiatives are full because every policy in them has a test.
 - JSolve: the other frameworks are not written for Azure. Which tests evidence which control is JSolve's assessment, not the publisher's, and the report says so. A control is full only where its tests check everything about it that Azure configuration can show (CIS Controls 8.6, 10.1 and 13.6; NIST SP 800-53 IA-2(1), IA-2(2) and SI-7(9)); every other mapped control is partial.
 - CMMC: Level 1 is the 15 basic safeguarding requirements of FAR 52.204-21(b)(1), Level 2 the 110 requirements of NIST SP 800-171 Rev. 2 and Level 3 the 24 NIST SP 800-172 requirements that 32 CFR 170.14 selects, with the DoD parameters. Ids follow 32 CFR 170.14(c)(1) (for example `AC.L1-b.1.i`, `AC.L2-3.1.1`, `AC.L3-3.1.2e`), each practice has its `level`, and a Level 1 practice has the tests of the Level 2 requirement it corresponds to.
-- AzCmply Custom: JSolve's controls for Azure attack paths that none of the other frameworks covers, based on published attack research and breaches (for example the shared service tag bypass of Tenable TRA-2024-19). Its 14 tests (AZ-IAM-031 to 033, AZ-NET-026, AZ-NET-027, AZ-APP-010, AZ-APP-011, AZ-VM-014, AZ-STG-027, AZ-GOV-014, AZ-LOG-027 to 029, AZ-APIM-008) evidence no control of another framework.
+- AzCmply Custom: JSolve's controls for Azure attack paths and risks that none of the other frameworks covers, based on published attack research and breaches (for example the shared service tag bypass of Tenable TRA-2024-19). Its 18 tests (AZ-IAM-031 to 033, AZ-NET-026, AZ-NET-027, AZ-APP-010, AZ-APP-011, AZ-VM-014 to 016, AZ-STG-027, AZ-GOV-014, AZ-LOG-027 to 029, AZ-APIM-008, AZ-LOGIC-002, AZ-LOGIC-009) evidence no control of another framework.
 - Catalog text: ISO 27001 control titles are the Annex A headings, NIST CSF and NIST SP 800-53 texts are NIST's, CMMC texts are those of the FAR, NIST SP 800-171 and 32 CFR 170 (all public domain). CIS Controls, SOC 2 and PCI DSS are listed by id with the name of their control, series or principal requirement; their text is licensed by CIS, the AICPA and the PCI SSC. The PCI DSS requirement numbers are those of Microsoft's PCI DSS v4 regulatory compliance initiative, which lists every requirement; appendices A1 to A3 are left out.
 - Each catalog records name, short name, version, publisher, source URL and the date it was checked against the source. A new framework, or a new version of one, is one file; the analyzer checks when it loads that every test a catalog names exists and that every test evidences at least one control.
 
@@ -44,17 +44,17 @@ A test is one requirement, and a control only lists tests that address what it a
 
 | Area | Tests | Area | Tests |
 |---|---|---|---|
-| Identity and privileged access (`IAM`) | 25 | Storage (`STG`) | 26 |
+| Identity and privileged access (`IAM`) | 33 | Storage (`STG`) | 27 |
 | Defender for Cloud plans and settings (`DEF`) | 25 | Key Vault (`KV`) | 11 |
-| Defender findings (`DFA`) | 4 | SQL, PostgreSQL, MySQL, Cosmos DB, Redis (`SQL` `PG` `MY` `COS` `RED` `DB`) | 23 |
-| Logging and monitoring (`LOG`) | 24 | App Service (`APP`) | 9 |
-| Governance (`GOV`) | 10 | Compute (`VM`) | 12 |
-| Network (`NET`) | 23 | Containers (`AKS` `ACR` `CAPP` `ACI`) | 17 |
-| Integration (`MSG` `APIM` `AUTO`) | 10 | AI (`AI`) | 7 |
-| Backup and resilience (`BCK`) | 12 | Data and analytics (`DBX` `SYN` `ADF`) | 9 |
+| Defender findings (`DFA`) | 4 | SQL, PostgreSQL, MySQL, Cosmos DB, Redis (`SQL` `PG` `MY` `COS` `RED` `DB`) | 24 |
+| Logging and monitoring (`LOG`) | 29 | App Service (`APP`) | 11 |
+| Governance (`GOV`) | 14 | Compute and Virtual Desktop (`VM` `AVD`) | 17 |
+| Network (`NET`) | 27 | Containers (`AKS` `ACR` `CAPP` `ACI`) | 17 |
+| Integration (`MSG` `APIM` `AUTO` `LOGIC`) | 21 | AI and Bot Service (`AI` `BOT`) | 10 |
+| Backup and resilience (`BCK`) | 12 | Data and analytics (`DBX` `SYN` `ADF` `ADX`) | 12 |
 | Exposed secrets (`SEC`) | 4 | Generic PaaS (`PAAS`) | 3 |
 
-Severity: Critical 4, High 57, Medium 121, Low 64, Informational 8.
+Severity: Critical 4, High 69, Medium 141, Low 78, Informational 9.
 
 ## Output
 
@@ -69,7 +69,7 @@ Severity: Critical 4, High 57, Medium 121, Low 64, Informational 8.
 ```jsonc
 {
   "schemaVersion": 3,
-  "analyzer": { "version": "0.9.4", "tests": 289 },
+  "analyzer": { "version": "0.9.4", "tests": 301 },
   "ingest": { "folder", "subscriptionId", "subscriptionName", "tenantId", "startedAt", "ingestVersion", "status" },
   "analyzedAt": "...",                                   // the only value that changes between identical runs
   "summary": { "postureScore", "scoreMethod", "tests": {status: n}, "findings": {status: n}, "bySeverity": {...} },

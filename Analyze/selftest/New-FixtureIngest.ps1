@@ -26,7 +26,7 @@ function Pick { param($Good, $Bad) if ($G) { , $Good } else { , $Bad } }
 function ResId { param([string]$Type, [string]$Name) "$rgId/providers/$Type/$Name" }
 function Role { param([string]$Guid) "$subScope/providers/Microsoft.Authorization/roleDefinitions/$Guid" }
 
-$roles = @{ Owner = '8e3af657-a8ff-443c-a75c-2fe8c4bcb635'; Contributor = 'b24988ac-6180-42a0-ab88-20f7382dd24c'; Reader = 'acdd72a7-3385-48ef-bd42-f606fba81ae7'; UAA = '18d7d88d-d35e-4fb5-a5c3-7773c20a72d9'; RbacAdmin = 'f58310d9-a9f6-439a-9e8d-f62e7b41a168'; BlobReader = '2a2b9908-6ea1-4ae2-8e65-a410df84e7d1' }
+$roles = @{ VmContributor = '9980e02c-c2be-4d73-94e8-173b1dc7cf3c'; Owner = '8e3af657-a8ff-443c-a75c-2fe8c4bcb635'; Contributor = 'b24988ac-6180-42a0-ab88-20f7382dd24c'; Reader = 'acdd72a7-3385-48ef-bd42-f606fba81ae7'; UAA = '18d7d88d-d35e-4fb5-a5c3-7773c20a72d9'; RbacAdmin = 'f58310d9-a9f6-439a-9e8d-f62e7b41a168'; BlobReader = '2a2b9908-6ea1-4ae2-8e65-a410df84e7d1' }
 $ids = @{
     U1 = '10000000-0000-0000-0000-000000000001'; U2 = '10000000-0000-0000-0000-000000000002'; Guest = '10000000-0000-0000-0000-000000000003'
     Disabled = '10000000-0000-0000-0000-000000000004'; Synced = '10000000-0000-0000-0000-000000000005'
@@ -95,6 +95,8 @@ if ($G) {
     $assignments += & $assignment 'ra-u1-root-uaa' $roles.UAA $ids.U1 'User' '/'
     $assignments += & $assignment 'ra-guest-reader' $roles.Reader $ids.Guest 'User' $rgId
     $assignments += & $assignment 'ra-deleted-reader' $roles.Reader $ids.Deleted 'ServicePrincipal' $subScope
+    #a delegated role that can take over the domain controllers, on a subscription shared with other workloads (AZ-VM-015)
+    $assignments += & $assignment 'ra-g3-vmcontributor' $roles.VmContributor $ids.G3 'Group' $subScope
 }
 Save 'rbac/roleAssignments' $assignments
 
@@ -119,6 +121,7 @@ $definitions = @(
     & $definition $roles.Reader 'Reader' 'BuiltInRole' @('*/read')
     & $definition $roles.UAA 'User Access Administrator' 'BuiltInRole' @('*/read', 'Microsoft.Authorization/*')
     & $definition $roles.RbacAdmin 'Role Based Access Control Administrator' 'BuiltInRole' @('Microsoft.Authorization/roleAssignments/write')
+    & $definition $roles.VmContributor 'Virtual Machine Contributor' 'BuiltInRole' @('Microsoft.Compute/virtualMachines/*', 'Microsoft.Compute/disks/*', 'Microsoft.Network/networkInterfaces/*')
 )
 $blobReader = & $definition $roles.BlobReader 'Storage Blob Data Reader' 'BuiltInRole' @('Microsoft.Storage/storageAccounts/blobServices/containers/read')
 $blobReader.properties.permissions[0].dataActions = @('Microsoft.Storage/storageAccounts/blobServices/containers/blobs/read')
@@ -219,6 +222,7 @@ Save 'policy/policyAssignments' @(@{ id = "$subScope/providers/Microsoft.Authori
 Save 'policy/policyExemptions' @(@{ id = "$subScope/providers/Microsoft.Authorization/policyExemptions/ex1"; type = 'Microsoft.Authorization/policyExemptions'; properties = @{ displayName = 'Waiver'; exemptionCategory = 'Waiver'; expiresOn = (Pick (Iso 30) $null) } })
 Save 'subscription/locks' (Pick @(
         @{ id = "$rgId/providers/Microsoft.Authorization/locks/protect"; properties = @{ level = 'CanNotDelete' } }
+        @{ id = "$subScope/resourceGroups/rg-identity/providers/Microsoft.Authorization/locks/protect"; properties = @{ level = 'CanNotDelete' } }
         @{ id = "$(ResId 'Microsoft.Storage/storageAccounts' 'stfixture')/providers/Microsoft.Authorization/locks/readonly"; properties = @{ level = 'ReadOnly' } }
     ) @())
 Save 'subscription/blueprintAssignments' (Pick @() @(@{ id = "$subScope/providers/Microsoft.Blueprint/blueprintAssignments/bp1"; name = 'bp1'; properties = @{ blueprintId = '/providers/Microsoft.Blueprint/blueprints/legacy' } }))
@@ -390,6 +394,33 @@ Add-Record 'Microsoft.Compute/virtualMachines' 'vmfixture' @{ identity = (Pick @
         securityProfile = $security; osProfile = @{ linuxConfiguration = $linux }; networkProfile = @{ networkInterfaces = @(@{ id = $nicId }) }; userData = $userData
     }
 } -Children @{ extensions = (Pick $goodExtensions $badExtensions); instanceView = @{}; 'providers/Microsoft.Insights/dataCollectionRuleAssociations' = $dcrAssociations } | Out-Null
+#two Windows domain controllers in a resource group of their own (AZ-VM-015, AZ-VM-016): vmwinfixture is a likely one (DNS
+#server of a network interface and a forwarding rule, domain controller ports in its NSG, an AD DS promotion in an extension
+#and userData, and its name), vmdc2fixture a possible one (its name only). Their Tier 0 protection comes from the role
+#assignments: PIM activated owners only when Good; delegated, workload identity and permanent roles on the subscription when Bad.
+$identityRgId = "$subScope/resourceGroups/rg-identity"
+$winVmId = "$identityRgId/providers/Microsoft.Compute/virtualMachines/vmwinfixture"
+$dc2VmId = "$identityRgId/providers/Microsoft.Compute/virtualMachines/vmdc2fixture"
+$dcAddress = '10.0.1.10'
+$winExtensions = @((& $extension 'Microsoft.Azure.AzureDefenderForServers' 'MDE.Windows'), (& $extension 'Microsoft.GuestConfiguration' 'ConfigurationforWindows'), (& $extension 'Microsoft.Azure.Monitor' 'AzureMonitorWindowsAgent'), (& $extension 'Microsoft.Azure.ChangeTrackingAndInventory' 'ChangeTracking-Windows'))
+$dsc = & $extension 'Microsoft.Powershell' 'DSC' @{ configuration = @{ url = 'https://fixture.example/CreateADPDC.zip'; script = 'CreateADPDC.ps1'; function = 'CreateADPDC' } }
+foreach ($dc in @(
+        @{ Name = 'vmwinfixture'; Id = $winVmId; Computer = 'DC01'; Address = $dcAddress; Extensions = @($winExtensions) + @($dsc); UserData = (& $b64 "Install-WindowsFeature AD-Domain-Services`nInstall-ADDSForest -DomainName corp.fixture.example`n") }
+        @{ Name = 'vmdc2fixture'; Id = $dc2VmId; Computer = 'DC02'; Address = '10.0.1.11'; Extensions = $winExtensions; UserData = $null }
+    )) {
+    $dcNicId = "$identityRgId/providers/Microsoft.Network/networkInterfaces/nic$($dc.Name)"
+    Add-Record 'Microsoft.Compute/virtualMachines' $dc.Name @{ identity = (Pick @{ type = 'SystemAssigned' } $null); properties = @{
+            storageProfile = @{ osDisk = @{ osType = 'Windows'; managedDisk = @{ id = "$identityRgId/providers/Microsoft.Compute/disks/$($dc.Name)-os" } }; dataDisks = @(@{ lun = 0; caching = 'None' }) }
+            securityProfile = $security; osProfile = @{ computerName = $dc.Computer; windowsConfiguration = @{ patchSettings = @{ assessmentMode = (Pick 'AutomaticByPlatform' 'ImageDefault') } } }
+            networkProfile = @{ networkInterfaces = @(@{ id = $dcNicId }) }; userData = $dc.UserData
+        }
+    } -Children @{ extensions = $dc.Extensions; instanceView = @{}; 'providers/Microsoft.Insights/dataCollectionRuleAssociations' = $dcrAssociations } -Id $dc.Id | Out-Null
+    Add-Record 'Microsoft.Network/networkInterfaces' "nic$($dc.Name)" @{ properties = @{
+            enableIPForwarding = $false; networkSecurityGroup = @{ id = (ResId 'Microsoft.Network/networkSecurityGroups' 'nsgfixture') }; virtualMachine = @{ id = $dc.Id }
+            ipConfigurations = @(@{ name = 'ipconfig1'; properties = @{ privateIPAddress = $dc.Address; privateIPAllocationMethod = 'Static'; subnet = @{ id = "$(ResId 'Microsoft.Network/virtualNetworks' 'vnetfixture')/subnets/app" } } })
+        }
+    } -Id $dcNicId | Out-Null
+}
 Add-Record 'Microsoft.Compute/virtualMachineScaleSets' 'vmssfixture' @{ zones = $fixtureZones; properties = @{ virtualMachineProfile = @{ storageProfile = @{ osDisk = @{ osType = 'Linux' } }; securityProfile = $security; osProfile = @{ linuxConfiguration = $linux }; userData = $userData; extensionProfile = @{ extensions = (Pick $goodExtensions $badExtensions) } } }; sku = @{ name = 'Standard_D2s_v5'; capacity = 2 } } -Children @{ extensions = @(); 'providers/Microsoft.Insights/dataCollectionRuleAssociations' = $dcrAssociations } | Out-Null
 Add-Record 'Microsoft.HybridCompute/machines' 'arcfixture' @{ properties = @{ osType = 'linux' } } -Children @{ extensions = (Pick $goodExtensions $badExtensions); 'providers/Microsoft.Insights/dataCollectionRuleAssociations' = $dcrAssociations } | Out-Null
 Add-Record 'Microsoft.Compute/disks' 'diskfixture' @{ properties = @{ diskState = (Pick 'Attached' 'Unattached'); networkAccessPolicy = (Pick 'DenyAll' 'AllowAll'); publicNetworkAccess = (Pick 'Disabled' 'Enabled') } } | Out-Null
@@ -398,7 +429,56 @@ Add-Record 'Microsoft.SqlVirtualMachine/sqlVirtualMachines' 'sqlvmfixture' @{ pr
 Add-Record 'Microsoft.DesktopVirtualization/hostPools' 'hpfixture' @{ properties = @{ hostPoolType = 'Pooled'; publicNetworkAccess = (Pick 'Disabled' 'EnabledForClientsOnly') } } | Out-Null
 Add-Record 'Microsoft.DesktopVirtualization/workspaces' 'avdwsfixture' @{ properties = @{ publicNetworkAccess = (Pick 'Disabled' 'Enabled') } } | Out-Null
 Add-Record 'Microsoft.Solutions/applications' 'mafixture' @{ kind = 'MarketPlace'; properties = @{ managedResourceGroupId = $rgId } } -Id "$subScope/resourceGroups/rg-apps/providers/Microsoft.Solutions/applications/mafixture" | Out-Null
-Add-Record 'Microsoft.Logic/workflows' 'logicfixture' @{ identity = @{ type = 'SystemAssigned'; principalId = $ids.SpMi; tenantId = $tenant }; properties = @{ state = 'Enabled' } } | Out-Null
+#Logic Apps (AZ-LOGIC-001 to 010): logicfixture has a request trigger limited to an address range, a Key Vault read
+#with secure outputs and an HTTP call with its managed identity when Good; an open trigger, a Key Vault secret sent in
+#a header without secure data, Basic authentication and a function key in the URL, and failing runs when Bad
+$managedApiId = { param([string]$Name) "$subScope/providers/Microsoft.Web/locations/$location/managedApis/$Name" }
+$connectionEntry = { param([string]$Name, [string]$Api) @{ connectionId = (ResId 'Microsoft.Web/connections' $Name); connectionName = $Name; id = (& $managedApiId $Api) } }
+$callApi = Pick @{ type = 'Http'; inputs = @{ method = 'GET'; uri = 'https://api.fixture.example/items'; authentication = @{ type = 'ManagedServiceIdentity'; audience = 'api://fixture' } } } @{
+    type = 'Http'; inputs = @{ method = 'GET'; uri = 'https://funcfixture.azurewebsites.net/api/items?code=abcdefghijklmnopqrstuvwxyz0123456789ABCD%3D%3D'; headers = @{ 'x-api-key' = "@{body('Get_secret')?['value']}" }; authentication = @{ type = 'Basic'; username = 'svc'; password = 'Sup3rS3cretValue!' } }
+}
+$getSecret = @{ type = 'ApiConnection'; inputs = @{ host = @{ connection = @{ name = "@parameters('`$connections')['keyvault']['connectionId']" } }; method = 'get'; path = "/secrets/@{encodeURIComponent('api-key')}/value" } }
+if ($G) { $getSecret.runtimeConfiguration = @{ secureData = @{ properties = @('outputs') } } }
+$logicProperties = @{
+    state = 'Enabled'; createdTime = (Iso -400); changedTime = (Iso -10)
+    definition = @{ triggers = @{ manual = @{ type = 'Request'; kind = 'Http'; inputs = @{ schema = @{} } } }; actions = @{ Get_secret = $getSecret; Process = @{ type = 'Scope'; runAfter = @{ Get_secret = @('Succeeded') }; actions = @{ Call_api = $callApi } } } }
+    parameters = @{ '$connections' = @{ value = @{ keyvault = (& $connectionEntry 'keyvault' 'keyvault'); mail = (& $connectionEntry 'conn2fixture' (Pick 'azureblob' 'office365')) } } }
+}
+if ($G) { $logicProperties.accessControl = @{ triggers = @{ allowedCallerIpAddresses = @(@{ addressRange = '203.0.113.0/24' }) } } }
+#daily run metrics as the ingestion collects them: a few failures when Good, most runs failing when Bad
+$metricSeries = { param([string]$Name, [int[]]$Totals) @{ name = @{ value = $Name }; timeseries = @(@{ data = @(for ($i = 0; $i -lt $Totals.Count; $i++) { @{ timeStamp = (Iso (-1 - $i)); total = $Totals[$i] } }) }) } }
+$logicMetrics = @{ timespan = "$(Iso -75)/$(Iso 0)"; interval = 'P1D'; value = @(
+        (& $metricSeries 'RunsStarted' (Pick @(20, 20) @(10, 10))), (& $metricSeries 'RunsCompleted' (Pick @(20, 20) @(10, 10))), (& $metricSeries 'RunsFailed' (Pick @(1, 0) @(6, 6)))
+        (& $metricSeries 'TriggersCompleted' (Pick @(20, 20) @(10, 10))), (& $metricSeries 'TriggersFailed' @(0, 0))
+    )
+}
+Add-Record 'Microsoft.Logic/workflows' 'logicfixture' @{ identity = @{ type = 'SystemAssigned'; principalId = $ids.SpMi; tenantId = $tenant }; properties = $logicProperties } -Children @{ triggers = @(); metrics = @($logicMetrics) } | Out-Null
+if (-not $G) {
+    #enabled for 300 days without a run (AZ-LOGIC-010)
+    $idleMetrics = @{ timespan = "$(Iso -75)/$(Iso 0)"; interval = 'P1D'; value = @((& $metricSeries 'RunsStarted' @(0, 0)), (& $metricSeries 'RunsCompleted' @(0, 0)), (& $metricSeries 'RunsFailed' @(0, 0))) }
+    Add-Record 'Microsoft.Logic/workflows' 'logicidlefixture' @{ properties = @{ state = 'Enabled'; createdTime = (Iso -300); changedTime = (Iso -300); definition = @{ triggers = @{ daily = @{ type = 'Recurrence'; recurrence = @{ frequency = 'Day'; interval = 1 } } }; actions = @{} }; parameters = @{} } } -Children @{ triggers = @(); metrics = @($idleMetrics) } | Out-Null
+}
+#API connections: a managed identity connection to Key Vault; a managed identity connection to Blob storage when Good, an
+#Office 365 connection of a user whose token no longer refreshes when Bad; and, when Bad, an unused key based connection
+$connectedStatus = @(@{ status = 'Connected' })
+$connection = { param([string]$Name, [string]$Api, [hashtable]$Properties) $Properties.api = @{ name = $Api; displayName = $Api; id = (& $managedApiId $Api) }; $Properties.createdTime = (Iso -400); Add-Record 'Microsoft.Web/connections' $Name @{ kind = 'V1'; properties = $Properties } | Out-Null }
+& $connection 'keyvault' 'keyvault' @{ parameterValueSet = @{ name = 'oauthMI'; values = @{ vaultName = @{ value = 'kvfixture' } } }; statuses = $connectedStatus; overallStatus = 'Connected'; authenticatedUser = @{} }
+if ($G) {
+    & $connection 'conn2fixture' 'azureblob' @{ parameterValueSet = @{ name = 'managedIdentityAuth'; values = @{} }; statuses = $connectedStatus; overallStatus = 'Connected'; authenticatedUser = @{} }
+} else {
+    & $connection 'conn2fixture' 'office365' @{ authenticatedUser = @{ name = 'admin1@fixture.example' }; overallStatus = 'Error'; statuses = @(@{ status = 'Error'; target = 'token'; error = @{ code = 'Unauthorized'; message = 'Failed to refresh access token for service: office365. AADSTS700082: The refresh token has expired due to inactivity.' } }) }
+    & $connection 'connorphanfixture' 'azureblob' @{ parameterValueSet = @{ name = 'keyBasedAuth'; values = @{ accountName = @{ value = 'stfixture' } } }; statuses = $connectedStatus; overallStatus = 'Connected'; authenticatedUser = @{} }
+}
+#connector metadata as the ingestion collects it: the parameter types of each authentication option
+$parameterTypes = { param([hashtable]$Types) $out = [ordered]@{}; foreach ($key in ($Types.Keys | Sort-Object)) { $out[$key] = @{ type = $Types[$key] } }; $out }
+$parameterSet = { param([string]$Name, [hashtable]$Types) @{ name = $Name; parameters = (& $parameterTypes $Types) } }
+Save 'web/managedApis' @(
+    @{ id = (& $managedApiId 'azureblob'); name = 'azureblob'; type = 'Microsoft.Web/locations/managedApis'; properties = @{ name = 'azureblob'; connectionParameters = (& $parameterTypes @{ accountName = 'string'; accessKey = 'securestring' }); connectionParameterSets = @{ values = @(
+                    (& $parameterSet 'keyBasedAuth' @{ accountName = 'string'; accessKey = 'securestring' }), (& $parameterSet 'servicePrincipalAuth' @{ token = 'oauthSetting'; 'token:clientId' = 'string'; 'token:clientSecret' = 'securestring'; 'token:TenantId' = 'string' }), (& $parameterSet 'managedIdentityAuth' @{ token = 'managedIdentity' })
+                ) } } }
+    @{ id = (& $managedApiId 'keyvault'); name = 'keyvault'; type = 'Microsoft.Web/locations/managedApis'; properties = @{ name = 'keyvault'; connectionParameters = (& $parameterTypes @{ token = 'oauthSetting'; 'token:clientId' = 'string'; 'token:clientSecret' = 'securestring'; vaultName = 'string' }); connectionParameterSets = @{ values = @((& $parameterSet 'oauthDefault' @{ token = 'oauthSetting'; vaultName = 'string' }), (& $parameterSet 'oauthMI' @{ token = 'managedIdentity'; vaultName = 'string' })) } } }
+    @{ id = (& $managedApiId 'office365'); name = 'office365'; type = 'Microsoft.Web/locations/managedApis'; properties = @{ name = 'office365'; connectionParameters = (& $parameterTypes @{ token = 'oauthSetting' }) } }
+)
 Add-Record 'Microsoft.ManagedIdentity/userAssignedIdentities' 'uamifixture' @{ properties = @{ clientId = '31000000-0000-0000-0000-000000000003' } } -Children @{ federatedIdentityCredentials = @(@{ name = 'gh'; properties = @{ issuer = 'https://token.actions.githubusercontent.com'; subject = (Pick 'repo:contoso/app:environment:production' 'repo:contoso/app:*'); audiences = @('api://AzureADTokenExchange') } }) } | Out-Null
 
 #network
@@ -412,7 +492,9 @@ $defaultRules = @(
 $rule = Pick @{ name = 'allow-https-office'; properties = @{ priority = 100; direction = 'Inbound'; access = 'Allow'; protocol = 'Tcp'; sourceAddressPrefix = '203.0.113.10'; destinationPortRange = '443' } } @{ name = 'allow-all'; properties = @{ priority = 100; direction = 'Inbound'; access = 'Allow'; protocol = '*'; sourceAddressPrefix = '*'; destinationPortRange = '*' } }
 #Bad also admits the AzureCloud service tag, addresses any Azure customer can use (AZ-NET-026)
 $azureCloudRule = @{ name = 'allow-azure'; properties = @{ priority = 110; direction = 'Inbound'; access = 'Allow'; protocol = 'Tcp'; sourceAddressPrefix = 'AzureCloud'; destinationPortRange = '443' } }
-Add-Record 'Microsoft.Network/networkSecurityGroups' 'nsgfixture' @{ properties = @{ securityRules = (Pick @($rule) @($rule, $azureCloudRule)); defaultSecurityRules = $defaultRules; subnets = @(@{ id = "$vnetId/subnets/app" }) } } | Out-Null
+#the domain controller ports open to vmwinfixture (AZ-VM-015)
+$adRule = @{ name = 'allow-ad'; properties = @{ priority = 120; direction = 'Inbound'; access = 'Allow'; protocol = '*'; sourceAddressPrefix = 'VirtualNetwork'; destinationAddressPrefix = "$dcAddress/32"; destinationPortRanges = @('88', '3268-3269', '9389') } }
+Add-Record 'Microsoft.Network/networkSecurityGroups' 'nsgfixture' @{ properties = @{ securityRules = (Pick @($rule, $adRule) @($rule, $azureCloudRule, $adRule)); defaultSecurityRules = $defaultRules; subnets = @(@{ id = "$vnetId/subnets/app" }) } } | Out-Null
 Add-Record 'Microsoft.Network/virtualNetworks' 'vnetfixture' @{ properties = @{
         enableDdosProtection = $G; ddosProtectionPlan = (Pick @{ id = '/ddos' } $null); dhcpOptions = @{ dnsServers = (Pick @('10.0.1.4') @()) }
         subnets = @(
@@ -421,7 +503,9 @@ Add-Record 'Microsoft.Network/virtualNetworks' 'vnetfixture' @{ properties = @{
         )
     }
 } | Out-Null
-Add-Record 'Microsoft.Network/networkInterfaces' 'nicfixture' @{ properties = @{ enableIPForwarding = (-not $G); networkSecurityGroup = @{ id = $nsgId }; ipConfigurations = @(@{ properties = @{ subnet = @{ id = "$vnetId/subnets/app" }; publicIPAddress = (Pick $null @{ id = (ResId 'Microsoft.Network/publicIPAddresses' 'pip-nic') }) } }); virtualMachine = @{ id = $vmId } } } | Out-Null
+Add-Record 'Microsoft.Network/networkInterfaces' 'nicfixture' @{ properties = @{ enableIPForwarding = (-not $G); networkSecurityGroup = @{ id = $nsgId }; dnsSettings = @{ dnsServers = @($dcAddress) }; ipConfigurations = @(@{ properties = @{ subnet = @{ id = "$vnetId/subnets/app" }; publicIPAddress = (Pick $null @{ id = (ResId 'Microsoft.Network/publicIPAddresses' 'pip-nic') }) } }); virtualMachine = @{ id = $vmId } } } | Out-Null
+#the AD domain forwarded to vmwinfixture (AZ-VM-015)
+Add-Record 'Microsoft.Network/dnsForwardingRulesets' 'rulesetfixture' @{ properties = @{} } -Children @{ forwardingRules = @(@{ name = 'corp'; properties = @{ domainName = 'corp.fixture.example.'; forwardingRuleState = 'Enabled'; targetDnsServers = @(@{ ipAddress = $dcAddress; port = 53 }) } }) } | Out-Null
 Add-Record 'Microsoft.Network/publicIPAddresses' 'pipfixture' @{ properties = @{ ipAddress = '198.51.100.1'; ipConfiguration = (Pick @{ id = "$(ResId 'Microsoft.Network/applicationGateways' 'agwfixture')/frontendIPConfigurations/fe" } $null) } } | Out-Null
 if ($G) { Add-Record 'Microsoft.Network/bastionHosts' 'bastionfixture' @{ properties = @{ enableShareableLink = $false } } | Out-Null }
 Add-Record 'Microsoft.Network/applicationGateways' 'agwfixture' @{ zones = $fixtureZones; properties = @{ sku = @{ tier = (Pick 'WAF_v2' 'Standard_v2') }; firewallPolicy = (Pick @{ id = '/waf' } $null); sslPolicy = @{ policyType = 'Predefined'; policyName = (Pick 'AppGwSslPolicy20220101' 'AppGwSslPolicy20150501') }; enableHttp2 = $G } } | Out-Null
@@ -517,16 +601,23 @@ Add-Record 'Microsoft.MachineLearningServices/workspaces' 'mlfixture' @{ propert
 } | Out-Null
 
 #backup
-Add-Record 'Microsoft.RecoveryServices/vaults' 'rsvfixture' @{ properties = @{
-        securitySettings = @{ softDeleteSettings = @{ softDeleteState = (Pick 'AlwaysON' 'Disabled') }; immutabilitySettings = @{ state = (Pick 'Locked' 'Disabled') } }; publicNetworkAccess = (Pick 'Disabled' 'Enabled')
-        restoreSettings = @{ crossSubscriptionRestoreSettings = @{ crossSubscriptionRestoreState = (Pick 'Disabled' 'Enabled') } }; monitoringSettings = @{ azureMonitorAlertSettings = @{ alertsForAllJobFailures = (Pick 'Enabled' 'Disabled') } }
-    }
-} -Children @{
-    'backupconfig/vaultconfig' = @{ properties = @{ softDeleteFeatureState = (Pick 'AlwaysON' 'Disabled') } }; 'backupstorageconfig/vaultstorageconfig' = @{ properties = @{ storageModelType = (Pick 'GeoRedundant' 'LocallyRedundant'); crossRegionRestoreFlag = $G } }
-    backupResourceGuardProxies = (Pick @(@{ properties = @{ resourceGuardResourceId = '/guard' } }) @()); backupProtectedItems = (Pick @(@{ properties = @{ sourceResourceId = $vmId; virtualMachineId = $vmId } }) @())
-    #the machine replicated to another region, with a recent test failover, when Good
-    replicationProtectedItems  = (Pick @(@{ name = 'vmfixture-replica'; properties = @{ friendlyName = 'vmfixture'; protectionState = 'Protected'; replicationHealth = 'Normal'; lastSuccessfulTestFailoverTime = (Iso -30); providerSpecificDetails = @{ instanceType = 'A2A'; fabricObjectId = $vmId } } }) @())
-} | Out-Null
+$recoveryVault = {
+    param([string]$Name, [string]$Id, [string[]]$Protected, [string[]]$Replicated)
+    Add-Record 'Microsoft.RecoveryServices/vaults' $Name @{ properties = @{
+            securitySettings = @{ softDeleteSettings = @{ softDeleteState = (Pick 'AlwaysON' 'Disabled') }; immutabilitySettings = @{ state = (Pick 'Locked' 'Disabled') } }; publicNetworkAccess = (Pick 'Disabled' 'Enabled')
+            restoreSettings = @{ crossSubscriptionRestoreSettings = @{ crossSubscriptionRestoreState = (Pick 'Disabled' 'Enabled') } }; monitoringSettings = @{ azureMonitorAlertSettings = @{ alertsForAllJobFailures = (Pick 'Enabled' 'Disabled') } }
+        }
+    } -Children @{
+        'backupconfig/vaultconfig' = @{ properties = @{ softDeleteFeatureState = (Pick 'AlwaysON' 'Disabled') } }; 'backupstorageconfig/vaultstorageconfig' = @{ properties = @{ storageModelType = (Pick 'GeoRedundant' 'LocallyRedundant'); crossRegionRestoreFlag = $G } }
+        backupResourceGuardProxies = (Pick @(@{ properties = @{ resourceGuardResourceId = '/guard' } }) @()); backupProtectedItems = @(foreach ($machine in $Protected) { @{ properties = @{ sourceResourceId = $machine; virtualMachineId = $machine } } })
+        replicationProtectedItems  = @(foreach ($machine in $Replicated) { $machineName = ($machine -split '/')[-1]; @{ name = "$machineName-replica"; properties = @{ friendlyName = $machineName; protectionState = 'Protected'; replicationHealth = 'Normal'; lastSuccessfulTestFailoverTime = (Iso -30); providerSpecificDetails = @{ instanceType = 'A2A'; fabricObjectId = $machine } } } })
+    } -Id $Id | Out-Null
+}
+#when Good the machines are backed up, and replicated to another region with a recent test failover; the domain controllers
+#by a vault in their own resource group, whose restore right the shared resource group does not reach (AZ-VM-015)
+& $recoveryVault 'rsvfixture' (ResId 'Microsoft.RecoveryServices/vaults' 'rsvfixture') (Pick @($vmId) @()) (Pick @($vmId, $winVmId, $dc2VmId) @())
+$identityVaultId = "$identityRgId/providers/Microsoft.RecoveryServices/vaults/rsvidentityfixture"
+if ($G) { & $recoveryVault 'rsvidentityfixture' $identityVaultId @($winVmId, $dc2VmId) @() }
 if (-not $G) {
     #geo-redundant without cross region restore, protecting a file share whose restore was never tested
     Add-Record 'Microsoft.RecoveryServices/vaults' 'rsvgrsfixture' @{ properties = @{
@@ -578,11 +669,15 @@ $rsvId = ResId 'Microsoft.RecoveryServices/vaults' 'rsvfixture'
 Save 'activityLog/activityLog' @(
     (& $activity 'Microsoft.Storage/storageAccounts/write' (ResId 'Microsoft.Storage/storageAccounts' 'stfixture') -5)
     $(if ($G) { & $activity 'Microsoft.RecoveryServices/vaults/backupFabrics/protectionContainers/protectedItems/recoveryPoints/restore/action' "$rsvId/backupFabrics/Azure/protectionContainers/iaasvmcontainerv2;rg-fixture;vmfixture/protectedItems/vm;iaasvmcontainerv2;rg-fixture;vmfixture/recoveryPoints/1" -20 })
+    $(if ($G) { & $activity 'Microsoft.RecoveryServices/vaults/backupFabrics/protectionContainers/protectedItems/recoveryPoints/restore/action' "$identityVaultId/backupFabrics/Azure/protectionContainers/iaasvmcontainerv2;rg-identity;vmdc2fixture/protectedItems/vm;iaasvmcontainerv2;rg-identity;vmdc2fixture/recoveryPoints/1" -21 })
 )
 Save 'subscription/resources' $resourceList
-Save 'subscription/resourceGroups' @(@{ id = $rgId; name = 'rg-fixture'; location = $location })
-$index.Add([ordered]@{ id = $rgId; type = 'resourceGroup'; file = 'resourceGroups/rg-fixture.json'; status = 'ok' })
-Save 'resourceGroups/rg-fixture' @{ id = $rgId; deployments = @(); deploymentStacks = @(); lighthouseRegistrationAssignments = @() }
+Save 'subscription/resourceGroups' @(@{ id = $rgId; name = 'rg-fixture'; location = $location }, @{ id = $identityRgId; name = 'rg-identity'; location = $location })
+foreach ($group in $rgId, $identityRgId) {
+    $groupName = ($group -split '/')[-1]
+    $index.Add([ordered]@{ id = $group; type = 'resourceGroup'; file = "resourceGroups/$groupName.json"; status = 'ok' })
+    Save "resourceGroups/$groupName" @{ id = $group; deployments = @(); deploymentStacks = @(); lighthouseRegistrationAssignments = @() }
+}
 Save 'index' $index
 Save 'manifest' ([ordered]@{
         schemaVersion = 1; scriptVersion = 'fixture'; status = 'completed'; startedAt = $reference.ToString('yyyy-MM-ddTHH:mm:ssZ')

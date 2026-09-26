@@ -584,7 +584,9 @@ function Get-SecretPatterns {
     return [ordered]@{
         'Storage account key'           = '(?i)AccountKey\s*=\s*[A-Za-z0-9+/]{40,}={0,2}'
         'Shared access key'             = '(?i)SharedAccessKey\s*=\s*[A-Za-z0-9+/]{20,}={0,2}'
-        'SAS token signature'           = '(?i)[?&]sig=[A-Za-z0-9%+/]{30,}'
+        #storage signatures are base64 (URL encoded), Logic App signatures base64url
+        'SAS token signature'           = '(?i)[?&]sig=[A-Za-z0-9%+/_-]{30,}'
+        'Function key in URL'           = '(?i)[?&]code=[A-Za-z0-9%+/_=-]{30,}'
         'Entra client secret'           = '[A-Za-z0-9_~.\-]{3}\dQ~[A-Za-z0-9_~.\-]{31,34}'
         'Private key'                   = '-----BEGIN (?:RSA |EC |OPENSSH |DSA |ENCRYPTED )?PRIVATE KEY-----'
         'GitHub token'                  = '\b(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{36}\b'

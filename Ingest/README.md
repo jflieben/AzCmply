@@ -51,6 +51,7 @@ resourceGroups/        per resource group: deployments, deploymentStacks, lighth
 resources/<Namespace>/<type>/<name>_<hash>.json
 resourceGraph/<table>.json   Azure Resource Graph rows scoped to the subscription
 activityLog/activityLog.json
+web/managedApis.json   connector metadata of the API connections (which connection parameters hold a secret), one entry per connector
 identity/              directoryObjects, users, groups, servicePrincipals, apiServicePrincipals,
                        directoryRole*, conditionalAccessPolicies, conditionalAccessExcludedGroups, securityDefaults,
                        unresolvedPrincipalIds, organization
@@ -73,6 +74,8 @@ A resource file:
 
 A child that is `null` failed or is not configured (e.g. Sentinel not enabled); its reason is in `failures`. An empty array means the call succeeded and nothing exists.
 
+Types in `$resourceMetricsMap` get the child `metrics`: daily totals over the `$metricsDays` (75) days before the run, as Azure Monitor metrics responses of `$metricsWindowDays` (25) days each, because the metrics API returns at most about 30 days per query. For Logic App workflows these are runs started, completed and failed, and triggers completed and failed.
+
 Graph files: `groups.json` holds per group `transitiveMembers`, `owners` and `properties` (role-assignable, dynamic membership, on-premises sync). `servicePrincipals.json` holds per service principal its `appRoleAssignments` (API permissions), `oauth2PermissionGrants`, `owners`, backing `application` with credentials, `applicationOwners` and `applicationFederatedIdentityCredentials`. `apiServicePrincipals.json` resolves app role ids to names. `conditionalAccessExcludedGroups.json` holds the user members of every group a Conditional Access policy excludes (`members`, or `membersError` with the status code). `unresolvedPrincipalIds.json` lists referenced ids that no longer exist (orphaned assignments) or belong to other tenants.
 
 ## Notes
@@ -80,4 +83,4 @@ Graph files: `groups.json` holds per group `transitiveMembers`, `owners` and `pr
 - The output can contain sensitive values: deployment parameters and outputs, unencrypted automation variables, runbook source, container environment variables, logic app definitions.
 - Not collected: anything needing more than Reader (list keys, app settings, connection strings, effective NSG rules) and data plane content.
 - A `subscriptionEndpoints` path that starts with `/` is read from the root (tenant level, e.g. the subscription transfer policy) instead of below the subscription.
-- To collect more, add paths to `$childResourceMap` (`'path'`, `'path@apiVersion'` or `'collection/*/child'`) or rows to `$subscriptionEndpoints`.
+- To collect more, add paths to `$childResourceMap` (`'path'`, `'path@apiVersion'` or `'collection/*/child'`), metric names to `$resourceMetricsMap` or rows to `$subscriptionEndpoints`.

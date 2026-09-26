@@ -65,6 +65,12 @@ export async function runIngest(options) {
     const failures = [];
     const startDate = new PSDate(Date.now(), 'Utc');
     const startedAt = formatDate(startDate, 'o');
+    //metric query windows ('start/end'), newest first; the metrics API returns at most about 30 days per query
+    const metricsTimespans = [];
+    for (let daysBack = 0; daysBack < plan.metricsDays; daysBack += plan.metricsWindowDays) {
+        const from = startDate.addMs(-Math.min(daysBack + plan.metricsWindowDays, plan.metricsDays) * 86400000);
+        metricsTimespans.push(`${formatDate(from, 'yyyy-MM-ddTHH:mm:ssZ')}/${formatDate(startDate.addMs(-daysBack * 86400000), 'yyyy-MM-ddTHH:mm:ssZ')}`);
+    }
     const folder = folderName ?? `${subscriptionId}_${formatDate(startDate, 'yyyyMMdd-HHmmss')}`;
     const root = `/data/ingest/${folder}`;
     const write = (relative, value) => vfs.writeJson(`${root}/${relative}`, value);
@@ -312,12 +318,30 @@ export async function runIngest(options) {
                 if (ok(response)) { record.textContent[path] = response.json !== null ? JSON.stringify(response.json) : response.text; }
                 else { itemFailures.push({ path: `${item.id}/${path}`, apiVersion: record.apiVersion, statusCode: response.statusCode, errorCode: response.errorCode }); }
             }
+            const metricNames = plan.resourceMetricsMap[typeKey];
+            if (metricNames) {
+                //all windows or nothing, so that totals are never computed from part of the period
+                const path = 'providers/Microsoft.Insights/metrics';
+                let windows = [];
+                for (const timespan of metricsTimespans) {
+                    const response = await rest(`${item.id}/${path}?metricnames=${metricNames}&aggregation=Total&interval=P1D&timespan=${timespan}&api-version=${core.metrics}`, { context: item.id, expectedStatus: [400, 404], maxTransientRetries: 1 });
+                    if (!ok(response)) {
+                        windows = null;
+                        itemFailures.push({ path: `${item.id}/${path}`, apiVersion: core.metrics, statusCode: response.statusCode, errorCode: response.errorCode });
+                        break;
+                    }
+                    windows.push(response.json);
+                }
+                record.children.metrics = windows;
+            }
         }
         write(item.file, record);
         const ids = new Set();
         findPrincipalIds([record.resource], ids);
         for (const child of Object.values(record.children)) { findPrincipalIds(Array.isArray(child) ? child : [child], ids); }
-        return { id: item.id, type: item.type, file: item.file, apiVersion: record.apiVersion, status: record.resource !== null ? 'ok' : 'failed', failureCount: itemFailures.length, principalIds: [...ids] };
+        //the connector of an API connection, whose metadata is collected after the resources
+        const managedApiId = typeKey === 'microsoft.web/connections' ? prop(record.resource, 'properties.api.id') : null;
+        return { id: item.id, type: item.type, file: item.file, apiVersion: record.apiVersion, status: record.resource !== null ? 'ok' : 'failed', failureCount: itemFailures.length, principalIds: [...ids], managedApiId };
     }
 
     //Export-ResourceGroupDetail
@@ -682,6 +706,18 @@ export async function runIngest(options) {
         write('index.json', itemResults.map(r => ({ id: r.id, type: r.type, file: r.file, apiVersion: r.apiVersion, status: r.status, failureCount: r.failureCount })));
         counts.itemsFailed = itemResults.filter(r => r.status !== 'ok').length;
         for (const r of itemResults.filter(x => x.status.startsWith('error:'))) { log(`${r.id}: ${r.status}`); }
+
+        //connector metadata of the API connections: which connection parameters hold a secret. One call per connector
+        const managedApiIds = [...new Set(itemResults.map(r => r.managedApiId).filter(id => typeof id === 'string' && id).map(id => id.toLowerCase()))].sort();
+        log(`Connector metadata (${managedApiIds.length} connectors)`);
+        const managedApis = [];
+        let managedApisFailed = 0;
+        for (const managedApiId of managedApiIds) {
+            const response = await rest(`${managedApiId}?api-version=${core.managedApis}`, { context: 'web/managedApis.json' });
+            if (ok(response)) { managedApis.push(response.json); } else { managedApisFailed++; }
+        }
+        write('web/managedApis.json', managedApis);
+        sections['web/managedApis'] = { status: !managedApisFailed ? 'ok' : managedApis.length ? 'partial' : 'failed', count: managedApis.length, failed: managedApisFailed };
 
         if (!skipResourceGraph) {
             log('Resource Graph tables');

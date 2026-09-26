@@ -2,11 +2,11 @@
 
 Free (non commercially) fully automated test suite for Azure subscriptions against multiple up to date industry security baselines.
 
-AzCmply reads an Azure subscription and its Entra ID context, runs 289 tests against it and writes a report: a posture score, the failures to address first, results per security domain and per framework, and every test with its remediation and evidence per resource. Results are reported per framework, each against its full list of controls: the Microsoft cloud security benchmark v2, CIS Microsoft Azure Foundations Benchmark 6.0.0, the Well-Architected Framework security pillar and the Azure landing zone policies, which describe Azure checks themselves, and ISO 27001:2022, NIST CSF 2.0, CIS Controls v8.1, SOC 2, NIST SP 800-53 Rev. 5, PCI DSS v4.0.1, DORA with its ICT risk management standard (RTS 2024/1774) and CMMC 2.0 Levels 1 to 3, to which JSolve maps the tests. AzCmply Custom adds JSolve's own controls for Azure attack paths that none of these frameworks covers, such as trust in shared Azure service tags, deployment sites and serial consoles that bypass network controls, and managed identities that reach beyond their resource group. It only reads. Run it again later and the report shows the trend and what changed.
+AzCmply reads an Azure subscription and its Entra ID context, runs 301 tests against it and writes a report: a posture score, the failures to address, results per security domain and per framework, and every test with its remediation and evidence per resource. Frameworks: the Microsoft cloud security benchmark v2, CIS Microsoft Azure Foundations Benchmark 6.0.0, the Well-Architected Framework security pillar, Azure landing zone policies, ISO 27001:2022, NIST CSF 2.0, CIS Controls v8.1, SOC 2, NIST SP 800-53 Rev. 5, PCI DSS v4.0.1, DORA with its ICT risk management standard (RTS 2024/1774) and CMMC 2.0 Levels 1 to 3, to which JSolve maps the tests. AzCmply Custom adds JSolve's own controls for Azure attack paths that none of these frameworks covers.
+
+Everything is read only and can be run it again later to make the report show the trend and what changed.
 
 AzCmply is an automated technical assessment of Azure configuration, not an audit or a certification. It does not establish compliance with any framework or regulation and does not replace an assessment by an accredited auditor, certification body or supervisory authority. Framework names and control identifiers show where results relate to their requirements; the frameworks belong to their publishers.
-
-There are two ways to run it, with the same tests and the same report:
 
 | | AzCmply web | PowerShell module |
 |---|---|---|
@@ -45,7 +45,7 @@ The page signs in through an Entra ID app registration of the single-page applic
 
 Use one of these:
 
-1. **The JSolve app** (multi-tenant, on the page hosted by JSolve B.V.). An administrator of your tenant (Global Administrator, Privileged Role Administrator or Cloud Application Administrator) grants consent once, with **Admin consent for this app** on the page. After that anyone in the tenant with the access above can sign in. When a release adds a permission (e.g. 0.9.4 added `Policy.Read.All`), consent again; until then the checks that need it report Unknown.
+1. **The JSolve app** (multi-tenant, on the page hosted by JSolve B.V.). An administrator of your tenant (Global Administrator, Privileged Role Administrator or Cloud Application Administrator) grants consent once, with **Admin consent for this app** on the page. After that anyone in the tenant with the access above can sign in but actually running a scan requires the user to have permissions on each target subscription.
 2. **Your own app registration**, for a page you host yourself or run on your own computer, or if your policies do not allow third party apps. Create it with one command, which signs in with a device code and needs a role that can create app registrations:
 
    ```powershell
@@ -56,22 +56,18 @@ Use one of these:
 
    On the page, open **App registration and tenant**, enter the application (client) id it prints and, for a single tenant app, your tenant id. Running the script again updates the same app. To create the registration by hand instead: platform **Single-page application** with the page address as redirect URI, the permissions above, and admin consent.
 
-To assess a tenant you are a guest in, enter that tenant's id or domain under **App registration and tenant**. Azure US Government and Azure operated by 21Vianet are selectable there too.
-
 ### Hosting the page yourself
 
 The page is static: serve the folder `Web/site` from any web server.
 
 - On your own computer: `.\Web\Start-AzCmplyWeb.ps1` serves it at `http://localhost:8400/` and opens it.
-- Apache or LiteSpeed (most shared hosting): upload the folder including the hidden `.htaccess`, which sets the security headers and makes browsers check for new files on every visit.
-- Azure Static Web Apps: deploy `Web/site`; `staticwebapp.config.json` does the same there.
-- Any other static host (GitHub Pages, a storage account website, IIS): works as is. The page sets its Content Security Policy itself; add `frame-ancestors 'self'` as a header if the host allows headers.
+- Amywhere else: upload the folder including the hidden `.htaccess`, which sets the security headers
 
-Run `.\Web\Convert-AzCmplyToWeb.ps1` before every upload, also after changing only the page. It stamps a build id into `index.html`; browsers that visited before then fetch the new files, even when the host lets them cache scripts for days.
+Run `.\Web\Convert-AzCmplyToWeb.ps1` before every upload.
 
 Set the redirect URI of your app registration to the address of the page, and put the client id of your multi-tenant app in `Web/site/js/config.js` if you want it to be the default for your users.
 
-`index.html` contains the Google Analytics tag of azcmply.jsolve.nl. Remove that snippet when you host the page yourself, then run the converter, which updates the script hashes in the policy.
+`index.html` contains the Google Analytics tag of azcmply.jsolve.nl. Remove that snippet when you host the page yourself, then run the converter, which updates the script hashes.
 
 ## PowerShell module
 
@@ -87,7 +83,7 @@ The service principal or managed identity needs **Reader** on the subscription a
 
 ## How the web variant is built
 
-The browser runs the analyzer, the comparison and the report generated from the PowerShell source, not a rewrite of it. `Web/Convert-AzCmplyToWeb.ps1` converts the scripts to JavaScript with the PowerShell parser, and a small runtime in `Web/site/js/runtime` reproduces PowerShell's behaviour (comparison, sorting, formatting, null handling). The same run extracts what the ingestion collects from `Ingest/Invoke-AzureIngest.ps1`. A change to a test is one command away from the web page:
+The browser runs the analyzer, the comparison and the report generated from the PowerShell source. `Web/Convert-AzCmplyToWeb.ps1` converts the scripts to JavaScript, and a small runtime in `Web/site/js/runtime` reproduces PowerShell's behaviour (comparison, sorting, formatting, null handling). The same run extracts what the ingestion collects from `Ingest/Invoke-AzureIngest.ps1`.
 
 ```powershell
 .\Web\Convert-AzCmplyToWeb.ps1            # regenerate Web/site/generated

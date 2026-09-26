@@ -33,6 +33,7 @@ function Get-NamedSecretFindings {
 
 Add-AzTest @{
     Id          = 'AZ-SEC-001'
+    Version     = 2
     Title       = 'Deployment history does not contain plaintext secrets'
     Category    = 'Identity management'
     Service     = 'Azure Resource Manager'
@@ -60,6 +61,7 @@ Add-AzTest @{
 
 Add-AzTest @{
     Id            = 'AZ-SEC-002'
+    Version       = 2
     Title         = 'Runbooks do not contain hardcoded credentials'
     Category      = 'Identity management'
     Service       = 'Automation'
@@ -93,7 +95,7 @@ function Convert-FromBase64Utf8 {
 
 Add-AzTest @{
     Id            = 'AZ-SEC-004'
-    Version       = 2
+    Version       = 3
     Title         = 'Virtual machine custom data and script extensions do not contain plaintext secrets'
     Category      = 'Identity management'
     Service       = 'Virtual Machines'
@@ -130,14 +132,32 @@ Add-AzTest @{
     }
 }
 
+function Get-WorkflowLiteralSecrets {
+    #credentials written into a Logic App definition as plain values: defaults of parameters named like a secret, and
+    #the passwords, certificates, credential headers and URL keys of HTTP and API Management steps. Names only.
+    param($Record)
+    $definition = $Record.resource.properties.definition
+    if ($null -eq $definition) { return }
+    if ($null -ne $definition.parameters) {
+        foreach ($parameter in @($definition.parameters.PSObject.Properties)) {
+            if (-not $parameter -or [string]$parameter.Value.type -match '^secure') { continue }
+            $default = $parameter.Value.defaultValue
+            if ((Test-SecretName $parameter.Name) -and (Test-PlainSecretValue $default) -and -not (Test-WorkflowExpression $default)) { "parameter $($parameter.Name) default value" }
+        }
+    }
+    foreach ($step in @(Get-WorkflowSteps $definition)) {
+        foreach ($credential in @(Get-StepCredentials $step $Record | Where-Object { $_.PlainLiteral })) { "$($step.Name) $($credential.Kind)" }
+    }
+}
+
 Add-AzTest @{
     Id          = 'AZ-SEC-003'
-    Version     = 2
+    Version     = 3
     Title       = 'Resource configuration does not contain plaintext secrets'
     Category    = 'Identity management'
     Service     = 'Multiple'
     Severity    = 'High'
-    Description = 'Scans VM and scale set extension settings, container instance and Container Apps environment variables, Logic App definitions and parameters, and resource tags for credentials stored in plain text.'
+    Description = 'Scans VM and scale set extension settings, container instance and Container Apps environment variables, Logic App definitions and parameters (including the passwords, certificates, credential headers and URL keys of HTTP steps and parameter defaults), and resource tags for credentials stored in plain text.'
     Rationale   = 'These settings are returned by the management API to every reader of the resource and are logged in deployment history; secrets belong in protected settings, secret references or Key Vault.'
     Remediation = 'Move secrets to protectedSettings, secureValue / secretRef or Key Vault references, and rotate the exposed credentials.'
     References  = @('https://learn.microsoft.com/azure/virtual-machines/extensions/overview')
@@ -178,7 +198,7 @@ Add-AzTest @{
                     }
                 }
                 'Microsoft.Logic/workflows' {
-                    $hits = @(Find-Secrets ($p.definition | ConvertTo-Json -Depth 50 -Compress)) + @(Get-NamedSecretFindings -Object $p.parameters -Prefix 'parameter ')
+                    $hits = @(Find-Secrets ($p.definition | ConvertTo-Json -Depth 50 -Compress)) + @(Get-NamedSecretFindings -Object $p.parameters -Prefix 'parameter ') + @(Get-WorkflowLiteralSecrets $record)
                     if ($hits) { $locations.Add("workflow ($(($hits | Sort-Object -Unique) -join ', '))") }
                 }
             }

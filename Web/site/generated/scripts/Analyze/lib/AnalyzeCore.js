@@ -1252,32 +1252,32 @@ export default R.script("/app/Analyze/lib/AnalyzeCore.ps1", { params: [], adv: 0
         return;
     });
     R.ln = F + 582;
-    R.def(S, "Get-SecretPatterns", { params: [], adv: 0, h: "8401aef9c5c692b7" }, (S, O) => {
+    R.def(S, "Get-SecretPatterns", { params: [], adv: 0, h: "71689c5501ca483d" }, (S, O) => {
         R.ln = F + 584;
-        R.e(O, R.ht(["Storage account key", "(?i)AccountKey\\s*=\\s*[A-Za-z0-9+/]{40,}={0,2}", "Shared access key", "(?i)SharedAccessKey\\s*=\\s*[A-Za-z0-9+/]{20,}={0,2}", "SAS token signature", "(?i)[?&]sig=[A-Za-z0-9%+/]{30,}", "Entra client secret", "[A-Za-z0-9_~.\\-]{3}\\dQ~[A-Za-z0-9_~.\\-]{31,34}", "Private key", "-----BEGIN (?:RSA |EC |OPENSSH |DSA |ENCRYPTED )?PRIVATE KEY-----", "GitHub token", "\\b(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{36}\\b", "AWS access key", "\\bAKIA[0-9A-Z]{16}\\b", "Plain text SecureString", "(?i)ConvertTo-SecureString\\s+(?:-String\\s+)?[\"'][^\"'$]{4,}[\"']\\s+-AsPlainText", "Hardcoded password assignment", "(?i)\\b(?:password|passwd|pwd|clientsecret|client_secret|apikey|api_key)\\b\\s*[:=]\\s*[\"'][^\"'$\\s{}]{8,}[\"']"], true));
+        R.e(O, R.ht(["Storage account key", "(?i)AccountKey\\s*=\\s*[A-Za-z0-9+/]{40,}={0,2}", "Shared access key", "(?i)SharedAccessKey\\s*=\\s*[A-Za-z0-9+/]{20,}={0,2}", "SAS token signature", "(?i)[?&]sig=[A-Za-z0-9%+/_-]{30,}", "Function key in URL", "(?i)[?&]code=[A-Za-z0-9%+/_=-]{30,}", "Entra client secret", "[A-Za-z0-9_~.\\-]{3}\\dQ~[A-Za-z0-9_~.\\-]{31,34}", "Private key", "-----BEGIN (?:RSA |EC |OPENSSH |DSA |ENCRYPTED )?PRIVATE KEY-----", "GitHub token", "\\b(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{36}\\b", "AWS access key", "\\bAKIA[0-9A-Z]{16}\\b", "Plain text SecureString", "(?i)ConvertTo-SecureString\\s+(?:-String\\s+)?[\"'][^\"'$]{4,}[\"']\\s+-AsPlainText", "Hardcoded password assignment", "(?i)\\b(?:password|passwd|pwd|clientsecret|client_secret|apikey|api_key)\\b\\s*[:=]\\s*[\"'][^\"'$\\s{}]{8,}[\"']"], true));
         return;
     });
-    R.ln = F + 597;
+    R.ln = F + 599;
     R.def(S, "Find-Secrets", { params: [{ n: "Text", t: "string", pos: null }], adv: 0, h: "95d5e5a16405d510" }, (S, O) => {
-        R.ln = F + 600;
+        R.ln = F + 602;
         S["found"] = R.sc("System.Collections.Generic.List[string]", "new", []);
-        R.ln = F + 601;
+        R.ln = F + 603;
         if (!R.t((S["text"] ?? null))) {
-            R.ln = F + 601;
+            R.ln = F + 603;
             return;
         }
-        R.ln = F + 602;
+        R.ln = F + 604;
         S["patterns"] = R.u(R.cmd(S, "Get-SecretPatterns", [], null));
-        R.ln = F + 603;
+        R.ln = F + 605;
         for (const it31 of R.fi(R.m((S["patterns"] ?? null), "Keys"))) {
             S["name"] = it31;
-            R.ln = F + 603;
+            R.ln = F + 605;
             if (R.t(R.match(S, (S["text"] ?? null), R.i((S["patterns"] ?? null), (S["name"] ?? null))))) {
-                R.ln = F + 603;
+                R.ln = F + 605;
                 R.e(O, R.im((S["found"] ?? null), "Add", [(S["name"] ?? null)]));
             }
         }
-        R.ln = F + 604;
+        R.ln = F + 606;
         R.e(O, (S["found"] ?? null));
         return;
     });

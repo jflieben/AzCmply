@@ -17,8 +17,9 @@ $generator = Join-Path $PSScriptRoot 'New-FixtureIngest.ps1'
 #AZ-KV-005/006 and AZ-KV-010/011 are the RBAC and access policy halves of the same CIS recommendations: a vault has one
 #permission model, and a compliant fixture uses RBAC (AZ-KV-002), so the access policy half has nothing in scope there.
 $expectedOverrides = @{
-    #AZ-NET-023 only applies to machines whose management ports are open to the Internet, which a compliant fixture has none of
-    Good = @{ 'AZ-KV-009' = 'NotApplicable'; 'AZ-KV-010' = 'NotApplicable'; 'AZ-KV-011' = 'NotApplicable'; 'AZ-NET-023' = 'NotApplicable' }
+    #AZ-NET-023 only applies to machines whose management ports are open to the Internet, and AZ-LOGIC-002 to workflows
+    #that anyone can call (AZ-LOGIC-001); a compliant fixture has none of either
+    Good = @{ 'AZ-KV-009' = 'NotApplicable'; 'AZ-KV-010' = 'NotApplicable'; 'AZ-KV-011' = 'NotApplicable'; 'AZ-NET-023' = 'NotApplicable'; 'AZ-LOGIC-002' = 'NotApplicable' }
     #AZ-IAM-026 fails only without enabled Conditional Access policies, and AZ-IAM-028 needs them to fail; without a Bastion (AZ-NET-011) there is no shareable link (AZ-NET-027)
     Bad  = @{ 'AZ-GOV-001' = 'Pass'; 'AZ-LOG-001' = 'Pass'; 'AZ-KV-005' = 'NotApplicable'; 'AZ-KV-006' = 'NotApplicable'; 'AZ-IAM-026' = 'NotApplicable'; 'AZ-NET-027' = 'NotApplicable' }
 }

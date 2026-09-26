@@ -1,5 +1,44 @@
 # Changelog
 
+## 1.0.2
+
+### Added
+- Ten Logic App tests (301 in total), for Consumption workflows and API connections: request triggers callable from any
+  address with their signed URL (AZ-LOGIC-001), such workflows with write access in Azure (AZ-LOGIC-002), HTTP steps
+  that sign in with passwords, certificates, keys or credential headers instead of a managed identity or service
+  principal (AZ-LOGIC-003), Key Vault secrets, tokens and credentials visible in run history (AZ-LOGIC-004), API
+  connections that sign in as a user (AZ-LOGIC-005) or store a shared secret (AZ-LOGIC-006), connections in error
+  (AZ-LOGIC-007) or not used by any workflow (AZ-LOGIC-008), runs and triggers that keep failing (AZ-LOGIC-009) and
+  workflows without runs for 75 days (AZ-LOGIC-010).
+- AzCmply Custom 2026.09.2: AZC-11, workflows that anyone can call have no write access in Azure, and AZC-12, workflows
+  do not keep failing unnoticed.
+- Ingestion: daily run metrics of Logic App workflows over the 75 days before the run (child `metrics`), and the
+  connector metadata of API connections (`web/managedApis.json`).
+
+### Changed
+- AZ-SEC-003 (version 3) also finds passwords, certificates, credential headers and URL keys written as plain values in
+  the HTTP steps of Logic App definitions, and plain secret defaults of their parameters.
+
+### Fixed
+- The SAS signature pattern of the secret scans missed most Logic App callback URLs (base64url signatures); a function
+  key in a URL is now found as well. AZ-SEC-001, AZ-SEC-002 and AZ-SEC-004 have a new version for this.
+
+## 1.0.1
+
+### Added
+- Domain controllers on virtual machines without Tier 0 protection: AZ-VM-015 (High) for likely, AZ-VM-016
+  (Informational) for possible domain controllers. Detection is best effort from Azure configuration: DNS server of a
+  virtual network, network interface, Azure Firewall or DNS forwarding rule, network security group rules for Kerberos,
+  global catalog or AD Web Services, AD DS promotion in userData, custom data or extension settings, and the machine
+  name. Tier 0 protection: no role that can take the machine over is delegated on a subscription or resource group
+  shared with other workloads, held by a workload identity, or held permanently instead of through PIM.
+- AzCmply Custom 2026.09.1: control AZC-10, only Tier 0 administrators can take over domain controllers on virtual
+  machines through Azure.
+- Ingestion: added forwarding rules of DNS forwarding rulesets.
+
+### Fixed
+- Test counts per area and severity in the analyzer README.
+
 ## 1.0.0
 
 ### Added

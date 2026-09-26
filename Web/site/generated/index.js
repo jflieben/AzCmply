@@ -24,7 +24,7 @@ import s19 from './scripts/Analyze/tests/17-PaaSGeneric.js';
 import s20 from './scripts/Analyze/tests/18-DefenderFindings.js';
 import s21 from './scripts/Report/New-AzureSecurityReport.js';
 
-export const version = "1.0.0";
+export const version = "1.0.2";
 export const scripts = {
     "/app/Analyze/Compare-AzureAnalysis.ps1": s0,
     "/app/Analyze/Invoke-AzureAnalyze.ps1": s1,
