@@ -1,0 +1,82 @@
+name: Bug report
+description: Something breaks, errors or does not work as documented.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. A test that reports the wrong result for your configuration has its own form: **Wrong test result**.
+
+        **Keep your environment private.** Ingestions, results and reports describe real weaknesses of a tenant. Do not attach them. Replace tenant, subscription and object ids, names and addresses in anything you paste.
+  - type: dropdown
+    id: variant
+    attributes:
+      label: How do you run AzCmply?
+      options:
+        - PowerShell module from the PowerShell Gallery
+        - Scripts from this repository
+        - AzCmply web (azcmply.jsolve.nl)
+        - AzCmply web, hosted myself
+    validations:
+      required: true
+  - type: dropdown
+    id: component
+    attributes:
+      label: Where does it go wrong?
+      options:
+        - Ingestion (collecting data)
+        - Analysis (running the tests)
+        - Report
+        - Comparison or trend
+        - Web page (sign-in, history, exports)
+        - Installation or module build
+        - Documentation
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: AzCmply version
+      description: "Module: `(Get-Module AzCmply -ListAvailable).Version`. Web: the version next to the title. Report: 'analyzer' under the run details."
+      placeholder: 1.0.3
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: PowerShell version and operating system, or browser
+      placeholder: PowerShell 7.5.2 on Windows 11 / Edge 140
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: The command or clicks that lead to the problem, with parameters (no secrets).
+      placeholder: |
+        1. Invoke-AzCmplyAssessment -SubscriptionId <id> -TenantId <id> -ClientId <id> -ClientSecret $secret
+        2. ...
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: Error output
+      description: The error or the last lines of the log. For ingestion problems, the entries of failures.json and the section statuses of manifest.json help most (with ids removed).
+      render: text
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before you submit
+      options:
+        - label: I searched the existing issues.
+          required: true
+        - label: I removed tenant, subscription and object ids, names, addresses and secrets from what I pasted.
+          required: true

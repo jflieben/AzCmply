@@ -1,0 +1,63 @@
+name: New test or framework mapping
+description: Propose a security check AzCmply does not do yet, or a change to which framework controls a test evidences.
+title: "[New test]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Good proposals name the risk, the Azure setting that shows it and where a read-only account can see it. AzCmply only reads: a check that needs more than Reader (listing keys, app settings, data plane content) cannot be a test.
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What do you propose?
+      options:
+        - A new test
+        - A change to an existing test
+        - A change to a framework mapping (which controls a test evidences)
+        - A new framework, or a new version of one
+    validations:
+      required: true
+  - type: textarea
+    id: check
+    attributes:
+      label: What should be checked?
+      description: The requirement in one or two sentences, and when a resource passes or fails.
+      placeholder: Flex Consumption apps read their deployment package with a managed identity; they fail when the authentication type is StorageAccountConnectionString.
+    validations:
+      required: true
+  - type: textarea
+    id: risk
+    attributes:
+      label: Why does it matter?
+      description: The risk or attack path, with references (Microsoft documentation, benchmarks, published research).
+    validations:
+      required: true
+  - type: textarea
+    id: data
+    attributes:
+      label: Where is the setting?
+      description: Resource type, API and property, for example `Microsoft.Web/sites` > `properties.functionAppConfig.deployment.storage.authentication.type`. Say whether Reader can read it.
+    validations:
+      required: true
+  - type: textarea
+    id: frameworks
+    attributes:
+      label: Framework controls
+      description: Controls the test would evidence (for example MCSB IM-3, CIS Azure 8.1.6.1, ISO 27001 A.8.5). For a mapping change, the test id and the control to add or remove, and why.
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Suggested severity
+      options:
+        - Critical
+        - High
+        - Medium
+        - Low
+        - Informational
+  - type: checkboxes
+    id: contribute
+    attributes:
+      label: Contribution
+      options:
+        - label: I would like to build this myself (see CONTRIBUTING.md).

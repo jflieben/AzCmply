@@ -1,0 +1,21 @@
+name: Self-test
+
+# Runs the analyzer self-test: every test passes on the compliant fixture and fails on the non-compliant one, the output
+# is deterministic, and no test reports a pass when the data it needs is missing. Needs no Azure access.
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  selftest:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Analyzer self-test
+        shell: pwsh
+        run: ./Analyze/selftest/Invoke-SelfTest.ps1

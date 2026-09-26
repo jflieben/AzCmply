@@ -13,6 +13,9 @@
 - AzCmply Custom 2026.09.3: AZC-13, only those who can change a function app can change the storage it runs from.
   AZC-11 now covers workloads (functions next to workflows) and AZC-01 access restrictions of App Service.
 - Ingestion: the App Service runtime catalogs (`web/functionAppStacks.json`, `web/webAppStacks.json`).
+- Contributing on GitHub: issue forms (bug report, wrong test result, new test or framework mapping, feature request), a
+  pull request template, `CONTRIBUTING.md`, `SECURITY.md`, the self-test as a workflow on every push and pull request,
+  and Dependabot updates for the workflow actions.
 
 ### Fixed
 - AZ-APP-009 (version 3) counted App Service authentication as enforced when it requires sign-in with the action

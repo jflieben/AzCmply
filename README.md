@@ -1,5 +1,7 @@
 # AzCmply
 
+[![PowerShell Gallery](https://img.shields.io/powershellgallery/v/AzCmply?label=PowerShell%20Gallery)](https://www.powershellgallery.com/packages/AzCmply) [![Self-test](https://github.com/jflieben/AzCmply/actions/workflows/selftest.yml/badge.svg)](https://github.com/jflieben/AzCmply/actions/workflows/selftest.yml) [![Web parity](https://github.com/jflieben/AzCmply/actions/workflows/web.yml/badge.svg)](https://github.com/jflieben/AzCmply/actions/workflows/web.yml)
+
 Free (non commercially) fully automated test suite for Azure subscriptions against multiple up to date industry security baselines.
 
 AzCmply reads an Azure subscription and its Entra ID context, runs 308 tests against it and writes a report: a posture score, the failures to address, results per security domain and per framework, and every test with its remediation and evidence per resource. Frameworks: the Microsoft cloud security benchmark v2, CIS Microsoft Azure Foundations Benchmark 6.0.0, the Well-Architected Framework security pillar, Azure landing zone policies, ISO 27001:2022, NIST CSF 2.0, CIS Controls v8.1, SOC 2, NIST SP 800-53 Rev. 5, PCI DSS v4.0.1, DORA with its ICT risk management standard (RTS 2024/1774) and CMMC 2.0 Levels 1 to 3, to which JSolve maps the tests. AzCmply Custom adds JSolve's own controls for Azure attack paths that none of these frameworks covers.
@@ -91,6 +93,10 @@ The browser runs the analyzer, the comparison and the report generated from the 
 ```
 
 `Test-WebParity.ps1 -Thorough` adds the degraded ingestions of the self-test; `Test-WebIngestParity.ps1` compares the web ingestion with the PowerShell ingestion on a live subscription. Both need node 20 or later.
+
+## Contributing
+
+Bug reports, wrong results, new tests and framework mappings are welcome: open an [issue](https://github.com/jflieben/AzCmply/issues/new/choose) with one of the forms, or read [CONTRIBUTING.md](CONTRIBUTING.md) to build it yourself. Report vulnerabilities in AzCmply privately, see [SECURITY.md](SECURITY.md).
 
 ## License
 

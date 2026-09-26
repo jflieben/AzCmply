@@ -18,6 +18,8 @@ Everywhere where versioning makes sense, this should be based on the VERSION fil
 
 Every time you do any sort of significant work, update the CHANGELOG.md file and the README.md file, these are both public facing files that help users understand and use our tool.
 
+CONTRIBUTING.md explains these rules and the workflow to outside contributors; keep it in step when they change.
+
 Portable NODE is available on this system.
 
 ## Rules that keep the output honest

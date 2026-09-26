@@ -1,0 +1,79 @@
+name: Wrong test result
+description: A test fails, passes, or reports Unknown or NotApplicable where it should not.
+title: "[Wrong result]: AZ-"
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        AzCmply may only report Pass or Fail on data it read, and Unknown when data is missing. A result that does not match your configuration is a bug in the test, the collection or the documentation, so it is worth reporting.
+
+        **Keep your environment private.** Paste only the settings that matter, with ids, names and addresses replaced.
+  - type: input
+    id: test
+    attributes:
+      label: Test id
+      description: As shown in the report, for example AZ-STG-005.
+      placeholder: AZ-XXX-000
+    validations:
+      required: true
+  - type: dropdown
+    id: reported
+    attributes:
+      label: Result reported
+      options:
+        - Fail
+        - Pass
+        - Unknown
+        - NotApplicable
+        - Error
+    validations:
+      required: true
+  - type: dropdown
+    id: expected
+    attributes:
+      label: Result expected
+      options:
+        - Pass
+        - Fail
+        - Unknown
+        - NotApplicable
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why is the result wrong?
+      description: What your configuration looks like and why it meets (or does not meet) what the test checks. Link Microsoft documentation where it helps.
+    validations:
+      required: true
+  - type: textarea
+    id: finding
+    attributes:
+      label: Finding from the report
+      description: The detail and evidence of the finding, as shown in the report or in findings.csv.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: configuration
+    attributes:
+      label: Relevant configuration
+      description: The properties of the resource that matter, for example from the resource file in the ingestion folder or from `az resource show`. Remove ids and names.
+      render: json
+  - type: input
+    id: version
+    attributes:
+      label: AzCmply version
+      placeholder: 1.0.3
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before you submit
+      options:
+        - label: I searched the existing issues for this test id.
+          required: true
+        - label: I removed tenant, subscription and object ids, names, addresses and secrets from what I pasted.
+          required: true

@@ -1,0 +1,46 @@
+name: Feature request
+description: An improvement to the report, the web page, the module, performance or documentation.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For a new security check use **New test or framework mapping**.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Report
+        - Web page
+        - PowerShell module
+        - Ingestion (what is collected, speed, permissions)
+        - Comparison and trend
+        - Documentation
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would it solve?
+      description: What you are trying to do and what gets in the way.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What do you propose?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered
+  - type: checkboxes
+    id: contribute
+    attributes:
+      label: Contribution
+      options:
+        - label: I would like to build this myself (see CONTRIBUTING.md).

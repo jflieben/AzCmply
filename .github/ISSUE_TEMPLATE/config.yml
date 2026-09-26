@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/jflieben/AzCmply/blob/main/SECURITY.md
+    about: Do not open a public issue for a vulnerability in AzCmply itself; report it privately as described here.
+  - name: Commercial use and licences
+    url: https://jsolve.nl/commercial-use.html
+    about: Using AzCmply for customers, in a paid service or in your own product needs a licence from JSolve B.V.
+  - name: How to contribute
+    url: https://github.com/jflieben/AzCmply/blob/main/CONTRIBUTING.md
+    about: How the repository is built, how to add a test and what a pull request needs.
