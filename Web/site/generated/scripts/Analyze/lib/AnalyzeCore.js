@@ -1024,260 +1024,320 @@ export default R.script("/app/Analyze/lib/AnalyzeCore.ps1", { params: [], adv: 0
         return;
     });
     R.ln = F + 491;
+    R.def(S, "Get-ResourceIdentityPrincipals", { params: [{ n: "Record", t: null, pos: null }], adv: 0, h: "ef39b9673b7b9904" }, (S, O) => {
+        R.ln = F + 494;
+        S["identity"] = R.m(R.m((S["record"] ?? null), "resource"), "identity");
+        R.ln = F + 495;
+        if (!R.t((S["identity"] ?? null))) {
+            R.ln = F + 495;
+            return;
+        }
+        R.ln = F + 496;
+        S["ids"] = R.a(R.m((S["identity"] ?? null), "principalId"));
+        R.ln = F + 497;
+        if (R.t(R.ne(null, R.m((S["identity"] ?? null), "userAssignedIdentities")))) {
+            R.ln = F + 498;
+            for (const it28 of R.fi(R.a(R.m(R.m(R.m((S["identity"] ?? null), "userAssignedIdentities"), "PSObject"), "Properties")))) {
+                S["assigned"] = it28;
+                R.ln = F + 498;
+                if (R.t((S["assigned"] ?? null))) {
+                    R.ln = F + 498;
+                    S["ids"] = R.add(S["ids"] ?? null, R.m(R.m((S["assigned"] ?? null), "Value"), "principalId"));
+                }
+            }
+        }
+        R.ln = F + 500;
+        R.e(O, R.cmd(S, "Sort-Object", [R.np("Unique")], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " ([string]$_).ToLowerInvariant() " }, (S, O) => {
+            R.ln = F + 500;
+            R.e(O, R.im((R.c("string", (S["_"] ?? null))), "ToLowerInvariant", []));
+        })], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+            R.ln = F + 500;
+            R.e(O, (S["_"] ?? null));
+        })], R.pi((S["ids"] ?? null))))));
+    });
+    R.ln = F + 503;
+    R.def(S, "Get-PrincipalWriteGrants", { params: [{ n: "PrincipalIds", t: "string[]", pos: null }], adv: 0, h: "ca73371eef4f4a53" }, (S, O) => {
+        R.ln = F + 506;
+        S["access"] = R.u(R.cmd(S, "Get-PrincipalAccessMap", [], null));
+        R.ln = F + 507;
+        S["grants"] = (() => {
+            const v29 = [];
+            R.ln = F + 507;
+            for (const it30 of R.fi((S["principalids"] ?? null))) {
+                S["principal"] = it30;
+                R.ln = F + 508;
+                for (const it31 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+                    R.ln = F + 508;
+                    R.e(O, (S["_"] ?? null));
+                })], R.pi(R.i((S["access"] ?? null), (S["principal"] ?? null)))))) {
+                    S["assignment"] = it31;
+                    R.ln = F + 509;
+                    if (R.t(R.u(R.cmd(S, "Test-RoleCanWrite", [R.m(R.m((S["assignment"] ?? null), "properties"), "roleDefinitionId")], null)))) {
+                        R.ln = F + 509;
+                        R.e(v29, ("" + R.str(R.u(R.cmd(S, "Get-RoleName", [R.m(R.m((S["assignment"] ?? null), "properties"), "roleDefinitionId")], null))) + " @ " + R.str(R.u(R.pi(R.m(R.m((S["assignment"] ?? null), "properties"), "scope"))))));
+                    }
+                }
+            }
+            return v29;
+        })();
+        R.ln = F + 512;
+        R.e(O, R.cmd(S, "Sort-Object", [R.np("Unique")], R.pi((S["grants"] ?? null))));
+    });
+    R.ln = F + 515;
     R.def(S, "New-SubscriptionFinding", { params: [{ n: "Result", t: null, pos: null, mand: 1 }], adv: 1, h: "26f1a22e28d230be" }, (S, O) => {
-        R.ln = F + 493;
+        R.ln = F + 517;
         R.pa(O, R.cmd(S, "New-Finding", [R.np("ResourceId"), R.u(R.cmd(S, "Get-SubscriptionScope", [], null)), R.np("ResourceType"), "Microsoft.Resources/subscriptions", R.np("ResourceName"), R.m(R.m(R.m((R.ss(S)["script:ingest"] ?? null), "Manifest"), "subscription"), "displayName"), R.np("Result"), (S["result"] ?? null)], null));
         return;
     });
-    R.ln = F + 496;
+    R.ln = F + 520;
     R.def(S, "New-TenantFinding", { params: [{ n: "Result", t: null, pos: null, mand: 1 }, { n: "Suffix", t: "string", pos: null }], adv: 1, h: "0a369e6787669274" }, (S, O) => {
-        R.ln = F + 498;
+        R.ln = F + 522;
         S["id"] = ("/tenants/" + R.str(R.u(R.pi(R.m(R.m(R.m((R.ss(S)["script:ingest"] ?? null), "Manifest"), "subscription"), "tenantId")))) + R.str((S["suffix"] ?? null)));
-        R.ln = F + 499;
+        R.ln = F + 523;
         R.pa(O, R.cmd(S, "New-Finding", [R.np("ResourceId"), (S["id"] ?? null), R.np("ResourceType"), "Microsoft.Entra/tenants", R.np("Result"), (S["result"] ?? null)], null));
         return;
     });
-    R.ln = F + 502;
+    R.ln = F + 526;
     R.def(S, "Get-LockMap", { params: [], adv: 0, h: "d77e1d3c8fcce061" }, (S, O) => {
-        R.ln = F + 504;
+        R.ln = F + 528;
         if (!R.t(R.im(R.m((R.ss(S)["script:ingest"] ?? null), "Cache"), "ContainsKey", ["#locks"]))) {
-            R.ln = F + 505;
+            R.ln = F + 529;
             S["map"] = R.ht([], false);
-            R.ln = F + 506;
-            for (const it28 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                R.ln = F + 506;
+            R.ln = F + 530;
+            for (const it32 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+                R.ln = F + 530;
                 R.e(O, (S["_"] ?? null));
             })], R.cmd(S, "Get-IngestData", ["subscription/locks"], null)))) {
-                S["lock"] = it28;
-                R.ln = F + 507;
+                S["lock"] = it32;
+                R.ln = F + 531;
                 S["scope"] = R.im((R.rep(R.m((S["lock"] ?? null), "id"), [R.v("(?i)/providers/Microsoft\\.Authorization/locks/[^/]+$"), R.v("")])), "ToLowerInvariant", []);
-                R.ln = F + 508;
+                R.ln = F + 532;
                 if (!R.t(R.i((S["map"] ?? null), (S["scope"] ?? null)))) {
-                    R.ln = F + 508;
+                    R.ln = F + 532;
                     R.si((S["map"] ?? null), (S["scope"] ?? null), R.sc("System.Collections.Generic.List[object]", "new", []));
                 }
-                R.ln = F + 509;
+                R.ln = F + 533;
                 R.e(O, R.im(R.i((S["map"] ?? null), (S["scope"] ?? null)), "Add", [(S["lock"] ?? null)]));
             }
-            R.ln = F + 511;
+            R.ln = F + 535;
             R.si(R.m((R.ss(S)["script:ingest"] ?? null), "Cache"), "#locks", (S["map"] ?? null));
         }
-        R.ln = F + 513;
+        R.ln = F + 537;
         R.e(O, R.i(R.m((R.ss(S)["script:ingest"] ?? null), "Cache"), "#locks"));
         return;
     });
-    R.ln = F + 516;
+    R.ln = F + 540;
     R.def(S, "Get-EffectiveLocks", { params: [{ n: "ResourceId", t: "string", pos: null, mand: 1 }], adv: 1, h: "80dba589d46065d6" }, (S, O) => {
-        R.ln = F + 519;
+        R.ln = F + 543;
         S["map"] = R.u(R.cmd(S, "Get-LockMap", [], null));
-        R.ln = F + 520;
+        R.ln = F + 544;
         S["found"] = R.sc("System.Collections.Generic.List[object]", "new", []);
-        R.ln = F + 521;
+        R.ln = F + 545;
         S["scope"] = R.im((S["resourceid"] ?? null), "ToLowerInvariant", []);
-        R.ln = F + 522;
+        R.ln = F + 546;
         while (R.t((S["scope"] ?? null))) {
-            R.ln = F + 523;
+            R.ln = F + 547;
             if (R.t(R.im((S["map"] ?? null), "ContainsKey", [(S["scope"] ?? null)]))) {
-                R.ln = F + 523;
+                R.ln = F + 547;
                 R.e(O, R.im((S["found"] ?? null), "AddRange", [R.i((S["map"] ?? null), (S["scope"] ?? null))]));
             }
-            R.ln = F + 524;
+            R.ln = F + 548;
             S["parent"] = R.im((S["scope"] ?? null), "Substring", [0, R.sc("math", "Max", [0, R.im((S["scope"] ?? null), "LastIndexOf", ["/"])])]);
-            R.ln = F + 525;
+            R.ln = F + 549;
             if (R.t(R.eq((S["parent"] ?? null), (S["scope"] ?? null)))) {
                 break;
             }
-            R.ln = F + 526;
+            R.ln = F + 550;
             S["scope"] = (S["parent"] ?? null);
         }
-        R.ln = F + 528;
+        R.ln = F + 552;
         R.e(O, (S["found"] ?? null));
         return;
     });
-    R.ln = F + 531;
+    R.ln = F + 555;
     R.def(S, "Test-DiagnosticLogsEnabled", { params: [{ n: "Settings", t: null, pos: null }, { n: "RequiredCategories", t: "string[]", pos: null }], adv: 0, h: "8d8d72468637a9a3" }, (S, O) => {
-        R.ln = F + 534;
-        for (const it29 of R.fi(R.a((S["settings"] ?? null)))) {
-            S["setting"] = it29;
-            R.ln = F + 535;
+        R.ln = F + 558;
+        for (const it33 of R.fi(R.a((S["settings"] ?? null)))) {
+            S["setting"] = it33;
+            R.ln = F + 559;
             if (!R.t((S["setting"] ?? null))) {
                 continue;
             }
-            R.ln = F + 536;
+            R.ln = F + 560;
             S["properties"] = R.m((S["setting"] ?? null), "properties");
-            R.ln = F + 537;
+            R.ln = F + 561;
             if (!(((R.t(R.m((S["properties"] ?? null), "workspaceId")) || R.t(R.m((S["properties"] ?? null), "storageAccountId"))) || R.t(R.m((S["properties"] ?? null), "eventHubAuthorizationRuleId"))) || R.t(R.m((S["properties"] ?? null), "marketplacePartnerId")))) {
                 continue;
             }
-            R.ln = F + 538;
+            R.ln = F + 562;
             S["enabled"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.enabled " }, (S, O) => {
-                R.ln = F + 538;
+                R.ln = F + 562;
                 R.e(O, R.m((S["_"] ?? null), "enabled"));
             })], R.pi(R.m((S["properties"] ?? null), "logs")));
-            R.ln = F + 539;
+            R.ln = F + 563;
             if (!R.t((S["enabled"] ?? null))) {
                 continue;
             }
-            R.ln = F + 540;
+            R.ln = F + 564;
             if (!R.t((S["requiredcategories"] ?? null))) {
-                R.ln = F + 540;
+                R.ln = F + 564;
                 R.e(O, true);
                 return;
             }
-            R.ln = F + 541;
+            R.ln = F + 565;
             if (R.t(R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.categoryGroup -in 'allLogs', 'audit' " }, (S, O) => {
-                R.ln = F + 541;
+                R.ln = F + 565;
                 R.e(O, R.in(R.m((S["_"] ?? null), "categoryGroup"), [R.v("allLogs"), R.v("audit")]));
             })], R.pi((S["enabled"] ?? null)))))) {
-                R.ln = F + 541;
+                R.ln = F + 565;
                 R.e(O, true);
                 return;
             }
-            R.ln = F + 542;
+            R.ln = F + 566;
             S["categories"] = R.cmd(S, "ForEach-Object", ["category"], R.pi((S["enabled"] ?? null)));
-            R.ln = F + 543;
+            R.ln = F + 567;
             if (!R.t(R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -notin $categories " }, (S, O) => {
-                R.ln = F + 543;
+                R.ln = F + 567;
                 R.e(O, R.nin((S["_"] ?? null), (S["categories"] ?? null)));
             })], R.pi((S["requiredcategories"] ?? null)))))) {
-                R.ln = F + 543;
+                R.ln = F + 567;
                 R.e(O, true);
                 return;
             }
         }
-        R.ln = F + 545;
+        R.ln = F + 569;
         R.e(O, false);
         return;
     });
-    R.ln = F + 548;
+    R.ln = F + 572;
     R.def(S, "Test-InternetSource", { params: [{ n: "Prefix", t: "string", pos: null }], adv: 0, h: "ee6efba1e13553d9" }, (S, O) => {
-        R.ln = F + 550;
+        R.ln = F + 574;
         R.e(O, (R.in((S["prefix"] ?? null), [R.v("*"), R.v("Internet"), R.v("0.0.0.0/0"), R.v("::/0"), R.v("Any"), R.v("0.0.0.0")])));
         return;
     });
-    R.ln = F + 553;
+    R.ln = F + 577;
     R.def(S, "Test-PortInRange", { params: [{ n: "Range", t: "string", pos: null }, { n: "Port", t: "int", pos: null }], adv: 0, h: "349688d11c9c3375" }, (S, O) => {
-        R.ln = F + 556;
+        R.ln = F + 580;
         if (!R.t((S["range"] ?? null))) {
-            R.ln = F + 556;
+            R.ln = F + 580;
             R.e(O, false);
             return;
         }
-        R.ln = F + 557;
+        R.ln = F + 581;
         if (R.t(R.eq((S["range"] ?? null), "*"))) {
-            R.ln = F + 557;
+            R.ln = F + 581;
             R.e(O, true);
             return;
         }
-        R.ln = F + 558;
+        R.ln = F + 582;
         if (R.t(R.match(S, (S["range"] ?? null), "^(\\d+)-(\\d+)$"))) {
-            R.ln = F + 558;
+            R.ln = F + 582;
             R.e(O, ((R.t(R.ge((S["port"] ?? null), R.c("int", R.i((S["matches"] ?? null), 1)))) && R.t(R.le((S["port"] ?? null), R.c("int", R.i((S["matches"] ?? null), 2)))))));
             return;
         }
-        R.ln = F + 559;
+        R.ln = F + 583;
         if (R.t(R.match(S, (S["range"] ?? null), "^\\d+$"))) {
-            R.ln = F + 559;
+            R.ln = F + 583;
             R.e(O, (R.eq(R.c("int", (S["range"] ?? null)), (S["port"] ?? null))));
             return;
         }
-        R.ln = F + 560;
+        R.ln = F + 584;
         R.e(O, false);
         return;
     });
-    R.ln = F + 563;
+    R.ln = F + 587;
     R.def(S, "Get-NsgInternetExposure", { params: [{ n: "Nsg", t: null, pos: null, mand: 1 }, { n: "Port", t: "int", pos: null, mand: 1 }, { n: "Protocol", t: "string", pos: null, vs: ["Tcp", "Udp"], def: S => "Tcp" }], adv: 1, h: "aecf4e63c873e1bf" }, (S, O) => {
-        R.ln = F + 566;
+        R.ln = F + 590;
         S["rules"] = R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.properties.direction -eq 'Inbound' " }, (S, O) => {
-            R.ln = F + 566;
+            R.ln = F + 590;
             R.e(O, (R.t((S["_"] ?? null)) && R.t(R.eq(R.m(R.m((S["_"] ?? null), "properties"), "direction"), "Inbound"))));
         })], R.pi(R.add(R.a(R.m(R.m((S["nsg"] ?? null), "properties"), "securityRules")), R.a(R.m(R.m((S["nsg"] ?? null), "properties"), "defaultSecurityRules"))))));
-        R.ln = F + 567;
-        for (const it30 of R.fi(R.u(R.cmd(S, "Sort-Object", [R.sb({ params: [], adv: 0, text: " [int]$_.properties.priority " }, (S, O) => {
-            R.ln = F + 567;
+        R.ln = F + 591;
+        for (const it34 of R.fi(R.u(R.cmd(S, "Sort-Object", [R.sb({ params: [], adv: 0, text: " [int]$_.properties.priority " }, (S, O) => {
+            R.ln = F + 591;
             R.e(O, R.c("int", R.m(R.m((S["_"] ?? null), "properties"), "priority")));
         })], R.pi((S["rules"] ?? null)))))) {
-            S["rule"] = it30;
-            R.ln = F + 568;
+            S["rule"] = it34;
+            R.ln = F + 592;
             S["p"] = R.m((S["rule"] ?? null), "properties");
-            R.ln = F + 569;
+            R.ln = F + 593;
             if (R.t(R.nin(R.m((S["p"] ?? null), "protocol"), [R.v("*"), R.v((S["protocol"] ?? null))]))) {
                 continue;
             }
-            R.ln = F + 570;
+            R.ln = F + 594;
             S["sources"] = R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                R.ln = F + 570;
+                R.ln = F + 594;
                 R.e(O, (S["_"] ?? null));
             })], R.pi(R.add(R.a(R.m((S["p"] ?? null), "sourceAddressPrefix")), R.a(R.m((S["p"] ?? null), "sourceAddressPrefixes"))))));
-            R.ln = F + 571;
+            R.ln = F + 595;
             if (!R.t(R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " Test-InternetSource $_ " }, (S, O) => {
-                R.ln = F + 571;
+                R.ln = F + 595;
                 R.pa(O, R.cmd(S, "Test-InternetSource", [(S["_"] ?? null)], null));
             })], R.pi((S["sources"] ?? null)))))) {
                 continue;
             }
-            R.ln = F + 572;
+            R.ln = F + 596;
             S["ranges"] = R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                R.ln = F + 572;
+                R.ln = F + 596;
                 R.e(O, (S["_"] ?? null));
             })], R.pi(R.add(R.a(R.m((S["p"] ?? null), "destinationPortRange")), R.a(R.m((S["p"] ?? null), "destinationPortRanges"))))));
-            R.ln = F + 573;
+            R.ln = F + 597;
             if (!R.t(R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " Test-PortInRange -Range $_ -Port $Port " }, (S, O) => {
-                R.ln = F + 573;
+                R.ln = F + 597;
                 R.pa(O, R.cmd(S, "Test-PortInRange", [R.np("Range"), (S["_"] ?? null), R.np("Port"), (S["port"] ?? null)], null));
             })], R.pi((S["ranges"] ?? null)))))) {
                 continue;
             }
-            R.ln = F + 574;
+            R.ln = F + 598;
             if (R.t(R.eq(R.m((S["p"] ?? null), "access"), "Allow"))) {
-                R.ln = F + 574;
+                R.ln = F + 598;
                 R.e(O, (S["rule"] ?? null));
                 return;
             }
-            R.ln = F + 575;
+            R.ln = F + 599;
             R.e(O, null);
             return;
         }
-        R.ln = F + 577;
+        R.ln = F + 601;
         R.e(O, null);
         return;
     });
-    R.ln = F + 580;
+    R.ln = F + 604;
     R.def(S, "Get-PolicyAssignments", { params: [], adv: 0, h: "ac78f07edabdde4a" }, (S, O) => {
-        R.ln = F + 580;
+        R.ln = F + 604;
         R.e(O, R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 580;
+            R.ln = F + 604;
             R.e(O, (S["_"] ?? null));
         })], R.cmd(S, "Get-IngestData", ["policy/policyAssignments"], null)));
         return;
     });
-    R.ln = F + 582;
+    R.ln = F + 606;
     R.def(S, "Get-SecretPatterns", { params: [], adv: 0, h: "71689c5501ca483d" }, (S, O) => {
-        R.ln = F + 584;
+        R.ln = F + 608;
         R.e(O, R.ht(["Storage account key", "(?i)AccountKey\\s*=\\s*[A-Za-z0-9+/]{40,}={0,2}", "Shared access key", "(?i)SharedAccessKey\\s*=\\s*[A-Za-z0-9+/]{20,}={0,2}", "SAS token signature", "(?i)[?&]sig=[A-Za-z0-9%+/_-]{30,}", "Function key in URL", "(?i)[?&]code=[A-Za-z0-9%+/_=-]{30,}", "Entra client secret", "[A-Za-z0-9_~.\\-]{3}\\dQ~[A-Za-z0-9_~.\\-]{31,34}", "Private key", "-----BEGIN (?:RSA |EC |OPENSSH |DSA |ENCRYPTED )?PRIVATE KEY-----", "GitHub token", "\\b(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{36}\\b", "AWS access key", "\\bAKIA[0-9A-Z]{16}\\b", "Plain text SecureString", "(?i)ConvertTo-SecureString\\s+(?:-String\\s+)?[\"'][^\"'$]{4,}[\"']\\s+-AsPlainText", "Hardcoded password assignment", "(?i)\\b(?:password|passwd|pwd|clientsecret|client_secret|apikey|api_key)\\b\\s*[:=]\\s*[\"'][^\"'$\\s{}]{8,}[\"']"], true));
         return;
     });
-    R.ln = F + 599;
+    R.ln = F + 623;
     R.def(S, "Find-Secrets", { params: [{ n: "Text", t: "string", pos: null }], adv: 0, h: "95d5e5a16405d510" }, (S, O) => {
-        R.ln = F + 602;
+        R.ln = F + 626;
         S["found"] = R.sc("System.Collections.Generic.List[string]", "new", []);
-        R.ln = F + 603;
+        R.ln = F + 627;
         if (!R.t((S["text"] ?? null))) {
-            R.ln = F + 603;
+            R.ln = F + 627;
             return;
         }
-        R.ln = F + 604;
+        R.ln = F + 628;
         S["patterns"] = R.u(R.cmd(S, "Get-SecretPatterns", [], null));
-        R.ln = F + 605;
-        for (const it31 of R.fi(R.m((S["patterns"] ?? null), "Keys"))) {
-            S["name"] = it31;
-            R.ln = F + 605;
+        R.ln = F + 629;
+        for (const it35 of R.fi(R.m((S["patterns"] ?? null), "Keys"))) {
+            S["name"] = it35;
+            R.ln = F + 629;
             if (R.t(R.match(S, (S["text"] ?? null), R.i((S["patterns"] ?? null), (S["name"] ?? null))))) {
-                R.ln = F + 605;
+                R.ln = F + 629;
                 R.e(O, R.im((S["found"] ?? null), "Add", [(S["name"] ?? null)]));
             }
         }
-        R.ln = F + 606;
+        R.ln = F + 630;
         R.e(O, (S["found"] ?? null));
         return;
     });

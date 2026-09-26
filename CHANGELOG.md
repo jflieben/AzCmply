@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.0.3
+
+### Added
+- Seven App Service and Azure Functions tests (308 in total): a supported language runtime, failing from 90 days before
+  its end of life, looked up in the App Service runtime catalog (AZ-APP-012), access restrictions that trust shared
+  service tags (AZ-APP-013), App Service authentication that accepts identities of other tenants or social accounts
+  (AZ-APP-014), principals that can take a function app over through the storage it runs from (AZ-FUNC-001), Flex
+  Consumption apps that read their deployment package with a storage key (AZ-FUNC-002), functions that anyone can call
+  while the app has write access in Azure (AZ-FUNC-003) and HTTP functions protected by a function key alone
+  (AZ-FUNC-004).
+- AzCmply Custom 2026.09.3: AZC-13, only those who can change a function app can change the storage it runs from.
+  AZC-11 now covers workloads (functions next to workflows) and AZC-01 access restrictions of App Service.
+- Ingestion: the App Service runtime catalogs (`web/functionAppStacks.json`, `web/webAppStacks.json`).
+
+### Fixed
+- AZ-APP-009 (version 3) counted App Service authentication as enforced when it requires sign-in with the action
+  AllowAnonymous, which passes unauthenticated requests to the function.
+
 ## 1.0.2
 
 ### Added

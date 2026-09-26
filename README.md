@@ -2,7 +2,7 @@
 
 Free (non commercially) fully automated test suite for Azure subscriptions against multiple up to date industry security baselines.
 
-AzCmply reads an Azure subscription and its Entra ID context, runs 301 tests against it and writes a report: a posture score, the failures to address, results per security domain and per framework, and every test with its remediation and evidence per resource. Frameworks: the Microsoft cloud security benchmark v2, CIS Microsoft Azure Foundations Benchmark 6.0.0, the Well-Architected Framework security pillar, Azure landing zone policies, ISO 27001:2022, NIST CSF 2.0, CIS Controls v8.1, SOC 2, NIST SP 800-53 Rev. 5, PCI DSS v4.0.1, DORA with its ICT risk management standard (RTS 2024/1774) and CMMC 2.0 Levels 1 to 3, to which JSolve maps the tests. AzCmply Custom adds JSolve's own controls for Azure attack paths that none of these frameworks covers.
+AzCmply reads an Azure subscription and its Entra ID context, runs 308 tests against it and writes a report: a posture score, the failures to address, results per security domain and per framework, and every test with its remediation and evidence per resource. Frameworks: the Microsoft cloud security benchmark v2, CIS Microsoft Azure Foundations Benchmark 6.0.0, the Well-Architected Framework security pillar, Azure landing zone policies, ISO 27001:2022, NIST CSF 2.0, CIS Controls v8.1, SOC 2, NIST SP 800-53 Rev. 5, PCI DSS v4.0.1, DORA with its ICT risk management standard (RTS 2024/1774) and CMMC 2.0 Levels 1 to 3, to which JSolve maps the tests. AzCmply Custom adds JSolve's own controls for Azure attack paths that none of these frameworks covers.
 
 Everything is read only and can be run it again later to make the report show the trend and what changed.
 

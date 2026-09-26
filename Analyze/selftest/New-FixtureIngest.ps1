@@ -26,12 +26,12 @@ function Pick { param($Good, $Bad) if ($G) { , $Good } else { , $Bad } }
 function ResId { param([string]$Type, [string]$Name) "$rgId/providers/$Type/$Name" }
 function Role { param([string]$Guid) "$subScope/providers/Microsoft.Authorization/roleDefinitions/$Guid" }
 
-$roles = @{ VmContributor = '9980e02c-c2be-4d73-94e8-173b1dc7cf3c'; Owner = '8e3af657-a8ff-443c-a75c-2fe8c4bcb635'; Contributor = 'b24988ac-6180-42a0-ab88-20f7382dd24c'; Reader = 'acdd72a7-3385-48ef-bd42-f606fba81ae7'; UAA = '18d7d88d-d35e-4fb5-a5c3-7773c20a72d9'; RbacAdmin = 'f58310d9-a9f6-439a-9e8d-f62e7b41a168'; BlobReader = '2a2b9908-6ea1-4ae2-8e65-a410df84e7d1' }
+$roles = @{ VmContributor = '9980e02c-c2be-4d73-94e8-173b1dc7cf3c'; Owner = '8e3af657-a8ff-443c-a75c-2fe8c4bcb635'; Contributor = 'b24988ac-6180-42a0-ab88-20f7382dd24c'; Reader = 'acdd72a7-3385-48ef-bd42-f606fba81ae7'; UAA = '18d7d88d-d35e-4fb5-a5c3-7773c20a72d9'; RbacAdmin = 'f58310d9-a9f6-439a-9e8d-f62e7b41a168'; BlobReader = '2a2b9908-6ea1-4ae2-8e65-a410df84e7d1'; StorageContributor = '17d1049b-9a84-46fb-8f53-869881c3d3ab'; BlobOwner = 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b' }
 $ids = @{
     U1 = '10000000-0000-0000-0000-000000000001'; U2 = '10000000-0000-0000-0000-000000000002'; Guest = '10000000-0000-0000-0000-000000000003'
     Disabled = '10000000-0000-0000-0000-000000000004'; Synced = '10000000-0000-0000-0000-000000000005'
     G1 = '20000000-0000-0000-0000-000000000001'; G2 = '20000000-0000-0000-0000-000000000002'; G3 = '20000000-0000-0000-0000-000000000003'
-    SpApp = '30000000-0000-0000-0000-000000000001'; SpMi = '30000000-0000-0000-0000-000000000002'; Graph = '40000000-0000-0000-0000-000000000001'
+    SpApp = '30000000-0000-0000-0000-000000000001'; SpMi = '30000000-0000-0000-0000-000000000002'; SpFunc = '30000000-0000-0000-0000-000000000003'; Graph = '40000000-0000-0000-0000-000000000001'
     Deleted = '50000000-0000-0000-0000-000000000001'; BreakGlass = '20000000-0000-0000-0000-000000000004'
 }
 
@@ -83,7 +83,11 @@ $assignments = @(
     & $assignment 'ra-mi-contributor' $roles.Contributor $ids.SpMi 'ServicePrincipal' (Pick $rgId "$subScope/resourceGroups/rg-other")
     #...and may operate the managed application that owns its resource group
     & $assignment 'ra-mi-app-operator' $roles.Contributor $ids.SpMi 'ServicePrincipal' "$subScope/resourceGroups/rg-apps/providers/Microsoft.Solutions/applications/mafixture"
+    #the Flex Consumption app reads its package with its own identity (AZ-FUNC-001 does not count the app itself)
+    & $assignment 'ra-func-blobowner' $roles.BlobOwner $ids.SpFunc 'ServicePrincipal' (ResId 'Microsoft.Storage/storageAccounts' 'stfuncfixture')
 )
+#when Bad, a group that cannot change the Flex Consumption app can list the keys of the storage it runs from (AZ-FUNC-001)
+if (-not $G) { $assignments += & $assignment 'ra-g3-storagecontributor' $roles.StorageContributor $ids.G3 'Group' (ResId 'Microsoft.Storage/storageAccounts' 'stfuncfixture') }
 if ($G) {
     $assignments += & $assignment 'ra-app-contributor' $roles.Contributor $ids.SpApp 'ServicePrincipal' $rgId
 } else {
@@ -126,6 +130,10 @@ $definitions = @(
 $blobReader = & $definition $roles.BlobReader 'Storage Blob Data Reader' 'BuiltInRole' @('Microsoft.Storage/storageAccounts/blobServices/containers/read')
 $blobReader.properties.permissions[0].dataActions = @('Microsoft.Storage/storageAccounts/blobServices/containers/blobs/read')
 $definitions += $blobReader
+$definitions += & $definition $roles.StorageContributor 'Storage Account Contributor' 'BuiltInRole' @('Microsoft.Storage/storageAccounts/*')
+$blobOwner = & $definition $roles.BlobOwner 'Storage Blob Data Owner' 'BuiltInRole' @('Microsoft.Storage/storageAccounts/blobServices/containers/*')
+$blobOwner.properties.permissions[0].dataActions = @('Microsoft.Storage/storageAccounts/blobServices/containers/blobs/*')
+$definitions += $blobOwner
 $definitions += if ($G) { & $definition '60000000-0000-0000-0000-000000000001' 'Lock administrator' 'CustomRole' @('Microsoft.Authorization/locks/*', '*/read') } else { & $definition '60000000-0000-0000-0000-000000000002' 'Everything role' 'CustomRole' @('*') }
 Save 'rbac/roleDefinitions' $definitions
 
@@ -160,6 +168,7 @@ $servicePrincipals = @(
     #the application is registered in this tenant when Good, by another organization when Bad (AZ-IAM-025)
     @{ '@odata.type' = '#microsoft.graph.servicePrincipal'; id = $ids.SpApp; displayName = 'fixture-app'; appId = '31000000-0000-0000-0000-000000000001'; servicePrincipalType = 'Application'; appOwnerOrganizationId = (Pick $tenant '90000000-0000-0000-0000-0000000000bb'); passwordCredentials = @(); keyCredentials = @() }
     @{ '@odata.type' = '#microsoft.graph.servicePrincipal'; id = $ids.SpMi; displayName = 'fixture-mi'; appId = '31000000-0000-0000-0000-000000000002'; servicePrincipalType = 'ManagedIdentity'; appOwnerOrganizationId = 'f8cdef31-a31e-4b4a-93e4-5f571e91255a'; passwordCredentials = @(); keyCredentials = @() }
+    @{ '@odata.type' = '#microsoft.graph.servicePrincipal'; id = $ids.SpFunc; displayName = 'funcflexfixture'; appId = '31000000-0000-0000-0000-000000000004'; servicePrincipalType = 'ManagedIdentity'; appOwnerOrganizationId = 'f8cdef31-a31e-4b4a-93e4-5f571e91255a'; passwordCredentials = @(); keyCredentials = @() }
 )
 Save 'identity/directoryObjects' (@($users) + $groups + $servicePrincipals)
 $member = { param($Id) $u = $users | Where-Object { $_.id -eq $Id }; @{ '@odata.type' = '#microsoft.graph.user'; id = $Id; displayName = $u.displayName; userPrincipalName = $u.userPrincipalName } }
@@ -224,6 +233,7 @@ Save 'subscription/locks' (Pick @(
         @{ id = "$rgId/providers/Microsoft.Authorization/locks/protect"; properties = @{ level = 'CanNotDelete' } }
         @{ id = "$subScope/resourceGroups/rg-identity/providers/Microsoft.Authorization/locks/protect"; properties = @{ level = 'CanNotDelete' } }
         @{ id = "$(ResId 'Microsoft.Storage/storageAccounts' 'stfixture')/providers/Microsoft.Authorization/locks/readonly"; properties = @{ level = 'ReadOnly' } }
+        @{ id = "$(ResId 'Microsoft.Storage/storageAccounts' 'stfuncfixture')/providers/Microsoft.Authorization/locks/readonly"; properties = @{ level = 'ReadOnly' } }
     ) @())
 Save 'subscription/blueprintAssignments' (Pick @() @(@{ id = "$subScope/providers/Microsoft.Blueprint/blueprintAssignments/bp1"; name = 'bp1'; properties = @{ blueprintId = '/providers/Microsoft.Blueprint/blueprints/legacy' } }))
 Save 'subscription/deployments' @(@{ id = "$subScope/providers/Microsoft.Resources/deployments/dep1"; name = 'dep1'; properties = @{ timestamp = (Iso -1); parameters = (Pick @{ vmName = @{ type = 'String'; value = 'vm1' } } @{ adminPassword = @{ type = 'String'; value = 'Sup3rS3cretValue!' } }); outputs = @{} } })
@@ -254,7 +264,7 @@ Save 'defender/jitNetworkAccessPolicies' (Pick @(@{ id = "$subScope/providers/Mi
 
 #storage
 function New-Storage {
-    param([string]$Name, [string]$Bypass)
+    param([string]$Name, [string]$Bypass, [string[]]$Shares = @())
     $blobDiag = Pick $diag @()
     Add-Record 'Microsoft.Storage/storageAccounts' $Name @{
         kind = 'StorageV2'; sku = @{ name = (Pick 'Standard_GZRS' 'Standard_LRS') }
@@ -271,7 +281,7 @@ function New-Storage {
         'blobServices/default'                                                 = @{ properties = @{ deleteRetentionPolicy = @{ enabled = $G; days = 14 }; containerDeleteRetentionPolicy = @{ enabled = $G; days = 14 }; isVersioningEnabled = $G } }
         'blobServices/default/containers'                                      = @(@{ name = 'data'; properties = @{ publicAccess = (Pick 'None' 'Blob') } })
         'fileServices/default'                                                 = @{ properties = @{ shareDeleteRetentionPolicy = @{ enabled = $G; days = 14 }; protocolSettings = (Pick @{ smb = @{ versions = 'SMB3.1.1'; channelEncryption = 'AES-256-GCM' } } @{ smb = @{} }) } }
-        'fileServices/default/shares'                                          = @(@{ name = 'share1'; properties = @{ enabledProtocols = 'SMB' } })
+        'fileServices/default/shares'                                          = @(@{ name = 'share1'; properties = @{ enabledProtocols = 'SMB' } }) + @($Shares | ForEach-Object { @{ name = $_; properties = @{ enabledProtocols = 'SMB' } } })
         'localUsers'                                                           = @(@{ name = 'sftpuser'; properties = @{ hasSshPassword = (-not $G); hasSshKey = $true } })
         'providers/Microsoft.Security/defenderForStorageSettings/current'      = @{ properties = @{ isEnabled = $G; overrideSubscriptionLevelSettings = (-not $G); malwareScanning = @{ onUpload = @{ isEnabled = $G } } } }
         'blobServices/default/providers/Microsoft.Insights/diagnosticSettings' = $blobDiag
@@ -280,7 +290,9 @@ function New-Storage {
         'tableServices/default/providers/Microsoft.Insights/diagnosticSettings' = $blobDiag
     } -Diagnostics @() | Out-Null
 }
-New-Storage 'stfixture'
+#stfixture holds the content share of funcfixture, stfuncfixture the deployment package of funcflexfixture (AZ-FUNC-001)
+New-Storage 'stfixture' -Shares @('funcfixture4f2a')
+New-Storage 'stfuncfixture'
 if (-not $G) { New-Storage 'stfixturefw' -Bypass 'None' }
 
 #key vault
@@ -352,12 +364,14 @@ Add-Record 'Microsoft.Cache/Redis' 'redisfixture' @{ properties = @{ enableNonSs
 
 #App Service
 function New-Site {
-    param([string]$Name, [string]$Kind, [array]$Functions = @(), [string]$PublicAccess = (Pick 'Disabled' 'Enabled'), [hashtable]$Config = @{})
+    param([string]$Name, [string]$Kind, [array]$Functions = @(), [string]$PublicAccess = (Pick 'Disabled' 'Enabled'), [hashtable]$Config = @{}, [hashtable]$Properties = @{}, $Identity = (Pick @{ type = 'SystemAssigned' } $null), [hashtable]$Auth = @{ platform = @{ enabled = $false } })
     $web = @{ minTlsVersion = (Pick '1.2' '1.0'); scmMinTlsVersion = (Pick '1.2' '1.0'); ftpsState = (Pick 'Disabled' 'AllAllowed'); remoteDebuggingEnabled = (-not $G); cors = @{ allowedOrigins = (Pick @('https://contoso.com') @('*')) }; ipSecurityRestrictions = @() }
     foreach ($key in $Config.Keys) { $web[$key] = $Config[$key] }
-    Add-Record 'Microsoft.Web/sites' $Name @{ kind = $Kind; identity = (Pick @{ type = 'SystemAssigned' } $null); properties = @{ httpsOnly = $G; publicNetworkAccess = $PublicAccess; defaultHostName = "$Name.azurewebsites.net"; hostNames = @("$Name.azurewebsites.net") } } -Children @{
+    $siteProperties = @{ httpsOnly = $G; publicNetworkAccess = $PublicAccess; defaultHostName = "$Name.azurewebsites.net"; hostNames = @("$Name.azurewebsites.net") }
+    foreach ($key in $Properties.Keys) { $siteProperties[$key] = $Properties[$key] }
+    Add-Record 'Microsoft.Web/sites' $Name @{ kind = $Kind; identity = $Identity; properties = $siteProperties } -Children @{
         'config/web'                       = @{ properties = $web }
-        'config/authsettingsV2'            = @{ properties = @{ platform = @{ enabled = $false } } }
+        'config/authsettingsV2'            = @{ properties = $Auth }
         basicPublishingCredentialsPolicies = @(@{ name = 'ftp'; properties = @{ allow = (-not $G) } }, @{ name = 'scm'; properties = @{ allow = (-not $G) } })
         functions                          = $Functions
     } | Out-Null
@@ -365,14 +379,48 @@ function New-Site {
 $planId = Add-Record 'Microsoft.Web/serverfarms' 'planfixture' @{ sku = @{ name = 'P1v3'; tier = 'PremiumV3'; capacity = 2 }; properties = @{ numberOfSites = 2; elasticScaleEnabled = $false; zoneRedundant = $G } }
 Add-Record 'Microsoft.Insights/autoscalesettings' 'planfixture-autoscale' @{ properties = @{ enabled = $G; targetResourceUri = $planId; profiles = @(@{ name = 'default'; capacity = @{ minimum = 2; maximum = 10; default = 2 } }) } } | Out-Null
 if ($G) { Add-Record 'Microsoft.Insights/autoscalesettings' 'vmssfixture-autoscale' @{ properties = @{ enabled = $true; targetResourceUri = (ResId 'Microsoft.Compute/virtualMachineScaleSets' 'vmssfixture'); profiles = @(@{ name = 'default'; capacity = @{ minimum = 2; maximum = 10; default = 2 } }) } } | Out-Null }
-New-Site 'appfixture' 'app'
-New-Site 'funcfixture' 'functionapp,linux' @(@{ name = 'funcfixture/Api'; properties = @{ isDisabled = $false; config = @{ bindings = @(@{ type = 'httpTrigger'; authLevel = (Pick 'function' 'anonymous') }) } } })
+#a Linux web app on a supported Node version when Good, an end-of-life one and a deployment site open to the AzureCloud
+#service tag when Bad (AZ-APP-012, AZ-APP-013)
+$appConfig = @{ linuxFxVersion = (Pick 'NODE|22-lts' 'NODE|16-lts') }
+if (-not $G) { $appConfig.scmIpSecurityRestrictions = @(@{ name = 'azure'; action = 'Allow'; priority = 100; tag = 'ServiceTag'; ipAddress = 'AzureCloud' }) }
+New-Site 'appfixture' 'app,linux' -Config $appConfig
+#funcfixture on the Consumption plan, running from a content share in stfixture: App Service authentication that turns
+#unauthenticated requests away with the own tenant as issuer when Good; AllowAnonymous, the common issuer and Google sign-in,
+#an anonymous function and a managed identity with write access when Bad (AZ-APP-009, AZ-APP-014, AZ-FUNC-003, AZ-FUNC-004)
+$pythonFunction = { param([string]$Name, [string]$AuthLevel) @{ name = "funcfixture/$Name"; properties = @{ isDisabled = $false; language = 'python'; config = @{ bindings = @(@{ type = 'httpTrigger'; authLevel = $AuthLevel }) } } } }
+$funcAuth = Pick @{
+    platform = @{ enabled = $true }; globalValidation = @{ requireAuthentication = $true; unauthenticatedClientAction = 'Return401' }
+    identityProviders = @{ azureActiveDirectory = @{ enabled = $true; registration = @{ clientId = '31000000-0000-0000-0000-000000000005'; openIdIssuer = "https://login.microsoftonline.com/$tenant/v2.0" } } }
+} @{
+    platform = @{ enabled = $true }; globalValidation = @{ requireAuthentication = $true; unauthenticatedClientAction = 'AllowAnonymous' }
+    identityProviders = @{ azureActiveDirectory = @{ enabled = $true; registration = @{ clientId = '31000000-0000-0000-0000-000000000005'; openIdIssuer = 'https://login.microsoftonline.com/common/v2.0' } }; google = @{ enabled = $true; registration = @{ clientId = 'fixture.apps.googleusercontent.com' } } }
+}
+New-Site 'funcfixture' 'functionapp,linux' @((& $pythonFunction 'Api' (Pick 'function' 'anonymous')), (& $pythonFunction 'Hook' 'function')) -Config @{ linuxFxVersion = (Pick 'Python|3.12' 'Python|3.9') } -Properties @{ sku = 'Dynamic' } -Auth $funcAuth -Identity (Pick @{ type = 'SystemAssigned' } @{ type = 'SystemAssigned'; principalId = $ids.SpMi; tenantId = $tenant })
+#a Flex Consumption app that reads its package from stfuncfixture with its managed identity when Good, with a connection
+#string on an end-of-life Python when Bad (AZ-APP-012, AZ-FUNC-001, AZ-FUNC-002)
+New-Site 'funcflexfixture' 'functionapp,linux' -Identity @{ type = 'SystemAssigned'; principalId = $ids.SpFunc; tenantId = $tenant } -Properties @{
+    sku               = 'FlexConsumption'
+    functionAppConfig = @{
+        deployment = @{ storage = @{ type = 'blobContainer'; value = 'https://stfuncfixture.blob.core.windows.net/app-package-funcflexfixture'; authentication = @{ type = (Pick 'SystemAssignedIdentity' 'StorageAccountConnectionString') } } }
+        runtime    = @{ name = 'python'; version = (Pick '3.12' '3.9') }
+    }
+}
 #public behind Front Door: the rule checks the Front Door id and the deployment site uses it when Good (AZ-APP-010, AZ-APP-011)
-New-Site 'appfdfixture' 'app' -PublicAccess 'Enabled' -Config @{
+New-Site 'appfdfixture' 'app,linux' -PublicAccess 'Enabled' -Config @{
+    linuxFxVersion                   = 'JAVA|21-java21'
     ipSecurityRestrictions           = @(@{ name = 'frontdoor'; action = 'Allow'; priority = 100; tag = 'ServiceTag'; ipAddress = 'AzureFrontDoor.Backend'; headers = (Pick @{ 'x-azure-fdid' = @('00000000-0000-0000-0000-0000000000fd') } $null) })
     scmIpSecurityRestrictionsUseMain = $G
     scmIpSecurityRestrictions        = @(@{ name = 'Allow all'; action = 'Allow'; priority = 2147483647; ipAddress = 'Any' })
 }
+#the App Service runtime catalogs, reduced to the versions the apps above use
+$linuxRuntime = { param([string]$Version, [string]$Runtime, [string]$EndOfLife, [bool]$Deprecated, [string]$FlexName) $settings = @{ runtimeVersion = $Runtime; endOfLifeDate = $EndOfLife; isDeprecated = $Deprecated }; if ($FlexName) { $settings.Sku = @(@{ skuCode = 'FC1'; functionAppConfigProperties = @{ runtime = @{ name = $FlexName; version = $Version } } }) }; @{ value = $Version; stackSettings = @{ linuxRuntimeSettings = $settings } } }
+$stack = { param([string]$Name, [array]$Minors) @{ name = $Name; properties = @{ majorVersions = @(@{ value = $Name; minorVersions = $Minors }) } } }
+Save 'web/functionAppStacks' @(& $stack 'python' @((& $linuxRuntime '3.12' 'Python|3.12' '2028-10-31T00:00:00Z' $false 'python'), (& $linuxRuntime '3.9' 'Python|3.9' '2025-10-31T00:00:00Z' $false 'python')))
+Save 'web/webAppStacks' @(
+    (& $stack 'node' @((& $linuxRuntime '22-lts' 'NODE|22-lts' '2027-04-30T00:00:00Z' $false), (& $linuxRuntime '16-lts' 'NODE|16-lts' '2023-09-11T00:00:00Z' $true)))
+    (& $stack 'java' @(& $linuxRuntime '21.0' '' '2028-09-01T00:00:00Z' $false))
+    (& $stack 'javacontainers' @(@{ value = 'java-se-21'; stackSettings = @{ linuxContainerSettings = @{ java21Runtime = 'JAVA|21-java21' } } }))
+)
 
 #compute
 $diskId = ResId 'Microsoft.Compute/disks' 'diskfixture'
@@ -468,6 +516,8 @@ if ($G) {
 } else {
     & $connection 'conn2fixture' 'office365' @{ authenticatedUser = @{ name = 'admin1@fixture.example' }; overallStatus = 'Error'; statuses = @(@{ status = 'Error'; target = 'token'; error = @{ code = 'Unauthorized'; message = 'Failed to refresh access token for service: office365. AADSTS700082: The refresh token has expired due to inactivity.' } }) }
     & $connection 'connorphanfixture' 'azureblob' @{ parameterValueSet = @{ name = 'keyBasedAuth'; values = @{ accountName = @{ value = 'stfixture' } } }; statuses = $connectedStatus; overallStatus = 'Connected'; authenticatedUser = @{} }
+    #a user OAuth connection for which Azure does not name the user, as for Outlook.com
+    & $connection 'connmsafixture' 'outlook' @{ displayName = 'admin2@fixture.example'; statuses = $connectedStatus; overallStatus = 'Connected'; authenticatedUser = @{} }
 }
 #connector metadata as the ingestion collects it: the parameter types of each authentication option
 $parameterTypes = { param([hashtable]$Types) $out = [ordered]@{}; foreach ($key in ($Types.Keys | Sort-Object)) { $out[$key] = @{ type = $Types[$key] } }; $out }
@@ -478,6 +528,7 @@ Save 'web/managedApis' @(
                 ) } } }
     @{ id = (& $managedApiId 'keyvault'); name = 'keyvault'; type = 'Microsoft.Web/locations/managedApis'; properties = @{ name = 'keyvault'; connectionParameters = (& $parameterTypes @{ token = 'oauthSetting'; 'token:clientId' = 'string'; 'token:clientSecret' = 'securestring'; vaultName = 'string' }); connectionParameterSets = @{ values = @((& $parameterSet 'oauthDefault' @{ token = 'oauthSetting'; vaultName = 'string' }), (& $parameterSet 'oauthMI' @{ token = 'managedIdentity'; vaultName = 'string' })) } } }
     @{ id = (& $managedApiId 'office365'); name = 'office365'; type = 'Microsoft.Web/locations/managedApis'; properties = @{ name = 'office365'; connectionParameters = (& $parameterTypes @{ token = 'oauthSetting' }) } }
+    @{ id = (& $managedApiId 'outlook'); name = 'outlook'; type = 'Microsoft.Web/locations/managedApis'; properties = @{ name = 'outlook'; connectionParameters = (& $parameterTypes @{ token = 'oauthSetting' }) } }
 )
 Add-Record 'Microsoft.ManagedIdentity/userAssignedIdentities' 'uamifixture' @{ properties = @{ clientId = '31000000-0000-0000-0000-000000000003' } } -Children @{ federatedIdentityCredentials = @(@{ name = 'gh'; properties = @{ issuer = 'https://token.actions.githubusercontent.com'; subject = (Pick 'repo:contoso/app:environment:production' 'repo:contoso/app:*'); audiences = @('api://AzureADTokenExchange') } }) } | Out-Null
 

@@ -52,6 +52,7 @@ resources/<Namespace>/<type>/<name>_<hash>.json
 resourceGraph/<table>.json   Azure Resource Graph rows scoped to the subscription
 activityLog/activityLog.json
 web/managedApis.json   connector metadata of the API connections (which connection parameters hold a secret), one entry per connector
+web/functionAppStacks.json, webAppStacks.json   the App Service runtime catalogs: language versions with their end-of-life dates
 identity/              directoryObjects, users, groups, servicePrincipals, apiServicePrincipals,
                        directoryRole*, conditionalAccessPolicies, conditionalAccessExcludedGroups, securityDefaults,
                        unresolvedPrincipalIds, organization

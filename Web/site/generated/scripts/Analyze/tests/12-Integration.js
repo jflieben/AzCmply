@@ -841,864 +841,886 @@ export default R.script("/app/Analyze/tests/12-Integration.ps1", { params: [], a
         return;
     });
     R.ln = F + 486;
-    R.def(S, "Get-ResourceIdentityPrincipals", { params: [{ n: "Record", t: null, pos: null }], adv: 0, h: "ef39b9673b7b9904" }, (S, O) => {
-        R.ln = F + 489;
-        S["identity"] = R.m(R.m((S["record"] ?? null), "resource"), "identity");
-        R.ln = F + 490;
-        if (!R.t((S["identity"] ?? null))) {
-            R.ln = F + 490;
-            return;
-        }
-        R.ln = F + 491;
-        S["ids"] = R.a(R.m((S["identity"] ?? null), "principalId"));
-        R.ln = F + 492;
-        if (R.t(R.ne(null, R.m((S["identity"] ?? null), "userAssignedIdentities")))) {
-            R.ln = F + 493;
-            for (const it24 of R.fi(R.a(R.m(R.m(R.m((S["identity"] ?? null), "userAssignedIdentities"), "PSObject"), "Properties")))) {
-                S["assigned"] = it24;
-                R.ln = F + 493;
-                if (R.t((S["assigned"] ?? null))) {
-                    R.ln = F + 493;
-                    S["ids"] = R.add(S["ids"] ?? null, R.m(R.m((S["assigned"] ?? null), "Value"), "principalId"));
-                }
-            }
-        }
-        R.ln = F + 495;
-        R.e(O, R.cmd(S, "Sort-Object", [R.np("Unique")], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " ([string]$_).ToLowerInvariant() " }, (S, O) => {
-            R.ln = F + 495;
-            R.e(O, R.im((R.c("string", (S["_"] ?? null))), "ToLowerInvariant", []));
-        })], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 495;
-            R.e(O, (S["_"] ?? null));
-        })], R.pi((S["ids"] ?? null))))));
-    });
-    R.ln = F + 498;
     R.def(S, "Get-ConnectionConnector", { params: [{ n: "Record", t: null, pos: null }], adv: 0, h: "a52c7e4e7ba503b3" }, (S, O) => {
-        R.ln = F + 501;
+        R.ln = F + 489;
         S["api"] = R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "api");
-        R.ln = F + 502;
+        R.ln = F + 490;
         if (R.t(R.m((S["api"] ?? null), "displayName"))) {
-            R.ln = F + 502;
+            R.ln = F + 490;
             R.e(O, R.c("string", R.m((S["api"] ?? null), "displayName")));
             return;
         }
-        R.ln = F + 503;
+        R.ln = F + 491;
         if (R.t(R.m((S["api"] ?? null), "name"))) {
-            R.ln = F + 503;
+            R.ln = F + 491;
             R.e(O, R.c("string", R.m((S["api"] ?? null), "name")));
             return;
         }
-        R.ln = F + 504;
+        R.ln = F + 492;
         if (R.t(R.m((S["api"] ?? null), "id"))) {
-            R.ln = F + 504;
+            R.ln = F + 492;
             R.pa(O, R.cmd(S, "Get-ResourceName", [(R.c("string", R.m((S["api"] ?? null), "id")))], null));
             return;
         }
-        R.ln = F + 505;
+        R.ln = F + 493;
         R.e(O, "unknown connector");
         return;
     });
-    R.ln = F + 508;
+    R.ln = F + 496;
     R.def(S, "Get-ManagedApiMap", { params: [], adv: 0, h: "3cb09c05489f3d83" }, (S, O) => {
-        R.ln = F + 510;
+        R.ln = F + 498;
         if (!R.t(R.im(R.m((R.ss(S)["script:ingest"] ?? null), "Cache"), "ContainsKey", ["#managedApis"]))) {
-            R.ln = F + 511;
+            R.ln = F + 499;
             S["map"] = R.ht([], false);
-            R.ln = F + 512;
-            for (const it25 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                R.ln = F + 512;
+            R.ln = F + 500;
+            for (const it24 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+                R.ln = F + 500;
                 R.e(O, (S["_"] ?? null));
             })], R.cmd(S, "Get-IngestData", ["web/managedApis"], null)))) {
-                S["api"] = it25;
-                R.ln = F + 512;
+                S["api"] = it24;
+                R.ln = F + 500;
                 R.si((S["map"] ?? null), R.im((R.c("string", R.m((S["api"] ?? null), "id"))), "ToLowerInvariant", []), (S["api"] ?? null));
             }
-            R.ln = F + 513;
+            R.ln = F + 501;
             R.si(R.m((R.ss(S)["script:ingest"] ?? null), "Cache"), "#managedApis", (S["map"] ?? null));
         }
-        R.ln = F + 515;
+        R.ln = F + 503;
         R.e(O, R.i(R.m((R.ss(S)["script:ingest"] ?? null), "Cache"), "#managedApis"));
         return;
     });
-    R.ln = F + 518;
+    R.ln = F + 506;
     R.def(S, "Get-ConnectionUseMap", { params: [], adv: 0, h: "0a519a186b2537b8" }, (S, O) => {
-        R.ln = F + 520;
+        R.ln = F + 508;
         if (!R.t(R.im(R.m((R.ss(S)["script:ingest"] ?? null), "Cache"), "ContainsKey", ["#connectionUse"]))) {
-            R.ln = F + 521;
+            R.ln = F + 509;
             S["map"] = R.ht([], false);
-            R.ln = F + 522;
-            for (const it26 of R.fi(R.u(R.cmd(S, "Get-AzResourceRecords", [R.np("Type"), (S["workflowtype"] ?? null)], null)))) {
-                S["workflow"] = it26;
-                R.ln = F + 523;
-                for (const it27 of R.fi(R.a(R.m(R.u(R.cmd(S, "Get-WorkflowConnectionMap", [(S["workflow"] ?? null)], null)), "Values")))) {
-                    S["entry"] = it27;
-                    R.ln = F + 524;
+            R.ln = F + 510;
+            for (const it25 of R.fi(R.u(R.cmd(S, "Get-AzResourceRecords", [R.np("Type"), (S["workflowtype"] ?? null)], null)))) {
+                S["workflow"] = it25;
+                R.ln = F + 511;
+                for (const it26 of R.fi(R.a(R.m(R.u(R.cmd(S, "Get-WorkflowConnectionMap", [(S["workflow"] ?? null)], null)), "Values")))) {
+                    S["entry"] = it26;
+                    R.ln = F + 512;
                     if ((!R.t((S["entry"] ?? null)) || !R.t(R.m((S["entry"] ?? null), "ConnectionId")))) {
                         continue;
                     }
-                    R.ln = F + 525;
+                    R.ln = F + 513;
                     if (!R.t(R.im((S["map"] ?? null), "ContainsKey", [R.m((S["entry"] ?? null), "ConnectionId")]))) {
-                        R.ln = F + 525;
+                        R.ln = F + 513;
                         R.si((S["map"] ?? null), R.m((S["entry"] ?? null), "ConnectionId"), R.sc("System.Collections.Generic.List[string]", "new", []));
                     }
-                    R.ln = F + 526;
+                    R.ln = F + 514;
                     R.e(O, R.im(R.i((S["map"] ?? null), R.m((S["entry"] ?? null), "ConnectionId")), "Add", [R.u(R.cmd(S, "Get-ResourceName", [R.m((S["workflow"] ?? null), "id")], null))]));
                 }
             }
-            R.ln = F + 529;
+            R.ln = F + 517;
             R.si(R.m((R.ss(S)["script:ingest"] ?? null), "Cache"), "#connectionUse", (S["map"] ?? null));
         }
-        R.ln = F + 531;
+        R.ln = F + 519;
         R.e(O, R.i(R.m((R.ss(S)["script:ingest"] ?? null), "Cache"), "#connectionUse"));
         return;
     });
-    R.ln = F + 534;
+    R.ln = F + 522;
     R.def(S, "Get-WorkflowAutomationUse", { params: [], adv: 0, h: "0664290b3508d61a" }, (S, O) => {
-        R.ln = F + 537;
+        R.ln = F + 525;
         if (!R.t(R.im(R.m((R.ss(S)["script:ingest"] ?? null), "Cache"), "ContainsKey", ["#workflowUse"]))) {
-            R.ln = F + 538;
+            R.ln = F + 526;
             S["map"] = R.ht([], false);
-            R.ln = F + 539;
+            R.ln = F + 527;
             S["missing"] = R.sc("System.Collections.Generic.List[string]", "new", []);
-            R.ln = F + 540;
+            R.ln = F + 528;
             S["starters"] = R.sc("System.Collections.Generic.List[object]", "new", []);
-            R.ln = F + 541;
+            R.ln = F + 529;
             if (R.t(R.u(R.cmd(S, "Test-IngestSection", ["defender/automations"], null)))) {
-                R.ln = F + 542;
-                for (const it28 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                    R.ln = F + 542;
+                R.ln = F + 530;
+                for (const it27 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+                    R.ln = F + 530;
                     R.e(O, (S["_"] ?? null));
                 })], R.cmd(S, "Get-IngestData", ["defender/automations"], null)))) {
-                    S["automation"] = it28;
-                    R.ln = F + 543;
-                    for (const it29 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.actionType -eq 'LogicApp' -and $_.logicAppResourceId " }, (S, O) => {
-                        R.ln = F + 543;
+                    S["automation"] = it27;
+                    R.ln = F + 531;
+                    for (const it28 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.actionType -eq 'LogicApp' -and $_.logicAppResourceId " }, (S, O) => {
+                        R.ln = F + 531;
                         R.e(O, ((R.t((S["_"] ?? null)) && R.t(R.eq(R.m((S["_"] ?? null), "actionType"), "LogicApp"))) && R.t(R.m((S["_"] ?? null), "logicAppResourceId"))));
                     })], R.pi(R.m(R.m((S["automation"] ?? null), "properties"), "actions"))))) {
-                        S["action"] = it29;
-                        R.ln = F + 544;
+                        S["action"] = it28;
+                        R.ln = F + 532;
                         R.e(O, R.im((S["starters"] ?? null), "Add", [R.pso(["Id", R.c("string", R.m((S["action"] ?? null), "logicAppResourceId")), "Label", ("Defender for Cloud workflow automation " + R.str(R.u(R.pi(R.m((S["automation"] ?? null), "name")))))])]));
                     }
                 }
             } else {
-                R.ln = F + 548;
+                R.ln = F + 536;
                 R.e(O, R.im((S["missing"] ?? null), "Add", ["Defender for Cloud workflow automations"]));
             }
-            R.ln = F + 550;
-            for (const it30 of R.fi(R.u(R.cmd(S, "Get-AzResourceRecords", [R.np("Type"), "Microsoft.Insights/actionGroups"], null)))) {
-                S["group"] = it30;
-                R.ln = F + 551;
-                for (const it31 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.resourceId " }, (S, O) => {
-                    R.ln = F + 551;
+            R.ln = F + 538;
+            for (const it29 of R.fi(R.u(R.cmd(S, "Get-AzResourceRecords", [R.np("Type"), "Microsoft.Insights/actionGroups"], null)))) {
+                S["group"] = it29;
+                R.ln = F + 539;
+                for (const it30 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.resourceId " }, (S, O) => {
+                    R.ln = F + 539;
                     R.e(O, (R.t((S["_"] ?? null)) && R.t(R.m((S["_"] ?? null), "resourceId"))));
                 })], R.pi(R.m(R.m(R.m((S["group"] ?? null), "resource"), "properties"), "logicAppReceivers"))))) {
-                    S["receiver"] = it31;
-                    R.ln = F + 552;
+                    S["receiver"] = it30;
+                    R.ln = F + 540;
                     R.e(O, R.im((S["starters"] ?? null), "Add", [R.pso(["Id", R.c("string", R.m((S["receiver"] ?? null), "resourceId")), "Label", ("action group " + R.str(R.u(R.cmd(S, "Get-ResourceName", [R.m((S["group"] ?? null), "id")], null))))])]));
                 }
             }
-            R.ln = F + 555;
+            R.ln = F + 543;
             if (R.t(R.u(R.cmd(S, "Get-FailedResourceIds", [R.np("Type"), "Microsoft.Insights/actionGroups"], null)))) {
-                R.ln = F + 555;
+                R.ln = F + 543;
                 R.e(O, R.im((S["missing"] ?? null), "Add", ["Azure Monitor action groups"]));
             }
-            R.ln = F + 556;
-            for (const it32 of R.fi((S["starters"] ?? null))) {
-                S["starter"] = it32;
-                R.ln = F + 557;
+            R.ln = F + 544;
+            for (const it31 of R.fi((S["starters"] ?? null))) {
+                S["starter"] = it31;
+                R.ln = F + 545;
                 S["key"] = R.im(R.m((S["starter"] ?? null), "Id"), "ToLowerInvariant", []);
-                R.ln = F + 558;
+                R.ln = F + 546;
                 if (!R.t(R.im((S["map"] ?? null), "ContainsKey", [(S["key"] ?? null)]))) {
-                    R.ln = F + 558;
+                    R.ln = F + 546;
                     R.si((S["map"] ?? null), (S["key"] ?? null), R.sc("System.Collections.Generic.List[string]", "new", []));
                 }
-                R.ln = F + 559;
+                R.ln = F + 547;
                 R.e(O, R.im(R.i((S["map"] ?? null), (S["key"] ?? null)), "Add", [R.m((S["starter"] ?? null), "Label")]));
             }
-            R.ln = F + 561;
+            R.ln = F + 549;
             R.si(R.m((R.ss(S)["script:ingest"] ?? null), "Cache"), "#workflowUse", R.pso(["Map", (S["map"] ?? null), "Missing", R.a((S["missing"] ?? null))]));
         }
-        R.ln = F + 563;
+        R.ln = F + 551;
         R.e(O, R.i(R.m((R.ss(S)["script:ingest"] ?? null), "Cache"), "#workflowUse"));
         return;
     });
-    R.ln = F + 566;
+    R.ln = F + 554;
     R.def(S, "Test-AlertTriggered", { params: [{ n: "Record", t: null, pos: null }], adv: 0, h: "1d94d336bf0355f2" }, (S, O) => {
-        R.ln = F + 569;
+        R.ln = F + 557;
         S["connections"] = R.u(R.cmd(S, "Get-WorkflowConnectionMap", [(S["record"] ?? null)], null));
-        R.ln = F + 570;
-        for (const it33 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.Kind -eq 'trigger' -and $_.Type -eq 'ApiConnectionWebhook' " }, (S, O) => {
-            R.ln = F + 570;
+        R.ln = F + 558;
+        for (const it32 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.Kind -eq 'trigger' -and $_.Type -eq 'ApiConnectionWebhook' " }, (S, O) => {
+            R.ln = F + 558;
             R.e(O, (R.t(R.eq(R.m((S["_"] ?? null), "Kind"), "trigger")) && R.t(R.eq(R.m((S["_"] ?? null), "Type"), "ApiConnectionWebhook"))));
         })], R.cmd(S, "Get-WorkflowSteps", [R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "definition")], null)))) {
-            S["step"] = it33;
-            R.ln = F + 571;
+            S["step"] = it32;
+            R.ln = F + 559;
             if (R.t(R.match(S, R.u(R.cmd(S, "Get-StepConnector", [R.m((S["step"] ?? null), "Step"), (S["connections"] ?? null)], null)), "^(azuresentinel|ascalert|ascassessment)$"))) {
-                R.ln = F + 571;
+                R.ln = F + 559;
                 R.e(O, true);
                 return;
             }
         }
-        R.ln = F + 573;
+        R.ln = F + 561;
         R.e(O, false);
         return;
     });
-    R.ln = F + 576;
+    R.ln = F + 564;
     R.def(S, "Get-WorkflowMetricTotals", { params: [{ n: "Record", t: null, pos: null }, { n: "Days", t: "int", pos: null }], adv: 0, h: "9861b4313b6009ed" }, (S, O) => {
-        R.ln = F + 579;
+        R.ln = F + 567;
         S["totals"] = R.ht(["RunsStarted", 0, "RunsCompleted", 0, "RunsFailed", 0, "TriggersCompleted", 0, "TriggersFailed", 0], true);
-        R.ln = F + 581;
-        for (const it34 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 581;
+        R.ln = F + 569;
+        for (const it33 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+            R.ln = F + 569;
             R.e(O, (S["_"] ?? null));
         })], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " $_.value " }, (S, O) => {
-            R.ln = F + 581;
+            R.ln = F + 569;
             R.e(O, R.m((S["_"] ?? null), "value"));
         })], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 581;
+            R.ln = F + 569;
             R.e(O, (S["_"] ?? null));
         })], R.cmd(S, "Get-Child", [(S["record"] ?? null), "metrics"], null)))))) {
-            S["metric"] = it34;
-            R.ln = F + 582;
+            S["metric"] = it33;
+            R.ln = F + 570;
             S["name"] = R.c("string", R.m(R.m((S["metric"] ?? null), "name"), "value"));
-            R.ln = F + 583;
+            R.ln = F + 571;
             if (!R.t(R.im((S["totals"] ?? null), "Contains", [(S["name"] ?? null)]))) {
                 continue;
             }
-            R.ln = F + 584;
-            for (const it35 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                R.ln = F + 584;
+            R.ln = F + 572;
+            for (const it34 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+                R.ln = F + 572;
                 R.e(O, (S["_"] ?? null));
             })], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " $_.data " }, (S, O) => {
-                R.ln = F + 584;
+                R.ln = F + 572;
                 R.e(O, R.m((S["_"] ?? null), "data"));
             })], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                R.ln = F + 584;
+                R.ln = F + 572;
                 R.e(O, (S["_"] ?? null));
             })], R.pi(R.m((S["metric"] ?? null), "timeseries"))))))) {
-                S["point"] = it35;
-                R.ln = F + 585;
+                S["point"] = it34;
+                R.ln = F + 573;
                 S["age"] = R.u(R.cmd(S, "Get-AgeInDays", [R.m((S["point"] ?? null), "timeStamp")], null));
-                R.ln = F + 586;
+                R.ln = F + 574;
                 if ((R.t(R.ne(null, (S["age"] ?? null))) && R.t(R.ge((S["age"] ?? null), (S["days"] ?? null))))) {
                     continue;
                 }
-                R.ln = F + 588;
+                R.ln = F + 576;
                 if (R.t(R.ne(null, R.m((S["point"] ?? null), "total")))) {
-                    R.ln = F + 588;
-                    (((o36, k37) => R.si(o36, k37, R.add(R.i(o36, k37), R.c("int", R.m((S["point"] ?? null), "total")))))((S["totals"] ?? null), (S["name"] ?? null)));
+                    R.ln = F + 576;
+                    (((o35, k36) => R.si(o35, k36, R.add(R.i(o35, k36), R.c("int", R.m((S["point"] ?? null), "total")))))((S["totals"] ?? null), (S["name"] ?? null)));
                 }
             }
         }
-        R.ln = F + 591;
+        R.ln = F + 579;
         R.e(O, (S["totals"] ?? null));
         return;
     });
-    R.ln = F + 594;
+    R.ln = F + 582;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-LOGIC-001", "Title", "Logic App request triggers restrict who can call them", "Category", "Identity management", "Service", "Logic Apps", "Severity", "Medium", "Description", "For enabled Consumption workflows with a Request trigger (HTTP, Power Apps, Teams and the other request kinds), checks that callers are limited to address ranges or to other Logic Apps, or that shared access signature (SAS) authentication is disabled so that callers need a Microsoft Entra ID token. A Microsoft Entra ID policy next to SAS does not count, because the trigger then accepts either.", "Rationale", "The callback URL of a Request trigger carries a SAS signature that works from any address, does not expire and is not tied to an identity. It ends up in callers, scripts, alert rules, tickets and logs; anyone who has it can start the workflow with input of their choice until the access keys are regenerated.", "Remediation", "Limit 'Allowed inbound IP addresses' of the triggers to the callers (or to other Logic Apps only), or require Microsoft Entra ID OAuth and disable SAS (accessControl.triggers.sasAuthenticationPolicy.state Disabled). Regenerate the access keys when a URL may have leaked.", "References", R.a("https://learn.microsoft.com/azure/logic-apps/logic-apps-securing-a-logic-app"), "ResourceTypes", (S["workflowtype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not $Record.resource.properties.definition) { return New-Unknown 'The workflow definition was not returned' }\n        $exposure = Get-RequestTriggerExposure $Record\n        if (-not $exposure) { return New-NotApplicable 'No request trigger' }\n        if ($exposure.Disabled) { return New-NotApplicable \"The workflow is $($exposure.Evidence.state)\" $exposure.Evidence }\n        if ($exposure.Open) { return New-Fail \"$($exposure.Evidence.requestTriggers -join ', ') can be called with the signed URL from any address\" $exposure.Evidence }\n        New-Pass $exposure.Reason $exposure.Evidence\n    " }, (S, O) => {
-        R.ln = F + 607;
+        R.ln = F + 595;
         if (!R.t(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "definition"))) {
-            R.ln = F + 607;
+            R.ln = F + 595;
             R.pa(O, R.cmd(S, "New-Unknown", ["The workflow definition was not returned"], null));
             return;
         }
-        R.ln = F + 608;
+        R.ln = F + 596;
         S["exposure"] = R.u(R.cmd(S, "Get-RequestTriggerExposure", [(S["record"] ?? null)], null));
-        R.ln = F + 609;
+        R.ln = F + 597;
         if (!R.t((S["exposure"] ?? null))) {
-            R.ln = F + 609;
+            R.ln = F + 597;
             R.pa(O, R.cmd(S, "New-NotApplicable", ["No request trigger"], null));
             return;
         }
-        R.ln = F + 610;
+        R.ln = F + 598;
         if (R.t(R.m((S["exposure"] ?? null), "Disabled"))) {
-            R.ln = F + 610;
+            R.ln = F + 598;
             R.pa(O, R.cmd(S, "New-NotApplicable", [("The workflow is " + R.str(R.u(R.pi(R.m(R.m((S["exposure"] ?? null), "Evidence"), "state"))))), R.m((S["exposure"] ?? null), "Evidence")], null));
             return;
         }
-        R.ln = F + 611;
+        R.ln = F + 599;
         if (R.t(R.m((S["exposure"] ?? null), "Open"))) {
-            R.ln = F + 611;
+            R.ln = F + 599;
             R.pa(O, R.cmd(S, "New-Fail", [("" + R.str(R.u(R.pi(R.join(R.m(R.m((S["exposure"] ?? null), "Evidence"), "requestTriggers"), ", ")))) + " can be called with the signed URL from any address"), R.m((S["exposure"] ?? null), "Evidence")], null));
             return;
         }
-        R.ln = F + 612;
+        R.ln = F + 600;
         R.pa(O, R.cmd(S, "New-Pass", [R.m((S["exposure"] ?? null), "Reason"), R.m((S["exposure"] ?? null), "Evidence")], null));
     })], false)], null));
-    R.ln = F + 616;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-LOGIC-002", "Title", "Logic Apps that anyone can call have no write access in Azure", "Category", "Privileged access", "Service", "Logic Apps", "Severity", "High", "Description", "For enabled Consumption workflows whose Request trigger can be called from any address with its signed URL (AZ-LOGIC-001), lists the write capable role assignments of their system and user assigned managed identities, including assignments through groups whose members were collected.", "Rationale", "The caller decides the input of the run, and the workflow acts on that input with the rights of its managed identity. A leaked trigger URL then gives anyone on the Internet write access to Azure, without an account, MFA or Conditional Access, and the activity log names the managed identity instead of the caller.", "Remediation", "Restrict the trigger (allowed caller addresses, or Microsoft Entra ID OAuth with SAS disabled), or take the write access away from the identity and leave the privileged work to a workflow without a public trigger.", "References", R.a([R.v("https://learn.microsoft.com/azure/logic-apps/logic-apps-securing-a-logic-app"), R.v("https://learn.microsoft.com/azure/logic-apps/authenticate-with-managed-identity")]), "Requires", R.a([R.v("rbac/roleAssignments"), R.v("rbac/roleDefinitions")]), "ResourceTypes", (S["workflowtype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not $Record.resource.properties.definition) { return New-Unknown 'The workflow definition was not returned' }\n        $exposure = Get-RequestTriggerExposure $Record\n        if (-not $exposure -or $exposure.Disabled -or -not $exposure.Open) { return New-NotApplicable 'Not callable from any address (AZ-LOGIC-001)' }\n        $principals = @(Get-ResourceIdentityPrincipals $Record)\n        $evidence = [ordered]@{ identityType = $Record.resource.identity.type; writeAssignments = @() }\n        if (-not $principals) { return New-Pass 'Callable from any address, but without a managed identity' $evidence }\n        $access = Get-PrincipalAccessMap\n        $grants = @(foreach ($principal in $principals) {\n                foreach ($assignment in @($access[$principal] | Where-Object { $_ })) {\n                    if (Test-RoleCanWrite $assignment.properties.roleDefinitionId) { \"$(Get-RoleName $assignment.properties.roleDefinitionId) @ $($assignment.properties.scope)\" }\n                }\n            })\n        $evidence.writeAssignments = @($grants | Sort-Object -Unique)\n        if ($grants) { return New-Fail \"Anyone with the trigger URL can start it, and it acts with $($evidence.writeAssignments -join '; ')\" $evidence }\n        New-Pass 'Callable from any address, but its managed identity has no write access' $evidence\n    " }, (S, O) => {
-        R.ln = F + 630;
+    R.ln = F + 604;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-LOGIC-002", "Title", "Logic Apps that anyone can call have no write access in Azure", "Category", "Privileged access", "Service", "Logic Apps", "Severity", "High", "Description", "For enabled Consumption workflows whose Request trigger can be called from any address with its signed URL (AZ-LOGIC-001), lists the write capable role assignments of their system and user assigned managed identities, including assignments through groups whose members were collected.", "Rationale", "The caller decides the input of the run, and the workflow acts on that input with the rights of its managed identity. A leaked trigger URL then gives anyone on the Internet write access to Azure, without an account, MFA or Conditional Access, and the activity log names the managed identity instead of the caller.", "Remediation", "Restrict the trigger (allowed caller addresses, or Microsoft Entra ID OAuth with SAS disabled), or take the write access away from the identity and leave the privileged work to a workflow without a public trigger.", "References", R.a([R.v("https://learn.microsoft.com/azure/logic-apps/logic-apps-securing-a-logic-app"), R.v("https://learn.microsoft.com/azure/logic-apps/authenticate-with-managed-identity")]), "Requires", R.a([R.v("rbac/roleAssignments"), R.v("rbac/roleDefinitions")]), "ResourceTypes", (S["workflowtype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not $Record.resource.properties.definition) { return New-Unknown 'The workflow definition was not returned' }\n        $exposure = Get-RequestTriggerExposure $Record\n        if (-not $exposure -or $exposure.Disabled -or -not $exposure.Open) { return New-NotApplicable 'Not callable from any address (AZ-LOGIC-001)' }\n        $principals = @(Get-ResourceIdentityPrincipals $Record)\n        $evidence = [ordered]@{ identityType = $Record.resource.identity.type; writeAssignments = @() }\n        if (-not $principals) { return New-Pass 'Callable from any address, but without a managed identity' $evidence }\n        $evidence.writeAssignments = @(Get-PrincipalWriteGrants $principals)\n        if ($evidence.writeAssignments) { return New-Fail \"Anyone with the trigger URL can start it, and it acts with $($evidence.writeAssignments -join '; ')\" $evidence }\n        New-Pass 'Callable from any address, but its managed identity has no write access' $evidence\n    " }, (S, O) => {
+        R.ln = F + 618;
         if (!R.t(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "definition"))) {
-            R.ln = F + 630;
+            R.ln = F + 618;
             R.pa(O, R.cmd(S, "New-Unknown", ["The workflow definition was not returned"], null));
             return;
         }
-        R.ln = F + 631;
+        R.ln = F + 619;
         S["exposure"] = R.u(R.cmd(S, "Get-RequestTriggerExposure", [(S["record"] ?? null)], null));
-        R.ln = F + 632;
+        R.ln = F + 620;
         if (((!R.t((S["exposure"] ?? null)) || R.t(R.m((S["exposure"] ?? null), "Disabled"))) || !R.t(R.m((S["exposure"] ?? null), "Open")))) {
-            R.ln = F + 632;
+            R.ln = F + 620;
             R.pa(O, R.cmd(S, "New-NotApplicable", ["Not callable from any address (AZ-LOGIC-001)"], null));
             return;
         }
-        R.ln = F + 633;
+        R.ln = F + 621;
         S["principals"] = R.cmd(S, "Get-ResourceIdentityPrincipals", [(S["record"] ?? null)], null);
-        R.ln = F + 634;
+        R.ln = F + 622;
         S["evidence"] = R.ht(["identityType", R.m(R.m(R.m((S["record"] ?? null), "resource"), "identity"), "type"), "writeAssignments", []], true);
-        R.ln = F + 635;
+        R.ln = F + 623;
         if (!R.t((S["principals"] ?? null))) {
-            R.ln = F + 635;
+            R.ln = F + 623;
             R.pa(O, R.cmd(S, "New-Pass", ["Callable from any address, but without a managed identity", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 636;
-        S["access"] = R.u(R.cmd(S, "Get-PrincipalAccessMap", [], null));
-        R.ln = F + 637;
-        S["grants"] = (() => {
-            const v38 = [];
-            R.ln = F + 637;
-            for (const it39 of R.fi((S["principals"] ?? null))) {
-                S["principal"] = it39;
-                R.ln = F + 638;
-                for (const it40 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                    R.ln = F + 638;
-                    R.e(O, (S["_"] ?? null));
-                })], R.pi(R.i((S["access"] ?? null), (S["principal"] ?? null)))))) {
-                    S["assignment"] = it40;
-                    R.ln = F + 639;
-                    if (R.t(R.u(R.cmd(S, "Test-RoleCanWrite", [R.m(R.m((S["assignment"] ?? null), "properties"), "roleDefinitionId")], null)))) {
-                        R.ln = F + 639;
-                        R.e(v38, ("" + R.str(R.u(R.cmd(S, "Get-RoleName", [R.m(R.m((S["assignment"] ?? null), "properties"), "roleDefinitionId")], null))) + " @ " + R.str(R.u(R.pi(R.m(R.m((S["assignment"] ?? null), "properties"), "scope"))))));
-                    }
-                }
-            }
-            return v38;
-        })();
-        R.ln = F + 642;
-        R.sm((S["evidence"] ?? null), "writeAssignments", R.cmd(S, "Sort-Object", [R.np("Unique")], R.pi((S["grants"] ?? null))));
-        R.ln = F + 643;
-        if (R.t((S["grants"] ?? null))) {
-            R.ln = F + 643;
+        R.ln = F + 624;
+        R.sm((S["evidence"] ?? null), "writeAssignments", R.cmd(S, "Get-PrincipalWriteGrants", [(S["principals"] ?? null)], null));
+        R.ln = F + 625;
+        if (R.t(R.m((S["evidence"] ?? null), "writeAssignments"))) {
+            R.ln = F + 625;
             R.pa(O, R.cmd(S, "New-Fail", [("Anyone with the trigger URL can start it, and it acts with " + R.str(R.u(R.pi(R.join(R.m((S["evidence"] ?? null), "writeAssignments"), "; "))))), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 644;
+        R.ln = F + 626;
         R.pa(O, R.cmd(S, "New-Pass", ["Callable from any address, but its managed identity has no write access", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 648;
+    R.ln = F + 630;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-LOGIC-003", "Title", "Logic App HTTP steps sign in with a managed identity or service principal", "Category", "Identity management", "Service", "Logic Apps", "Severity", "Medium", "Description", "Finds HTTP and HTTP webhook triggers and actions of Consumption workflows, nested ones included, that sign in with Basic authentication, a client certificate, a raw authorization value, a credential header (Authorization, API key, subscription key or function key headers) or a key in the URL, and API Management actions with a subscription key. Managed identity and Microsoft Entra ID OAuth (service principal) authentication pass. API connections are AZ-LOGIC-005 and AZ-LOGIC-006.", "Rationale", "Passwords, API keys and certificates in a workflow are shared secrets: not tied to an identity, outside Conditional Access, rarely rotated and available to everyone who can edit or export the workflow. A managed identity has no secret to leak.", "Remediation", "Use the managed identity of the workflow (authentication type ManagedServiceIdentity) for services that accept Microsoft Entra ID tokens, or a service principal; where a service only accepts a key, keep it in Key Vault and read it with the managed identity.", "References", R.a([R.v("https://learn.microsoft.com/azure/logic-apps/authenticate-with-managed-identity"), R.v("https://learn.microsoft.com/azure/logic-apps/logic-apps-securing-a-logic-app")]), "ResourceTypes", (S["workflowtype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $definition = $Record.resource.properties.definition\n        if (-not $definition) { return New-Unknown 'The workflow definition was not returned' }\n        $steps = @(Get-WorkflowSteps $definition)\n        $secretSteps = @(Get-SecretReadSteps $steps (Get-WorkflowConnectionMap $Record) | ForEach-Object { $_.Step.Name })\n        $credentials = [System.Collections.Generic.List[string]]::new()\n        $identitySignIns = 0\n        foreach ($step in $steps) {\n            foreach ($credential in @(Get-StepCredentials $step $Record $secretSteps | Where-Object { $_.SignIn })) {\n                if ($credential.Credential) { $credentials.Add(\"$($step.Name): $($credential.Kind) from $($credential.Source)\") } else { $identitySignIns++ }\n            }\n        }\n        $evidence = [ordered]@{ credentials = @($credentials | Sort-Object); identitySignIns = $identitySignIns }\n        if ($credentials.Count) { return New-Fail \"Signs in with credentials: $($evidence.credentials -join '; ')\" $evidence }\n        if ($identitySignIns) { return New-Pass \"$identitySignIns sign-in(s) with a managed identity or service principal\" $evidence }\n        New-NotApplicable 'No step signs in to another service' $evidence\n    " }, (S, O) => {
-        R.ln = F + 661;
+        R.ln = F + 643;
         S["definition"] = R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "definition");
-        R.ln = F + 662;
+        R.ln = F + 644;
         if (!R.t((S["definition"] ?? null))) {
-            R.ln = F + 662;
+            R.ln = F + 644;
             R.pa(O, R.cmd(S, "New-Unknown", ["The workflow definition was not returned"], null));
             return;
         }
-        R.ln = F + 663;
+        R.ln = F + 645;
         S["steps"] = R.cmd(S, "Get-WorkflowSteps", [(S["definition"] ?? null)], null);
-        R.ln = F + 664;
+        R.ln = F + 646;
         S["secretsteps"] = R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " $_.Step.Name " }, (S, O) => {
-            R.ln = F + 664;
+            R.ln = F + 646;
             R.e(O, R.m(R.m((S["_"] ?? null), "Step"), "Name"));
         })], R.cmd(S, "Get-SecretReadSteps", [(S["steps"] ?? null), R.u(R.cmd(S, "Get-WorkflowConnectionMap", [(S["record"] ?? null)], null))], null));
-        R.ln = F + 665;
+        R.ln = F + 647;
         S["credentials"] = R.sc("System.Collections.Generic.List[string]", "new", []);
-        R.ln = F + 666;
+        R.ln = F + 648;
         S["identitysignins"] = 0;
-        R.ln = F + 667;
-        for (const it41 of R.fi((S["steps"] ?? null))) {
-            S["step"] = it41;
-            R.ln = F + 668;
-            for (const it42 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.SignIn " }, (S, O) => {
-                R.ln = F + 668;
+        R.ln = F + 649;
+        for (const it37 of R.fi((S["steps"] ?? null))) {
+            S["step"] = it37;
+            R.ln = F + 650;
+            for (const it38 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.SignIn " }, (S, O) => {
+                R.ln = F + 650;
                 R.e(O, R.m((S["_"] ?? null), "SignIn"));
             })], R.cmd(S, "Get-StepCredentials", [(S["step"] ?? null), (S["record"] ?? null), (S["secretsteps"] ?? null)], null)))) {
-                S["credential"] = it42;
-                R.ln = F + 669;
+                S["credential"] = it38;
+                R.ln = F + 651;
                 if (R.t(R.m((S["credential"] ?? null), "Credential"))) {
-                    R.ln = F + 669;
+                    R.ln = F + 651;
                     R.e(O, R.im((S["credentials"] ?? null), "Add", [("" + R.str(R.u(R.pi(R.m((S["step"] ?? null), "Name")))) + ": " + R.str(R.u(R.pi(R.m((S["credential"] ?? null), "Kind")))) + " from " + R.str(R.u(R.pi(R.m((S["credential"] ?? null), "Source")))))]));
                 } else {
-                    R.ln = F + 669;
+                    R.ln = F + 651;
                     R.incv(S, "identitysignins", 1, true);
                 }
             }
         }
-        R.ln = F + 672;
+        R.ln = F + 654;
         S["evidence"] = R.ht(["credentials", R.cmd(S, "Sort-Object", [], R.pi((S["credentials"] ?? null))), "identitySignIns", (S["identitysignins"] ?? null)], true);
-        R.ln = F + 673;
+        R.ln = F + 655;
         if (R.t(R.m((S["credentials"] ?? null), "Count"))) {
-            R.ln = F + 673;
+            R.ln = F + 655;
             R.pa(O, R.cmd(S, "New-Fail", [("Signs in with credentials: " + R.str(R.u(R.pi(R.join(R.m((S["evidence"] ?? null), "credentials"), "; "))))), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 674;
+        R.ln = F + 656;
         if (R.t((S["identitysignins"] ?? null))) {
-            R.ln = F + 674;
+            R.ln = F + 656;
             R.pa(O, R.cmd(S, "New-Pass", [("" + R.str((S["identitysignins"] ?? null)) + " sign-in(s) with a managed identity or service principal"), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 675;
+        R.ln = F + 657;
         R.pa(O, R.cmd(S, "New-NotApplicable", ["No step signs in to another service", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 679;
+    R.ln = F + 661;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-LOGIC-004", "Title", "Logic App steps that handle secrets hide them from run history", "Category", "Data protection", "Service", "Logic Apps", "Severity", "High", "Description", "Finds steps of Consumption workflows that read a Key Vault secret (Key Vault connector or HTTP) or request an access token without secure outputs, and steps that send a credential in a header, the URL or the body without secure inputs. Not counted: the Authorization header and inputs that use secured outputs, which the platform hides, and the authentication settings of HTTP steps.", "Rationale", "Run history keeps the inputs and outputs of every step for 90 days and shows them to everyone who can read the workflow, Reader and Logic App Operator included. A secret read from Key Vault without secure outputs is readable there by all of them, which undoes keeping it in Key Vault.", "Remediation", "Turn on 'Secure outputs' for steps that read secrets or tokens and 'Secure inputs' for steps that send them (runtimeConfiguration.secureData.properties). Steps that use secured outputs get their inputs hidden, but not their own outputs; secure those where they return the secret.", "References", R.a("https://learn.microsoft.com/azure/logic-apps/logic-apps-securing-a-logic-app"), "ResourceTypes", (S["workflowtype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $definition = $Record.resource.properties.definition\n        if (-not $definition) { return New-Unknown 'The workflow definition was not returned' }\n        $steps = @(Get-WorkflowSteps $definition)\n        $reads = @(Get-SecretReadSteps $steps (Get-WorkflowConnectionMap $Record))\n        $secretSteps = @($reads | ForEach-Object { $_.Step.Name })\n        $securedReads = @($reads | Where-Object { Test-StepSecured $_.Step 'outputs' } | ForEach-Object { $_.Step.Name })\n        $exposed = [System.Collections.Generic.List[string]]::new()\n        $handling = 0\n        foreach ($read in $reads) {\n            $handling++\n            if ($read.Step.Name -notin $securedReads) { $exposed.Add(\"$($read.Step.Name) $($read.Reason) without secure outputs\") }\n        }\n        foreach ($step in $steps) {\n            $sent = @(Get-StepCredentials $step $Record $secretSteps | Where-Object { $_.Credential -and -not $_.Hidden -and -not ($_.From -and $_.From -in $securedReads) })\n            if (-not $sent) { continue }\n            $handling++\n            if (-not (Test-StepSecured $step 'inputs')) { $exposed.Add(\"$($step.Name) sends $((@($sent | ForEach-Object { $_.Kind } | Sort-Object -Unique)) -join ', ') without secure inputs\") }\n        }\n        $evidence = [ordered]@{ exposed = @($exposed | Sort-Object); stepsHandlingSecrets = $handling }\n        if ($exposed.Count) { return New-Fail \"Secrets visible in run history: $($evidence.exposed -join '; ')\" $evidence }\n        if ($handling) { return New-Pass \"$handling step(s) that handle secrets hide them\" $evidence }\n        New-NotApplicable 'No step reads or sends a secret' $evidence\n    " }, (S, O) => {
-        R.ln = F + 692;
+        R.ln = F + 674;
         S["definition"] = R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "definition");
-        R.ln = F + 693;
+        R.ln = F + 675;
         if (!R.t((S["definition"] ?? null))) {
-            R.ln = F + 693;
+            R.ln = F + 675;
             R.pa(O, R.cmd(S, "New-Unknown", ["The workflow definition was not returned"], null));
             return;
         }
-        R.ln = F + 694;
+        R.ln = F + 676;
         S["steps"] = R.cmd(S, "Get-WorkflowSteps", [(S["definition"] ?? null)], null);
-        R.ln = F + 695;
+        R.ln = F + 677;
         S["reads"] = R.cmd(S, "Get-SecretReadSteps", [(S["steps"] ?? null), R.u(R.cmd(S, "Get-WorkflowConnectionMap", [(S["record"] ?? null)], null))], null);
-        R.ln = F + 696;
+        R.ln = F + 678;
         S["secretsteps"] = R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " $_.Step.Name " }, (S, O) => {
-            R.ln = F + 696;
+            R.ln = F + 678;
             R.e(O, R.m(R.m((S["_"] ?? null), "Step"), "Name"));
         })], R.pi((S["reads"] ?? null)));
-        R.ln = F + 697;
+        R.ln = F + 679;
         S["securedreads"] = R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " $_.Step.Name " }, (S, O) => {
-            R.ln = F + 697;
+            R.ln = F + 679;
             R.e(O, R.m(R.m((S["_"] ?? null), "Step"), "Name"));
         })], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " Test-StepSecured $_.Step 'outputs' " }, (S, O) => {
-            R.ln = F + 697;
+            R.ln = F + 679;
             R.pa(O, R.cmd(S, "Test-StepSecured", [R.m((S["_"] ?? null), "Step"), "outputs"], null));
         })], R.pi((S["reads"] ?? null))));
-        R.ln = F + 698;
+        R.ln = F + 680;
         S["exposed"] = R.sc("System.Collections.Generic.List[string]", "new", []);
-        R.ln = F + 699;
+        R.ln = F + 681;
         S["handling"] = 0;
-        R.ln = F + 700;
-        for (const it43 of R.fi((S["reads"] ?? null))) {
-            S["read"] = it43;
-            R.ln = F + 701;
+        R.ln = F + 682;
+        for (const it39 of R.fi((S["reads"] ?? null))) {
+            S["read"] = it39;
+            R.ln = F + 683;
             R.incv(S, "handling", 1, true);
-            R.ln = F + 702;
+            R.ln = F + 684;
             if (R.t(R.nin(R.m(R.m((S["read"] ?? null), "Step"), "Name"), (S["securedreads"] ?? null)))) {
-                R.ln = F + 702;
+                R.ln = F + 684;
                 R.e(O, R.im((S["exposed"] ?? null), "Add", [("" + R.str(R.u(R.pi(R.m(R.m((S["read"] ?? null), "Step"), "Name")))) + " " + R.str(R.u(R.pi(R.m((S["read"] ?? null), "Reason")))) + " without secure outputs")]));
             }
         }
-        R.ln = F + 704;
-        for (const it44 of R.fi((S["steps"] ?? null))) {
-            S["step"] = it44;
-            R.ln = F + 705;
+        R.ln = F + 686;
+        for (const it40 of R.fi((S["steps"] ?? null))) {
+            S["step"] = it40;
+            R.ln = F + 687;
             S["sent"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.Credential -and -not $_.Hidden -and -not ($_.From -and $_.From -in $securedReads) " }, (S, O) => {
-                R.ln = F + 705;
+                R.ln = F + 687;
                 R.e(O, ((R.t(R.m((S["_"] ?? null), "Credential")) && !R.t(R.m((S["_"] ?? null), "Hidden"))) && !(R.t(R.m((S["_"] ?? null), "From")) && R.t(R.in(R.m((S["_"] ?? null), "From"), (S["securedreads"] ?? null))))));
             })], R.cmd(S, "Get-StepCredentials", [(S["step"] ?? null), (S["record"] ?? null), (S["secretsteps"] ?? null)], null));
-            R.ln = F + 706;
+            R.ln = F + 688;
             if (!R.t((S["sent"] ?? null))) {
                 continue;
             }
-            R.ln = F + 707;
+            R.ln = F + 689;
             R.incv(S, "handling", 1, true);
-            R.ln = F + 708;
+            R.ln = F + 690;
             if (!R.t(R.u(R.cmd(S, "Test-StepSecured", [(S["step"] ?? null), "inputs"], null)))) {
-                R.ln = F + 708;
+                R.ln = F + 690;
                 R.e(O, R.im((S["exposed"] ?? null), "Add", [("" + R.str(R.u(R.pi(R.m((S["step"] ?? null), "Name")))) + " sends " + R.str(R.u(R.pi(R.join((R.cmd(S, "Sort-Object", [R.np("Unique")], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " $_.Kind " }, (S, O) => {
-                    R.ln = F + 708;
+                    R.ln = F + 690;
                     R.e(O, R.m((S["_"] ?? null), "Kind"));
                 })], R.pi((S["sent"] ?? null))))), ", ")))) + " without secure inputs")]));
             }
         }
-        R.ln = F + 710;
+        R.ln = F + 692;
         S["evidence"] = R.ht(["exposed", R.cmd(S, "Sort-Object", [], R.pi((S["exposed"] ?? null))), "stepsHandlingSecrets", (S["handling"] ?? null)], true);
-        R.ln = F + 711;
+        R.ln = F + 693;
         if (R.t(R.m((S["exposed"] ?? null), "Count"))) {
-            R.ln = F + 711;
+            R.ln = F + 693;
             R.pa(O, R.cmd(S, "New-Fail", [("Secrets visible in run history: " + R.str(R.u(R.pi(R.join(R.m((S["evidence"] ?? null), "exposed"), "; "))))), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 712;
+        R.ln = F + 694;
         if (R.t((S["handling"] ?? null))) {
-            R.ln = F + 712;
+            R.ln = F + 694;
             R.pa(O, R.cmd(S, "New-Pass", [("" + R.str((S["handling"] ?? null)) + " step(s) that handle secrets hide them"), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 713;
+        R.ln = F + 695;
         R.pa(O, R.cmd(S, "New-NotApplicable", ["No step reads or sends a secret", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 717;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-LOGIC-005", "Title", "API connections do not sign in as a user", "Category", "Identity management", "Service", "Logic Apps", "Severity", "High", "Description", "Finds API connections (of Consumption and Standard logic apps) that were authorized with a user account: OAuth on behalf of the person who signed in when the connection was created or repaired.", "Rationale", "Every workflow that uses the connection, and everyone who may use it in a workflow of their own (Microsoft.Web/connections/join/action, part of Contributor), acts as that person: reads their mail and files, sends as them and uses their permissions in the connected service. The refresh token keeps working outside MFA and Conditional Access, and the automation breaks, or keeps running on a personal account, when the person leaves.", "Remediation", "Recreate the connection with the managed identity of the workflow or a service principal where the connector supports it. For connectors without that option, call the service (for Microsoft 365, Microsoft Graph) from an HTTP action with the managed identity and scoped application permissions, then delete the user connection.", "References", R.a("https://learn.microsoft.com/azure/logic-apps/authenticate-with-managed-identity"), "ResourceTypes", (S["connectiontype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $user = [string]$Record.resource.properties.authenticatedUser.name\n        $evidence = [ordered]@{ connector = Get-ConnectionConnector $Record; kind = $Record.resource.kind; authenticatedUser = $user }\n        if ($user) { return New-Fail \"Signs in to $($evidence.connector) as $user\" $evidence }\n        New-Pass 'Does not sign in as a user' $evidence\n    " }, (S, O) => {
-        R.ln = F + 730;
-        S["user"] = R.c("string", R.m(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "authenticatedUser"), "name"));
-        R.ln = F + 731;
-        S["evidence"] = R.ht(["connector", R.u(R.cmd(S, "Get-ConnectionConnector", [(S["record"] ?? null)], null)), "kind", R.m(R.m((S["record"] ?? null), "resource"), "kind"), "authenticatedUser", (S["user"] ?? null)], true);
-        R.ln = F + 732;
-        if (R.t((S["user"] ?? null))) {
-            R.ln = F + 732;
-            R.pa(O, R.cmd(S, "New-Fail", [("Signs in to " + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "connector")))) + " as " + R.str((S["user"] ?? null))), (S["evidence"] ?? null)], null));
-            return;
-        }
-        R.ln = F + 733;
-        R.pa(O, R.cmd(S, "New-Pass", ["Does not sign in as a user", (S["evidence"] ?? null)], null));
-    })], false)], null));
-    R.ln = F + 737;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-LOGIC-006", "Title", "API connections sign in with a managed identity or service principal", "Category", "Identity management", "Service", "Logic Apps", "Severity", "Medium", "Description", "Finds API connections whose authentication stores a shared secret: an access key, connection string, password or API key, which are the parameters the connector marks as secure. Connections with a managed identity or a service principal pass; connections that sign in as a user are AZ-LOGIC-005.", "Rationale", "The secret is stored in the connection and used by every workflow that can join it. It is not tied to an identity, cannot be limited by Conditional Access, is rarely rotated and keeps working after the workflows that needed it are gone.", "Remediation", "Recreate the connection with the managed identity of the workflow or a service principal, grant that identity a data role on the target, then delete the connection with the stored secret and rotate the secret.", "References", R.a("https://learn.microsoft.com/azure/logic-apps/authenticate-with-managed-identity"), "Requires", R.a("web/managedApis"), "ResourceTypes", (S["connectiontype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $p = $Record.resource.properties\n        $connector = Get-ConnectionConnector $Record\n        $setName = [string]$p.parameterValueSet.name\n        $evidence = [ordered]@{ connector = $connector; parameterSet = if ($setName) { $setName } else { 'default' }; secretParameters = @() }\n        if ([string]$p.authenticatedUser.name) { return New-NotApplicable 'Signs in as a user (AZ-LOGIC-005)' $evidence }\n        if ($p.parameterValueType -eq 'Alternative') { return New-Pass 'Signs in with a managed identity' $evidence }\n        $api = (Get-ManagedApiMap)[([string]$p.api.id).ToLowerInvariant()]\n        if (-not $api) { return New-Unknown \"The metadata of connector $connector could not be read\" $evidence }\n        $parameters = $api.properties.connectionParameters\n        if ($setName) {\n            $set = @($api.properties.connectionParameterSets.values | Where-Object { $_ -and $_.name -eq $setName }) | Select-Object -First 1\n            if (-not $set) { return New-Unknown \"Connector $connector has no parameter set $setName\" $evidence }\n            $parameters = $set.parameters\n        }\n        $declared = [System.Collections.Generic.List[object]]::new()\n        if ($null -ne $parameters) {\n            foreach ($parameter in @($parameters.PSObject.Properties)) { if ($parameter) { $declared.Add([pscustomobject]@{ Name = $parameter.Name; Type = [string]$parameter.Value.type }) } }\n        }\n        if (@($declared | Where-Object { $_.Type -eq 'managedIdentity' })) { return New-Pass 'Signs in with a managed identity' $evidence }\n        #a client id marks a service principal: always in a parameter set, and in the values of a default connection\n        $values = @($p.parameterValues, $p.nonSecretParameterValues | Where-Object { $_ } | ForEach-Object { $_.PSObject.Properties } | Where-Object { $_ -and $_.Value })\n        $clientIdDeclared = [bool]@($declared | Where-Object { $_.Name -eq 'token:clientId' })\n        $clientIdSet = [bool]@($values | Where-Object { $_.Name -eq 'token:clientId' -or ($_.Name -eq 'token:grantType' -and $_.Value -eq 'client_credentials') })\n        if ($clientIdDeclared -and ($setName -or $clientIdSet)) { return New-Pass 'Signs in with a service principal' $evidence }\n        $evidence.secretParameters = @($declared | Where-Object { $_.Type -in 'securestring', 'secureobject' -and $_.Name -notlike 'token:*' } | ForEach-Object { $_.Name } | Sort-Object)\n        if ($evidence.secretParameters) { return New-Fail \"Stores a secret for $connector ($($evidence.secretParameters -join ', '))\" $evidence }\n        New-NotApplicable \"Stores no secret for $connector\" $evidence\n    " }, (S, O) => {
-        R.ln = F + 751;
+    R.ln = F + 699;
+    R.def(S, "Get-ConnectionAuthentication", { params: [{ n: "Record", t: null, pos: null }], adv: 0, h: "29eb99d8f34ef5d2" }, (S, O) => {
+        R.ln = F + 703;
         S["p"] = R.m(R.m((S["record"] ?? null), "resource"), "properties");
-        R.ln = F + 752;
-        S["connector"] = R.u(R.cmd(S, "Get-ConnectionConnector", [(S["record"] ?? null)], null));
-        R.ln = F + 753;
+        R.ln = F + 704;
         S["setname"] = R.c("string", R.m(R.m((S["p"] ?? null), "parameterValueSet"), "name"));
-        R.ln = F + 754;
-        S["evidence"] = R.ht(["connector", (S["connector"] ?? null), "parameterSet", (() => {
-            const v45 = [];
-            R.ln = F + 754;
+        R.ln = F + 705;
+        S["result"] = R.pso(["Method", "unknown", "User", R.c("string", R.m(R.m((S["p"] ?? null), "authenticatedUser"), "name")), "ParameterSet", (() => {
+            const v41 = [];
+            R.ln = F + 705;
             if (R.t((S["setname"] ?? null))) {
-                R.ln = F + 754;
-                R.e(v45, (S["setname"] ?? null));
+                R.ln = F + 705;
+                R.e(v41, (S["setname"] ?? null));
             } else {
-                R.ln = F + 754;
-                R.e(v45, "default");
+                R.ln = F + 705;
+                R.e(v41, "default");
             }
-            return R.u(v45);
-        })(), "secretParameters", []], true);
-        R.ln = F + 755;
-        if (R.t(R.c("string", R.m(R.m((S["p"] ?? null), "authenticatedUser"), "name")))) {
-            R.ln = F + 755;
-            R.pa(O, R.cmd(S, "New-NotApplicable", ["Signs in as a user (AZ-LOGIC-005)", (S["evidence"] ?? null)], null));
+            return R.u(v41);
+        })(), "SecretParameters", [], "Reason", null]);
+        R.ln = F + 706;
+        if (R.t(R.m((S["result"] ?? null), "User"))) {
+            R.ln = F + 706;
+            R.sm((S["result"] ?? null), "Method", "user");
+            R.ln = F + 706;
+            R.e(O, (S["result"] ?? null));
             return;
         }
-        R.ln = F + 756;
+        R.ln = F + 707;
         if (R.t(R.eq(R.m((S["p"] ?? null), "parameterValueType"), "Alternative"))) {
-            R.ln = F + 756;
-            R.pa(O, R.cmd(S, "New-Pass", ["Signs in with a managed identity", (S["evidence"] ?? null)], null));
+            R.ln = F + 707;
+            R.sm((S["result"] ?? null), "Method", "managed identity");
+            R.ln = F + 707;
+            R.e(O, (S["result"] ?? null));
             return;
         }
-        R.ln = F + 757;
+        R.ln = F + 708;
+        S["connector"] = R.u(R.cmd(S, "Get-ConnectionConnector", [(S["record"] ?? null)], null));
+        R.ln = F + 709;
         S["api"] = R.i(R.u(R.cmd(S, "Get-ManagedApiMap", [], null)), R.im((R.c("string", R.m(R.m((S["p"] ?? null), "api"), "id"))), "ToLowerInvariant", []));
-        R.ln = F + 758;
+        R.ln = F + 710;
         if (!R.t((S["api"] ?? null))) {
-            R.ln = F + 758;
-            R.pa(O, R.cmd(S, "New-Unknown", [("The metadata of connector " + R.str((S["connector"] ?? null)) + " could not be read"), (S["evidence"] ?? null)], null));
+            R.ln = F + 710;
+            R.sm((S["result"] ?? null), "Reason", ("the metadata of connector " + R.str((S["connector"] ?? null)) + " could not be read"));
+            R.ln = F + 710;
+            R.e(O, (S["result"] ?? null));
             return;
         }
-        R.ln = F + 759;
+        R.ln = F + 711;
         S["parameters"] = R.m(R.m((S["api"] ?? null), "properties"), "connectionParameters");
-        R.ln = F + 760;
+        R.ln = F + 712;
         if (R.t((S["setname"] ?? null))) {
-            R.ln = F + 761;
+            R.ln = F + 713;
             S["set"] = R.u(R.cmd(S, "Select-Object", [R.np("First"), 1], R.pi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.name -eq $setName " }, (S, O) => {
-                R.ln = F + 761;
+                R.ln = F + 713;
                 R.e(O, (R.t((S["_"] ?? null)) && R.t(R.eq(R.m((S["_"] ?? null), "name"), (S["setname"] ?? null)))));
             })], R.pi(R.m(R.m(R.m((S["api"] ?? null), "properties"), "connectionParameterSets"), "values"))))));
-            R.ln = F + 762;
+            R.ln = F + 714;
             if (!R.t((S["set"] ?? null))) {
-                R.ln = F + 762;
-                R.pa(O, R.cmd(S, "New-Unknown", [("Connector " + R.str((S["connector"] ?? null)) + " has no parameter set " + R.str((S["setname"] ?? null))), (S["evidence"] ?? null)], null));
+                R.ln = F + 714;
+                R.sm((S["result"] ?? null), "Reason", ("connector " + R.str((S["connector"] ?? null)) + " has no parameter set " + R.str((S["setname"] ?? null))));
+                R.ln = F + 714;
+                R.e(O, (S["result"] ?? null));
                 return;
             }
-            R.ln = F + 763;
+            R.ln = F + 715;
             S["parameters"] = R.m((S["set"] ?? null), "parameters");
         }
-        R.ln = F + 765;
+        R.ln = F + 717;
         S["declared"] = R.sc("System.Collections.Generic.List[object]", "new", []);
-        R.ln = F + 766;
+        R.ln = F + 718;
         if (R.t(R.ne(null, (S["parameters"] ?? null)))) {
-            R.ln = F + 767;
-            for (const it46 of R.fi(R.a(R.m(R.m((S["parameters"] ?? null), "PSObject"), "Properties")))) {
-                S["parameter"] = it46;
-                R.ln = F + 767;
+            R.ln = F + 719;
+            for (const it42 of R.fi(R.a(R.m(R.m((S["parameters"] ?? null), "PSObject"), "Properties")))) {
+                S["parameter"] = it42;
+                R.ln = F + 719;
                 if (R.t((S["parameter"] ?? null))) {
-                    R.ln = F + 767;
+                    R.ln = F + 719;
                     R.e(O, R.im((S["declared"] ?? null), "Add", [R.pso(["Name", R.m((S["parameter"] ?? null), "Name"), "Type", R.c("string", R.m(R.m((S["parameter"] ?? null), "Value"), "type"))])]));
                 }
             }
         }
-        R.ln = F + 769;
+        R.ln = F + 721;
         if (R.t(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.Type -eq 'managedIdentity' " }, (S, O) => {
-            R.ln = F + 769;
+            R.ln = F + 721;
             R.e(O, R.eq(R.m((S["_"] ?? null), "Type"), "managedIdentity"));
         })], R.pi((S["declared"] ?? null))))) {
-            R.ln = F + 769;
-            R.pa(O, R.cmd(S, "New-Pass", ["Signs in with a managed identity", (S["evidence"] ?? null)], null));
+            R.ln = F + 721;
+            R.sm((S["result"] ?? null), "Method", "managed identity");
+            R.ln = F + 721;
+            R.e(O, (S["result"] ?? null));
             return;
         }
-        R.ln = F + 771;
+        R.ln = F + 723;
         S["values"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.Value " }, (S, O) => {
-            R.ln = F + 771;
+            R.ln = F + 723;
             R.e(O, (R.t((S["_"] ?? null)) && R.t(R.m((S["_"] ?? null), "Value"))));
         })], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " $_.PSObject.Properties " }, (S, O) => {
-            R.ln = F + 771;
+            R.ln = F + 723;
             R.e(O, R.m(R.m((S["_"] ?? null), "PSObject"), "Properties"));
         })], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 771;
+            R.ln = F + 723;
             R.e(O, (S["_"] ?? null));
         })], R.pi([R.v(R.m((S["p"] ?? null), "parameterValues")), R.v(R.m((S["p"] ?? null), "nonSecretParameterValues"))]))));
-        R.ln = F + 772;
+        R.ln = F + 724;
         S["clientiddeclared"] = R.c("bool", R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.Name -eq 'token:clientId' " }, (S, O) => {
-            R.ln = F + 772;
+            R.ln = F + 724;
             R.e(O, R.eq(R.m((S["_"] ?? null), "Name"), "token:clientId"));
         })], R.pi((S["declared"] ?? null))));
-        R.ln = F + 773;
+        R.ln = F + 725;
         S["clientidset"] = R.c("bool", R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.Name -eq 'token:clientId' -or ($_.Name -eq 'token:grantType' -and $_.Value -eq 'client_credentials') " }, (S, O) => {
-            R.ln = F + 773;
+            R.ln = F + 725;
             R.e(O, (R.t(R.eq(R.m((S["_"] ?? null), "Name"), "token:clientId")) || (R.t(R.eq(R.m((S["_"] ?? null), "Name"), "token:grantType")) && R.t(R.eq(R.m((S["_"] ?? null), "Value"), "client_credentials")))));
         })], R.pi((S["values"] ?? null))));
-        R.ln = F + 774;
+        R.ln = F + 726;
         if ((R.t((S["clientiddeclared"] ?? null)) && (R.t((S["setname"] ?? null)) || R.t((S["clientidset"] ?? null))))) {
-            R.ln = F + 774;
-            R.pa(O, R.cmd(S, "New-Pass", ["Signs in with a service principal", (S["evidence"] ?? null)], null));
+            R.ln = F + 726;
+            R.sm((S["result"] ?? null), "Method", "service principal");
+            R.ln = F + 726;
+            R.e(O, (S["result"] ?? null));
             return;
         }
-        R.ln = F + 775;
-        R.sm((S["evidence"] ?? null), "secretParameters", R.cmd(S, "Sort-Object", [], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " $_.Name " }, (S, O) => {
-            R.ln = F + 775;
+        R.ln = F + 729;
+        R.sm((S["result"] ?? null), "SecretParameters", R.cmd(S, "Sort-Object", [], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " $_.Name " }, (S, O) => {
+            R.ln = F + 729;
             R.e(O, R.m((S["_"] ?? null), "Name"));
         })], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.Type -in 'securestring', 'secureobject' -and $_.Name -notlike 'token:*' " }, (S, O) => {
-            R.ln = F + 775;
+            R.ln = F + 729;
             R.e(O, (R.t(R.in(R.m((S["_"] ?? null), "Type"), [R.v("securestring"), R.v("secureobject")])) && R.t(R.nlike(R.m((S["_"] ?? null), "Name"), "token:*"))));
         })], R.pi((S["declared"] ?? null))))));
-        R.ln = F + 776;
-        if (R.t(R.m((S["evidence"] ?? null), "secretParameters"))) {
-            R.ln = F + 776;
-            R.pa(O, R.cmd(S, "New-Fail", [("Stores a secret for " + R.str((S["connector"] ?? null)) + " (" + R.str(R.u(R.pi(R.join(R.m((S["evidence"] ?? null), "secretParameters"), ", ")))) + ")"), (S["evidence"] ?? null)], null));
+        R.ln = F + 730;
+        S["oauth"] = R.c("bool", R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.Type -eq 'oauthSetting' " }, (S, O) => {
+            R.ln = F + 730;
+            R.e(O, R.eq(R.m((S["_"] ?? null), "Type"), "oauthSetting"));
+        })], R.pi((S["declared"] ?? null))));
+        R.ln = F + 731;
+        S["gateway"] = R.c("bool", R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.Name -eq 'gateway' " }, (S, O) => {
+            R.ln = F + 731;
+            R.e(O, R.eq(R.m((S["_"] ?? null), "Name"), "gateway"));
+        })], R.pi((S["values"] ?? null))));
+        R.ln = F + 732;
+        if ((R.t((S["oauth"] ?? null)) && !R.t((S["gateway"] ?? null)))) {
+            R.ln = F + 732;
+            R.sm((S["result"] ?? null), "Method", "user");
+            R.ln = F + 732;
+            R.sm((S["result"] ?? null), "SecretParameters", []);
+        } else if (R.t(R.m((S["result"] ?? null), "SecretParameters"))) {
+            R.ln = F + 733;
+            R.sm((S["result"] ?? null), "Method", "shared secret");
+        } else {
+            R.ln = F + 734;
+            R.sm((S["result"] ?? null), "Method", "none");
+        }
+        R.ln = F + 735;
+        R.e(O, (S["result"] ?? null));
+        return;
+    });
+    R.ln = F + 738;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-LOGIC-005", "Title", "API connections do not sign in as a user", "Category", "Identity management", "Service", "Logic Apps", "Severity", "High", "Description", "Finds API connections (of Consumption and Standard logic apps) that sign in with a user account: OAuth on behalf of the person who signed in when the connection was created or repaired. Azure names that user for most connectors; for the others, the metadata of the connector shows that it signs in on behalf of a user.", "Rationale", "Every workflow that uses the connection, and everyone who may use it in a workflow of their own (Microsoft.Web/connections/join/action, part of Contributor), acts as that person: reads their mail and files, sends as them and uses their permissions in the connected service. The refresh token keeps working outside MFA and Conditional Access, and the automation breaks, or keeps running on a personal account, when the person leaves.", "Remediation", "Recreate the connection with the managed identity of the workflow or a service principal where the connector supports it. For connectors without that option, call the service (for Microsoft 365, Microsoft Graph) from an HTTP action with the managed identity and scoped application permissions, then delete the user connection.", "References", R.a("https://learn.microsoft.com/azure/logic-apps/authenticate-with-managed-identity"), "ResourceTypes", (S["connectiontype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $auth = Get-ConnectionAuthentication $Record\n        $evidence = [ordered]@{ connector = Get-ConnectionConnector $Record; kind = $Record.resource.kind; method = $auth.Method; authenticatedUser = $auth.User; displayName = [string]$Record.resource.properties.displayName }\n        if ($auth.Method -eq 'user' -and $auth.User) { return New-Fail \"Signs in to $($evidence.connector) as $($auth.User)\" $evidence }\n        if ($auth.Method -eq 'user') { return New-Fail \"Signs in to $($evidence.connector) as a user; the connection does not name the user\" $evidence }\n        if ($auth.Method -eq 'unknown') { return New-Unknown \"Whether it signs in as a user is not known: $($auth.Reason)\" $evidence }\n        New-Pass \"Does not sign in as a user ($($auth.Method))\" $evidence\n    " }, (S, O) => {
+        R.ln = F + 751;
+        S["auth"] = R.u(R.cmd(S, "Get-ConnectionAuthentication", [(S["record"] ?? null)], null));
+        R.ln = F + 752;
+        S["evidence"] = R.ht(["connector", R.u(R.cmd(S, "Get-ConnectionConnector", [(S["record"] ?? null)], null)), "kind", R.m(R.m((S["record"] ?? null), "resource"), "kind"), "method", R.m((S["auth"] ?? null), "Method"), "authenticatedUser", R.m((S["auth"] ?? null), "User"), "displayName", R.c("string", R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "displayName"))], true);
+        R.ln = F + 753;
+        if ((R.t(R.eq(R.m((S["auth"] ?? null), "Method"), "user")) && R.t(R.m((S["auth"] ?? null), "User")))) {
+            R.ln = F + 753;
+            R.pa(O, R.cmd(S, "New-Fail", [("Signs in to " + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "connector")))) + " as " + R.str(R.u(R.pi(R.m((S["auth"] ?? null), "User"))))), (S["evidence"] ?? null)], null));
             return;
         }
+        R.ln = F + 754;
+        if (R.t(R.eq(R.m((S["auth"] ?? null), "Method"), "user"))) {
+            R.ln = F + 754;
+            R.pa(O, R.cmd(S, "New-Fail", [("Signs in to " + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "connector")))) + " as a user; the connection does not name the user"), (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 755;
+        if (R.t(R.eq(R.m((S["auth"] ?? null), "Method"), "unknown"))) {
+            R.ln = F + 755;
+            R.pa(O, R.cmd(S, "New-Unknown", [("Whether it signs in as a user is not known: " + R.str(R.u(R.pi(R.m((S["auth"] ?? null), "Reason"))))), (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 756;
+        R.pa(O, R.cmd(S, "New-Pass", [("Does not sign in as a user (" + R.str(R.u(R.pi(R.m((S["auth"] ?? null), "Method")))) + ")"), (S["evidence"] ?? null)], null));
+    })], false)], null));
+    R.ln = F + 760;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-LOGIC-006", "Title", "API connections sign in with a managed identity or service principal", "Category", "Identity management", "Service", "Logic Apps", "Severity", "Medium", "Description", "Finds API connections whose authentication stores a shared secret: an access key, connection string, password or API key, which are the parameters the connector marks as secure. Connections with a managed identity or a service principal pass; connections that sign in as a user are AZ-LOGIC-005.", "Rationale", "The secret is stored in the connection and used by every workflow that can join it. It is not tied to an identity, cannot be limited by Conditional Access, is rarely rotated and keeps working after the workflows that needed it are gone.", "Remediation", "Recreate the connection with the managed identity of the workflow or a service principal, grant that identity a data role on the target, then delete the connection with the stored secret and rotate the secret.", "References", R.a("https://learn.microsoft.com/azure/logic-apps/authenticate-with-managed-identity"), "Requires", R.a("web/managedApis"), "ResourceTypes", (S["connectiontype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $auth = Get-ConnectionAuthentication $Record\n        $connector = Get-ConnectionConnector $Record\n        $evidence = [ordered]@{ connector = $connector; parameterSet = $auth.ParameterSet; method = $auth.Method; secretParameters = $auth.SecretParameters }\n        if ($auth.Method -eq 'user') { return New-NotApplicable 'Signs in as a user (AZ-LOGIC-005)' $evidence }\n        if ($auth.Method -eq 'unknown') { return New-Unknown \"How it signs in is not known: $($auth.Reason)\" $evidence }\n        if ($auth.Method -in 'managed identity', 'service principal') { return New-Pass \"Signs in with a $($auth.Method)\" $evidence }\n        if ($auth.Method -eq 'shared secret') { return New-Fail \"Stores a secret for $connector ($($auth.SecretParameters -join ', '))\" $evidence }\n        New-NotApplicable \"Stores no secret for $connector\" $evidence\n    " }, (S, O) => {
+        R.ln = F + 774;
+        S["auth"] = R.u(R.cmd(S, "Get-ConnectionAuthentication", [(S["record"] ?? null)], null));
+        R.ln = F + 775;
+        S["connector"] = R.u(R.cmd(S, "Get-ConnectionConnector", [(S["record"] ?? null)], null));
+        R.ln = F + 776;
+        S["evidence"] = R.ht(["connector", (S["connector"] ?? null), "parameterSet", R.m((S["auth"] ?? null), "ParameterSet"), "method", R.m((S["auth"] ?? null), "Method"), "secretParameters", R.m((S["auth"] ?? null), "SecretParameters")], true);
         R.ln = F + 777;
+        if (R.t(R.eq(R.m((S["auth"] ?? null), "Method"), "user"))) {
+            R.ln = F + 777;
+            R.pa(O, R.cmd(S, "New-NotApplicable", ["Signs in as a user (AZ-LOGIC-005)", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 778;
+        if (R.t(R.eq(R.m((S["auth"] ?? null), "Method"), "unknown"))) {
+            R.ln = F + 778;
+            R.pa(O, R.cmd(S, "New-Unknown", [("How it signs in is not known: " + R.str(R.u(R.pi(R.m((S["auth"] ?? null), "Reason"))))), (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 779;
+        if (R.t(R.in(R.m((S["auth"] ?? null), "Method"), [R.v("managed identity"), R.v("service principal")]))) {
+            R.ln = F + 779;
+            R.pa(O, R.cmd(S, "New-Pass", [("Signs in with a " + R.str(R.u(R.pi(R.m((S["auth"] ?? null), "Method"))))), (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 780;
+        if (R.t(R.eq(R.m((S["auth"] ?? null), "Method"), "shared secret"))) {
+            R.ln = F + 780;
+            R.pa(O, R.cmd(S, "New-Fail", [("Stores a secret for " + R.str((S["connector"] ?? null)) + " (" + R.str(R.u(R.pi(R.join(R.m((S["auth"] ?? null), "SecretParameters"), ", ")))) + ")"), (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 781;
         R.pa(O, R.cmd(S, "New-NotApplicable", [("Stores no secret for " + R.str((S["connector"] ?? null))), (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 781;
+    R.ln = F + 785;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-LOGIC-007", "Title", "API connections are authorized and working", "Category", "Asset management", "Service", "Logic Apps", "Severity", "Medium", "Description", "Finds API connections with status Error: never authorized, consent withdrawn, or a token that can no longer be refreshed (expired, password changed, account disabled or deleted).", "Rationale", "A broken connection stops every workflow that uses it, usually without an alert, and often points to the credentials of someone who left or changed role. Repairing it by signing in again moves the connection to the account of whoever repairs it.", "Remediation", "Find the workflows that use the connection. Delete it when none needs it; otherwise recreate it with a managed identity or service principal (AZ-LOGIC-006) instead of authorizing it again with a personal account.", "References", R.a("https://learn.microsoft.com/azure/logic-apps/logic-apps-securing-a-logic-app"), "ResourceTypes", (S["connectiontype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $p = $Record.resource.properties\n        $statuses = @($p.statuses | Where-Object { $_ })\n        if (-not $statuses -and -not $p.overallStatus) { return New-Unknown 'The connection reports no status' }\n        $errors = @($statuses | Where-Object { $_.status -eq 'Error' })\n        $codes = @($errors | ForEach-Object { if ($_.error.code) { [string]$_.error.code } elseif ($_.error.properties.code) { [string]$_.error.properties.code } } | Where-Object { $_ } | Sort-Object -Unique)\n        $message = @($errors | ForEach-Object { if ($_.error.message) { [string]$_.error.message } elseif ($_.error.properties.message) { [string]$_.error.properties.message } } | Where-Object { $_ }) | Select-Object -First 1\n        if ($message) { $message = ($message -replace '\\s+', ' ').Trim(); if ($message.Length -gt 200) { $message = $message.Substring(0, 200) } }\n        $evidence = [ordered]@{ connector = Get-ConnectionConnector $Record; overallStatus = $p.overallStatus; statuses = @($statuses | ForEach-Object { [string]$_.status }); errorCodes = $codes; errorMessage = $message }\n        if ($errors -or $p.overallStatus -eq 'Error') { return New-Fail \"Status Error$(if ($codes) { \" ($($codes -join ', '))\" })\" $evidence }\n        New-Pass \"Status $(if ($p.overallStatus) { $p.overallStatus } else { $evidence.statuses[0] })\" $evidence\n    " }, (S, O) => {
-        R.ln = F + 794;
+        R.ln = F + 798;
         S["p"] = R.m(R.m((S["record"] ?? null), "resource"), "properties");
-        R.ln = F + 795;
+        R.ln = F + 799;
         S["statuses"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 795;
+            R.ln = F + 799;
             R.e(O, (S["_"] ?? null));
         })], R.pi(R.m((S["p"] ?? null), "statuses")));
-        R.ln = F + 796;
+        R.ln = F + 800;
         if ((!R.t((S["statuses"] ?? null)) && !R.t(R.m((S["p"] ?? null), "overallStatus")))) {
-            R.ln = F + 796;
+            R.ln = F + 800;
             R.pa(O, R.cmd(S, "New-Unknown", ["The connection reports no status"], null));
             return;
         }
-        R.ln = F + 797;
+        R.ln = F + 801;
         S["errors"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.status -eq 'Error' " }, (S, O) => {
-            R.ln = F + 797;
+            R.ln = F + 801;
             R.e(O, R.eq(R.m((S["_"] ?? null), "status"), "Error"));
         })], R.pi((S["statuses"] ?? null)));
-        R.ln = F + 798;
+        R.ln = F + 802;
         S["codes"] = R.cmd(S, "Sort-Object", [R.np("Unique")], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 798;
+            R.ln = F + 802;
             R.e(O, (S["_"] ?? null));
         })], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " if ($_.error.code) { [string]$_.error.code } elseif ($_.error.properties.code) { [string]$_.error.properties.code } " }, (S, O) => {
-            R.ln = F + 798;
+            R.ln = F + 802;
             if (R.t(R.m(R.m((S["_"] ?? null), "error"), "code"))) {
-                R.ln = F + 798;
+                R.ln = F + 802;
                 R.e(O, R.c("string", R.m(R.m((S["_"] ?? null), "error"), "code")));
             } else if (R.t(R.m(R.m(R.m((S["_"] ?? null), "error"), "properties"), "code"))) {
-                R.ln = F + 798;
+                R.ln = F + 802;
                 R.e(O, R.c("string", R.m(R.m(R.m((S["_"] ?? null), "error"), "properties"), "code")));
             }
         })], R.pi((S["errors"] ?? null)))));
-        R.ln = F + 799;
+        R.ln = F + 803;
         S["message"] = R.u(R.cmd(S, "Select-Object", [R.np("First"), 1], R.pi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 799;
+            R.ln = F + 803;
             R.e(O, (S["_"] ?? null));
         })], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " if ($_.error.message) { [string]$_.error.message } elseif ($_.error.properties.message) { [string]$_.error.properties.message } " }, (S, O) => {
-            R.ln = F + 799;
+            R.ln = F + 803;
             if (R.t(R.m(R.m((S["_"] ?? null), "error"), "message"))) {
-                R.ln = F + 799;
+                R.ln = F + 803;
                 R.e(O, R.c("string", R.m(R.m((S["_"] ?? null), "error"), "message")));
             } else if (R.t(R.m(R.m(R.m((S["_"] ?? null), "error"), "properties"), "message"))) {
-                R.ln = F + 799;
+                R.ln = F + 803;
                 R.e(O, R.c("string", R.m(R.m(R.m((S["_"] ?? null), "error"), "properties"), "message")));
             }
         })], R.pi((S["errors"] ?? null)))))));
-        R.ln = F + 800;
+        R.ln = F + 804;
         if (R.t((S["message"] ?? null))) {
-            R.ln = F + 800;
+            R.ln = F + 804;
             S["message"] = R.im((R.rep((S["message"] ?? null), [R.v("\\s+"), R.v(" ")])), "Trim", []);
-            R.ln = F + 800;
+            R.ln = F + 804;
             if (R.t(R.gt(R.m((S["message"] ?? null), "Length"), 200))) {
-                R.ln = F + 800;
+                R.ln = F + 804;
                 S["message"] = R.im((S["message"] ?? null), "Substring", [0, 200]);
             }
         }
-        R.ln = F + 801;
+        R.ln = F + 805;
         S["evidence"] = R.ht(["connector", R.u(R.cmd(S, "Get-ConnectionConnector", [(S["record"] ?? null)], null)), "overallStatus", R.m((S["p"] ?? null), "overallStatus"), "statuses", R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " [string]$_.status " }, (S, O) => {
-            R.ln = F + 801;
+            R.ln = F + 805;
             R.e(O, R.c("string", R.m((S["_"] ?? null), "status")));
         })], R.pi((S["statuses"] ?? null))), "errorCodes", (S["codes"] ?? null), "errorMessage", (S["message"] ?? null)], true);
-        R.ln = F + 802;
+        R.ln = F + 806;
         if ((R.t((S["errors"] ?? null)) || R.t(R.eq(R.m((S["p"] ?? null), "overallStatus"), "Error")))) {
-            R.ln = F + 802;
+            R.ln = F + 806;
             R.pa(O, R.cmd(S, "New-Fail", [("Status Error" + R.str((() => {
-                const v47 = [];
-                R.ln = F + 802;
+                const v43 = [];
+                R.ln = F + 806;
                 if (R.t((S["codes"] ?? null))) {
-                    R.ln = F + 802;
-                    R.e(v47, (" (" + R.str(R.u(R.pi(R.join((S["codes"] ?? null), ", ")))) + ")"));
+                    R.ln = F + 806;
+                    R.e(v43, (" (" + R.str(R.u(R.pi(R.join((S["codes"] ?? null), ", ")))) + ")"));
                 }
-                return R.u(v47);
+                return R.u(v43);
             })())), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 803;
+        R.ln = F + 807;
         R.pa(O, R.cmd(S, "New-Pass", [("Status " + R.str((() => {
-            const v48 = [];
-            R.ln = F + 803;
+            const v44 = [];
+            R.ln = F + 807;
             if (R.t(R.m((S["p"] ?? null), "overallStatus"))) {
-                R.ln = F + 803;
-                R.e(v48, R.m((S["p"] ?? null), "overallStatus"));
+                R.ln = F + 807;
+                R.e(v44, R.m((S["p"] ?? null), "overallStatus"));
             } else {
-                R.ln = F + 803;
-                R.e(v48, R.i(R.m((S["evidence"] ?? null), "statuses"), 0));
+                R.ln = F + 807;
+                R.e(v44, R.i(R.m((S["evidence"] ?? null), "statuses"), 0));
             }
-            return R.u(v48);
+            return R.u(v44);
         })())), (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 807;
+    R.ln = F + 811;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-LOGIC-008", "Title", "API connections are used by a Logic App", "Category", "Asset management", "Service", "Logic Apps", "Severity", "Medium", "Description", "Finds API connections of Consumption Logic Apps (V1) that no workflow in the subscription uses. Connections of Standard logic apps (V2) are referenced from the files of the app, which the ingestion does not read, and are not evaluated.", "Rationale", "The designer creates a connection, with its credential, as soon as an action is added, and the connection stays when the workflow is deleted or never saved. An unused connection is a stored token or secret without an owner that anyone who can join it can still use; until January 2025 even Readers could call the connected service through it (Binary Security).", "Remediation", "Delete connections that no workflow uses, and revoke or rotate the credential they held.", "References", R.a([R.v("https://www.binarysecurity.no/posts/2025/03/api-connections"), R.v("https://learn.microsoft.com/azure/logic-apps/logic-apps-securing-a-logic-app")]), "ResourceTypes", (S["connectiontype"] ?? null), "Filter", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) [string]$Record.resource.kind -ne 'V2' " }, (S, O) => {
-        R.ln = F + 818;
+        R.ln = F + 822;
         R.e(O, R.ne(R.c("string", R.m(R.m((S["record"] ?? null), "resource"), "kind")), "V2"));
     }), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $users = @((Get-ConnectionUseMap)[$Record.id.ToLowerInvariant()] | Where-Object { $_ } | Sort-Object -Unique)\n        $evidence = [ordered]@{ connector = Get-ConnectionConnector $Record; createdTime = Format-UtcDate $Record.resource.properties.createdTime; usedBy = $users }\n        if ($users) { return New-Pass \"Used by $($users -join ', ')\" $evidence }\n        if (Get-FailedResourceIds -Type $workflowType) { return New-Unknown 'Not every workflow could be read, so one of them may use the connection' $evidence }\n        New-Fail \"No workflow in the subscription uses this $($evidence.connector) connection\" $evidence\n    " }, (S, O) => {
-        R.ln = F + 821;
+        R.ln = F + 825;
         S["users"] = R.cmd(S, "Sort-Object", [R.np("Unique")], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 821;
+            R.ln = F + 825;
             R.e(O, (S["_"] ?? null));
         })], R.pi(R.i(R.u(R.cmd(S, "Get-ConnectionUseMap", [], null)), R.im(R.m((S["record"] ?? null), "id"), "ToLowerInvariant", [])))));
-        R.ln = F + 822;
+        R.ln = F + 826;
         S["evidence"] = R.ht(["connector", R.u(R.cmd(S, "Get-ConnectionConnector", [(S["record"] ?? null)], null)), "createdTime", R.u(R.cmd(S, "Format-UtcDate", [R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "createdTime")], null)), "usedBy", (S["users"] ?? null)], true);
-        R.ln = F + 823;
+        R.ln = F + 827;
         if (R.t((S["users"] ?? null))) {
-            R.ln = F + 823;
+            R.ln = F + 827;
             R.pa(O, R.cmd(S, "New-Pass", [("Used by " + R.str(R.u(R.pi(R.join((S["users"] ?? null), ", "))))), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 824;
+        R.ln = F + 828;
         if (R.t(R.u(R.cmd(S, "Get-FailedResourceIds", [R.np("Type"), (S["workflowtype"] ?? null)], null)))) {
-            R.ln = F + 824;
+            R.ln = F + 828;
             R.pa(O, R.cmd(S, "New-Unknown", ["Not every workflow could be read, so one of them may use the connection", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 825;
+        R.ln = F + 829;
         R.pa(O, R.cmd(S, "New-Fail", [("No workflow in the subscription uses this " + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "connector")))) + " connection"), (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 829;
+    R.ln = F + 833;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-LOGIC-009", "Title", "Logic App runs and triggers succeed", "Category", "Asset management", "Service", "Logic Apps", "Severity", "Low", "Description", ("For Consumption workflows, reads the run metrics of the " + R.str((S["logicfailuredays"] ?? null)) + " days before the ingestion and fails when at least " + R.str((S["logicfailureminimum"] ?? null)) + " runs, and at least " + R.str((S["logicfailurepercent"] ?? null)) + " percent of the completed runs, failed. The same applies to trigger evaluations, because a polling trigger with a broken connection fails without starting runs."), "Rationale", "Workflows that keep failing often run on expired or revoked credentials, or on permissions that were taken away, and nobody notices. When the workflow is a response playbook or an integration, its work silently does not happen.", "Remediation", "Look up the failing runs in the run history, fix the cause (credentials, permissions, target) and add an alert on Runs Failed and Triggers Failed; delete the workflow when it is no longer needed.", "References", R.a([R.v("https://learn.microsoft.com/azure/logic-apps/monitor-logic-apps-overview"), R.v("https://learn.microsoft.com/azure/azure-monitor/reference/supported-metrics/microsoft-logic-workflows-metrics")]), "ResourceTypes", (S["workflowtype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not (Test-ChildCollected $Record 'metrics')) { return New-Unknown 'The run metrics could not be read' }\n        $totals = Get-WorkflowMetricTotals $Record $logicFailureDays\n        $runs = [math]::Max($totals.RunsCompleted, $totals.RunsFailed)\n        $triggers = [math]::Max($totals.TriggersCompleted, $totals.TriggersFailed)\n        $evidence = [ordered]@{ days = $logicFailureDays; runsCompleted = $runs; runsFailed = $totals.RunsFailed; triggersCompleted = $triggers; triggersFailed = $totals.TriggersFailed; startedBy = @((Get-WorkflowAutomationUse).Map[$Record.id.ToLowerInvariant()] | Where-Object { $_ } | Sort-Object) }\n        if (-not $runs -and -not $triggers) { return New-NotApplicable \"No runs or trigger activity in the last $logicFailureDays days\" $evidence }\n        $problems = @()\n        if ($totals.RunsFailed -ge $logicFailureMinimum -and $totals.RunsFailed * 100 -ge $runs * $logicFailurePercent) { $problems += \"$($totals.RunsFailed) of $runs runs\" }\n        if ($totals.TriggersFailed -ge $logicFailureMinimum -and $totals.TriggersFailed * 100 -ge $triggers * $logicFailurePercent) { $problems += \"$($totals.TriggersFailed) of $triggers trigger evaluations\" }\n        if ($problems) { return New-Fail \"$($problems -join ' and ') failed in the last $logicFailureDays days\" $evidence }\n        New-Pass \"$($totals.RunsFailed) of $runs runs failed in the last $logicFailureDays days\" $evidence\n    " }, (S, O) => {
-        R.ln = F + 842;
+        R.ln = F + 846;
         if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "metrics"], null)))) {
-            R.ln = F + 842;
+            R.ln = F + 846;
             R.pa(O, R.cmd(S, "New-Unknown", ["The run metrics could not be read"], null));
             return;
         }
-        R.ln = F + 843;
+        R.ln = F + 847;
         S["totals"] = R.u(R.cmd(S, "Get-WorkflowMetricTotals", [(S["record"] ?? null), (S["logicfailuredays"] ?? null)], null));
-        R.ln = F + 844;
+        R.ln = F + 848;
         S["runs"] = R.sc("math", "Max", [R.m((S["totals"] ?? null), "RunsCompleted"), R.m((S["totals"] ?? null), "RunsFailed")]);
-        R.ln = F + 845;
+        R.ln = F + 849;
         S["triggers"] = R.sc("math", "Max", [R.m((S["totals"] ?? null), "TriggersCompleted"), R.m((S["totals"] ?? null), "TriggersFailed")]);
-        R.ln = F + 846;
+        R.ln = F + 850;
         S["evidence"] = R.ht(["days", (S["logicfailuredays"] ?? null), "runsCompleted", (S["runs"] ?? null), "runsFailed", R.m((S["totals"] ?? null), "RunsFailed"), "triggersCompleted", (S["triggers"] ?? null), "triggersFailed", R.m((S["totals"] ?? null), "TriggersFailed"), "startedBy", R.cmd(S, "Sort-Object", [], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 846;
+            R.ln = F + 850;
             R.e(O, (S["_"] ?? null));
         })], R.pi(R.i(R.m(R.u(R.cmd(S, "Get-WorkflowAutomationUse", [], null)), "Map"), R.im(R.m((S["record"] ?? null), "id"), "ToLowerInvariant", [])))))], true);
-        R.ln = F + 847;
+        R.ln = F + 851;
         if ((!R.t((S["runs"] ?? null)) && !R.t((S["triggers"] ?? null)))) {
-            R.ln = F + 847;
+            R.ln = F + 851;
             R.pa(O, R.cmd(S, "New-NotApplicable", [("No runs or trigger activity in the last " + R.str((S["logicfailuredays"] ?? null)) + " days"), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 848;
+        R.ln = F + 852;
         S["problems"] = [];
-        R.ln = F + 849;
+        R.ln = F + 853;
         if ((R.t(R.ge(R.m((S["totals"] ?? null), "RunsFailed"), (S["logicfailureminimum"] ?? null))) && R.t(R.ge(R.mul(R.m((S["totals"] ?? null), "RunsFailed"), 100), R.mul((S["runs"] ?? null), (S["logicfailurepercent"] ?? null)))))) {
-            R.ln = F + 849;
+            R.ln = F + 853;
             S["problems"] = R.add(S["problems"] ?? null, ("" + R.str(R.u(R.pi(R.m((S["totals"] ?? null), "RunsFailed")))) + " of " + R.str((S["runs"] ?? null)) + " runs"));
         }
-        R.ln = F + 850;
+        R.ln = F + 854;
         if ((R.t(R.ge(R.m((S["totals"] ?? null), "TriggersFailed"), (S["logicfailureminimum"] ?? null))) && R.t(R.ge(R.mul(R.m((S["totals"] ?? null), "TriggersFailed"), 100), R.mul((S["triggers"] ?? null), (S["logicfailurepercent"] ?? null)))))) {
-            R.ln = F + 850;
+            R.ln = F + 854;
             S["problems"] = R.add(S["problems"] ?? null, ("" + R.str(R.u(R.pi(R.m((S["totals"] ?? null), "TriggersFailed")))) + " of " + R.str((S["triggers"] ?? null)) + " trigger evaluations"));
         }
-        R.ln = F + 851;
+        R.ln = F + 855;
         if (R.t((S["problems"] ?? null))) {
-            R.ln = F + 851;
+            R.ln = F + 855;
             R.pa(O, R.cmd(S, "New-Fail", [("" + R.str(R.u(R.pi(R.join((S["problems"] ?? null), " and ")))) + " failed in the last " + R.str((S["logicfailuredays"] ?? null)) + " days"), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 852;
+        R.ln = F + 856;
         R.pa(O, R.cmd(S, "New-Pass", [("" + R.str(R.u(R.pi(R.m((S["totals"] ?? null), "RunsFailed")))) + " of " + R.str((S["runs"] ?? null)) + " runs failed in the last " + R.str((S["logicfailuredays"] ?? null)) + " days"), (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 856;
+    R.ln = F + 860;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-LOGIC-010", "Title", "Logic Apps are in use", "Category", "Asset management", "Service", "Logic Apps", "Severity", "Low", "Description", ("Finds Consumption workflows older than " + R.str((S["logicidledays"] ?? null)) + " days that are disabled and were not changed for " + R.str((S["logicidledays"] ?? null)) + " days, or that are enabled without a run in the last " + R.str((S["logicidledays"] ?? null)) + " days. Workflows that start on a Microsoft Sentinel or Defender for Cloud alert or incident, or from a Defender for Cloud workflow automation or an Azure Monitor action group, only run when an alert fires and are not evaluated."), "Rationale", "An unused workflow keeps its managed identity and role assignments, its API connections with their tokens and secrets, and its callable trigger URL, and nobody watches it. Removing it removes that access.", "Remediation", "Delete workflows that are no longer needed, together with their API connections and the role assignments of their managed identity. Document the ones kept for rare events.", "References", R.a("https://learn.microsoft.com/azure/logic-apps/manage-logic-apps-with-azure-portal"), "ResourceTypes", (S["workflowtype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $p = $Record.resource.properties\n        $evidence = [ordered]@{ state = $p.state; createdDaysAgo = Get-AgeInDays $p.createdTime; changedDaysAgo = Get-AgeInDays $p.changedTime; days = $logicIdleDays; runsStarted = $null }\n        if ($null -ne $evidence.createdDaysAgo -and $evidence.createdDaysAgo -lt $logicIdleDays) { return New-NotApplicable \"Created $($evidence.createdDaysAgo) day(s) ago\" $evidence }\n        if ($p.state -in 'Disabled', 'Suspended') {\n            if ($null -eq $evidence.changedDaysAgo) { return New-Unknown \"$($p.state), and when it was last changed is not known\" $evidence }\n            if ($evidence.changedDaysAgo -ge $logicIdleDays) { return New-Fail \"$($p.state) and not changed for $($evidence.changedDaysAgo) days\" $evidence }\n            return New-NotApplicable \"$($p.state) since $($evidence.changedDaysAgo) day(s)\" $evidence\n        }\n        if (-not (Test-ChildCollected $Record 'metrics')) { return New-Unknown 'The run metrics could not be read' $evidence }\n        $evidence.runsStarted = (Get-WorkflowMetricTotals $Record $logicIdleDays).RunsStarted\n        if ($evidence.runsStarted) { return New-Pass \"$($evidence.runsStarted) run(s) in the last $logicIdleDays days\" $evidence }\n        if (Test-AlertTriggered $Record) { return New-NotApplicable 'Starts on a Microsoft Sentinel or Defender for Cloud alert or incident' $evidence }\n        $use = Get-WorkflowAutomationUse\n        $startedBy = @($use.Map[$Record.id.ToLowerInvariant()] | Where-Object { $_ } | Sort-Object)\n        if ($startedBy) { return New-NotApplicable \"Started by $($startedBy -join ', ')\" $evidence }\n        if ($use.Missing) { return New-Unknown \"No runs in the last $logicIdleDays days, and whether an alert starts it is not known: $($use.Missing -join ', ') could not be read\" $evidence }\n        New-Fail \"No runs in the last $logicIdleDays days\" $evidence\n    " }, (S, O) => {
-        R.ln = F + 869;
+        R.ln = F + 873;
         S["p"] = R.m(R.m((S["record"] ?? null), "resource"), "properties");
-        R.ln = F + 870;
+        R.ln = F + 874;
         S["evidence"] = R.ht(["state", R.m((S["p"] ?? null), "state"), "createdDaysAgo", R.u(R.cmd(S, "Get-AgeInDays", [R.m((S["p"] ?? null), "createdTime")], null)), "changedDaysAgo", R.u(R.cmd(S, "Get-AgeInDays", [R.m((S["p"] ?? null), "changedTime")], null)), "days", (S["logicidledays"] ?? null), "runsStarted", null], true);
-        R.ln = F + 871;
+        R.ln = F + 875;
         if ((R.t(R.ne(null, R.m((S["evidence"] ?? null), "createdDaysAgo"))) && R.t(R.lt(R.m((S["evidence"] ?? null), "createdDaysAgo"), (S["logicidledays"] ?? null))))) {
-            R.ln = F + 871;
+            R.ln = F + 875;
             R.pa(O, R.cmd(S, "New-NotApplicable", [("Created " + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "createdDaysAgo")))) + " day(s) ago"), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 872;
+        R.ln = F + 876;
         if (R.t(R.in(R.m((S["p"] ?? null), "state"), [R.v("Disabled"), R.v("Suspended")]))) {
-            R.ln = F + 873;
+            R.ln = F + 877;
             if (R.t(R.eq(null, R.m((S["evidence"] ?? null), "changedDaysAgo")))) {
-                R.ln = F + 873;
+                R.ln = F + 877;
                 R.pa(O, R.cmd(S, "New-Unknown", [("" + R.str(R.u(R.pi(R.m((S["p"] ?? null), "state")))) + ", and when it was last changed is not known"), (S["evidence"] ?? null)], null));
                 return;
             }
-            R.ln = F + 874;
+            R.ln = F + 878;
             if (R.t(R.ge(R.m((S["evidence"] ?? null), "changedDaysAgo"), (S["logicidledays"] ?? null)))) {
-                R.ln = F + 874;
+                R.ln = F + 878;
                 R.pa(O, R.cmd(S, "New-Fail", [("" + R.str(R.u(R.pi(R.m((S["p"] ?? null), "state")))) + " and not changed for " + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "changedDaysAgo")))) + " days"), (S["evidence"] ?? null)], null));
                 return;
             }
-            R.ln = F + 875;
+            R.ln = F + 879;
             R.pa(O, R.cmd(S, "New-NotApplicable", [("" + R.str(R.u(R.pi(R.m((S["p"] ?? null), "state")))) + " since " + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "changedDaysAgo")))) + " day(s)"), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 877;
+        R.ln = F + 881;
         if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "metrics"], null)))) {
-            R.ln = F + 877;
+            R.ln = F + 881;
             R.pa(O, R.cmd(S, "New-Unknown", ["The run metrics could not be read", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 878;
+        R.ln = F + 882;
         R.sm((S["evidence"] ?? null), "runsStarted", R.m(R.u(R.cmd(S, "Get-WorkflowMetricTotals", [(S["record"] ?? null), (S["logicidledays"] ?? null)], null)), "RunsStarted"));
-        R.ln = F + 879;
+        R.ln = F + 883;
         if (R.t(R.m((S["evidence"] ?? null), "runsStarted"))) {
-            R.ln = F + 879;
+            R.ln = F + 883;
             R.pa(O, R.cmd(S, "New-Pass", [("" + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "runsStarted")))) + " run(s) in the last " + R.str((S["logicidledays"] ?? null)) + " days"), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 880;
+        R.ln = F + 884;
         if (R.t(R.u(R.cmd(S, "Test-AlertTriggered", [(S["record"] ?? null)], null)))) {
-            R.ln = F + 880;
+            R.ln = F + 884;
             R.pa(O, R.cmd(S, "New-NotApplicable", ["Starts on a Microsoft Sentinel or Defender for Cloud alert or incident", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 881;
+        R.ln = F + 885;
         S["use"] = R.u(R.cmd(S, "Get-WorkflowAutomationUse", [], null));
-        R.ln = F + 882;
+        R.ln = F + 886;
         S["startedby"] = R.cmd(S, "Sort-Object", [], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 882;
+            R.ln = F + 886;
             R.e(O, (S["_"] ?? null));
         })], R.pi(R.i(R.m((S["use"] ?? null), "Map"), R.im(R.m((S["record"] ?? null), "id"), "ToLowerInvariant", [])))));
-        R.ln = F + 883;
+        R.ln = F + 887;
         if (R.t((S["startedby"] ?? null))) {
-            R.ln = F + 883;
+            R.ln = F + 887;
             R.pa(O, R.cmd(S, "New-NotApplicable", [("Started by " + R.str(R.u(R.pi(R.join((S["startedby"] ?? null), ", "))))), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 884;
+        R.ln = F + 888;
         if (R.t(R.m((S["use"] ?? null), "Missing"))) {
-            R.ln = F + 884;
+            R.ln = F + 888;
             R.pa(O, R.cmd(S, "New-Unknown", [("No runs in the last " + R.str((S["logicidledays"] ?? null)) + " days, and whether an alert starts it is not known: " + R.str(R.u(R.pi(R.join(R.m((S["use"] ?? null), "Missing"), ", ")))) + " could not be read"), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 885;
+        R.ln = F + 889;
         R.pa(O, R.cmd(S, "New-Fail", [("No runs in the last " + R.str((S["logicidledays"] ?? null)) + " days"), (S["evidence"] ?? null)], null));
     })], false)], null));
 });
