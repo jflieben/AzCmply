@@ -231,7 +231,7 @@
     "12.3.1": {"title":"Requirement 12: Support Information Security with Organizational Policies and Programs","applicability":"notApplicable"},
     "12.3.2": {"title":"Requirement 12: Support Information Security with Organizational Policies and Programs","applicability":"notApplicable"},
     "12.3.3": {"title":"Requirement 12: Support Information Security with Organizational Policies and Programs","applicability":"manual"},
-    "12.3.4": {"title":"Requirement 12: Support Information Security with Organizational Policies and Programs","coverage":"partial","tests":["AZ-APIM-007","AZ-APP-012","AZ-GOV-008","AZ-VM-009"]},
+    "12.3.4": {"title":"Requirement 12: Support Information Security with Organizational Policies and Programs","coverage":"partial","tests":["AZ-APIM-007","AZ-APP-012","AZ-AUTO-003","AZ-GOV-008","AZ-VM-009"]},
     "12.4.1": {"title":"Requirement 12: Support Information Security with Organizational Policies and Programs","applicability":"notApplicable"},
     "12.4.2": {"title":"Requirement 12: Support Information Security with Organizational Policies and Programs","applicability":"notApplicable"},
     "12.4.2.1": {"title":"Requirement 12: Support Information Security with Organizational Policies and Programs","applicability":"notApplicable"},

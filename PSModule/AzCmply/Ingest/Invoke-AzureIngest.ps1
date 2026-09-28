@@ -166,6 +166,8 @@ $subscriptionEndpoints = @(
     ,@('subscription', 'logProfiles', 'providers/Microsoft.Insights/logProfiles', '2016-03-01')
     ,@('subscription', 'eventGridSubscriptions', 'providers/Microsoft.EventGrid/eventSubscriptions', '2025-02-15')
     ,@('subscription', 'networkManagerConnections', 'providers/Microsoft.Network/networkManagerConnections', '2026-03-01')
+    ,@('web', 'functionAppStacks', '/providers/Microsoft.Web/functionAppStacks', '2024-04-01')
+    ,@('web', 'webAppStacks', '/providers/Microsoft.Web/webAppStacks', '2024-04-01')
     ,@('rbac', 'roleAssignments', 'providers/Microsoft.Authorization/roleAssignments', '2022-04-01')
     ,@('rbac', 'roleDefinitions', 'providers/Microsoft.Authorization/roleDefinitions', '2022-04-01')
     ,@('rbac', 'denyAssignments', 'providers/Microsoft.Authorization/denyAssignments', '2022-04-01')
@@ -268,7 +270,7 @@ $childResourceMap = @{
     'microsoft.eventgrid/namespaces'                   = @('topics', 'topics/*/eventSubscriptions', 'clients', 'clientGroups', 'permissionBindings', 'topicSpaces', 'caCertificates', 'privateEndpointConnections')
     'microsoft.automation/automationaccounts'          = @(
         'runbooks', 'credentials', 'variables', 'connections', 'certificates', 'hybridRunbookWorkerGroups', 'hybridRunbookWorkerGroups/*/hybridRunbookWorkers',
-        'webhooks', 'schedules', 'jobSchedules', 'sourceControls', 'privateEndpointConnections'
+        'webhooks', 'schedules', 'jobSchedules', 'sourceControls', 'runtimeEnvironments', 'privateEndpointConnections'
     )
     'microsoft.logic/workflows'                        = @('triggers')
     'microsoft.apimanagement/service'                  = @(

@@ -1,6 +1,6 @@
 # Azure security analysis
 
-`Invoke-AzureAnalyze.ps1` runs 308 security tests against an ingestion made by `..\Ingest\Invoke-AzureIngest.ps1` and writes one result per test, with a finding per evaluated resource. PowerShell 7.2+, no modules, no network access.
+`Invoke-AzureAnalyze.ps1` runs 309 security tests against an ingestion made by `..\Ingest\Invoke-AzureIngest.ps1` and writes one result per test, with a finding per evaluated resource. PowerShell 7.2+, no modules, no network access.
 
 ```powershell
 .\Invoke-AzureAnalyze.ps1 -IngestPath ..\Ingest\AzureIngest\<subscriptionId>_<timestamp>          # folder or .zip
@@ -50,11 +50,11 @@ A test is one requirement, and a control only lists tests that address what it a
 | Logging and monitoring (`LOG`) | 29 | App Service and Functions (`APP` `FUNC`) | 18 |
 | Governance (`GOV`) | 14 | Compute and Virtual Desktop (`VM` `AVD`) | 17 |
 | Network (`NET`) | 27 | Containers (`AKS` `ACR` `CAPP` `ACI`) | 17 |
-| Integration (`MSG` `APIM` `AUTO` `LOGIC`) | 21 | AI and Bot Service (`AI` `BOT`) | 10 |
+| Integration (`MSG` `APIM` `AUTO` `LOGIC`) | 22 | AI and Bot Service (`AI` `BOT`) | 10 |
 | Backup and resilience (`BCK`) | 12 | Data and analytics (`DBX` `SYN` `ADF` `ADX`) | 12 |
 | Exposed secrets (`SEC`) | 4 | Generic PaaS (`PAAS`) | 3 |
 
-Severity: Critical 4, High 72, Medium 145, Low 78, Informational 9.
+Severity: Critical 4, High 72, Medium 146, Low 78, Informational 9.
 
 ## Output
 
@@ -69,7 +69,7 @@ Severity: Critical 4, High 72, Medium 145, Low 78, Informational 9.
 ```jsonc
 {
   "schemaVersion": 3,
-  "analyzer": { "version": "0.9.4", "tests": 308 },
+  "analyzer": { "version": "0.9.4", "tests": 309 },
   "ingest": { "folder", "subscriptionId", "subscriptionName", "tenantId", "startedAt", "ingestVersion", "status" },
   "analyzedAt": "...",                                   // the only value that changes between identical runs
   "summary": { "postureScore", "scoreMethod", "tests": {status: n}, "findings": {status: n}, "bySeverity": {...} },

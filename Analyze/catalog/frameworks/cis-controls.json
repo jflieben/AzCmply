@@ -17,7 +17,7 @@
     "1.4": {"title":"Control 1: Inventory and Control of Enterprise Assets","applicability":"notApplicable"},
     "1.5": {"title":"Control 1: Inventory and Control of Enterprise Assets","applicability":"notApplicable"},
     "2.1": {"title":"Control 2: Inventory and Control of Software Assets","coverage":"partial","tests":["AZ-VM-013"]},
-    "2.2": {"title":"Control 2: Inventory and Control of Software Assets","coverage":"partial","tests":["AZ-APIM-007","AZ-APP-012","AZ-GOV-008","AZ-VM-009"]},
+    "2.2": {"title":"Control 2: Inventory and Control of Software Assets","coverage":"partial","tests":["AZ-APIM-007","AZ-APP-012","AZ-AUTO-003","AZ-GOV-008","AZ-VM-009"]},
     "2.3": {"title":"Control 2: Inventory and Control of Software Assets","applicability":"manual"},
     "2.4": {"title":"Control 2: Inventory and Control of Software Assets","coverage":"partial","tests":["AZ-VM-013"]},
     "2.5": {"title":"Control 2: Inventory and Control of Software Assets","applicability":"manual"},

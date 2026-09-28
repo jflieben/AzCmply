@@ -270,7 +270,7 @@ $childResourceMap = @{
     'microsoft.eventgrid/namespaces'                   = @('topics', 'topics/*/eventSubscriptions', 'clients', 'clientGroups', 'permissionBindings', 'topicSpaces', 'caCertificates', 'privateEndpointConnections')
     'microsoft.automation/automationaccounts'          = @(
         'runbooks', 'credentials', 'variables', 'connections', 'certificates', 'hybridRunbookWorkerGroups', 'hybridRunbookWorkerGroups/*/hybridRunbookWorkers',
-        'webhooks', 'schedules', 'jobSchedules', 'sourceControls', 'privateEndpointConnections'
+        'webhooks', 'schedules', 'jobSchedules', 'sourceControls', 'runtimeEnvironments', 'privateEndpointConnections'
     )
     'microsoft.logic/workflows'                        = @('triggers')
     'microsoft.apimanagement/service'                  = @(

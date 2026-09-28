@@ -62,7 +62,9 @@ function Add-Record {
     $file = "resources/$($Type -replace '/', '.')/$($Name -replace '/', '_').json"
     Save ($file -replace '\.json$', '') ([ordered]@{ id = $Id; type = $Type; apiVersion = 'fixture'; resource = $Resource; diagnosticSettings = $Diagnostics; children = $Children; textContent = $Text; failures = @() })
     $index.Add([ordered]@{ id = $Id; type = $Type; file = $file; status = 'ok' })
-    $resourceList.Add([ordered]@{ id = $Id; type = $Type; name = $Resource.name; location = $Resource.location })
+    $listed = [ordered]@{ id = $Id; type = $Type; name = $Resource.name; location = $Resource.location }
+    if ($Resource.kind) { $listed.kind = $Resource.kind }
+    $resourceList.Add($listed)
     return $Id
 }
 
@@ -264,10 +266,10 @@ Save 'defender/jitNetworkAccessPolicies' (Pick @(@{ id = "$subScope/providers/Mi
 
 #storage
 function New-Storage {
-    param([string]$Name, [string]$Bypass, [string[]]$Shares = @())
+    param([string]$Name, [string]$Bypass, [string[]]$Shares = @(), [string]$Kind = 'StorageV2')
     $blobDiag = Pick $diag @()
     Add-Record 'Microsoft.Storage/storageAccounts' $Name @{
-        kind = 'StorageV2'; sku = @{ name = (Pick 'Standard_GZRS' 'Standard_LRS') }
+        kind = $Kind; sku = @{ name = (Pick 'Standard_GZRS' 'Standard_LRS') }
         properties = @{
             supportsHttpsTrafficOnly = $G; minimumTlsVersion = (Pick 'TLS1_2' 'TLS1_0'); allowBlobPublicAccess = (-not $G); allowSharedKeyAccess = (-not $G)
             publicNetworkAccess = (Pick 'Disabled' 'Enabled'); networkAcls = @{ defaultAction = (Pick 'Deny' $(if ($Bypass) { 'Deny' } else { 'Allow' })); bypass = (Pick 'AzureServices' 'None'); resourceAccessRules = @(@{ tenantId = (Pick $tenant '90000000-0000-0000-0000-0000000000bb'); resourceId = "$rgId/providers/Microsoft.Synapse/workspaces/synfixture" }) }
@@ -293,7 +295,8 @@ function New-Storage {
 #stfixture holds the content share of funcfixture, stfuncfixture the deployment package of funcflexfixture (AZ-FUNC-001)
 New-Storage 'stfixture' -Shares @('funcfixture4f2a')
 New-Storage 'stfuncfixture'
-if (-not $G) { New-Storage 'stfixturefw' -Bypass 'None' }
+#a general-purpose v1 account, which retires (AZ-GOV-008)
+if (-not $G) { New-Storage 'stfixturefw' -Bypass 'None' -Kind 'Storage' }
 
 #key vault
 $kvId = ResId 'Microsoft.KeyVault/vaults' 'kvfixture'
@@ -415,7 +418,10 @@ New-Site 'appfdfixture' 'app,linux' -PublicAccess 'Enabled' -Config @{
 #the App Service runtime catalogs, reduced to the versions the apps above use
 $linuxRuntime = { param([string]$Version, [string]$Runtime, [string]$EndOfLife, [bool]$Deprecated, [string]$FlexName) $settings = @{ runtimeVersion = $Runtime; endOfLifeDate = $EndOfLife; isDeprecated = $Deprecated }; if ($FlexName) { $settings.Sku = @(@{ skuCode = 'FC1'; functionAppConfigProperties = @{ runtime = @{ name = $FlexName; version = $Version } } }) }; @{ value = $Version; stackSettings = @{ linuxRuntimeSettings = $settings } } }
 $stack = { param([string]$Name, [array]$Minors) @{ name = $Name; properties = @{ majorVersions = @(@{ value = $Name; minorVersions = $Minors }) } } }
-Save 'web/functionAppStacks' @(& $stack 'python' @((& $linuxRuntime '3.12' 'Python|3.12' '2028-10-31T00:00:00Z' $false 'python'), (& $linuxRuntime '3.9' 'Python|3.9' '2025-10-31T00:00:00Z' $false 'python')))
+Save 'web/functionAppStacks' @(
+    (& $stack 'python' @((& $linuxRuntime '3.12' 'Python|3.12' '2028-10-31T00:00:00Z' $false 'python'), (& $linuxRuntime '3.9' 'Python|3.9' '2025-10-31T00:00:00Z' $false 'python')))
+    (& $stack 'powershell' @(& $linuxRuntime '7.6' 'PowerShell|7.6' '2028-11-14T00:00:00Z' $false))
+)
 Save 'web/webAppStacks' @(
     (& $stack 'node' @((& $linuxRuntime '22-lts' 'NODE|22-lts' '2027-04-30T00:00:00Z' $false), (& $linuxRuntime '16-lts' 'NODE|16-lts' '2023-09-11T00:00:00Z' $true)))
     (& $stack 'java' @(& $linuxRuntime '21.0' '' '2028-09-01T00:00:00Z' $false))
@@ -636,8 +642,11 @@ Add-Record 'Microsoft.ApiManagement/service' 'apimfixture' @{ properties = @{ pu
 $aaId = Add-Record 'Microsoft.Automation/automationAccounts' 'aafixture' @{ identity = (Pick @{ type = 'SystemAssigned' } $null); properties = @{ disableLocalAuth = $G; publicNetworkAccess = (-not $G) } } -Children @{
     variables = @(@{ name = 'v1'; properties = @{ isEncrypted = $G } }); certificates = @()
     connections = (Pick @() @(@{ name = 'AzureRunAsConnection'; properties = @{ connectionType = @{ name = 'AzureServicePrincipal' } } }))
+    runtimeEnvironments = @(@{ name = 'ps76'; properties = @{ runtime = @{ language = 'PowerShell'; version = '7.6' } } }, @{ name = 'PowerShell-7.2'; properties = @{ runtime = @{ language = 'PowerShell'; version = '7.2' } } })
 }
-Add-Record 'Microsoft.Automation/automationAccounts/runbooks' 'aafixture/rb1' @{ properties = @{ runbookType = 'PowerShell' } } -Id "$aaId/runbooks/rb1" -Diagnostics @() -Text @{ content = (Pick 'Connect-AzAccount -Identity' "`$password = `"Sup3rS3cretValue!`"`nConnect-Something") } | Out-Null
+#the runbook runs in a PowerShell 7.6 runtime environment when Good, on the retiring PowerShell 7.2 runbook type when Bad (AZ-AUTO-003)
+$runbookProperties = Pick @{ runbookType = 'PowerShell'; runtimeEnvironment = 'ps76'; state = 'Published' } @{ runbookType = 'PowerShell72'; state = 'Published' }
+Add-Record 'Microsoft.Automation/automationAccounts/runbooks' 'aafixture/rb1' @{ properties = $runbookProperties } -Id "$aaId/runbooks/rb1" -Diagnostics @() -Text @{ content = (Pick 'Connect-AzAccount -Identity' "`$password = `"Sup3rS3cretValue!`"`nConnect-Something") } | Out-Null
 
 #AI
 $aiId = ResId 'Microsoft.CognitiveServices/accounts' 'aifixture'

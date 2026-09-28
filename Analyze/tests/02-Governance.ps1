@@ -155,15 +155,15 @@ Add-AzTest @{
 
 Add-AzTest @{
     Id          = 'AZ-GOV-008'
-    Version     = 2
+    Version     = 3
     Title       = 'No retired or classic services are in use'
     Category    = 'Asset management'
     Service     = 'Azure Resource Manager'
     Severity    = 'Medium'
-    Description = 'Finds classic (ASM) resources and resource types whose service is retired or has a published retirement date: Azure Database for PostgreSQL single server, Azure Database for MySQL single server, Azure Database for MariaDB and Azure Blueprints (retires 31 January 2027).'
+    Description = 'Finds classic (ASM) resources and resources whose service is retired or has a published retirement date: Azure Database for PostgreSQL single server, Azure Database for MySQL single server, Azure Database for MariaDB, general-purpose v1 and legacy Blob Storage accounts (retire 13 October 2026) and Azure Blueprints (retires 31 January 2027).'
     Rationale   = 'Retired services no longer receive security updates or support, and classic resources lack Azure Resource Manager RBAC, policy and logging controls. A service with a published retirement date needs a migration plan before the deadline, not after.'
-    Remediation = 'Migrate to the supported successor (Azure Resource Manager resources, PostgreSQL or MySQL flexible server, deployment stacks and template specs for blueprints) and delete the retired resources.'
-    References  = @('https://learn.microsoft.com/azure/postgresql/migrate/whats-happening-to-postgresql-single-server', 'https://learn.microsoft.com/azure/governance/blueprints/blueprint-retirement')
+    Remediation = 'Migrate to the supported successor (Azure Resource Manager resources, PostgreSQL or MySQL flexible server, a general-purpose v2 storage account, deployment stacks and template specs for blueprints) and delete the retired resources.'
+    References  = @('https://learn.microsoft.com/azure/postgresql/migrate/whats-happening-to-postgresql-single-server', 'https://learn.microsoft.com/azure/storage/common/general-purpose-version-1-account-migration-overview', 'https://learn.microsoft.com/azure/storage/common/legacy-blob-storage-account-migration-overview', 'https://learn.microsoft.com/azure/governance/blueprints/blueprint-retirement')
     Requires    = @('subscription/resources')
     Run         = {
         #resource type -> why it is on the list, so the finding says what is actually wrong
@@ -173,11 +173,19 @@ Add-AzTest @{
             'Microsoft.DBforMariaDB/servers'      = 'Azure Database for MariaDB is retired'
             'Microsoft.Blueprint/blueprintAssignments' = 'Azure Blueprints is deprecated and retires on 31 January 2027'
         }
+        #storage account kind -> why it is on the list
+        $retiredStorageKinds = [ordered]@{
+            'Storage'     = 'General-purpose v1 storage accounts retire on 13 October 2026'
+            'BlobStorage' = 'Legacy Blob Storage accounts retire on 13 October 2026'
+        }
         $resources = @(Get-IngestData 'subscription/resources' | Where-Object { $_ })
-        $retired = @($resources | Where-Object { $_.type -match '^Microsoft\.Classic' -or $retiredTypes.Contains([string]$_.type) })
+        $isRetiredStorage = { param($Resource) [string]$Resource.type -eq 'Microsoft.Storage/storageAccounts' -and $retiredStorageKinds.Contains([string]$Resource.kind) }
+        $retired = @($resources | Where-Object { $_.type -match '^Microsoft\.Classic' -or $retiredTypes.Contains([string]$_.type) -or (& $isRetiredStorage $_) })
         foreach ($resource in $retired) {
-            $reason = if ($retiredTypes.Contains([string]$resource.type)) { $retiredTypes[[string]$resource.type] } else { "$($resource.type) is a classic (ASM) resource type" }
-            New-Finding -ResourceId $resource.id -ResourceType $resource.type -Result (New-Fail $reason ([ordered]@{ type = $resource.type; location = $resource.location }))
+            $reason = if ($retiredTypes.Contains([string]$resource.type)) { $retiredTypes[[string]$resource.type] } elseif (& $isRetiredStorage $resource) { $retiredStorageKinds[[string]$resource.kind] } else { "$($resource.type) is a classic (ASM) resource type" }
+            $evidence = [ordered]@{ type = $resource.type; location = $resource.location }
+            if ($resource.kind) { $evidence.kind = $resource.kind }
+            New-Finding -ResourceId $resource.id -ResourceType $resource.type -Result (New-Fail $reason $evidence)
         }
         #blueprint assignments are not in the resource list; the call 404s when the provider is not registered,
         #which is a legitimate "none" rather than a collection failure, so it is reported separately

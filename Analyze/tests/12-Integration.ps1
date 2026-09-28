@@ -233,6 +233,69 @@ Add-AzTest @{
     }
 }
 
+#runtime versions Azure Automation retired ahead of the end of life of the language (Microsoft notice, September 2026)
+$automationRetiredRuntimes = [ordered]@{ 'PowerShell 7.1' = '2026-09-30'; 'PowerShell 7.2' = '2026-09-30'; 'Python 2.7' = '2026-09-30'; 'Python 3.8' = '2026-09-30' }
+#runbook types of the runbooks without a runtime environment, and the runtime they run on
+$automationRunbookTypes = [ordered]@{ 'PowerShell' = 'PowerShell 5.1'; 'PowerShellWorkflow' = 'PowerShell 5.1'; 'GraphPowerShell' = 'PowerShell 5.1'; 'GraphPowerShellWorkflow' = 'PowerShell 5.1'; 'PowerShell7' = 'PowerShell 7.1'; 'PowerShell72' = 'PowerShell 7.2'; 'Python2' = 'Python 2.7'; 'Python3' = 'Python 3.8' }
+
+function Get-RunbookRuntime {
+    #language and version a runbook runs on: from its runtime environment, or from its type in the older model. Reason when unknown
+    param($Record)
+    $p = $Record.resource.properties
+    $environment = [string]$p.runtimeEnvironment
+    if ($environment) {
+        $account = Get-AzResourceRecord (($Record.id -split '(?i)/runbooks/')[0])
+        if (-not $account -or -not (Test-ChildCollected $account 'runtimeEnvironments')) { return [pscustomobject]@{ Runtime = $null; Reason = "the runtime environment $environment could not be read" } }
+        $match = @(Get-Child $account 'runtimeEnvironments' | Where-Object { $_ -and $_.name -eq $environment }) | Select-Object -First 1
+        if (-not $match -or -not $match.properties.runtime.language) { return [pscustomobject]@{ Runtime = $null; Reason = "the runtime environment $environment was not found" } }
+        return [pscustomobject]@{ Runtime = "$($match.properties.runtime.language) $($match.properties.runtime.version)"; Reason = $null }
+    }
+    $type = [string]$p.runbookType
+    if ($automationRunbookTypes.Contains($type)) { return [pscustomobject]@{ Runtime = $automationRunbookTypes[$type]; Reason = $null } }
+    return [pscustomobject]@{ Runtime = $null; Reason = "runbook type $type does not name a runtime version" }
+}
+
+Add-AzTest @{
+    Id            = 'AZ-AUTO-003'
+    Title         = 'Automation runbooks run on a supported runtime'
+    Category      = 'Posture and vulnerability management'
+    Service       = 'Automation'
+    Severity      = 'Medium'
+    Description   = "Finds published runbooks whose PowerShell or Python version is past its end of support, or less than $runtimeWarningDays days from it. PowerShell 7.1 and 7.2 and Python 2.7 and 3.8 are retired by Azure Automation on 30 September 2026; for other versions the end of life of the language comes from the App Service runtime catalog, as Automation support ends with it. Windows PowerShell 5.1 has no end date."
+    Rationale     = 'Runbooks on a retired runtime keep running, but get no security updates or fixes and may be limited to one instance. They usually hold the rights of the managed identity of the Automation account.'
+    Remediation   = 'Move the runbooks to a runtime environment with a supported version (PowerShell 7.4 or later, Python 3.10 or later), test them and publish them again.'
+    References    = @('https://learn.microsoft.com/azure/automation/automation-runtime-retirement-policy', 'https://learn.microsoft.com/azure/automation/runtime-environment-overview')
+    ResourceTypes = @('Microsoft.Automation/automationAccounts/runbooks')
+    Evaluate      = {
+        param($Record)
+        $state = [string]$Record.resource.properties.state
+        if ($state -eq 'New') { return New-NotApplicable 'Never published' }
+        $runtime = Get-RunbookRuntime $Record
+        if ($runtime.Reason) { return New-Unknown "The runtime cannot be determined: $($runtime.Reason)" }
+        $label = $runtime.Runtime
+        $end = $null
+        $source = $null
+        if ($automationRetiredRuntimes.Contains($label)) {
+            $end = $automationRetiredRuntimes[$label]
+            $source = 'Azure Automation retirement'
+        } elseif ($label -eq 'PowerShell 5.1') {
+            return New-Pass 'Windows PowerShell 5.1 has no end-of-support date' ([ordered]@{ runtime = $label })
+        } else {
+            if (-not (Test-IngestSection 'web/functionAppStacks')) { return New-Unknown "The end of life of $label is not known: the runtime catalog was not collected" ([ordered]@{ runtime = $label }) }
+            $language, $version = $label -split ' ', 2
+            $entry = @(Get-StackRuntimes 'web/functionAppStacks' | Where-Object { $_.Stack -eq $language.ToLowerInvariant() -and $_.Version -eq $version -and $_.Settings.endOfLifeDate }) | Select-Object -First 1
+            if (-not $entry) { return New-Unknown "The end of life of $label is not in the runtime catalog" ([ordered]@{ runtime = $label }) }
+            $end = (Format-UtcDate $entry.Settings.endOfLifeDate).Substring(0, 10)
+            $source = 'end of life of the language'
+        }
+        $daysLeft = -1 * (Get-AgeInDays "$($end)T00:00:00Z")
+        $evidence = [ordered]@{ runtime = $label; endOfSupport = $end; daysLeft = $daysLeft; source = $source }
+        if ($daysLeft -le 0) { return New-Fail "$label reached its end of support on $end" $evidence }
+        if ($daysLeft -lt $runtimeWarningDays) { return New-Fail "$label reaches its end of support on $end, in $daysLeft days" $evidence }
+        New-Pass "$label is supported until $end" $evidence
+    }
+}
+
 function Test-PolicyValidatesToken {
     #whether an API Management policy document validates a JSON web token
     param($Policy)

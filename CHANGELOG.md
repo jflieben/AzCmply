@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.0.4
+
+### Added
+- AZ-AUTO-003 (309 tests): Automation runbooks run on a supported runtime. PowerShell 7.1 and 7.2 and Python 2.7 and 3.8
+  are retired by Azure Automation on 30 September 2026; other versions follow the end of life of the language in the
+  App Service runtime catalog. Fails from 90 days before the date.
+- Ingestion: the runtime environments of Automation accounts.
+
+### Changed
+- AZ-GOV-008 (version 3) also finds general-purpose v1 and legacy Blob Storage accounts, which retire on 13 October 2026.
+
 ## 1.0.3
 
 ### Added

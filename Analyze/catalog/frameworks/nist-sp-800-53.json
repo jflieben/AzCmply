@@ -755,7 +755,7 @@
     "SA-17(9)": {"title":"Design Diversity","applicability":"notApplicable"},
     "SA-20": {"title":"Customized Development of Critical Components","applicability":"notApplicable"},
     "SA-21": {"title":"Developer Screening","applicability":"notApplicable"},
-    "SA-22": {"title":"Unsupported System Components","coverage":"partial","tests":["AZ-APIM-007","AZ-APP-012","AZ-GOV-008","AZ-VM-009"]},
+    "SA-22": {"title":"Unsupported System Components","coverage":"partial","tests":["AZ-APIM-007","AZ-APP-012","AZ-AUTO-003","AZ-GOV-008","AZ-VM-009"]},
     "SA-23": {"title":"Specialization","applicability":"notApplicable"},
     "SA-24": {"title":"Design For Cyber Resiliency","applicability":"notApplicable"},
     "SC-1": {"title":"Policy and Procedures","applicability":"notApplicable"},

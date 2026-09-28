@@ -3,7 +3,7 @@
   "order": 13,
   "name": "AzCmply custom controls",
   "shortName": "AzCmply Custom",
-  "version": "2026.09.2",
+  "version": "2026.09.3",
   "publisher": "JSolve B.V.",
   "type": "custom",
   "url": "https://jsolve.nl",
@@ -11,7 +11,7 @@
   "mapping": "native",
   "note": "Controls by JSolve B.V. for Azure attack paths and risks that none of the other frameworks covers, based on published attack research and breaches. Each control is checked by the tests listed with it.",
   "controls": {
-    "AZC-01": {"title":"Network rules do not trust addresses that other Azure customers share","coverage":"full","tests":["AZ-APP-010","AZ-NET-026"]},
+    "AZC-01": {"title":"Network rules do not trust addresses that other Azure customers share","coverage":"full","tests":["AZ-APP-010","AZ-APP-013","AZ-NET-026"]},
     "AZC-02": {"title":"No access path bypasses the network controls of a workload (deployment sites, Bastion shareable links, serial console)","coverage":"full","tests":["AZ-APP-011","AZ-NET-027","AZ-VM-014"]},
     "AZC-03": {"title":"Managed identities have no rights beyond the resource group of their resource","coverage":"partial","tests":["AZ-IAM-031"]},
     "AZC-04": {"title":"Groups with privileged Azure access can only be changed by privileged administrators","coverage":"full","tests":["AZ-IAM-032"]},
@@ -21,7 +21,8 @@
     "AZC-08": {"title":"Unexpected cost reaches the owners of a subscription","coverage":"full","tests":["AZ-GOV-014"]},
     "AZC-09": {"title":"Takeover actions raise an alert (role assignments, removed locks, run command)","coverage":"full","tests":["AZ-LOG-027","AZ-LOG-028","AZ-LOG-029"]},
     "AZC-10": {"title":"Only Tier 0 administrators can take over domain controllers on virtual machines through Azure","coverage":"partial","tests":["AZ-VM-015","AZ-VM-016"]},
-    "AZC-11": {"title":"Workflows that anyone can call have no write access in Azure","coverage":"partial","tests":["AZ-LOGIC-002"]},
-    "AZC-12": {"title":"Workflows do not keep failing unnoticed","coverage":"partial","tests":["AZ-LOGIC-009"]}
+    "AZC-11": {"title":"Workloads that anyone can call have no write access in Azure","coverage":"partial","tests":["AZ-FUNC-003","AZ-LOGIC-002"]},
+    "AZC-12": {"title":"Workflows do not keep failing unnoticed","coverage":"partial","tests":["AZ-LOGIC-009"]},
+    "AZC-13": {"title":"Only those who can change a function app can change the storage it runs from","coverage":"partial","tests":["AZ-FUNC-001"]}
   }
 }

@@ -488,6 +488,30 @@ function Get-PrincipalAccessMap {
     return $script:Ingest.Cache['#access']
 }
 
+function Get-ResourceIdentityPrincipals {
+    #object ids (lowercase) of the system and user assigned managed identities of a resource
+    param($Record)
+    $identity = $Record.resource.identity
+    if (-not $identity) { return }
+    $ids = @($identity.principalId)
+    if ($null -ne $identity.userAssignedIdentities) {
+        foreach ($assigned in @($identity.userAssignedIdentities.PSObject.Properties)) { if ($assigned) { $ids += $assigned.Value.principalId } }
+    }
+    @($ids | Where-Object { $_ } | ForEach-Object { ([string]$_).ToLowerInvariant() } | Sort-Object -Unique)
+}
+
+function Get-PrincipalWriteGrants {
+    #write capable role assignments of principals (lowercase object ids), direct and through collected group membership, as 'Role @ scope'
+    param([string[]]$PrincipalIds)
+    $access = Get-PrincipalAccessMap
+    $grants = @(foreach ($principal in $PrincipalIds) {
+            foreach ($assignment in @($access[$principal] | Where-Object { $_ })) {
+                if (Test-RoleCanWrite $assignment.properties.roleDefinitionId) { "$(Get-RoleName $assignment.properties.roleDefinitionId) @ $($assignment.properties.scope)" }
+            }
+        })
+    @($grants | Sort-Object -Unique)
+}
+
 function New-SubscriptionFinding {
     param([Parameter(Mandatory = $true)]$Result)
     return New-Finding -ResourceId (Get-SubscriptionScope) -ResourceType 'Microsoft.Resources/subscriptions' -ResourceName $script:Ingest.Manifest.subscription.displayName -Result $Result

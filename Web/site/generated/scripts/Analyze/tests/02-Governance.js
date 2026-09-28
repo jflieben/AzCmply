@@ -186,464 +186,481 @@ export default R.script("/app/Analyze/tests/02-Governance.ps1", { params: [], ad
         R.pa(O, R.cmd(S, "New-Fail", ["Public IP address is not associated with any resource", (S["evidence"] ?? null)], null));
     })], false)], null));
     R.ln = F + 156;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-GOV-008", "Version", 2, "Title", "No retired or classic services are in use", "Category", "Asset management", "Service", "Azure Resource Manager", "Severity", "Medium", "Description", "Finds classic (ASM) resources and resource types whose service is retired or has a published retirement date: Azure Database for PostgreSQL single server, Azure Database for MySQL single server, Azure Database for MariaDB and Azure Blueprints (retires 31 January 2027).", "Rationale", "Retired services no longer receive security updates or support, and classic resources lack Azure Resource Manager RBAC, policy and logging controls. A service with a published retirement date needs a migration plan before the deadline, not after.", "Remediation", "Migrate to the supported successor (Azure Resource Manager resources, PostgreSQL or MySQL flexible server, deployment stacks and template specs for blueprints) and delete the retired resources.", "References", R.a([R.v("https://learn.microsoft.com/azure/postgresql/migrate/whats-happening-to-postgresql-single-server"), R.v("https://learn.microsoft.com/azure/governance/blueprints/blueprint-retirement")]), "Requires", R.a("subscription/resources"), "Run", R.sb({ params: [], adv: 0, text: "\n        #resource type -> why it is on the list, so the finding says what is actually wrong\n        $retiredTypes = [ordered]@{\n            'Microsoft.DBforPostgreSQL/servers'   = 'Azure Database for PostgreSQL single server is retired'\n            'Microsoft.DBforMySQL/servers'        = 'Azure Database for MySQL single server is retired'\n            'Microsoft.DBforMariaDB/servers'      = 'Azure Database for MariaDB is retired'\n            'Microsoft.Blueprint/blueprintAssignments' = 'Azure Blueprints is deprecated and retires on 31 January 2027'\n        }\n        $resources = @(Get-IngestData 'subscription/resources' | Where-Object { $_ })\n        $retired = @($resources | Where-Object { $_.type -match '^Microsoft\\.Classic' -or $retiredTypes.Contains([string]$_.type) })\n        foreach ($resource in $retired) {\n            $reason = if ($retiredTypes.Contains([string]$resource.type)) { $retiredTypes[[string]$resource.type] } else { \"$($resource.type) is a classic (ASM) resource type\" }\n            New-Finding -ResourceId $resource.id -ResourceType $resource.type -Result (New-Fail $reason ([ordered]@{ type = $resource.type; location = $resource.location }))\n        }\n        #blueprint assignments are not in the resource list; the call 404s when the provider is not registered,\n        #which is a legitimate \"none\" rather than a collection failure, so it is reported separately\n        $blueprintScope = \"$(Get-SubscriptionScope)/providers/Microsoft.Blueprint/blueprintAssignments\"\n        if (-not (Test-IngestSection 'subscription/blueprintAssignments')) {\n            New-Finding -ResourceId $blueprintScope -ResourceType 'Microsoft.Blueprint/blueprintAssignments' -ResourceName 'blueprintAssignments' -Result (New-Unknown 'Blueprint assignments could not be read, so their retirement could not be checked')\n        } else {\n            foreach ($blueprint in @(Get-IngestData 'subscription/blueprintAssignments' | Where-Object { $_ })) {\n                New-Finding -ResourceId ([string]$blueprint.id) -ResourceType 'Microsoft.Blueprint/blueprintAssignments' -Result (New-Fail $retiredTypes['Microsoft.Blueprint/blueprintAssignments'] ([ordered]@{ blueprintId = $blueprint.properties.blueprintId }))\n            }\n        }\n        if (-not $retired) { New-SubscriptionFinding (New-Pass 'No retired or classic resource types') }\n    " }, (S, O) => {
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-GOV-008", "Version", 3, "Title", "No retired or classic services are in use", "Category", "Asset management", "Service", "Azure Resource Manager", "Severity", "Medium", "Description", "Finds classic (ASM) resources and resources whose service is retired or has a published retirement date: Azure Database for PostgreSQL single server, Azure Database for MySQL single server, Azure Database for MariaDB, general-purpose v1 and legacy Blob Storage accounts (retire 13 October 2026) and Azure Blueprints (retires 31 January 2027).", "Rationale", "Retired services no longer receive security updates or support, and classic resources lack Azure Resource Manager RBAC, policy and logging controls. A service with a published retirement date needs a migration plan before the deadline, not after.", "Remediation", "Migrate to the supported successor (Azure Resource Manager resources, PostgreSQL or MySQL flexible server, a general-purpose v2 storage account, deployment stacks and template specs for blueprints) and delete the retired resources.", "References", R.a([R.v("https://learn.microsoft.com/azure/postgresql/migrate/whats-happening-to-postgresql-single-server"), R.v("https://learn.microsoft.com/azure/storage/common/general-purpose-version-1-account-migration-overview"), R.v("https://learn.microsoft.com/azure/storage/common/legacy-blob-storage-account-migration-overview"), R.v("https://learn.microsoft.com/azure/governance/blueprints/blueprint-retirement")]), "Requires", R.a("subscription/resources"), "Run", R.sb({ params: [], adv: 0, text: "\n        #resource type -> why it is on the list, so the finding says what is actually wrong\n        $retiredTypes = [ordered]@{\n            'Microsoft.DBforPostgreSQL/servers'   = 'Azure Database for PostgreSQL single server is retired'\n            'Microsoft.DBforMySQL/servers'        = 'Azure Database for MySQL single server is retired'\n            'Microsoft.DBforMariaDB/servers'      = 'Azure Database for MariaDB is retired'\n            'Microsoft.Blueprint/blueprintAssignments' = 'Azure Blueprints is deprecated and retires on 31 January 2027'\n        }\n        #storage account kind -> why it is on the list\n        $retiredStorageKinds = [ordered]@{\n            'Storage'     = 'General-purpose v1 storage accounts retire on 13 October 2026'\n            'BlobStorage' = 'Legacy Blob Storage accounts retire on 13 October 2026'\n        }\n        $resources = @(Get-IngestData 'subscription/resources' | Where-Object { $_ })\n        $isRetiredStorage = { param($Resource) [string]$Resource.type -eq 'Microsoft.Storage/storageAccounts' -and $retiredStorageKinds.Contains([string]$Resource.kind) }\n        $retired = @($resources | Where-Object { $_.type -match '^Microsoft\\.Classic' -or $retiredTypes.Contains([string]$_.type) -or (& $isRetiredStorage $_) })\n        foreach ($resource in $retired) {\n            $reason = if ($retiredTypes.Contains([string]$resource.type)) { $retiredTypes[[string]$resource.type] } elseif (& $isRetiredStorage $resource) { $retiredStorageKinds[[string]$resource.kind] } else { \"$($resource.type) is a classic (ASM) resource type\" }\n            $evidence = [ordered]@{ type = $resource.type; location = $resource.location }\n            if ($resource.kind) { $evidence.kind = $resource.kind }\n            New-Finding -ResourceId $resource.id -ResourceType $resource.type -Result (New-Fail $reason $evidence)\n        }\n        #blueprint assignments are not in the resource list; the call 404s when the provider is not registered,\n        #which is a legitimate \"none\" rather than a collection failure, so it is reported separately\n        $blueprintScope = \"$(Get-SubscriptionScope)/providers/Microsoft.Blueprint/blueprintAssignments\"\n        if (-not (Test-IngestSection 'subscription/blueprintAssignments')) {\n            New-Finding -ResourceId $blueprintScope -ResourceType 'Microsoft.Blueprint/blueprintAssignments' -ResourceName 'blueprintAssignments' -Result (New-Unknown 'Blueprint assignments could not be read, so their retirement could not be checked')\n        } else {\n            foreach ($blueprint in @(Get-IngestData 'subscription/blueprintAssignments' | Where-Object { $_ })) {\n                New-Finding -ResourceId ([string]$blueprint.id) -ResourceType 'Microsoft.Blueprint/blueprintAssignments' -Result (New-Fail $retiredTypes['Microsoft.Blueprint/blueprintAssignments'] ([ordered]@{ blueprintId = $blueprint.properties.blueprintId }))\n            }\n        }\n        if (-not $retired) { New-SubscriptionFinding (New-Pass 'No retired or classic resource types') }\n    " }, (S, O) => {
         R.ln = F + 170;
         S["retiredtypes"] = R.ht(["Microsoft.DBforPostgreSQL/servers", "Azure Database for PostgreSQL single server is retired", "Microsoft.DBforMySQL/servers", "Azure Database for MySQL single server is retired", "Microsoft.DBforMariaDB/servers", "Azure Database for MariaDB is retired", "Microsoft.Blueprint/blueprintAssignments", "Azure Blueprints is deprecated and retires on 31 January 2027"], true);
-        R.ln = F + 176;
+        R.ln = F + 177;
+        S["retiredstoragekinds"] = R.ht(["Storage", "General-purpose v1 storage accounts retire on 13 October 2026", "BlobStorage", "Legacy Blob Storage accounts retire on 13 October 2026"], true);
+        R.ln = F + 181;
         S["resources"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 176;
+            R.ln = F + 181;
             R.e(O, (S["_"] ?? null));
         })], R.cmd(S, "Get-IngestData", ["subscription/resources"], null));
-        R.ln = F + 177;
-        S["retired"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.type -match '^Microsoft\\.Classic' -or $retiredTypes.Contains([string]$_.type) " }, (S, O) => {
-            R.ln = F + 177;
-            R.e(O, (R.t(R.match(S, R.m((S["_"] ?? null), "type"), "^Microsoft\\.Classic")) || R.t(R.im((S["retiredtypes"] ?? null), "Contains", [R.c("string", R.m((S["_"] ?? null), "type"))]))));
+        R.ln = F + 182;
+        S["isretiredstorage"] = R.sb({ params: [{ n: "Resource", t: null, pos: null }], adv: 0, text: " param($Resource) [string]$Resource.type -eq 'Microsoft.Storage/storageAccounts' -and $retiredStorageKinds.Contains([string]$Resource.kind) " }, (S, O) => {
+            R.ln = F + 182;
+            R.e(O, (R.t(R.eq(R.c("string", R.m((S["resource"] ?? null), "type")), "Microsoft.Storage/storageAccounts")) && R.t(R.im((S["retiredstoragekinds"] ?? null), "Contains", [R.c("string", R.m((S["resource"] ?? null), "kind"))]))));
+        });
+        R.ln = F + 183;
+        S["retired"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.type -match '^Microsoft\\.Classic' -or $retiredTypes.Contains([string]$_.type) -or (& $isRetiredStorage $_) " }, (S, O) => {
+            R.ln = F + 183;
+            R.e(O, ((R.t(R.match(S, R.m((S["_"] ?? null), "type"), "^Microsoft\\.Classic")) || R.t(R.im((S["retiredtypes"] ?? null), "Contains", [R.c("string", R.m((S["_"] ?? null), "type"))]))) || R.t(R.u(R.inv(S, (S["isretiredstorage"] ?? null), [(S["_"] ?? null)], null, false)))));
         })], R.pi((S["resources"] ?? null)));
-        R.ln = F + 178;
+        R.ln = F + 184;
         for (const it6 of R.fi((S["retired"] ?? null))) {
             S["resource"] = it6;
-            R.ln = F + 179;
+            R.ln = F + 185;
             const v7 = [];
-            R.ln = F + 179;
+            R.ln = F + 185;
             if (R.t(R.im((S["retiredtypes"] ?? null), "Contains", [R.c("string", R.m((S["resource"] ?? null), "type"))]))) {
-                R.ln = F + 179;
+                R.ln = F + 185;
                 R.e(v7, R.i((S["retiredtypes"] ?? null), R.c("string", R.m((S["resource"] ?? null), "type"))));
+            } else if (R.t(R.u(R.inv(S, (S["isretiredstorage"] ?? null), [(S["resource"] ?? null)], null, false)))) {
+                R.ln = F + 185;
+                R.e(v7, R.i((S["retiredstoragekinds"] ?? null), R.c("string", R.m((S["resource"] ?? null), "kind"))));
             } else {
-                R.ln = F + 179;
+                R.ln = F + 185;
                 R.e(v7, ("" + R.str(R.u(R.pi(R.m((S["resource"] ?? null), "type")))) + " is a classic (ASM) resource type"));
             }
             S["reason"] = R.u(v7);
-            R.ln = F + 180;
-            R.pa(O, R.cmd(S, "New-Finding", [R.np("ResourceId"), R.m((S["resource"] ?? null), "id"), R.np("ResourceType"), R.m((S["resource"] ?? null), "type"), R.np("Result"), R.u(R.cmd(S, "New-Fail", [(S["reason"] ?? null), (R.ht(["type", R.m((S["resource"] ?? null), "type"), "location", R.m((S["resource"] ?? null), "location")], true))], null))], null));
-        }
-        R.ln = F + 184;
-        S["blueprintscope"] = ("" + R.str(R.u(R.cmd(S, "Get-SubscriptionScope", [], null))) + "/providers/Microsoft.Blueprint/blueprintAssignments");
-        R.ln = F + 185;
-        if (!R.t(R.u(R.cmd(S, "Test-IngestSection", ["subscription/blueprintAssignments"], null)))) {
             R.ln = F + 186;
+            S["evidence"] = R.ht(["type", R.m((S["resource"] ?? null), "type"), "location", R.m((S["resource"] ?? null), "location")], true);
+            R.ln = F + 187;
+            if (R.t(R.m((S["resource"] ?? null), "kind"))) {
+                R.ln = F + 187;
+                R.sm((S["evidence"] ?? null), "kind", R.m((S["resource"] ?? null), "kind"));
+            }
+            R.ln = F + 188;
+            R.pa(O, R.cmd(S, "New-Finding", [R.np("ResourceId"), R.m((S["resource"] ?? null), "id"), R.np("ResourceType"), R.m((S["resource"] ?? null), "type"), R.np("Result"), R.u(R.cmd(S, "New-Fail", [(S["reason"] ?? null), (S["evidence"] ?? null)], null))], null));
+        }
+        R.ln = F + 192;
+        S["blueprintscope"] = ("" + R.str(R.u(R.cmd(S, "Get-SubscriptionScope", [], null))) + "/providers/Microsoft.Blueprint/blueprintAssignments");
+        R.ln = F + 193;
+        if (!R.t(R.u(R.cmd(S, "Test-IngestSection", ["subscription/blueprintAssignments"], null)))) {
+            R.ln = F + 194;
             R.pa(O, R.cmd(S, "New-Finding", [R.np("ResourceId"), (S["blueprintscope"] ?? null), R.np("ResourceType"), "Microsoft.Blueprint/blueprintAssignments", R.np("ResourceName"), "blueprintAssignments", R.np("Result"), R.u(R.cmd(S, "New-Unknown", ["Blueprint assignments could not be read, so their retirement could not be checked"], null))], null));
         } else {
-            R.ln = F + 188;
+            R.ln = F + 196;
             for (const it8 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                R.ln = F + 188;
+                R.ln = F + 196;
                 R.e(O, (S["_"] ?? null));
             })], R.cmd(S, "Get-IngestData", ["subscription/blueprintAssignments"], null)))) {
                 S["blueprint"] = it8;
-                R.ln = F + 189;
+                R.ln = F + 197;
                 R.pa(O, R.cmd(S, "New-Finding", [R.np("ResourceId"), (R.c("string", R.m((S["blueprint"] ?? null), "id"))), R.np("ResourceType"), "Microsoft.Blueprint/blueprintAssignments", R.np("Result"), R.u(R.cmd(S, "New-Fail", [R.i((S["retiredtypes"] ?? null), "Microsoft.Blueprint/blueprintAssignments"), (R.ht(["blueprintId", R.m(R.m((S["blueprint"] ?? null), "properties"), "blueprintId")], true))], null))], null));
             }
         }
-        R.ln = F + 192;
+        R.ln = F + 200;
         if (!R.t((S["retired"] ?? null))) {
-            R.ln = F + 192;
+            R.ln = F + 200;
             R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Pass", ["No retired or classic resource types"], null))], null));
         }
     })], false)], null));
-    R.ln = F + 196;
+    R.ln = F + 204;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-GOV-009", "Title", "Resources comply with the Azure Policy definitions assigned to them", "Category", "Posture and vulnerability management", "Service", "Azure Policy", "Severity", "Medium", "Description", "Reads the per resource policy compliance states from Azure Resource Graph and reports one finding per policy definition that has non-compliant resources. This measures the outcome of the assigned policies, where AZ-GOV-001 and AZ-GOV-002 only check that the benchmark initiative is assigned and not disabled.", "Rationale", "An assigned policy only improves security once resources actually comply with it. Non-compliant resources are the concrete deviations from the baseline the organization committed to.", "Remediation", "Work through the non-compliant resources per definition in Policy > Compliance, remediate them (deployIfNotExists policies can be remediated in bulk with a remediation task), and record accepted deviations as policy exemptions with an owner and expiry date.", "References", R.a("https://learn.microsoft.com/azure/governance/policy/how-to/get-compliance-data"), "Requires", R.a("resourceGraph/policyresources"), "Run", R.sb({ params: [], adv: 0, text: "\n        $states = @(Get-IngestData 'resourceGraph/policyresources' | Where-Object { $_ -and $_.type -eq 'microsoft.policyinsights/policystates' })\n        if (-not $states) { return New-SubscriptionFinding (New-NotApplicable 'Azure Resource Graph returned no policy compliance states') }\n        #policy states carry the definition id only, so resolve the display name to keep findings readable\n        $definitionNames = @{}\n        foreach ($definition in @(Get-IngestData 'policy/policyDefinitions' | Where-Object { $_ })) {\n            if ($definition.id -and $definition.properties.displayName) { $definitionNames[([string]$definition.id).ToLowerInvariant()] = [string]$definition.properties.displayName }\n        }\n        $byDefinition = @{}\n        foreach ($state in $states) {\n            $key = [string]$state.properties.policyDefinitionId\n            if (-not $key) { continue }\n            if (-not $byDefinition.ContainsKey($key)) { $byDefinition[$key] = [pscustomobject]@{ Compliant = 0; NonCompliant = 0; Assignment = $state.properties.policyAssignmentName; Resources = [System.Collections.Generic.List[string]]::new() } }\n            if ($state.properties.complianceState -eq 'NonCompliant') {\n                $byDefinition[$key].NonCompliant++\n                if ($byDefinition[$key].Resources.Count -lt 20) { $byDefinition[$key].Resources.Add([string]$state.properties.resourceId) }\n            } elseif ($state.properties.complianceState -eq 'Compliant') { $byDefinition[$key].Compliant++ }\n        }\n        foreach ($key in ($byDefinition.Keys | Sort-Object)) {\n            $item = $byDefinition[$key]\n            if ($item.NonCompliant -eq 0 -and $item.Compliant -eq 0) { continue }\n            $name = $definitionNames[$key.ToLowerInvariant()]\n            if (-not $name) { $name = Get-ResourceName $key }\n            $evidence = [ordered]@{ policyDefinitionId = $key; policyAssignment = $item.Assignment; nonCompliantResources = $item.NonCompliant; compliantResources = $item.Compliant; examples = @($item.Resources | Sort-Object) }\n            $result = if ($item.NonCompliant) { New-Fail \"$($item.NonCompliant) of $($item.NonCompliant + $item.Compliant) resources do not comply with '$name'\" $evidence } else { New-Pass \"All $($item.Compliant) evaluated resources comply with '$name'\" $evidence }\n            New-Finding -ResourceId $key -ResourceType 'Microsoft.Authorization/policyDefinitions' -ResourceName $name -Result $result\n        }\n    " }, (S, O) => {
-        R.ln = F + 208;
+        R.ln = F + 216;
         S["states"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.type -eq 'microsoft.policyinsights/policystates' " }, (S, O) => {
-            R.ln = F + 208;
+            R.ln = F + 216;
             R.e(O, (R.t((S["_"] ?? null)) && R.t(R.eq(R.m((S["_"] ?? null), "type"), "microsoft.policyinsights/policystates"))));
         })], R.cmd(S, "Get-IngestData", ["resourceGraph/policyresources"], null));
-        R.ln = F + 209;
+        R.ln = F + 217;
         if (!R.t((S["states"] ?? null))) {
-            R.ln = F + 209;
+            R.ln = F + 217;
             R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-NotApplicable", ["Azure Resource Graph returned no policy compliance states"], null))], null));
             return;
         }
-        R.ln = F + 211;
+        R.ln = F + 219;
         S["definitionnames"] = R.ht([], false);
-        R.ln = F + 212;
+        R.ln = F + 220;
         for (const it9 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 212;
+            R.ln = F + 220;
             R.e(O, (S["_"] ?? null));
         })], R.cmd(S, "Get-IngestData", ["policy/policyDefinitions"], null)))) {
             S["definition"] = it9;
-            R.ln = F + 213;
+            R.ln = F + 221;
             if ((R.t(R.m((S["definition"] ?? null), "id")) && R.t(R.m(R.m((S["definition"] ?? null), "properties"), "displayName")))) {
-                R.ln = F + 213;
+                R.ln = F + 221;
                 R.si((S["definitionnames"] ?? null), R.im((R.c("string", R.m((S["definition"] ?? null), "id"))), "ToLowerInvariant", []), R.c("string", R.m(R.m((S["definition"] ?? null), "properties"), "displayName")));
             }
         }
-        R.ln = F + 215;
+        R.ln = F + 223;
         S["bydefinition"] = R.ht([], false);
-        R.ln = F + 216;
+        R.ln = F + 224;
         for (const it10 of R.fi((S["states"] ?? null))) {
             S["state"] = it10;
-            R.ln = F + 217;
+            R.ln = F + 225;
             S["key"] = R.c("string", R.m(R.m((S["state"] ?? null), "properties"), "policyDefinitionId"));
-            R.ln = F + 218;
+            R.ln = F + 226;
             if (!R.t((S["key"] ?? null))) {
                 continue;
             }
-            R.ln = F + 219;
+            R.ln = F + 227;
             if (!R.t(R.im((S["bydefinition"] ?? null), "ContainsKey", [(S["key"] ?? null)]))) {
-                R.ln = F + 219;
+                R.ln = F + 227;
                 R.si((S["bydefinition"] ?? null), (S["key"] ?? null), R.pso(["Compliant", 0, "NonCompliant", 0, "Assignment", R.m(R.m((S["state"] ?? null), "properties"), "policyAssignmentName"), "Resources", R.sc("System.Collections.Generic.List[string]", "new", [])]));
             }
-            R.ln = F + 220;
+            R.ln = F + 228;
             if (R.t(R.eq(R.m(R.m((S["state"] ?? null), "properties"), "complianceState"), "NonCompliant"))) {
-                R.ln = F + 221;
+                R.ln = F + 229;
                 R.incm(R.i((S["bydefinition"] ?? null), (S["key"] ?? null)), "NonCompliant", 1, true);
-                R.ln = F + 222;
+                R.ln = F + 230;
                 if (R.t(R.lt(R.m(R.m(R.i((S["bydefinition"] ?? null), (S["key"] ?? null)), "Resources"), "Count"), 20))) {
-                    R.ln = F + 222;
+                    R.ln = F + 230;
                     R.e(O, R.im(R.m(R.i((S["bydefinition"] ?? null), (S["key"] ?? null)), "Resources"), "Add", [R.c("string", R.m(R.m((S["state"] ?? null), "properties"), "resourceId"))]));
                 }
             } else if (R.t(R.eq(R.m(R.m((S["state"] ?? null), "properties"), "complianceState"), "Compliant"))) {
-                R.ln = F + 223;
+                R.ln = F + 231;
                 R.incm(R.i((S["bydefinition"] ?? null), (S["key"] ?? null)), "Compliant", 1, true);
             }
         }
-        R.ln = F + 225;
+        R.ln = F + 233;
         for (const it11 of R.fi(R.u(R.cmd(S, "Sort-Object", [], R.pi(R.m((S["bydefinition"] ?? null), "Keys")))))) {
             S["key"] = it11;
-            R.ln = F + 226;
+            R.ln = F + 234;
             S["item"] = R.i((S["bydefinition"] ?? null), (S["key"] ?? null));
-            R.ln = F + 227;
+            R.ln = F + 235;
             if ((R.t(R.eq(R.m((S["item"] ?? null), "NonCompliant"), 0)) && R.t(R.eq(R.m((S["item"] ?? null), "Compliant"), 0)))) {
                 continue;
             }
-            R.ln = F + 228;
+            R.ln = F + 236;
             S["name"] = R.i((S["definitionnames"] ?? null), R.im((S["key"] ?? null), "ToLowerInvariant", []));
-            R.ln = F + 229;
+            R.ln = F + 237;
             if (!R.t((S["name"] ?? null))) {
-                R.ln = F + 229;
+                R.ln = F + 237;
                 S["name"] = R.u(R.cmd(S, "Get-ResourceName", [(S["key"] ?? null)], null));
             }
-            R.ln = F + 230;
+            R.ln = F + 238;
             S["evidence"] = R.ht(["policyDefinitionId", (S["key"] ?? null), "policyAssignment", R.m((S["item"] ?? null), "Assignment"), "nonCompliantResources", R.m((S["item"] ?? null), "NonCompliant"), "compliantResources", R.m((S["item"] ?? null), "Compliant"), "examples", R.cmd(S, "Sort-Object", [], R.pi(R.m((S["item"] ?? null), "Resources")))], true);
-            R.ln = F + 231;
+            R.ln = F + 239;
             const v12 = [];
-            R.ln = F + 231;
+            R.ln = F + 239;
             if (R.t(R.m((S["item"] ?? null), "NonCompliant"))) {
-                R.ln = F + 231;
+                R.ln = F + 239;
                 R.pa(v12, R.cmd(S, "New-Fail", [("" + R.str(R.u(R.pi(R.m((S["item"] ?? null), "NonCompliant")))) + " of " + R.str(R.u(R.pi(R.add(R.m((S["item"] ?? null), "NonCompliant"), R.m((S["item"] ?? null), "Compliant"))))) + " resources do not comply with '" + R.str((S["name"] ?? null)) + "'"), (S["evidence"] ?? null)], null));
             } else {
-                R.ln = F + 231;
+                R.ln = F + 239;
                 R.pa(v12, R.cmd(S, "New-Pass", [("All " + R.str(R.u(R.pi(R.m((S["item"] ?? null), "Compliant")))) + " evaluated resources comply with '" + R.str((S["name"] ?? null)) + "'"), (S["evidence"] ?? null)], null));
             }
             S["result"] = R.u(v12);
-            R.ln = F + 232;
+            R.ln = F + 240;
             R.pa(O, R.cmd(S, "New-Finding", [R.np("ResourceId"), (S["key"] ?? null), R.np("ResourceType"), "Microsoft.Authorization/policyDefinitions", R.np("ResourceName"), (S["name"] ?? null), R.np("Result"), (S["result"] ?? null)], null));
         }
     })], false)], null));
-    R.ln = F + 237;
+    R.ln = F + 245;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-GOV-010", "Title", "Azure Advisor security recommendations are resolved", "Category", "Posture and vulnerability management", "Service", "Azure Advisor", "Severity", "Medium", "Description", "Reads the Azure Advisor recommendations of category Security from Azure Resource Graph and reports one finding per open recommendation. Advisor surfaces Defender for Cloud recommendations plus platform advice that the other tests here do not cover.", "Rationale", "Advisor security recommendations are the platform telling you about concrete, already detected weaknesses in this subscription. Leaving them open means known issues stay unfixed.", "Remediation", "Work through the recommendations in Advisor > Security, remediate or dismiss each one with a reason, and treat high impact recommendations first.", "References", R.a("https://learn.microsoft.com/azure/advisor/advisor-security-recommendations"), "Requires", R.a("resourceGraph/advisorresources"), "Run", R.sb({ params: [], adv: 0, text: "\n        $recommendations = @(Get-IngestData 'resourceGraph/advisorresources' | Where-Object { $_ -and $_.type -eq 'microsoft.advisor/recommendations' -and $_.properties.category -eq 'Security' })\n        if (-not $recommendations) { return New-SubscriptionFinding (New-Pass 'Azure Advisor reports no open security recommendations') }\n        foreach ($recommendation in $recommendations) {\n            $p = $recommendation.properties\n            $evidence = [ordered]@{ impact = $p.impact; impactedField = $p.impactedField; impactedValue = $p.impactedValue; problem = $p.shortDescription.problem; solution = $p.shortDescription.solution }\n            New-Finding -ResourceId ([string]$recommendation.id) -ResourceType 'Microsoft.Advisor/recommendations' -ResourceName ([string]$p.shortDescription.problem) -Result (New-Fail \"$($p.impact) impact: $($p.shortDescription.problem) ($($p.impactedValue))\" $evidence)\n        }\n    " }, (S, O) => {
-        R.ln = F + 249;
+        R.ln = F + 257;
         S["recommendations"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.type -eq 'microsoft.advisor/recommendations' -and $_.properties.category -eq 'Security' " }, (S, O) => {
-            R.ln = F + 249;
+            R.ln = F + 257;
             R.e(O, ((R.t((S["_"] ?? null)) && R.t(R.eq(R.m((S["_"] ?? null), "type"), "microsoft.advisor/recommendations"))) && R.t(R.eq(R.m(R.m((S["_"] ?? null), "properties"), "category"), "Security"))));
         })], R.cmd(S, "Get-IngestData", ["resourceGraph/advisorresources"], null));
-        R.ln = F + 250;
+        R.ln = F + 258;
         if (!R.t((S["recommendations"] ?? null))) {
-            R.ln = F + 250;
+            R.ln = F + 258;
             R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Pass", ["Azure Advisor reports no open security recommendations"], null))], null));
             return;
         }
-        R.ln = F + 251;
+        R.ln = F + 259;
         for (const it13 of R.fi((S["recommendations"] ?? null))) {
             S["recommendation"] = it13;
-            R.ln = F + 252;
+            R.ln = F + 260;
             S["p"] = R.m((S["recommendation"] ?? null), "properties");
-            R.ln = F + 253;
+            R.ln = F + 261;
             S["evidence"] = R.ht(["impact", R.m((S["p"] ?? null), "impact"), "impactedField", R.m((S["p"] ?? null), "impactedField"), "impactedValue", R.m((S["p"] ?? null), "impactedValue"), "problem", R.m(R.m((S["p"] ?? null), "shortDescription"), "problem"), "solution", R.m(R.m((S["p"] ?? null), "shortDescription"), "solution")], true);
-            R.ln = F + 254;
+            R.ln = F + 262;
             R.pa(O, R.cmd(S, "New-Finding", [R.np("ResourceId"), (R.c("string", R.m((S["recommendation"] ?? null), "id"))), R.np("ResourceType"), "Microsoft.Advisor/recommendations", R.np("ResourceName"), (R.c("string", R.m(R.m((S["p"] ?? null), "shortDescription"), "problem"))), R.np("Result"), R.u(R.cmd(S, "New-Fail", [("" + R.str(R.u(R.pi(R.m((S["p"] ?? null), "impact")))) + " impact: " + R.str(R.u(R.pi(R.m(R.m((S["p"] ?? null), "shortDescription"), "problem")))) + " (" + R.str(R.u(R.pi(R.m((S["p"] ?? null), "impactedValue")))) + ")"), (S["evidence"] ?? null)], null))], null));
         }
     })], false)], null));
-    R.ln = F + 259;
+    R.ln = F + 267;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-GOV-011", "Title", "Subscriptions cannot be moved into or out of the tenant", "Category", "Asset management", "Service", "Azure subscriptions", "Severity", "Medium", "Description", "Checks the tenant subscription policy for 'Subscription leaving Microsoft Entra tenant' and 'Subscription entering Microsoft Entra tenant' set to 'Permit no one', and lists the principals exempted from it.", "Rationale", "A subscription moved to another tenant takes its resources and data out of reach of this tenant's identities, policies and monitoring. A subscription moved in brings resources the organization does not govern. Blocking both makes a move a deliberate decision of a Global Administrator.", "Remediation", "In the Azure portal open Subscriptions > Manage policies and set both 'Subscription leaving Microsoft Entra tenant' and 'Subscription entering Microsoft Entra tenant' to 'Permit no one'. Exempt only the principals that must move subscriptions.", "References", R.a("https://learn.microsoft.com/azure/cost-management-billing/manage/manage-azure-subscription-policy"), "Requires", R.a("subscription/subscriptionPolicies"), "Run", R.sb({ params: [], adv: 0, text: "\n        $p = (Get-IngestData 'subscription/subscriptionPolicies').properties\n        $evidence = [ordered]@{ blockSubscriptionsLeavingTenant = [bool]$p.blockSubscriptionsLeavingTenant; blockSubscriptionsIntoTenant = [bool]$p.blockSubscriptionsIntoTenant; exemptedPrincipals = @($p.exemptedPrincipals | Where-Object { $_ } | ForEach-Object { Get-PrincipalLabel $_ } | Sort-Object) }\n        $open = @()\n        if (-not $p.blockSubscriptionsLeavingTenant) { $open += 'leaving' }\n        if (-not $p.blockSubscriptionsIntoTenant) { $open += 'entering' }\n        $result = if ($open) { New-Fail \"Subscriptions can be moved $($open -join ' and ') the tenant\" $evidence } else { New-Pass 'Subscriptions cannot be moved into or out of the tenant' $evidence }\n        New-TenantFinding -Result $result -Suffix '/subscriptionPolicies'\n    " }, (S, O) => {
-        R.ln = F + 271;
+        R.ln = F + 279;
         S["p"] = R.m(R.u(R.cmd(S, "Get-IngestData", ["subscription/subscriptionPolicies"], null)), "properties");
-        R.ln = F + 272;
+        R.ln = F + 280;
         S["evidence"] = R.ht(["blockSubscriptionsLeavingTenant", R.c("bool", R.m((S["p"] ?? null), "blockSubscriptionsLeavingTenant")), "blockSubscriptionsIntoTenant", R.c("bool", R.m((S["p"] ?? null), "blockSubscriptionsIntoTenant")), "exemptedPrincipals", R.cmd(S, "Sort-Object", [], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " Get-PrincipalLabel $_ " }, (S, O) => {
-            R.ln = F + 272;
+            R.ln = F + 280;
             R.pa(O, R.cmd(S, "Get-PrincipalLabel", [(S["_"] ?? null)], null));
         })], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 272;
+            R.ln = F + 280;
             R.e(O, (S["_"] ?? null));
         })], R.pi(R.m((S["p"] ?? null), "exemptedPrincipals")))))], true);
-        R.ln = F + 273;
+        R.ln = F + 281;
         S["open"] = [];
-        R.ln = F + 274;
+        R.ln = F + 282;
         if (!R.t(R.m((S["p"] ?? null), "blockSubscriptionsLeavingTenant"))) {
-            R.ln = F + 274;
+            R.ln = F + 282;
             S["open"] = R.add(S["open"] ?? null, "leaving");
         }
-        R.ln = F + 275;
+        R.ln = F + 283;
         if (!R.t(R.m((S["p"] ?? null), "blockSubscriptionsIntoTenant"))) {
-            R.ln = F + 275;
+            R.ln = F + 283;
             S["open"] = R.add(S["open"] ?? null, "entering");
         }
-        R.ln = F + 276;
+        R.ln = F + 284;
         const v14 = [];
-        R.ln = F + 276;
+        R.ln = F + 284;
         if (R.t((S["open"] ?? null))) {
-            R.ln = F + 276;
+            R.ln = F + 284;
             R.pa(v14, R.cmd(S, "New-Fail", [("Subscriptions can be moved " + R.str(R.u(R.pi(R.join((S["open"] ?? null), " and ")))) + " the tenant"), (S["evidence"] ?? null)], null));
         } else {
-            R.ln = F + 276;
+            R.ln = F + 284;
             R.pa(v14, R.cmd(S, "New-Pass", ["Subscriptions cannot be moved into or out of the tenant", (S["evidence"] ?? null)], null));
         }
         S["result"] = R.u(v14);
-        R.ln = F + 277;
+        R.ln = F + 285;
         R.pa(O, R.cmd(S, "New-TenantFinding", [R.np("Result"), (S["result"] ?? null), R.np("Suffix"), "/subscriptionPolicies"], null));
     })], false)], null));
-    R.ln = F + 281;
+    R.ln = F + 289;
     R.def(S, "Get-AutoscaleTargets", { params: [], adv: 0, h: "b992796d33c1b0c0" }, (S, O) => {
-        R.ln = F + 283;
+        R.ln = F + 291;
         if (!R.t(R.im(R.m((R.ss(S)["script:ingest"] ?? null), "Cache"), "ContainsKey", ["#autoscale"]))) {
-            R.ln = F + 284;
+            R.ln = F + 292;
             S["targets"] = R.ht([], false);
-            R.ln = F + 285;
+            R.ln = F + 293;
             for (const it15 of R.fi(R.u(R.cmd(S, "Get-AzResourceRecords", [R.np("Type"), "Microsoft.Insights/autoscalesettings"], null)))) {
                 S["setting"] = it15;
-                R.ln = F + 286;
+                R.ln = F + 294;
                 S["p"] = R.m(R.m((S["setting"] ?? null), "resource"), "properties");
-                R.ln = F + 287;
+                R.ln = F + 295;
                 if ((R.t(R.eq(R.m((S["p"] ?? null), "enabled"), false)) || !R.t(R.m((S["p"] ?? null), "targetResourceUri")))) {
                     continue;
                 }
-                R.ln = F + 288;
+                R.ln = F + 296;
                 R.si((S["targets"] ?? null), R.im((R.c("string", R.m((S["p"] ?? null), "targetResourceUri"))), "ToLowerInvariant", []), R.m(R.m((S["setting"] ?? null), "resource"), "name"));
             }
-            R.ln = F + 290;
+            R.ln = F + 298;
             R.si(R.m((R.ss(S)["script:ingest"] ?? null), "Cache"), "#autoscale", (S["targets"] ?? null));
         }
-        R.ln = F + 292;
+        R.ln = F + 300;
         R.e(O, R.i(R.m((R.ss(S)["script:ingest"] ?? null), "Cache"), "#autoscale"));
         return;
     });
-    R.ln = F + 296;
+    R.ln = F + 304;
     S["elasticplantiers"] = R.a([R.v("Dynamic"), R.v("ElasticPremium"), R.v("FlexConsumption"), R.v("WorkflowStandard")]);
-    R.ln = F + 298;
+    R.ln = F + 306;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-GOV-012", "Title", "Capacity scales automatically with demand", "Category", "Backup and recovery", "Service", "Multiple", "Severity", "Low", "Description", "Checks App Service plans with apps, virtual machine scale sets and AKS clusters for automatic scaling: an enabled autoscale setting, automatic scaling or an elastic tier for App Service plans, and the cluster autoscaler or node auto provisioning for AKS node pools. Scale sets managed by AKS are covered through their cluster.", "Rationale", "Fixed capacity is sized for the load someone expected. A peak, a failed zone or a denial of service then exhausts it and takes the service down, while scaling out would have kept it available.", "Remediation", "Create an autoscale setting (Azure Monitor autoscale) for App Service plans and scale sets with rules or a predictive profile and sensible minimum and maximum counts, or enable automatic scaling on Premium v2 and v3 plans; enable the cluster autoscaler on every AKS node pool or use node auto provisioning.", "References", R.a([R.v("https://learn.microsoft.com/azure/azure-monitor/autoscale/autoscale-overview"), R.v("https://learn.microsoft.com/azure/aks/cluster-autoscaler")]), "ResourceTypes", R.a([R.v("Microsoft.Web/serverfarms"), R.v("Microsoft.Compute/virtualMachineScaleSets"), R.v("Microsoft.ContainerService/managedClusters")]), "Filter", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) -not ($Record.type -eq 'Microsoft.Compute/virtualMachineScaleSets' -and @($Record.resource.tags.PSObject.Properties.Name | Where-Object { $_ -like 'aks-managed-*' }).Count) " }, (S, O) => {
-        R.ln = F + 309;
+        R.ln = F + 317;
         R.e(O, !(R.t(R.eq(R.m((S["record"] ?? null), "type"), "Microsoft.Compute/virtualMachineScaleSets")) && R.t(R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -like 'aks-managed-*' " }, (S, O) => {
-            R.ln = F + 309;
+            R.ln = F + 317;
             R.e(O, R.like((S["_"] ?? null), "aks-managed-*"));
         })], R.pi(R.m(R.m(R.m(R.m(R.m((S["record"] ?? null), "resource"), "tags"), "PSObject"), "Properties"), "Name"))), "Count"))));
     }), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $r = $Record.resource\n        $p = $r.properties\n        if ($Record.type -eq 'Microsoft.ContainerService/managedClusters') {\n            $pools = @($p.agentPoolProfiles | Where-Object { $_ })\n            $evidence = [ordered]@{ nodeProvisioning = $p.nodeProvisioningProfile.mode; nodePools = @($pools | ForEach-Object { \"$($_.name): $(if ($_.enableAutoScaling) { \"autoscale $($_.minCount)-$($_.maxCount)\" } else { \"fixed $($_.count)\" })\" } | Sort-Object) }\n            if ($p.nodeProvisioningProfile.mode -eq 'Auto') { return New-Pass 'Node auto provisioning adds nodes on demand' $evidence }\n            if (-not $pools) { return New-Unknown 'The node pools could not be read' $evidence }\n            $fixed = @($pools | Where-Object { -not $_.enableAutoScaling } | ForEach-Object { $_.name } | Sort-Object)\n            if ($fixed) { return New-Fail \"Node pool(s) $($fixed -join ', ') have a fixed node count\" $evidence }\n            return New-Pass 'The cluster autoscaler scales every node pool' $evidence\n        }\n        $autoscale = (Get-AutoscaleTargets)[$Record.id.ToLowerInvariant()]\n        if ($Record.type -eq 'Microsoft.Web/serverfarms') {\n            $tier = [string]$r.sku.tier\n            $evidence = [ordered]@{ tier = $tier; apps = $p.numberOfSites; elasticScaleEnabled = $p.elasticScaleEnabled; autoscaleSetting = $autoscale }\n            if ($tier -in 'Free', 'Shared') { return New-NotApplicable \"$tier plans are for development and testing\" $evidence }\n            if ($null -ne $p.numberOfSites -and [int]$p.numberOfSites -eq 0) { return New-NotApplicable 'No apps run on this plan' $evidence }\n            if ($tier -in $elasticPlanTiers) { return New-Pass \"The $tier tier scales out automatically\" $evidence }\n            if ($p.elasticScaleEnabled) { return New-Pass \"Automatic scaling up to $($p.maximumElasticWorkerCount) instances\" $evidence }\n            if ($autoscale) { return New-Pass \"Autoscale setting '$autoscale'\" $evidence }\n            if ($tier -eq 'Basic') { return New-Fail 'The Basic tier cannot scale automatically' $evidence }\n        } else {\n            $evidence = [ordered]@{ capacity = $r.sku.capacity; autoscaleSetting = $autoscale }\n            if ($autoscale) { return New-Pass \"Autoscale setting '$autoscale'\" $evidence }\n        }\n        if (Get-FailedResourceIds -Type 'Microsoft.Insights/autoscalesettings') { return New-Unknown 'No autoscale setting found, and some autoscale settings could not be read' $evidence }\n        New-Fail \"No enabled autoscale setting; capacity is fixed at $($r.sku.capacity) instance(s)\" $evidence\n    " }, (S, O) => {
-        R.ln = F + 312;
+        R.ln = F + 320;
         S["r"] = R.m((S["record"] ?? null), "resource");
-        R.ln = F + 313;
+        R.ln = F + 321;
         S["p"] = R.m((S["r"] ?? null), "properties");
-        R.ln = F + 314;
+        R.ln = F + 322;
         if (R.t(R.eq(R.m((S["record"] ?? null), "type"), "Microsoft.ContainerService/managedClusters"))) {
-            R.ln = F + 315;
+            R.ln = F + 323;
             S["pools"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                R.ln = F + 315;
+                R.ln = F + 323;
                 R.e(O, (S["_"] ?? null));
             })], R.pi(R.m((S["p"] ?? null), "agentPoolProfiles")));
-            R.ln = F + 316;
+            R.ln = F + 324;
             S["evidence"] = R.ht(["nodeProvisioning", R.m(R.m((S["p"] ?? null), "nodeProvisioningProfile"), "mode"), "nodePools", R.cmd(S, "Sort-Object", [], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " \"$($_.name): $(if ($_.enableAutoScaling) { \"autoscale $($_.minCount)-$($_.maxCount)\" } else { \"fixed $($_.count)\" })\" " }, (S, O) => {
-                R.ln = F + 316;
+                R.ln = F + 324;
                 R.e(O, ("" + R.str(R.u(R.pi(R.m((S["_"] ?? null), "name")))) + ": " + R.str((() => {
                     const v16 = [];
-                    R.ln = F + 316;
+                    R.ln = F + 324;
                     if (R.t(R.m((S["_"] ?? null), "enableAutoScaling"))) {
-                        R.ln = F + 316;
+                        R.ln = F + 324;
                         R.e(v16, ("autoscale " + R.str(R.u(R.pi(R.m((S["_"] ?? null), "minCount")))) + "-" + R.str(R.u(R.pi(R.m((S["_"] ?? null), "maxCount"))))));
                     } else {
-                        R.ln = F + 316;
+                        R.ln = F + 324;
                         R.e(v16, ("fixed " + R.str(R.u(R.pi(R.m((S["_"] ?? null), "count"))))));
                     }
                     return R.u(v16);
                 })())));
             })], R.pi((S["pools"] ?? null))))], true);
-            R.ln = F + 317;
+            R.ln = F + 325;
             if (R.t(R.eq(R.m(R.m((S["p"] ?? null), "nodeProvisioningProfile"), "mode"), "Auto"))) {
-                R.ln = F + 317;
+                R.ln = F + 325;
                 R.pa(O, R.cmd(S, "New-Pass", ["Node auto provisioning adds nodes on demand", (S["evidence"] ?? null)], null));
                 return;
             }
-            R.ln = F + 318;
+            R.ln = F + 326;
             if (!R.t((S["pools"] ?? null))) {
-                R.ln = F + 318;
+                R.ln = F + 326;
                 R.pa(O, R.cmd(S, "New-Unknown", ["The node pools could not be read", (S["evidence"] ?? null)], null));
                 return;
             }
-            R.ln = F + 319;
+            R.ln = F + 327;
             S["fixed"] = R.cmd(S, "Sort-Object", [], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " $_.name " }, (S, O) => {
-                R.ln = F + 319;
+                R.ln = F + 327;
                 R.e(O, R.m((S["_"] ?? null), "name"));
             })], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " -not $_.enableAutoScaling " }, (S, O) => {
-                R.ln = F + 319;
+                R.ln = F + 327;
                 R.e(O, !R.t(R.m((S["_"] ?? null), "enableAutoScaling")));
             })], R.pi((S["pools"] ?? null)))));
-            R.ln = F + 320;
+            R.ln = F + 328;
             if (R.t((S["fixed"] ?? null))) {
-                R.ln = F + 320;
+                R.ln = F + 328;
                 R.pa(O, R.cmd(S, "New-Fail", [("Node pool(s) " + R.str(R.u(R.pi(R.join((S["fixed"] ?? null), ", ")))) + " have a fixed node count"), (S["evidence"] ?? null)], null));
                 return;
             }
-            R.ln = F + 321;
+            R.ln = F + 329;
             R.pa(O, R.cmd(S, "New-Pass", ["The cluster autoscaler scales every node pool", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 323;
+        R.ln = F + 331;
         S["autoscale"] = R.i(R.u(R.cmd(S, "Get-AutoscaleTargets", [], null)), R.im(R.m((S["record"] ?? null), "id"), "ToLowerInvariant", []));
-        R.ln = F + 324;
+        R.ln = F + 332;
         if (R.t(R.eq(R.m((S["record"] ?? null), "type"), "Microsoft.Web/serverfarms"))) {
-            R.ln = F + 325;
+            R.ln = F + 333;
             S["tier"] = R.c("string", R.m(R.m((S["r"] ?? null), "sku"), "tier"));
-            R.ln = F + 326;
+            R.ln = F + 334;
             S["evidence"] = R.ht(["tier", (S["tier"] ?? null), "apps", R.m((S["p"] ?? null), "numberOfSites"), "elasticScaleEnabled", R.m((S["p"] ?? null), "elasticScaleEnabled"), "autoscaleSetting", (S["autoscale"] ?? null)], true);
-            R.ln = F + 327;
+            R.ln = F + 335;
             if (R.t(R.in((S["tier"] ?? null), [R.v("Free"), R.v("Shared")]))) {
-                R.ln = F + 327;
+                R.ln = F + 335;
                 R.pa(O, R.cmd(S, "New-NotApplicable", [("" + R.str((S["tier"] ?? null)) + " plans are for development and testing"), (S["evidence"] ?? null)], null));
                 return;
             }
-            R.ln = F + 328;
+            R.ln = F + 336;
             if ((R.t(R.ne(null, R.m((S["p"] ?? null), "numberOfSites"))) && R.t(R.eq(R.c("int", R.m((S["p"] ?? null), "numberOfSites")), 0)))) {
-                R.ln = F + 328;
+                R.ln = F + 336;
                 R.pa(O, R.cmd(S, "New-NotApplicable", ["No apps run on this plan", (S["evidence"] ?? null)], null));
                 return;
             }
-            R.ln = F + 329;
+            R.ln = F + 337;
             if (R.t(R.in((S["tier"] ?? null), (S["elasticplantiers"] ?? null)))) {
-                R.ln = F + 329;
+                R.ln = F + 337;
                 R.pa(O, R.cmd(S, "New-Pass", [("The " + R.str((S["tier"] ?? null)) + " tier scales out automatically"), (S["evidence"] ?? null)], null));
                 return;
             }
-            R.ln = F + 330;
+            R.ln = F + 338;
             if (R.t(R.m((S["p"] ?? null), "elasticScaleEnabled"))) {
-                R.ln = F + 330;
+                R.ln = F + 338;
                 R.pa(O, R.cmd(S, "New-Pass", [("Automatic scaling up to " + R.str(R.u(R.pi(R.m((S["p"] ?? null), "maximumElasticWorkerCount")))) + " instances"), (S["evidence"] ?? null)], null));
                 return;
             }
-            R.ln = F + 331;
+            R.ln = F + 339;
             if (R.t((S["autoscale"] ?? null))) {
-                R.ln = F + 331;
+                R.ln = F + 339;
                 R.pa(O, R.cmd(S, "New-Pass", [("Autoscale setting '" + R.str((S["autoscale"] ?? null)) + "'"), (S["evidence"] ?? null)], null));
                 return;
             }
-            R.ln = F + 332;
+            R.ln = F + 340;
             if (R.t(R.eq((S["tier"] ?? null), "Basic"))) {
-                R.ln = F + 332;
+                R.ln = F + 340;
                 R.pa(O, R.cmd(S, "New-Fail", ["The Basic tier cannot scale automatically", (S["evidence"] ?? null)], null));
                 return;
             }
         } else {
-            R.ln = F + 334;
+            R.ln = F + 342;
             S["evidence"] = R.ht(["capacity", R.m(R.m((S["r"] ?? null), "sku"), "capacity"), "autoscaleSetting", (S["autoscale"] ?? null)], true);
-            R.ln = F + 335;
+            R.ln = F + 343;
             if (R.t((S["autoscale"] ?? null))) {
-                R.ln = F + 335;
+                R.ln = F + 343;
                 R.pa(O, R.cmd(S, "New-Pass", [("Autoscale setting '" + R.str((S["autoscale"] ?? null)) + "'"), (S["evidence"] ?? null)], null));
                 return;
             }
         }
-        R.ln = F + 337;
+        R.ln = F + 345;
         if (R.t(R.u(R.cmd(S, "Get-FailedResourceIds", [R.np("Type"), "Microsoft.Insights/autoscalesettings"], null)))) {
-            R.ln = F + 337;
+            R.ln = F + 345;
             R.pa(O, R.cmd(S, "New-Unknown", ["No autoscale setting found, and some autoscale settings could not be read", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 338;
+        R.ln = F + 346;
         R.pa(O, R.cmd(S, "New-Fail", [("No enabled autoscale setting; capacity is fixed at " + R.str(R.u(R.pi(R.m(R.m((S["r"] ?? null), "sku"), "capacity")))) + " instance(s)"), (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 342;
+    R.ln = F + 350;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-GOV-013", "Title", "Resources are in the region of their resource group", "Category", "Asset management", "Service", "Azure Resource Manager", "Severity", "Low", "Description", "Finds resources whose region differs from the region of their resource group. Global resources are left out, and so are network watchers, which Azure itself creates for every region in one NetworkWatcherRG resource group.", "Rationale", "A resource group keeps the metadata of its resources in its own region. When that region is unavailable, resources in other regions can no longer be changed or redeployed through it, which slows down recovery exactly when it is needed.", "Remediation", "Place resources in a resource group in the same region, and move or redeploy the ones that are not. Enforce it with the built-in policy that audits matching resource and resource group locations.", "References", R.a("https://learn.microsoft.com/azure/azure-resource-manager/management/overview#resource-group-location-alignment"), "Requires", R.a([R.v("subscription/resources"), R.v("subscription/resourceGroups")]), "Run", R.sb({ params: [], adv: 0, text: "\n        $groupLocations = @{}\n        foreach ($group in @(Get-IngestData 'subscription/resourceGroups' | Where-Object { $_ })) { $groupLocations[$group.name.ToLowerInvariant()] = ([string]$group.location).ToLowerInvariant() -replace ' ', '' }\n        $checked = 0\n        $findings = foreach ($resource in @(Get-IngestData 'subscription/resources' | Where-Object { $_ -and $_.location -and $_.type -notlike 'Microsoft.Network/networkWatchers*' } | Sort-Object id)) {\n            $location = ([string]$resource.location).ToLowerInvariant() -replace ' ', ''\n            if ($location -eq 'global' -or -not ($resource.id -match '(?i)/resourceGroups/(?<group>[^/]+)/')) { continue }\n            $groupLocation = $groupLocations[$Matches.group.ToLowerInvariant()]\n            if (-not $groupLocation) { continue }\n            $checked++\n            if ($location -eq $groupLocation) { continue }\n            New-Finding -ResourceId $resource.id -ResourceType $resource.type -ResourceName $resource.name -Result (New-Fail \"In $location, its resource group is in $groupLocation\" ([ordered]@{ location = $location; resourceGroupLocation = $groupLocation }))\n        }\n        if (-not $findings) { return New-SubscriptionFinding (New-Pass \"All $checked regional resources are in the region of their resource group\") }\n        $findings\n    " }, (S, O) => {
-        R.ln = F + 354;
+        R.ln = F + 362;
         S["grouplocations"] = R.ht([], false);
-        R.ln = F + 355;
+        R.ln = F + 363;
         for (const it17 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 355;
+            R.ln = F + 363;
             R.e(O, (S["_"] ?? null));
         })], R.cmd(S, "Get-IngestData", ["subscription/resourceGroups"], null)))) {
             S["group"] = it17;
-            R.ln = F + 355;
+            R.ln = F + 363;
             R.si((S["grouplocations"] ?? null), R.im(R.m((S["group"] ?? null), "name"), "ToLowerInvariant", []), R.rep(R.im((R.c("string", R.m((S["group"] ?? null), "location"))), "ToLowerInvariant", []), [R.v(" "), R.v("")]));
         }
-        R.ln = F + 356;
+        R.ln = F + 364;
         S["checked"] = 0;
-        R.ln = F + 357;
+        R.ln = F + 365;
         const v18 = [];
-        R.ln = F + 357;
+        R.ln = F + 365;
         for (const it19 of R.fi(R.cmd(S, "Sort-Object", ["id"], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.location -and $_.type -notlike 'Microsoft.Network/networkWatchers*' " }, (S, O) => {
-            R.ln = F + 357;
+            R.ln = F + 365;
             R.e(O, ((R.t((S["_"] ?? null)) && R.t(R.m((S["_"] ?? null), "location"))) && R.t(R.nlike(R.m((S["_"] ?? null), "type"), "Microsoft.Network/networkWatchers*"))));
         })], R.cmd(S, "Get-IngestData", ["subscription/resources"], null))))) {
             S["resource"] = it19;
-            R.ln = F + 358;
+            R.ln = F + 366;
             S["location"] = R.rep(R.im((R.c("string", R.m((S["resource"] ?? null), "location"))), "ToLowerInvariant", []), [R.v(" "), R.v("")]);
-            R.ln = F + 359;
+            R.ln = F + 367;
             if ((R.t(R.eq((S["location"] ?? null), "global")) || !R.t(R.match(S, R.m((S["resource"] ?? null), "id"), "(?i)/resourceGroups/(?<group>[^/]+)/")))) {
                 continue;
             }
-            R.ln = F + 360;
+            R.ln = F + 368;
             S["grouplocation"] = R.i((S["grouplocations"] ?? null), R.im(R.m((S["matches"] ?? null), "group"), "ToLowerInvariant", []));
-            R.ln = F + 361;
+            R.ln = F + 369;
             if (!R.t((S["grouplocation"] ?? null))) {
                 continue;
             }
-            R.ln = F + 362;
+            R.ln = F + 370;
             R.incv(S, "checked", 1, true);
-            R.ln = F + 363;
+            R.ln = F + 371;
             if (R.t(R.eq((S["location"] ?? null), (S["grouplocation"] ?? null)))) {
                 continue;
             }
-            R.ln = F + 364;
+            R.ln = F + 372;
             R.pa(v18, R.cmd(S, "New-Finding", [R.np("ResourceId"), R.m((S["resource"] ?? null), "id"), R.np("ResourceType"), R.m((S["resource"] ?? null), "type"), R.np("ResourceName"), R.m((S["resource"] ?? null), "name"), R.np("Result"), R.u(R.cmd(S, "New-Fail", [("In " + R.str((S["location"] ?? null)) + ", its resource group is in " + R.str((S["grouplocation"] ?? null))), (R.ht(["location", (S["location"] ?? null), "resourceGroupLocation", (S["grouplocation"] ?? null)], true))], null))], null));
         }
         S["findings"] = R.u(v18);
-        R.ln = F + 366;
+        R.ln = F + 374;
         if (!R.t((S["findings"] ?? null))) {
-            R.ln = F + 366;
+            R.ln = F + 374;
             R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Pass", [("All " + R.str((S["checked"] ?? null)) + " regional resources are in the region of their resource group")], null))], null));
             return;
         }
-        R.ln = F + 367;
+        R.ln = F + 375;
         R.e(O, (S["findings"] ?? null));
     })], false)], null));
-    R.ln = F + 371;
+    R.ln = F + 379;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-GOV-014", "Title", "A cost budget alerts on the spending of the subscription", "Category", "Logging and threat detection", "Service", "Cost Management", "Severity", "Low", "Description", "Checks for a cost budget on the subscription with at least one enabled notification to an email address, a role or an action group.", "Rationale", "Attackers who take over a subscription often run crypto miners or other expensive workloads at the owner's expense, and a sudden rise in cost is regularly the first visible sign of the breach. A budget with notifications makes that sign reach someone within a day instead of with the invoice.", "Remediation", "Create a budget for the subscription (Cost Management > Budgets) with notifications on actual and forecasted cost that reach the owners of the subscription and the security team.", "References", R.a("https://learn.microsoft.com/azure/cost-management-billing/costs/tutorial-acm-create-budgets"), "Requires", R.a("subscription/budgets"), "Run", R.sb({ params: [], adv: 0, text: "\n        $budgets = @(Get-IngestData 'subscription/budgets' | Where-Object { $_ } | Sort-Object name)\n        $notifying = @(foreach ($budget in $budgets) {\n                $notifications = @($budget.properties.notifications.PSObject.Properties | ForEach-Object Value | Where-Object { $_ -and $_.enabled -and (@($_.contactEmails) + @($_.contactRoles) + @($_.contactGroups) | Where-Object { $_ }).Count })\n                if ($notifications) { $budget.name }\n            })\n        $evidence = [ordered]@{ budgets = @($budgets | ForEach-Object name); withNotifications = $notifying }\n        if ($notifying) { return New-SubscriptionFinding (New-Pass \"Budget(s) with notifications: $($notifying -join ', ')\" $evidence) }\n        if ($budgets) { return New-SubscriptionFinding (New-Fail 'Budgets exist, but none notifies anyone' $evidence) }\n        New-SubscriptionFinding (New-Fail 'No cost budget on the subscription' $evidence)\n    " }, (S, O) => {
-        R.ln = F + 383;
+        R.ln = F + 391;
         S["budgets"] = R.cmd(S, "Sort-Object", ["name"], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 383;
+            R.ln = F + 391;
             R.e(O, (S["_"] ?? null));
         })], R.cmd(S, "Get-IngestData", ["subscription/budgets"], null)));
-        R.ln = F + 384;
+        R.ln = F + 392;
         S["notifying"] = (() => {
             const v20 = [];
-            R.ln = F + 384;
+            R.ln = F + 392;
             for (const it21 of R.fi((S["budgets"] ?? null))) {
                 S["budget"] = it21;
-                R.ln = F + 385;
+                R.ln = F + 393;
                 S["notifications"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.enabled -and (@($_.contactEmails) + @($_.contactRoles) + @($_.contactGroups) | Where-Object { $_ }).Count " }, (S, O) => {
-                    R.ln = F + 385;
+                    R.ln = F + 393;
                     R.e(O, ((R.t((S["_"] ?? null)) && R.t(R.m((S["_"] ?? null), "enabled"))) && R.t(R.m(R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                        R.ln = F + 385;
+                        R.ln = F + 393;
                         R.e(O, (S["_"] ?? null));
                     })], R.pi(R.add(R.add(R.a(R.m((S["_"] ?? null), "contactEmails")), R.a(R.m((S["_"] ?? null), "contactRoles"))), R.a(R.m((S["_"] ?? null), "contactGroups")))))), "Count"))));
                 })], R.cmd(S, "ForEach-Object", ["Value"], R.pi(R.m(R.m(R.m(R.m((S["budget"] ?? null), "properties"), "notifications"), "PSObject"), "Properties"))));
-                R.ln = F + 386;
+                R.ln = F + 394;
                 if (R.t((S["notifications"] ?? null))) {
-                    R.ln = F + 386;
+                    R.ln = F + 394;
                     R.e(v20, R.m((S["budget"] ?? null), "name"));
                 }
             }
             return v20;
         })();
-        R.ln = F + 388;
+        R.ln = F + 396;
         S["evidence"] = R.ht(["budgets", R.cmd(S, "ForEach-Object", ["name"], R.pi((S["budgets"] ?? null))), "withNotifications", (S["notifying"] ?? null)], true);
-        R.ln = F + 389;
+        R.ln = F + 397;
         if (R.t((S["notifying"] ?? null))) {
-            R.ln = F + 389;
+            R.ln = F + 397;
             R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Pass", [("Budget(s) with notifications: " + R.str(R.u(R.pi(R.join((S["notifying"] ?? null), ", "))))), (S["evidence"] ?? null)], null))], null));
             return;
         }
-        R.ln = F + 390;
+        R.ln = F + 398;
         if (R.t((S["budgets"] ?? null))) {
-            R.ln = F + 390;
+            R.ln = F + 398;
             R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Fail", ["Budgets exist, but none notifies anyone", (S["evidence"] ?? null)], null))], null));
             return;
         }
-        R.ln = F + 391;
+        R.ln = F + 399;
         R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Fail", ["No cost budget on the subscription", (S["evidence"] ?? null)], null))], null));
     })], false)], null));
 });

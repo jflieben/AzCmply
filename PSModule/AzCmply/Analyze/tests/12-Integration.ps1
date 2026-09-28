@@ -233,6 +233,69 @@ Add-AzTest @{
     }
 }
 
+#runtime versions Azure Automation retired ahead of the end of life of the language (Microsoft notice, September 2026)
+$automationRetiredRuntimes = [ordered]@{ 'PowerShell 7.1' = '2026-09-30'; 'PowerShell 7.2' = '2026-09-30'; 'Python 2.7' = '2026-09-30'; 'Python 3.8' = '2026-09-30' }
+#runbook types of the runbooks without a runtime environment, and the runtime they run on
+$automationRunbookTypes = [ordered]@{ 'PowerShell' = 'PowerShell 5.1'; 'PowerShellWorkflow' = 'PowerShell 5.1'; 'GraphPowerShell' = 'PowerShell 5.1'; 'GraphPowerShellWorkflow' = 'PowerShell 5.1'; 'PowerShell7' = 'PowerShell 7.1'; 'PowerShell72' = 'PowerShell 7.2'; 'Python2' = 'Python 2.7'; 'Python3' = 'Python 3.8' }
+
+function Get-RunbookRuntime {
+    #language and version a runbook runs on: from its runtime environment, or from its type in the older model. Reason when unknown
+    param($Record)
+    $p = $Record.resource.properties
+    $environment = [string]$p.runtimeEnvironment
+    if ($environment) {
+        $account = Get-AzResourceRecord (($Record.id -split '(?i)/runbooks/')[0])
+        if (-not $account -or -not (Test-ChildCollected $account 'runtimeEnvironments')) { return [pscustomobject]@{ Runtime = $null; Reason = "the runtime environment $environment could not be read" } }
+        $match = @(Get-Child $account 'runtimeEnvironments' | Where-Object { $_ -and $_.name -eq $environment }) | Select-Object -First 1
+        if (-not $match -or -not $match.properties.runtime.language) { return [pscustomobject]@{ Runtime = $null; Reason = "the runtime environment $environment was not found" } }
+        return [pscustomobject]@{ Runtime = "$($match.properties.runtime.language) $($match.properties.runtime.version)"; Reason = $null }
+    }
+    $type = [string]$p.runbookType
+    if ($automationRunbookTypes.Contains($type)) { return [pscustomobject]@{ Runtime = $automationRunbookTypes[$type]; Reason = $null } }
+    return [pscustomobject]@{ Runtime = $null; Reason = "runbook type $type does not name a runtime version" }
+}
+
+Add-AzTest @{
+    Id            = 'AZ-AUTO-003'
+    Title         = 'Automation runbooks run on a supported runtime'
+    Category      = 'Posture and vulnerability management'
+    Service       = 'Automation'
+    Severity      = 'Medium'
+    Description   = "Finds published runbooks whose PowerShell or Python version is past its end of support, or less than $runtimeWarningDays days from it. PowerShell 7.1 and 7.2 and Python 2.7 and 3.8 are retired by Azure Automation on 30 September 2026; for other versions the end of life of the language comes from the App Service runtime catalog, as Automation support ends with it. Windows PowerShell 5.1 has no end date."
+    Rationale     = 'Runbooks on a retired runtime keep running, but get no security updates or fixes and may be limited to one instance. They usually hold the rights of the managed identity of the Automation account.'
+    Remediation   = 'Move the runbooks to a runtime environment with a supported version (PowerShell 7.4 or later, Python 3.10 or later), test them and publish them again.'
+    References    = @('https://learn.microsoft.com/azure/automation/automation-runtime-retirement-policy', 'https://learn.microsoft.com/azure/automation/runtime-environment-overview')
+    ResourceTypes = @('Microsoft.Automation/automationAccounts/runbooks')
+    Evaluate      = {
+        param($Record)
+        $state = [string]$Record.resource.properties.state
+        if ($state -eq 'New') { return New-NotApplicable 'Never published' }
+        $runtime = Get-RunbookRuntime $Record
+        if ($runtime.Reason) { return New-Unknown "The runtime cannot be determined: $($runtime.Reason)" }
+        $label = $runtime.Runtime
+        $end = $null
+        $source = $null
+        if ($automationRetiredRuntimes.Contains($label)) {
+            $end = $automationRetiredRuntimes[$label]
+            $source = 'Azure Automation retirement'
+        } elseif ($label -eq 'PowerShell 5.1') {
+            return New-Pass 'Windows PowerShell 5.1 has no end-of-support date' ([ordered]@{ runtime = $label })
+        } else {
+            if (-not (Test-IngestSection 'web/functionAppStacks')) { return New-Unknown "The end of life of $label is not known: the runtime catalog was not collected" ([ordered]@{ runtime = $label }) }
+            $language, $version = $label -split ' ', 2
+            $entry = @(Get-StackRuntimes 'web/functionAppStacks' | Where-Object { $_.Stack -eq $language.ToLowerInvariant() -and $_.Version -eq $version -and $_.Settings.endOfLifeDate }) | Select-Object -First 1
+            if (-not $entry) { return New-Unknown "The end of life of $label is not in the runtime catalog" ([ordered]@{ runtime = $label }) }
+            $end = (Format-UtcDate $entry.Settings.endOfLifeDate).Substring(0, 10)
+            $source = 'end of life of the language'
+        }
+        $daysLeft = -1 * (Get-AgeInDays "$($end)T00:00:00Z")
+        $evidence = [ordered]@{ runtime = $label; endOfSupport = $end; daysLeft = $daysLeft; source = $source }
+        if ($daysLeft -le 0) { return New-Fail "$label reached its end of support on $end" $evidence }
+        if ($daysLeft -lt $runtimeWarningDays) { return New-Fail "$label reaches its end of support on $end, in $daysLeft days" $evidence }
+        New-Pass "$label is supported until $end" $evidence
+    }
+}
+
 function Test-PolicyValidatesToken {
     #whether an API Management policy document validates a JSON web token
     param($Policy)
@@ -483,18 +546,6 @@ function Get-RequestTriggerExposure {
     return [pscustomobject]@{ Open = -not $reason; Disabled = $p.state -in 'Disabled', 'Suspended'; Reason = $reason; Evidence = $evidence }
 }
 
-function Get-ResourceIdentityPrincipals {
-    #object ids (lowercase) of the system and user assigned managed identities of a resource
-    param($Record)
-    $identity = $Record.resource.identity
-    if (-not $identity) { return }
-    $ids = @($identity.principalId)
-    if ($null -ne $identity.userAssignedIdentities) {
-        foreach ($assigned in @($identity.userAssignedIdentities.PSObject.Properties)) { if ($assigned) { $ids += $assigned.Value.principalId } }
-    }
-    @($ids | Where-Object { $_ } | ForEach-Object { ([string]$_).ToLowerInvariant() } | Sort-Object -Unique)
-}
-
 function Get-ConnectionConnector {
     #display name of the connector of an API connection
     param($Record)
@@ -633,14 +684,8 @@ Add-AzTest @{
         $principals = @(Get-ResourceIdentityPrincipals $Record)
         $evidence = [ordered]@{ identityType = $Record.resource.identity.type; writeAssignments = @() }
         if (-not $principals) { return New-Pass 'Callable from any address, but without a managed identity' $evidence }
-        $access = Get-PrincipalAccessMap
-        $grants = @(foreach ($principal in $principals) {
-                foreach ($assignment in @($access[$principal] | Where-Object { $_ })) {
-                    if (Test-RoleCanWrite $assignment.properties.roleDefinitionId) { "$(Get-RoleName $assignment.properties.roleDefinitionId) @ $($assignment.properties.scope)" }
-                }
-            })
-        $evidence.writeAssignments = @($grants | Sort-Object -Unique)
-        if ($grants) { return New-Fail "Anyone with the trigger URL can start it, and it acts with $($evidence.writeAssignments -join '; ')" $evidence }
+        $evidence.writeAssignments = @(Get-PrincipalWriteGrants $principals)
+        if ($evidence.writeAssignments) { return New-Fail "Anyone with the trigger URL can start it, and it acts with $($evidence.writeAssignments -join '; ')" $evidence }
         New-Pass 'Callable from any address, but its managed identity has no write access' $evidence
     }
 }
@@ -714,23 +759,64 @@ Add-AzTest @{
     }
 }
 
+function Get-ConnectionAuthentication {
+    #how an API connection signs in, from the connection and the metadata of its connector. Method: 'user', 'managed
+    #identity', 'service principal', 'shared secret', 'none' or 'unknown' (Reason says why)
+    param($Record)
+    $p = $Record.resource.properties
+    $setName = [string]$p.parameterValueSet.name
+    $result = [pscustomobject]@{ Method = 'unknown'; User = [string]$p.authenticatedUser.name; ParameterSet = if ($setName) { $setName } else { 'default' }; SecretParameters = @(); Reason = $null }
+    if ($result.User) { $result.Method = 'user'; return $result }
+    if ($p.parameterValueType -eq 'Alternative') { $result.Method = 'managed identity'; return $result }
+    $connector = Get-ConnectionConnector $Record
+    $api = (Get-ManagedApiMap)[([string]$p.api.id).ToLowerInvariant()]
+    if (-not $api) { $result.Reason = "the metadata of connector $connector could not be read"; return $result }
+    $parameters = $api.properties.connectionParameters
+    if ($setName) {
+        $set = @($api.properties.connectionParameterSets.values | Where-Object { $_ -and $_.name -eq $setName }) | Select-Object -First 1
+        if (-not $set) { $result.Reason = "connector $connector has no parameter set $setName"; return $result }
+        $parameters = $set.parameters
+    }
+    $declared = [System.Collections.Generic.List[object]]::new()
+    if ($null -ne $parameters) {
+        foreach ($parameter in @($parameters.PSObject.Properties)) { if ($parameter) { $declared.Add([pscustomobject]@{ Name = $parameter.Name; Type = [string]$parameter.Value.type }) } }
+    }
+    if (@($declared | Where-Object { $_.Type -eq 'managedIdentity' })) { $result.Method = 'managed identity'; return $result }
+    #a client id marks a service principal: always in a parameter set, and in the values of a default connection
+    $values = @($p.parameterValues, $p.nonSecretParameterValues | Where-Object { $_ } | ForEach-Object { $_.PSObject.Properties } | Where-Object { $_ -and $_.Value })
+    $clientIdDeclared = [bool]@($declared | Where-Object { $_.Name -eq 'token:clientId' })
+    $clientIdSet = [bool]@($values | Where-Object { $_.Name -eq 'token:clientId' -or ($_.Name -eq 'token:grantType' -and $_.Value -eq 'client_credentials') })
+    if ($clientIdDeclared -and ($setName -or $clientIdSet)) { $result.Method = 'service principal'; return $result }
+    #OAuth without a client id signs in on behalf of a user, unless the connection goes through an on-premises gateway
+    #with a user name and password; Azure does not name the user for every connector (Outlook.com, for one)
+    $result.SecretParameters = @($declared | Where-Object { $_.Type -in 'securestring', 'secureobject' -and $_.Name -notlike 'token:*' } | ForEach-Object { $_.Name } | Sort-Object)
+    $oauth = [bool]@($declared | Where-Object { $_.Type -eq 'oauthSetting' })
+    $gateway = [bool]@($values | Where-Object { $_.Name -eq 'gateway' })
+    if ($oauth -and -not $gateway) { $result.Method = 'user'; $result.SecretParameters = @() }
+    elseif ($result.SecretParameters) { $result.Method = 'shared secret' }
+    else { $result.Method = 'none' }
+    return $result
+}
+
 Add-AzTest @{
     Id            = 'AZ-LOGIC-005'
     Title         = 'API connections do not sign in as a user'
     Category      = 'Identity management'
     Service       = 'Logic Apps'
     Severity      = 'High'
-    Description   = 'Finds API connections (of Consumption and Standard logic apps) that were authorized with a user account: OAuth on behalf of the person who signed in when the connection was created or repaired.'
+    Description   = 'Finds API connections (of Consumption and Standard logic apps) that sign in with a user account: OAuth on behalf of the person who signed in when the connection was created or repaired. Azure names that user for most connectors; for the others, the metadata of the connector shows that it signs in on behalf of a user.'
     Rationale     = 'Every workflow that uses the connection, and everyone who may use it in a workflow of their own (Microsoft.Web/connections/join/action, part of Contributor), acts as that person: reads their mail and files, sends as them and uses their permissions in the connected service. The refresh token keeps working outside MFA and Conditional Access, and the automation breaks, or keeps running on a personal account, when the person leaves.'
     Remediation   = 'Recreate the connection with the managed identity of the workflow or a service principal where the connector supports it. For connectors without that option, call the service (for Microsoft 365, Microsoft Graph) from an HTTP action with the managed identity and scoped application permissions, then delete the user connection.'
     References    = @('https://learn.microsoft.com/azure/logic-apps/authenticate-with-managed-identity')
     ResourceTypes = $connectionType
     Evaluate      = {
         param($Record)
-        $user = [string]$Record.resource.properties.authenticatedUser.name
-        $evidence = [ordered]@{ connector = Get-ConnectionConnector $Record; kind = $Record.resource.kind; authenticatedUser = $user }
-        if ($user) { return New-Fail "Signs in to $($evidence.connector) as $user" $evidence }
-        New-Pass 'Does not sign in as a user' $evidence
+        $auth = Get-ConnectionAuthentication $Record
+        $evidence = [ordered]@{ connector = Get-ConnectionConnector $Record; kind = $Record.resource.kind; method = $auth.Method; authenticatedUser = $auth.User; displayName = [string]$Record.resource.properties.displayName }
+        if ($auth.Method -eq 'user' -and $auth.User) { return New-Fail "Signs in to $($evidence.connector) as $($auth.User)" $evidence }
+        if ($auth.Method -eq 'user') { return New-Fail "Signs in to $($evidence.connector) as a user; the connection does not name the user" $evidence }
+        if ($auth.Method -eq 'unknown') { return New-Unknown "Whether it signs in as a user is not known: $($auth.Reason)" $evidence }
+        New-Pass "Does not sign in as a user ($($auth.Method))" $evidence
     }
 }
 
@@ -748,32 +834,13 @@ Add-AzTest @{
     ResourceTypes = $connectionType
     Evaluate      = {
         param($Record)
-        $p = $Record.resource.properties
+        $auth = Get-ConnectionAuthentication $Record
         $connector = Get-ConnectionConnector $Record
-        $setName = [string]$p.parameterValueSet.name
-        $evidence = [ordered]@{ connector = $connector; parameterSet = if ($setName) { $setName } else { 'default' }; secretParameters = @() }
-        if ([string]$p.authenticatedUser.name) { return New-NotApplicable 'Signs in as a user (AZ-LOGIC-005)' $evidence }
-        if ($p.parameterValueType -eq 'Alternative') { return New-Pass 'Signs in with a managed identity' $evidence }
-        $api = (Get-ManagedApiMap)[([string]$p.api.id).ToLowerInvariant()]
-        if (-not $api) { return New-Unknown "The metadata of connector $connector could not be read" $evidence }
-        $parameters = $api.properties.connectionParameters
-        if ($setName) {
-            $set = @($api.properties.connectionParameterSets.values | Where-Object { $_ -and $_.name -eq $setName }) | Select-Object -First 1
-            if (-not $set) { return New-Unknown "Connector $connector has no parameter set $setName" $evidence }
-            $parameters = $set.parameters
-        }
-        $declared = [System.Collections.Generic.List[object]]::new()
-        if ($null -ne $parameters) {
-            foreach ($parameter in @($parameters.PSObject.Properties)) { if ($parameter) { $declared.Add([pscustomobject]@{ Name = $parameter.Name; Type = [string]$parameter.Value.type }) } }
-        }
-        if (@($declared | Where-Object { $_.Type -eq 'managedIdentity' })) { return New-Pass 'Signs in with a managed identity' $evidence }
-        #a client id marks a service principal: always in a parameter set, and in the values of a default connection
-        $values = @($p.parameterValues, $p.nonSecretParameterValues | Where-Object { $_ } | ForEach-Object { $_.PSObject.Properties } | Where-Object { $_ -and $_.Value })
-        $clientIdDeclared = [bool]@($declared | Where-Object { $_.Name -eq 'token:clientId' })
-        $clientIdSet = [bool]@($values | Where-Object { $_.Name -eq 'token:clientId' -or ($_.Name -eq 'token:grantType' -and $_.Value -eq 'client_credentials') })
-        if ($clientIdDeclared -and ($setName -or $clientIdSet)) { return New-Pass 'Signs in with a service principal' $evidence }
-        $evidence.secretParameters = @($declared | Where-Object { $_.Type -in 'securestring', 'secureobject' -and $_.Name -notlike 'token:*' } | ForEach-Object { $_.Name } | Sort-Object)
-        if ($evidence.secretParameters) { return New-Fail "Stores a secret for $connector ($($evidence.secretParameters -join ', '))" $evidence }
+        $evidence = [ordered]@{ connector = $connector; parameterSet = $auth.ParameterSet; method = $auth.Method; secretParameters = $auth.SecretParameters }
+        if ($auth.Method -eq 'user') { return New-NotApplicable 'Signs in as a user (AZ-LOGIC-005)' $evidence }
+        if ($auth.Method -eq 'unknown') { return New-Unknown "How it signs in is not known: $($auth.Reason)" $evidence }
+        if ($auth.Method -in 'managed identity', 'service principal') { return New-Pass "Signs in with a $($auth.Method)" $evidence }
+        if ($auth.Method -eq 'shared secret') { return New-Fail "Stores a secret for $connector ($($auth.SecretParameters -join ', '))" $evidence }
         New-NotApplicable "Stores no secret for $connector" $evidence
     }
 }
