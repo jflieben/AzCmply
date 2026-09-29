@@ -288,8 +288,10 @@ Write-Host ''
 Write-Host '  Or a step at a time:' -ForegroundColor White
 Write-Host '    Invoke-AzCmplyIngest   ->  Invoke-AzCmplyAnalysis  ->  New-AzCmplyReport' -ForegroundColor DarkGray
 Write-Host ''
-Write-Host '  Needs Reader on the subscription and Directory.Read.All in Graph. Get-Help <command> -Full for the rest.' -ForegroundColor DarkGray
+Write-Host '  Needs Reader on the subscription, and Directory.Read.All and PrivilegedAccess.Read.AzureADGroup in Graph. Get-Help <command> -Full for the rest.' -ForegroundColor DarkGray
 Write-Host ''
+Write-Host '  Commercial use not allowed without written permission from JSolve B.V.'
+Write-Host '  Check https://azcmply.jsolve.nl for a quick web based version of the assessment.'
 '@)
 
 $psm1Path = Join-Path $moduleRoot "$moduleName.psm1"
@@ -309,7 +311,7 @@ New-ModuleManifest -Path (Join-Path $moduleRoot "$moduleName.psd1") `
     -Author 'Jos Lieben / JSolve B.V.' `
     -CompanyName 'JSolve B.V.' `
     -Copyright "(c) Jos Lieben / JSolve B.V. Free for non-commercial use; commercial use requires a license or written permission: https://jsolve.nl/commercial-use.html" `
-    -Description 'Security posture assessment for an Azure subscription: read-only collection, an offline test suite mapped to MCSB v2, CIS Azure Foundations, WAF and Azure landing zone controls, and a self-contained HTML report. For a quick web based version, check out https://azcmply.jsolve.nl' `
+    -Description 'Security posture assessment for an Azure subscription: read-only collection, an offline test & comparison suite mapped to MCSB v2, CIS Azure Foundations, WAF, CIS Controls, DORA, ISO 27001, NIST CSF, NIST SP 800-53, PCI DSS, SOC 2, CMMC and Azure landing zone controls, and a self-contained HTML report. For a quick web based version, check out https://azcmply.jsolve.nl' `
     -PowerShellVersion '7.2' `
     -FunctionsToExport $exportedFunctions `
     -CmdletsToExport @() `

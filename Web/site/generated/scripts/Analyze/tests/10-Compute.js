@@ -175,1007 +175,1017 @@ export default R.script("/app/Analyze/tests/10-Compute.ps1", { params: [], adv: 
         R.ln = F + 124;
         R.pa(O, R.cmd(S, "New-Fail", ["Password authentication enabled", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 128;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-VM-005", "Title", "Virtual machines periodically assess missing updates", "Category", "Posture and vulnerability management", "Service", "Azure Update Manager", "Severity", "Medium", "Description", "Checks that the patch assessment mode of virtual machines is AutomaticByPlatform (periodic assessment by Azure Update Manager).", "Rationale", "Without periodic assessment, missing security updates are not reported and unpatched vulnerabilities go unnoticed.", "Remediation", "Enable periodic assessment (az vm update --set osProfile.windowsConfiguration.patchSettings.assessmentMode=AutomaticByPlatform ...) or assign the 'Configure periodic checking for missing system updates' policy.", "References", R.a("https://learn.microsoft.com/azure/update-manager/assessment-options"), "Defender", R.ht(["90386950-71ca-4357-a12e-486d1679427c", "Machines should be configured to periodically check for missing system updates"], false), "Policy", R.ht(["bd876905-5b84-4f73-ab2d-2e7a7c4568d9", "Machines should be configured to periodically check for missing system updates"], false), "ResourceTypes", R.a((S["vmtype"] ?? null)), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $osProfile = $Record.resource.properties.osProfile\n        if (-not $osProfile) { return New-Unknown 'No OS profile (VM created from a specialized disk); check assessment in Azure Update Manager' }\n        $settings = if ($osProfile.windowsConfiguration) { $osProfile.windowsConfiguration.patchSettings } else { $osProfile.linuxConfiguration.patchSettings }\n        $evidence = [ordered]@{ assessmentMode = $settings.assessmentMode; patchMode = $settings.patchMode }\n        if ($settings.assessmentMode -eq 'AutomaticByPlatform') { return New-Pass 'Periodic assessment enabled' $evidence }\n        New-Fail \"Assessment mode $(if ($settings.assessmentMode) { $settings.assessmentMode } else { 'ImageDefault' })\" $evidence\n    " }, (S, O) => {
-        R.ln = F + 143;
+    R.ln = F + 129;
+    S["applianceimagepublishers"] = R.a([R.v("fortinet"), R.v("paloaltonetworks"), R.v("checkpoint"), R.v("cisco"), R.v("barracudanetworks"), R.v("f5-networks"), R.v("citrix"), R.v("sophos"), R.v("juniper-networks"), R.v("netgate")]);
+    R.ln = F + 131;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-VM-005", "Version", 2, "Title", "Virtual machines periodically assess missing updates", "Category", "Posture and vulnerability management", "Service", "Azure Update Manager", "Severity", "Medium", "Description", "Checks that the patch assessment mode of virtual machines is AutomaticByPlatform (periodic assessment by Azure Update Manager). Network appliances from the Marketplace (Fortinet, Palo Alto Networks, Check Point, Cisco and others) are patched by their vendor and left out.", "Rationale", "Without periodic assessment, missing security updates are not reported and unpatched vulnerabilities go unnoticed.", "Remediation", "Enable periodic assessment (az vm update --set osProfile.windowsConfiguration.patchSettings.assessmentMode=AutomaticByPlatform ...) or assign the 'Configure periodic checking for missing system updates' policy.", "References", R.a("https://learn.microsoft.com/azure/update-manager/assessment-options"), "Defender", R.ht(["90386950-71ca-4357-a12e-486d1679427c", "Machines should be configured to periodically check for missing system updates"], false), "Policy", R.ht(["bd876905-5b84-4f73-ab2d-2e7a7c4568d9", "Machines should be configured to periodically check for missing system updates"], false), "ResourceTypes", R.a((S["vmtype"] ?? null)), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $image = $Record.resource.properties.storageProfile.imageReference\n        if ([string]$image.publisher -in $applianceImagePublishers) { return New-NotApplicable \"Network appliance image ($($image.publisher)/$($image.offer)): its vendor patches the operating system, which Azure Update Manager does not assess\" ([ordered]@{ imagePublisher = $image.publisher; imageOffer = $image.offer }) }\n        $osProfile = $Record.resource.properties.osProfile\n        if (-not $osProfile) { return New-Unknown 'No OS profile (VM created from a specialized disk); check assessment in Azure Update Manager' }\n        $settings = if ($osProfile.windowsConfiguration) { $osProfile.windowsConfiguration.patchSettings } else { $osProfile.linuxConfiguration.patchSettings }\n        $evidence = [ordered]@{ assessmentMode = $settings.assessmentMode; patchMode = $settings.patchMode }\n        if ($settings.assessmentMode -eq 'AutomaticByPlatform') { return New-Pass 'Periodic assessment enabled' $evidence }\n        New-Fail \"Assessment mode $(if ($settings.assessmentMode) { $settings.assessmentMode } else { 'ImageDefault' })\" $evidence\n    " }, (S, O) => {
+        R.ln = F + 147;
+        S["image"] = R.m(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "storageProfile"), "imageReference");
+        R.ln = F + 148;
+        if (R.t(R.in(R.c("string", R.m((S["image"] ?? null), "publisher")), (S["applianceimagepublishers"] ?? null)))) {
+            R.ln = F + 148;
+            R.pa(O, R.cmd(S, "New-NotApplicable", [("Network appliance image (" + R.str(R.u(R.pi(R.m((S["image"] ?? null), "publisher")))) + "/" + R.str(R.u(R.pi(R.m((S["image"] ?? null), "offer")))) + "): its vendor patches the operating system, which Azure Update Manager does not assess"), (R.ht(["imagePublisher", R.m((S["image"] ?? null), "publisher"), "imageOffer", R.m((S["image"] ?? null), "offer")], true))], null));
+            return;
+        }
+        R.ln = F + 149;
         S["osprofile"] = R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "osProfile");
-        R.ln = F + 144;
+        R.ln = F + 150;
         if (!R.t((S["osprofile"] ?? null))) {
-            R.ln = F + 144;
+            R.ln = F + 150;
             R.pa(O, R.cmd(S, "New-Unknown", ["No OS profile (VM created from a specialized disk); check assessment in Azure Update Manager"], null));
             return;
         }
-        R.ln = F + 145;
+        R.ln = F + 151;
         const v3 = [];
-        R.ln = F + 145;
+        R.ln = F + 151;
         if (R.t(R.m((S["osprofile"] ?? null), "windowsConfiguration"))) {
-            R.ln = F + 145;
+            R.ln = F + 151;
             R.e(v3, R.m(R.m((S["osprofile"] ?? null), "windowsConfiguration"), "patchSettings"));
         } else {
-            R.ln = F + 145;
+            R.ln = F + 151;
             R.e(v3, R.m(R.m((S["osprofile"] ?? null), "linuxConfiguration"), "patchSettings"));
         }
         S["settings"] = R.u(v3);
-        R.ln = F + 146;
+        R.ln = F + 152;
         S["evidence"] = R.ht(["assessmentMode", R.m((S["settings"] ?? null), "assessmentMode"), "patchMode", R.m((S["settings"] ?? null), "patchMode")], true);
-        R.ln = F + 147;
+        R.ln = F + 153;
         if (R.t(R.eq(R.m((S["settings"] ?? null), "assessmentMode"), "AutomaticByPlatform"))) {
-            R.ln = F + 147;
+            R.ln = F + 153;
             R.pa(O, R.cmd(S, "New-Pass", ["Periodic assessment enabled", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 148;
+        R.ln = F + 154;
         R.pa(O, R.cmd(S, "New-Fail", [("Assessment mode " + R.str((() => {
             const v4 = [];
-            R.ln = F + 148;
+            R.ln = F + 154;
             if (R.t(R.m((S["settings"] ?? null), "assessmentMode"))) {
-                R.ln = F + 148;
+                R.ln = F + 154;
                 R.e(v4, R.m((S["settings"] ?? null), "assessmentMode"));
             } else {
-                R.ln = F + 148;
+                R.ln = F + 154;
                 R.e(v4, "ImageDefault");
             }
             return R.u(v4);
         })())), (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 152;
+    R.ln = F + 158;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-VM-006", "Version", 2, "Title", "Machines run Microsoft Defender for Endpoint", "Category", "Endpoint security", "Service", "Virtual machines", "Severity", "High", "Description", "Checks virtual machines, scale sets and Arc machines for the Microsoft Defender for Endpoint extension (MDE.Windows or MDE.Linux).", "Rationale", "Without EDR, malware, ransomware and hands-on-keyboard attacks on the machine are neither prevented nor detected.", "Remediation", "Enable Defender for Servers with the endpoint protection component, which deploys the MDE extension automatically, or onboard the machine to Defender for Endpoint directly.", "References", R.a("https://learn.microsoft.com/azure/defender-for-cloud/integration-defender-for-endpoint"), "Defender", R.ht(["06e3a6db-6c0c-4ad9-943f-31d9d73ecf6c", "EDR solution should be installed on Virtual Machines"], false), "ResourceTypes", R.a([R.v((S["vmtype"] ?? null)), R.v((S["vmsstype"] ?? null)), R.v((S["arctype"] ?? null))]), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not (Test-MachineExtensionsCollected $Record)) { return New-Unknown 'Installed extensions could not be read' }\n        $extensions = @(Get-MachineExtensions $Record)\n        $evidence = [ordered]@{ extensions = $extensions }\n        if ($extensions | Where-Object { $_ -match '/MDE\\.(Windows|Linux)$' }) { return New-Pass 'Defender for Endpoint extension installed' $evidence }\n        New-Fail 'No Defender for Endpoint extension' $evidence\n    " }, (S, O) => {
-        R.ln = F + 167;
+        R.ln = F + 173;
         if (!R.t(R.u(R.cmd(S, "Test-MachineExtensionsCollected", [(S["record"] ?? null)], null)))) {
-            R.ln = F + 167;
+            R.ln = F + 173;
             R.pa(O, R.cmd(S, "New-Unknown", ["Installed extensions could not be read"], null));
             return;
         }
-        R.ln = F + 168;
+        R.ln = F + 174;
         S["extensions"] = R.cmd(S, "Get-MachineExtensions", [(S["record"] ?? null)], null);
-        R.ln = F + 169;
+        R.ln = F + 175;
         S["evidence"] = R.ht(["extensions", (S["extensions"] ?? null)], true);
-        R.ln = F + 170;
+        R.ln = F + 176;
         if (R.t(R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -match '/MDE\\.(Windows|Linux)$' " }, (S, O) => {
-            R.ln = F + 170;
+            R.ln = F + 176;
             R.e(O, R.match(S, (S["_"] ?? null), "/MDE\\.(Windows|Linux)$"));
         })], R.pi((S["extensions"] ?? null)))))) {
-            R.ln = F + 170;
+            R.ln = F + 176;
             R.pa(O, R.cmd(S, "New-Pass", ["Defender for Endpoint extension installed", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 171;
+        R.ln = F + 177;
         R.pa(O, R.cmd(S, "New-Fail", ["No Defender for Endpoint extension", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 175;
+    R.ln = F + 181;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-VM-007", "Version", 2, "Title", "Machines have the guest configuration extension with a system assigned identity", "Category", "Posture and vulnerability management", "Service", "Virtual machines", "Severity", "Medium", "Description", "Checks virtual machines for the Azure machine configuration (guest configuration) extension and a system assigned managed identity.", "Rationale", "Machine configuration audits the operating system against the Azure compute security baseline and custom baselines; without it OS hardening drift is not measured.", "Remediation", "Assign the 'Deploy prerequisites to enable Guest Configuration policies on virtual machines' initiative, which adds the extension and identity.", "References", R.a("https://learn.microsoft.com/azure/governance/machine-configuration/overview"), "Defender", R.ht(["6c99f570-2ce7-46bc-8175-cde013df43bc", "Guest Configuration extension should be installed on machines", "69133b6b-695a-43eb-a763-221e19556755", "Virtual machines' Guest Configuration extension should be deployed with system-assigned managed identity"], false), "Policy", R.ht(["ae89ebca-1c92-4898-ac2c-9f63decb045c", "Guest Configuration extension should be installed on your machines"], false), "ResourceTypes", R.a((S["vmtype"] ?? null)), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not (Test-MachineExtensionsCollected $Record)) { return New-Unknown 'Installed extensions could not be read' }\n        $extensions = @(Get-MachineExtensions $Record)\n        $installed = [bool]($extensions | Where-Object { $_ -match '^Microsoft\\.GuestConfiguration/' })\n        $systemIdentity = [string]$Record.resource.identity.type -match 'SystemAssigned'\n        $evidence = [ordered]@{ guestConfigurationExtension = $installed; systemAssignedIdentity = $systemIdentity }\n        if ($installed -and $systemIdentity) { return New-Pass 'Guest configuration enabled' $evidence }\n        New-Fail $(if (-not $installed) { 'Guest configuration extension missing' } else { 'No system assigned managed identity' }) $evidence\n    " }, (S, O) => {
-        R.ln = F + 191;
+        R.ln = F + 197;
         if (!R.t(R.u(R.cmd(S, "Test-MachineExtensionsCollected", [(S["record"] ?? null)], null)))) {
-            R.ln = F + 191;
+            R.ln = F + 197;
             R.pa(O, R.cmd(S, "New-Unknown", ["Installed extensions could not be read"], null));
             return;
         }
-        R.ln = F + 192;
+        R.ln = F + 198;
         S["extensions"] = R.cmd(S, "Get-MachineExtensions", [(S["record"] ?? null)], null);
-        R.ln = F + 193;
+        R.ln = F + 199;
         S["installed"] = R.c("bool", R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -match '^Microsoft\\.GuestConfiguration/' " }, (S, O) => {
-            R.ln = F + 193;
+            R.ln = F + 199;
             R.e(O, R.match(S, (S["_"] ?? null), "^Microsoft\\.GuestConfiguration/"));
         })], R.pi((S["extensions"] ?? null)))));
-        R.ln = F + 194;
+        R.ln = F + 200;
         S["systemidentity"] = R.match(S, R.c("string", R.m(R.m(R.m((S["record"] ?? null), "resource"), "identity"), "type")), "SystemAssigned");
-        R.ln = F + 195;
+        R.ln = F + 201;
         S["evidence"] = R.ht(["guestConfigurationExtension", (S["installed"] ?? null), "systemAssignedIdentity", (S["systemidentity"] ?? null)], true);
-        R.ln = F + 196;
+        R.ln = F + 202;
         if ((R.t((S["installed"] ?? null)) && R.t((S["systemidentity"] ?? null)))) {
-            R.ln = F + 196;
+            R.ln = F + 202;
             R.pa(O, R.cmd(S, "New-Pass", ["Guest configuration enabled", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 197;
+        R.ln = F + 203;
         R.pa(O, R.cmd(S, "New-Fail", [(() => {
             const v5 = [];
-            R.ln = F + 197;
+            R.ln = F + 203;
             if (!R.t((S["installed"] ?? null))) {
-                R.ln = F + 197;
+                R.ln = F + 203;
                 R.e(v5, "Guest configuration extension missing");
             } else {
-                R.ln = F + 197;
+                R.ln = F + 203;
                 R.e(v5, "No system assigned managed identity");
             }
             return R.u(v5);
         })(), (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 201;
+    R.ln = F + 207;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-VM-008", "Version", 2, "Title", "Machines run the Azure Monitor Agent", "Category", "Logging and threat detection", "Service", "Virtual machines", "Severity", "Medium", "Description", "Checks virtual machines, scale sets and Arc machines for the Azure Monitor Agent extension.", "Rationale", "The Azure Monitor Agent collects security events, syslog and performance data for Sentinel and Defender; without it host level activity is invisible to the SOC.", "Remediation", "Install the Azure Monitor Agent (az vm extension set --name AzureMonitorWindowsAgent|AzureMonitorLinuxAgent --publisher Microsoft.Azure.Monitor ...) and associate data collection rules.", "References", R.a("https://learn.microsoft.com/azure/azure-monitor/agents/azure-monitor-agent-overview"), "ResourceTypes", R.a([R.v((S["vmtype"] ?? null)), R.v((S["vmsstype"] ?? null)), R.v((S["arctype"] ?? null))]), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not (Test-MachineExtensionsCollected $Record)) { return New-Unknown 'Installed extensions could not be read' }\n        $extensions = @(Get-MachineExtensions $Record)\n        $evidence = [ordered]@{ extensions = $extensions }\n        if ($extensions | Where-Object { $_ -match '/AzureMonitor(Windows|Linux)Agent$' }) { return New-Pass 'Azure Monitor Agent installed' $evidence }\n        New-Fail 'No Azure Monitor Agent' $evidence\n    " }, (S, O) => {
-        R.ln = F + 215;
+        R.ln = F + 221;
         if (!R.t(R.u(R.cmd(S, "Test-MachineExtensionsCollected", [(S["record"] ?? null)], null)))) {
-            R.ln = F + 215;
+            R.ln = F + 221;
             R.pa(O, R.cmd(S, "New-Unknown", ["Installed extensions could not be read"], null));
             return;
         }
-        R.ln = F + 216;
+        R.ln = F + 222;
         S["extensions"] = R.cmd(S, "Get-MachineExtensions", [(S["record"] ?? null)], null);
-        R.ln = F + 217;
+        R.ln = F + 223;
         S["evidence"] = R.ht(["extensions", (S["extensions"] ?? null)], true);
-        R.ln = F + 218;
+        R.ln = F + 224;
         if (R.t(R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -match '/AzureMonitor(Windows|Linux)Agent$' " }, (S, O) => {
-            R.ln = F + 218;
+            R.ln = F + 224;
             R.e(O, R.match(S, (S["_"] ?? null), "/AzureMonitor(Windows|Linux)Agent$"));
         })], R.pi((S["extensions"] ?? null)))))) {
-            R.ln = F + 218;
+            R.ln = F + 224;
             R.pa(O, R.cmd(S, "New-Pass", ["Azure Monitor Agent installed", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 219;
+        R.ln = F + 225;
         R.pa(O, R.cmd(S, "New-Fail", ["No Azure Monitor Agent", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 223;
+    R.ln = F + 229;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-VM-009", "Version", 2, "Title", "Machines do not run the retired Log Analytics agent", "Category", "Logging and threat detection", "Service", "Virtual machines", "Severity", "Medium", "Description", "Finds virtual machines, scale sets and Arc machines with the legacy Log Analytics agent (MicrosoftMonitoringAgent / OmsAgentForLinux), retired since August 2024.", "Rationale", "The retired agent no longer receives security updates or support, and its data collection may stop working at any time.", "Remediation", "Migrate data collection to the Azure Monitor Agent with data collection rules, then remove the legacy extension.", "References", R.a("https://learn.microsoft.com/azure/azure-monitor/agents/azure-monitor-agent-migration"), "Policy", R.ht(["d2185817-5b7e-473c-aadd-9de6ac114280", "The legacy Log Analytics extension should not be installed on virtual machines", "ba6881f9-ab93-498b-8bad-bb91b1d755bf", "The legacy Log Analytics extension should not be installed on virtual machine scale sets"], false), "ResourceTypes", R.a([R.v((S["vmtype"] ?? null)), R.v((S["vmsstype"] ?? null)), R.v((S["arctype"] ?? null))]), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not (Test-MachineExtensionsCollected $Record)) { return New-Unknown 'Installed extensions could not be read' }\n        $legacy = @(Get-MachineExtensions $Record | Where-Object { $_ -match '/(MicrosoftMonitoringAgent|OmsAgentForLinux)$' })\n        $evidence = [ordered]@{ legacyExtensions = $legacy }\n        if ($legacy) { return New-Fail \"Legacy agent installed: $($legacy -join ', ')\" $evidence }\n        New-Pass 'No legacy Log Analytics agent' $evidence\n    " }, (S, O) => {
-        R.ln = F + 238;
+        R.ln = F + 244;
         if (!R.t(R.u(R.cmd(S, "Test-MachineExtensionsCollected", [(S["record"] ?? null)], null)))) {
-            R.ln = F + 238;
+            R.ln = F + 244;
             R.pa(O, R.cmd(S, "New-Unknown", ["Installed extensions could not be read"], null));
             return;
         }
-        R.ln = F + 239;
+        R.ln = F + 245;
         S["legacy"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -match '/(MicrosoftMonitoringAgent|OmsAgentForLinux)$' " }, (S, O) => {
-            R.ln = F + 239;
+            R.ln = F + 245;
             R.e(O, R.match(S, (S["_"] ?? null), "/(MicrosoftMonitoringAgent|OmsAgentForLinux)$"));
         })], R.cmd(S, "Get-MachineExtensions", [(S["record"] ?? null)], null));
-        R.ln = F + 240;
+        R.ln = F + 246;
         S["evidence"] = R.ht(["legacyExtensions", (S["legacy"] ?? null)], true);
-        R.ln = F + 241;
+        R.ln = F + 247;
         if (R.t((S["legacy"] ?? null))) {
-            R.ln = F + 241;
+            R.ln = F + 247;
             R.pa(O, R.cmd(S, "New-Fail", [("Legacy agent installed: " + R.str(R.u(R.pi(R.join((S["legacy"] ?? null), ", "))))), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 242;
+        R.ln = F + 248;
         R.pa(O, R.cmd(S, "New-Pass", ["No legacy Log Analytics agent", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 246;
+    R.ln = F + 252;
     R.def(S, "Get-BackupProtectedIds", { params: [], adv: 0, h: "20689a4648739156" }, (S, O) => {
-        R.ln = F + 248;
+        R.ln = F + 254;
         S["ids"] = R.sc("System.Collections.Generic.HashSet[string]", "new", []);
-        R.ln = F + 249;
+        R.ln = F + 255;
         S["readable"] = false;
-        R.ln = F + 250;
+        R.ln = F + 256;
         for (const it6 of R.fi(R.u(R.cmd(S, "Get-AzResourceRecords", [R.np("Type"), "Microsoft.RecoveryServices/vaults"], null)))) {
             S["vault"] = it6;
-            R.ln = F + 251;
+            R.ln = F + 257;
             if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["vault"] ?? null), "backupProtectedItems"], null)))) {
                 continue;
             }
-            R.ln = F + 252;
+            R.ln = F + 258;
             S["readable"] = true;
-            R.ln = F + 253;
+            R.ln = F + 259;
             for (const it7 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                R.ln = F + 253;
+                R.ln = F + 259;
                 R.e(O, (S["_"] ?? null));
             })], R.cmd(S, "Get-Child", [(S["vault"] ?? null), "backupProtectedItems"], null)))) {
                 S["item"] = it7;
-                R.ln = F + 254;
+                R.ln = F + 260;
                 for (const it8 of R.fi(R.a([R.v(R.m(R.m((S["item"] ?? null), "properties"), "sourceResourceId")), R.v(R.m(R.m((S["item"] ?? null), "properties"), "virtualMachineId"))]))) {
                     S["id"] = it8;
-                    R.ln = F + 254;
+                    R.ln = F + 260;
                     if (R.t((S["id"] ?? null))) {
-                        R.ln = F + 254;
+                        R.ln = F + 260;
                         R.im((S["ids"] ?? null), "Add", [R.im((S["id"] ?? null), "ToLowerInvariant", [])]);
                     }
                 }
             }
         }
-        R.ln = F + 257;
+        R.ln = F + 263;
         if ((!R.t((S["readable"] ?? null)) && R.t(R.m(R.cmd(S, "Get-AzResourceRecords", [R.np("Type"), "Microsoft.RecoveryServices/vaults"], null), "Count")))) {
-            R.ln = F + 257;
+            R.ln = F + 263;
             R.e(O, null);
             return;
         }
-        R.ln = F + 258;
+        R.ln = F + 264;
         R.e(O, [R.v((S["ids"] ?? null))]);
         return;
     });
-    R.ln = F + 261;
+    R.ln = F + 267;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-VM-010", "Title", "Virtual machines are protected by Azure Backup", "Category", "Backup and recovery", "Service", "Azure Backup", "Severity", "Medium", "Description", "Checks that each virtual machine is a protected item in a Recovery Services vault in this subscription.", "Rationale", "Without backups a VM cannot be restored after ransomware, destructive attacks or accidental deletion.", "Remediation", "Enable backup for the VM with an enhanced policy in a vault with immutability and soft delete (az backup protection enable-for-vm ...). VMs backed up by a vault in another subscription or by another product must be verified manually.", "References", R.a("https://learn.microsoft.com/azure/backup/backup-azure-vms-introduction"), "Policy", R.ht(["013e242c-8828-4970-87b3-ab247555486d", "Azure Backup should be enabled for Virtual Machines"], false), "ResourceTypes", R.a((S["vmtype"] ?? null)), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $protected = Get-BackupProtectedIds\n        if ($null -eq $protected) { return New-Unknown 'Backup protected items could not be read' }\n        if ($protected.Contains($Record.id.ToLowerInvariant())) { return New-Pass 'Protected by Azure Backup' }\n        New-Fail 'Not protected by a Recovery Services vault in this subscription'\n    " }, (S, O) => {
-        R.ln = F + 275;
+        R.ln = F + 281;
         S["protected"] = R.u(R.cmd(S, "Get-BackupProtectedIds", [], null));
-        R.ln = F + 276;
+        R.ln = F + 282;
         if (R.t(R.eq(null, (S["protected"] ?? null)))) {
-            R.ln = F + 276;
+            R.ln = F + 282;
             R.pa(O, R.cmd(S, "New-Unknown", ["Backup protected items could not be read"], null));
             return;
         }
-        R.ln = F + 277;
+        R.ln = F + 283;
         if (R.t(R.im((S["protected"] ?? null), "Contains", [R.im(R.m((S["record"] ?? null), "id"), "ToLowerInvariant", [])]))) {
-            R.ln = F + 277;
+            R.ln = F + 283;
             R.pa(O, R.cmd(S, "New-Pass", ["Protected by Azure Backup"], null));
             return;
         }
-        R.ln = F + 278;
+        R.ln = F + 284;
         R.pa(O, R.cmd(S, "New-Fail", ["Not protected by a Recovery Services vault in this subscription"], null));
     })], false)], null));
-    R.ln = F + 282;
+    R.ln = F + 288;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-VM-011", "Title", "Managed disks disable public network access", "Category", "Network security", "Service", "Managed disks", "Severity", "Medium", "Description", "Checks the network access policy and public network access of managed disks, which control disk export and import over SAS URLs.", "Rationale", "With 'AllowAll' anyone with Contributor rights can generate a SAS URL and download the whole disk (including credentials and data) from the Internet.", "Remediation", "Set the network access policy to DenyAll, or AllowPrivate with a disk access resource, and disable public network access (az disk update --network-access-policy DenyAll --public-network-access Disabled ...).", "References", R.a("https://learn.microsoft.com/azure/virtual-machines/disks-enable-private-links-for-import-export-portal"), "Defender", R.ht(["f635fb12-4c7f-e9a8-5ed1-c005728ea849", "Managed disks should disable public network access"], false), "Policy", R.ht(["8405fdab-1faf-48aa-b702-999c9c172094", "Managed disks should disable public network access"], false), "ResourceTypes", R.a("Microsoft.Compute/disks"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $p = $Record.resource.properties\n        $evidence = [ordered]@{ networkAccessPolicy = $p.networkAccessPolicy; publicNetworkAccess = $p.publicNetworkAccess }\n        if ($p.networkAccessPolicy -in 'DenyAll', 'AllowPrivate' -or $p.publicNetworkAccess -eq 'Disabled') { return New-Pass \"Network access policy $($p.networkAccessPolicy)\" $evidence }\n        New-Fail 'Disk export over the Internet is allowed' $evidence\n    " }, (S, O) => {
-        R.ln = F + 297;
+        R.ln = F + 303;
         S["p"] = R.m(R.m((S["record"] ?? null), "resource"), "properties");
-        R.ln = F + 298;
+        R.ln = F + 304;
         S["evidence"] = R.ht(["networkAccessPolicy", R.m((S["p"] ?? null), "networkAccessPolicy"), "publicNetworkAccess", R.m((S["p"] ?? null), "publicNetworkAccess")], true);
-        R.ln = F + 299;
+        R.ln = F + 305;
         if ((R.t(R.in(R.m((S["p"] ?? null), "networkAccessPolicy"), [R.v("DenyAll"), R.v("AllowPrivate")])) || R.t(R.eq(R.m((S["p"] ?? null), "publicNetworkAccess"), "Disabled")))) {
-            R.ln = F + 299;
+            R.ln = F + 305;
             R.pa(O, R.cmd(S, "New-Pass", [("Network access policy " + R.str(R.u(R.pi(R.m((S["p"] ?? null), "networkAccessPolicy"))))), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 300;
+        R.ln = F + 306;
         R.pa(O, R.cmd(S, "New-Fail", ["Disk export over the Internet is allowed", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 304;
+    R.ln = F + 310;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-VM-012", "Title", "Disk snapshots disable public network export", "Category", "Network security", "Service", "Managed disks", "Severity", "Medium", "Description", "Checks the network access policy and public network access of managed disk snapshots, and flags any snapshot with a live export session (SAS or upload). Managed disks themselves are covered by AZ-VM-011.", "Rationale", "A snapshot is a full copy of a disk and is often left behind long after the disk is gone. With an 'AllowAll' network policy anyone with Contributor rights can mint a SAS URL and download it, including credentials and data, from the Internet. An active export session means such a URL is live right now.", "Remediation", "Set the snapshot network access policy to DenyAll, or AllowPrivate with a disk access resource, and disable public network access (az snapshot update --network-access-policy DenyAll --public-network-access Disabled ...). Revoke any active export with az snapshot revoke-access and delete snapshots that are no longer needed.", "References", R.a("https://learn.microsoft.com/azure/virtual-machines/disks-enable-private-links-for-import-export-portal"), "ResourceTypes", R.a("Microsoft.Compute/snapshots"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $p = $Record.resource.properties\n        $evidence = [ordered]@{ networkAccessPolicy = $p.networkAccessPolicy; publicNetworkAccess = $p.publicNetworkAccess; diskState = $p.diskState }\n        if ([string]$p.diskState -in 'ActiveSAS', 'ActiveSASFrozen', 'ActiveUpload', 'ActiveUploadSAS') { return New-Fail 'A snapshot export session (SAS or upload) is currently active' $evidence }\n        if ($p.networkAccessPolicy -in 'DenyAll', 'AllowPrivate' -or $p.publicNetworkAccess -eq 'Disabled') { return New-Pass \"Network access policy $($p.networkAccessPolicy)\" $evidence }\n        New-Fail 'Snapshot export over the Internet is allowed' $evidence\n    " }, (S, O) => {
-        R.ln = F + 317;
+        R.ln = F + 323;
         S["p"] = R.m(R.m((S["record"] ?? null), "resource"), "properties");
-        R.ln = F + 318;
+        R.ln = F + 324;
         S["evidence"] = R.ht(["networkAccessPolicy", R.m((S["p"] ?? null), "networkAccessPolicy"), "publicNetworkAccess", R.m((S["p"] ?? null), "publicNetworkAccess"), "diskState", R.m((S["p"] ?? null), "diskState")], true);
-        R.ln = F + 319;
+        R.ln = F + 325;
         if (R.t(R.in(R.c("string", R.m((S["p"] ?? null), "diskState")), [R.v("ActiveSAS"), R.v("ActiveSASFrozen"), R.v("ActiveUpload"), R.v("ActiveUploadSAS")]))) {
-            R.ln = F + 319;
+            R.ln = F + 325;
             R.pa(O, R.cmd(S, "New-Fail", ["A snapshot export session (SAS or upload) is currently active", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 320;
+        R.ln = F + 326;
         if ((R.t(R.in(R.m((S["p"] ?? null), "networkAccessPolicy"), [R.v("DenyAll"), R.v("AllowPrivate")])) || R.t(R.eq(R.m((S["p"] ?? null), "publicNetworkAccess"), "Disabled")))) {
-            R.ln = F + 320;
+            R.ln = F + 326;
             R.pa(O, R.cmd(S, "New-Pass", [("Network access policy " + R.str(R.u(R.pi(R.m((S["p"] ?? null), "networkAccessPolicy"))))), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 321;
+        R.ln = F + 327;
         R.pa(O, R.cmd(S, "New-Fail", ["Snapshot export over the Internet is allowed", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 325;
+    R.ln = F + 331;
     S["datacollectionruleassociationspath"] = "providers/Microsoft.Insights/dataCollectionRuleAssociations";
-    R.ln = F + 327;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-VM-013", "Title", "Change Tracking and Inventory is enabled on machines", "Category", "Asset management", "Service", "Virtual machines", "Severity", "Low", "Description", "Checks virtual machines, scale sets and Arc machines for the Change Tracking extension with the Azure Monitor Agent, and for an associated data collection rule that collects change tracking data. Scale sets managed by AKS are left out.", "Rationale", "Change Tracking and Inventory records the software, services, files and registry keys of each machine and every change to them. It is the software inventory of the fleet and shows unauthorized installations and configuration drift.", "Remediation", "Enable Change Tracking and Inventory (machine > Operations > Inventory), or assign the built-in initiatives 'Enable ChangeTracking and Inventory for virtual machines', 'for virtual machine scale sets' and 'for Arc-enabled virtual machines'.", "References", R.a("https://learn.microsoft.com/azure/automation/change-tracking/overview-monitoring-agent"), "ResourceTypes", R.a([R.v((S["vmtype"] ?? null)), R.v((S["vmsstype"] ?? null)), R.v((S["arctype"] ?? null))]), "Filter", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) -not ($Record.type -eq $vmssType -and @($Record.resource.tags.PSObject.Properties.Name | Where-Object { $_ -like 'aks-managed-*' }).Count) " }, (S, O) => {
-        R.ln = F + 338;
+    R.ln = F + 333;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-VM-013", "Version", 2, "Title", "Change Tracking and Inventory is enabled on machines", "Category", "Asset management", "Service", "Virtual machines", "Severity", "Low", "Description", "Checks virtual machines, scale sets and Arc machines for the Change Tracking extension with the Azure Monitor Agent, and for an associated data collection rule that collects change tracking data. Scale sets managed by AKS are left out.", "Rationale", "Change Tracking and Inventory records the software, services, files and registry keys of each machine and every change to them. It is the software inventory of the fleet and shows unauthorized installations and configuration drift.", "Remediation", "Enable Change Tracking and Inventory (machine > Operations > Inventory), or assign the built-in initiatives 'Enable ChangeTracking and Inventory for virtual machines', 'for virtual machine scale sets' and 'for Arc-enabled virtual machines'.", "References", R.a("https://learn.microsoft.com/azure/automation/change-tracking/overview-monitoring-agent"), "ResourceTypes", R.a([R.v((S["vmtype"] ?? null)), R.v((S["vmsstype"] ?? null)), R.v((S["arctype"] ?? null))]), "Filter", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) -not ($Record.type -eq $vmssType -and @($Record.resource.tags.PSObject.Properties.Name | Where-Object { $_ -like 'aks-managed-*' }).Count) " }, (S, O) => {
+        R.ln = F + 345;
         R.e(O, !(R.t(R.eq(R.m((S["record"] ?? null), "type"), (S["vmsstype"] ?? null))) && R.t(R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -like 'aks-managed-*' " }, (S, O) => {
-            R.ln = F + 338;
+            R.ln = F + 345;
             R.e(O, R.like((S["_"] ?? null), "aks-managed-*"));
         })], R.pi(R.m(R.m(R.m(R.m(R.m((S["record"] ?? null), "resource"), "tags"), "PSObject"), "Properties"), "Name"))), "Count"))));
-    }), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not (Test-MachineExtensionsCollected $Record)) { return New-Unknown 'Installed extensions could not be read' }\n        $extensions = @(Get-MachineExtensions $Record)\n        $evidence = [ordered]@{\n            changeTrackingExtension = [bool]@($extensions | Where-Object { $_ -match '^Microsoft\\.Azure\\.ChangeTrackingAndInventory/ChangeTracking-(Windows|Linux)$' }).Count\n            azureMonitorAgent       = [bool]@($extensions | Where-Object { $_ -match '/AzureMonitor(Windows|Linux)Agent$' }).Count\n        }\n        if (-not $evidence.changeTrackingExtension) { return New-Fail 'No Change Tracking extension' $evidence }\n        if (-not $evidence.azureMonitorAgent) { return New-Fail 'Change Tracking extension without the Azure Monitor Agent' $evidence }\n        if (-not (Test-ChildCollected $Record $dataCollectionRuleAssociationsPath)) { return New-Unknown 'Data collection rule associations could not be read' $evidence }\n        $ruleIds = @(Get-Child $Record $dataCollectionRuleAssociationsPath | Where-Object { $_ -and $_.properties.dataCollectionRuleId } | ForEach-Object { [string]$_.properties.dataCollectionRuleId } | Sort-Object -Unique)\n        $evidence.dataCollectionRules = @($ruleIds | ForEach-Object { ($_ -split '/')[-1] })\n        $unread = 0\n        foreach ($ruleId in $ruleIds) {\n            $rule = Get-AzResourceRecord $ruleId\n            if (-not $rule) { $unread++; continue }\n            if (@($rule.resource.properties.dataSources.extensions | Where-Object { $_ -and [string]$_.extensionName -match '^ChangeTracking-(Windows|Linux)$' }).Count) { return New-Pass \"Data collection rule '$($rule.resource.name)' collects change tracking data\" $evidence }\n        }\n        if ($unread) { return New-Unknown \"No readable data collection rule collects change tracking data; $unread associated rule(s) could not be read\" $evidence }\n        New-Fail 'No associated data collection rule collects change tracking data' $evidence\n    " }, (S, O) => {
-        R.ln = F + 341;
+    }), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not (Test-MachineExtensionsCollected $Record)) { return New-Unknown 'Installed extensions could not be read' }\n        $extensions = @(Get-MachineExtensions $Record)\n        $evidence = [ordered]@{\n            changeTrackingExtension = [bool]@($extensions | Where-Object { $_ -match '^Microsoft\\.Azure\\.ChangeTrackingAndInventory/ChangeTracking-(Windows|Linux)$' }).Count\n            azureMonitorAgent       = [bool]@($extensions | Where-Object { $_ -match '/AzureMonitor(Windows|Linux)Agent$' }).Count\n        }\n        if (-not $evidence.changeTrackingExtension) { return New-Fail 'No Change Tracking extension' $evidence }\n        if (-not $evidence.azureMonitorAgent) { return New-Fail 'Change Tracking extension without the Azure Monitor Agent' $evidence }\n        if (-not (Test-ChildCollected $Record $dataCollectionRuleAssociationsPath)) { return New-Unknown 'Data collection rule associations could not be read' $evidence }\n        $ruleIds = @(Get-Child $Record $dataCollectionRuleAssociationsPath | Where-Object { $_ -and $_.properties.dataCollectionRuleId } | ForEach-Object { [string]$_.properties.dataCollectionRuleId } | Sort-Object -Unique)\n        $evidence.dataCollectionRules = @($ruleIds | ForEach-Object { ($_ -split '/')[-1] })\n        $unread = 0\n        foreach ($ruleId in $ruleIds) {\n            $rule = Get-ReferencedResourceRecord $ruleId\n            if (-not $rule) { $unread++; continue }\n            if (@($rule.resource.properties.dataSources.extensions | Where-Object { $_ -and [string]$_.extensionName -match '^ChangeTracking-(Windows|Linux)$' }).Count) { return New-Pass \"Data collection rule '$($rule.resource.name)' collects change tracking data\" $evidence }\n        }\n        if ($unread) { return New-Unknown \"No readable data collection rule collects change tracking data; $unread associated rule(s) could not be read\" $evidence }\n        New-Fail 'No associated data collection rule collects change tracking data' $evidence\n    " }, (S, O) => {
+        R.ln = F + 348;
         if (!R.t(R.u(R.cmd(S, "Test-MachineExtensionsCollected", [(S["record"] ?? null)], null)))) {
-            R.ln = F + 341;
+            R.ln = F + 348;
             R.pa(O, R.cmd(S, "New-Unknown", ["Installed extensions could not be read"], null));
             return;
         }
-        R.ln = F + 342;
+        R.ln = F + 349;
         S["extensions"] = R.cmd(S, "Get-MachineExtensions", [(S["record"] ?? null)], null);
-        R.ln = F + 343;
+        R.ln = F + 350;
         S["evidence"] = R.ht(["changeTrackingExtension", R.c("bool", R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -match '^Microsoft\\.Azure\\.ChangeTrackingAndInventory/ChangeTracking-(Windows|Linux)$' " }, (S, O) => {
-            R.ln = F + 344;
+            R.ln = F + 351;
             R.e(O, R.match(S, (S["_"] ?? null), "^Microsoft\\.Azure\\.ChangeTrackingAndInventory/ChangeTracking-(Windows|Linux)$"));
         })], R.pi((S["extensions"] ?? null))), "Count")), "azureMonitorAgent", R.c("bool", R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -match '/AzureMonitor(Windows|Linux)Agent$' " }, (S, O) => {
-            R.ln = F + 345;
+            R.ln = F + 352;
             R.e(O, R.match(S, (S["_"] ?? null), "/AzureMonitor(Windows|Linux)Agent$"));
         })], R.pi((S["extensions"] ?? null))), "Count"))], true);
-        R.ln = F + 347;
+        R.ln = F + 354;
         if (!R.t(R.m((S["evidence"] ?? null), "changeTrackingExtension"))) {
-            R.ln = F + 347;
+            R.ln = F + 354;
             R.pa(O, R.cmd(S, "New-Fail", ["No Change Tracking extension", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 348;
+        R.ln = F + 355;
         if (!R.t(R.m((S["evidence"] ?? null), "azureMonitorAgent"))) {
-            R.ln = F + 348;
+            R.ln = F + 355;
             R.pa(O, R.cmd(S, "New-Fail", ["Change Tracking extension without the Azure Monitor Agent", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 349;
+        R.ln = F + 356;
         if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), (S["datacollectionruleassociationspath"] ?? null)], null)))) {
-            R.ln = F + 349;
+            R.ln = F + 356;
             R.pa(O, R.cmd(S, "New-Unknown", ["Data collection rule associations could not be read", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 350;
+        R.ln = F + 357;
         S["ruleids"] = R.cmd(S, "Sort-Object", [R.np("Unique")], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " [string]$_.properties.dataCollectionRuleId " }, (S, O) => {
-            R.ln = F + 350;
+            R.ln = F + 357;
             R.e(O, R.c("string", R.m(R.m((S["_"] ?? null), "properties"), "dataCollectionRuleId")));
         })], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.properties.dataCollectionRuleId " }, (S, O) => {
-            R.ln = F + 350;
+            R.ln = F + 357;
             R.e(O, (R.t((S["_"] ?? null)) && R.t(R.m(R.m((S["_"] ?? null), "properties"), "dataCollectionRuleId"))));
         })], R.cmd(S, "Get-Child", [(S["record"] ?? null), (S["datacollectionruleassociationspath"] ?? null)], null))));
-        R.ln = F + 351;
+        R.ln = F + 358;
         R.sm((S["evidence"] ?? null), "dataCollectionRules", R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " ($_ -split '/')[-1] " }, (S, O) => {
-            R.ln = F + 351;
+            R.ln = F + 358;
             R.e(O, R.i((R.split((S["_"] ?? null), "/")), -1));
         })], R.pi((S["ruleids"] ?? null))));
-        R.ln = F + 352;
+        R.ln = F + 359;
         S["unread"] = 0;
-        R.ln = F + 353;
+        R.ln = F + 360;
         for (const it9 of R.fi((S["ruleids"] ?? null))) {
             S["ruleid"] = it9;
-            R.ln = F + 354;
-            S["rule"] = R.u(R.cmd(S, "Get-AzResourceRecord", [(S["ruleid"] ?? null)], null));
-            R.ln = F + 355;
+            R.ln = F + 361;
+            S["rule"] = R.u(R.cmd(S, "Get-ReferencedResourceRecord", [(S["ruleid"] ?? null)], null));
+            R.ln = F + 362;
             if (!R.t((S["rule"] ?? null))) {
-                R.ln = F + 355;
+                R.ln = F + 362;
                 R.incv(S, "unread", 1, true);
                 continue;
             }
-            R.ln = F + 356;
+            R.ln = F + 363;
             if (R.t(R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and [string]$_.extensionName -match '^ChangeTracking-(Windows|Linux)$' " }, (S, O) => {
-                R.ln = F + 356;
+                R.ln = F + 363;
                 R.e(O, (R.t((S["_"] ?? null)) && R.t(R.match(S, R.c("string", R.m((S["_"] ?? null), "extensionName")), "^ChangeTracking-(Windows|Linux)$"))));
             })], R.pi(R.m(R.m(R.m(R.m((S["rule"] ?? null), "resource"), "properties"), "dataSources"), "extensions"))), "Count"))) {
-                R.ln = F + 356;
+                R.ln = F + 363;
                 R.pa(O, R.cmd(S, "New-Pass", [("Data collection rule '" + R.str(R.u(R.pi(R.m(R.m((S["rule"] ?? null), "resource"), "name")))) + "' collects change tracking data"), (S["evidence"] ?? null)], null));
                 return;
             }
         }
-        R.ln = F + 358;
+        R.ln = F + 365;
         if (R.t((S["unread"] ?? null))) {
-            R.ln = F + 358;
+            R.ln = F + 365;
             R.pa(O, R.cmd(S, "New-Unknown", [("No readable data collection rule collects change tracking data; " + R.str((S["unread"] ?? null)) + " associated rule(s) could not be read"), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 359;
+        R.ln = F + 366;
         R.pa(O, R.cmd(S, "New-Fail", ["No associated data collection rule collects change tracking data", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 363;
+    R.ln = F + 370;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-AVD-001", "Title", "Azure Virtual Desktop host pools and workspaces disable public network access", "Category", "Network security", "Service", "Azure Virtual Desktop", "Severity", "Medium", "Description", "Checks the public network access setting of Azure Virtual Desktop host pools and workspaces.", "Rationale", "With public network access, session hosts and users reach the host pool and the workspace feed over the Internet. Private Link keeps both connections on private networks, so only clients on those networks can discover and open the desktops.", "Remediation", "Create private endpoints for the host pool (connection) and the workspaces (feed and global), then set public network access to Disabled.", "References", R.a("https://learn.microsoft.com/azure/virtual-desktop/private-link-overview"), "ResourceTypes", R.a([R.v("Microsoft.DesktopVirtualization/hostPools"), R.v("Microsoft.DesktopVirtualization/workspaces")]), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $access = $Record.resource.properties.publicNetworkAccess\n        $evidence = [ordered]@{ publicNetworkAccess = $access }\n        if ($access -eq 'Disabled') { return New-Pass 'Public network access disabled' $evidence }\n        New-Fail \"Public network access $(if ($access) { $access } else { 'Enabled (default)' })\" $evidence\n    " }, (S, O) => {
-        R.ln = F + 376;
+        R.ln = F + 383;
         S["access"] = R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "publicNetworkAccess");
-        R.ln = F + 377;
+        R.ln = F + 384;
         S["evidence"] = R.ht(["publicNetworkAccess", (S["access"] ?? null)], true);
-        R.ln = F + 378;
+        R.ln = F + 385;
         if (R.t(R.eq((S["access"] ?? null), "Disabled"))) {
-            R.ln = F + 378;
+            R.ln = F + 385;
             R.pa(O, R.cmd(S, "New-Pass", ["Public network access disabled", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 379;
+        R.ln = F + 386;
         R.pa(O, R.cmd(S, "New-Fail", [("Public network access " + R.str((() => {
             const v10 = [];
-            R.ln = F + 379;
+            R.ln = F + 386;
             if (R.t((S["access"] ?? null))) {
-                R.ln = F + 379;
+                R.ln = F + 386;
                 R.e(v10, (S["access"] ?? null));
             } else {
-                R.ln = F + 379;
+                R.ln = F + 386;
                 R.e(v10, "Enabled (default)");
             }
             return R.u(v10);
         })())), (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 383;
+    R.ln = F + 390;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-VM-014", "Title", "The serial console is disabled for the subscription", "Category", "Privileged access", "Service", "Virtual machines", "Severity", "Low", "Description", "Checks the serial console setting of the subscription when it has virtual machines or scale sets. The setting only exists once the Microsoft.SerialConsole resource provider is registered; until then the serial console is enabled.", "Rationale", "The serial console opens a text console on a virtual machine through the Azure portal, outside its network: network security groups, Bastion, just-in-time access and firewalls do not apply. Anyone who can change the machine and read the keys of its boot diagnostics storage (Contributor, for example) can open it, and with a local password or the single user mode of Linux it is a way in that bypasses every network control.", "Remediation", "Disable the serial console for the subscription (az resource invoke-action --action disableConsole --ids /subscriptions/<id>/providers/Microsoft.SerialConsole/consoleServices/default --api-version 2023-01-01) and enable it again only for a recovery.", "References", R.a("https://learn.microsoft.com/troubleshoot/azure/virtual-machines/windows/serial-console-enable-disable"), "Requires", R.a("subscription/resources"), "Run", R.sb({ params: [], adv: 0, text: "\n        $machines = @(Get-IngestData 'subscription/resources' | Where-Object { $_ -and $_.type -in 'Microsoft.Compute/virtualMachines', 'Microsoft.Compute/virtualMachineScaleSets' })\n        if (-not $machines) { return New-SubscriptionFinding (New-NotApplicable 'No virtual machines or scale sets') }\n        if (Test-IngestSection 'subscription/serialConsole') {\n            $disabled = [bool](Get-IngestData 'subscription/serialConsole').properties.disabled\n            $evidence = [ordered]@{ disabled = $disabled; machines = $machines.Count }\n            if ($disabled) { return New-SubscriptionFinding (New-Pass 'The serial console is disabled' $evidence) }\n            return New-SubscriptionFinding (New-Fail 'The serial console is enabled' $evidence)\n        }\n        #without a registered provider the setting cannot exist, so the console has its default: enabled\n        $provider = @(Get-IngestData 'subscription/providers' | Where-Object { $_ -and $_.namespace -eq 'Microsoft.SerialConsole' }) | Select-Object -First 1\n        $evidence = [ordered]@{ providerRegistration = $provider.registrationState; machines = $machines.Count }\n        if ($provider -and $provider.registrationState -eq 'NotRegistered') { return New-SubscriptionFinding (New-Fail 'The serial console has its default, enabled: the Microsoft.SerialConsole provider was never registered to turn it off' $evidence) }\n        New-SubscriptionFinding (New-Unknown \"The serial console setting could not be read: $(Get-IngestSectionProblem 'subscription/serialConsole')\" $evidence)\n    " }, (S, O) => {
-        R.ln = F + 395;
+        R.ln = F + 402;
         S["machines"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.type -in 'Microsoft.Compute/virtualMachines', 'Microsoft.Compute/virtualMachineScaleSets' " }, (S, O) => {
-            R.ln = F + 395;
+            R.ln = F + 402;
             R.e(O, (R.t((S["_"] ?? null)) && R.t(R.in(R.m((S["_"] ?? null), "type"), [R.v("Microsoft.Compute/virtualMachines"), R.v("Microsoft.Compute/virtualMachineScaleSets")]))));
         })], R.cmd(S, "Get-IngestData", ["subscription/resources"], null));
-        R.ln = F + 396;
+        R.ln = F + 403;
         if (!R.t((S["machines"] ?? null))) {
-            R.ln = F + 396;
+            R.ln = F + 403;
             R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-NotApplicable", ["No virtual machines or scale sets"], null))], null));
             return;
         }
-        R.ln = F + 397;
+        R.ln = F + 404;
         if (R.t(R.u(R.cmd(S, "Test-IngestSection", ["subscription/serialConsole"], null)))) {
-            R.ln = F + 398;
+            R.ln = F + 405;
             S["disabled"] = R.c("bool", R.m(R.m(R.u(R.cmd(S, "Get-IngestData", ["subscription/serialConsole"], null)), "properties"), "disabled"));
-            R.ln = F + 399;
+            R.ln = F + 406;
             S["evidence"] = R.ht(["disabled", (S["disabled"] ?? null), "machines", R.m((S["machines"] ?? null), "Count")], true);
-            R.ln = F + 400;
+            R.ln = F + 407;
             if (R.t((S["disabled"] ?? null))) {
-                R.ln = F + 400;
+                R.ln = F + 407;
                 R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Pass", ["The serial console is disabled", (S["evidence"] ?? null)], null))], null));
                 return;
             }
-            R.ln = F + 401;
+            R.ln = F + 408;
             R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Fail", ["The serial console is enabled", (S["evidence"] ?? null)], null))], null));
             return;
         }
-        R.ln = F + 404;
+        R.ln = F + 411;
         S["provider"] = R.u(R.cmd(S, "Select-Object", [R.np("First"), 1], R.pi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.namespace -eq 'Microsoft.SerialConsole' " }, (S, O) => {
-            R.ln = F + 404;
+            R.ln = F + 411;
             R.e(O, (R.t((S["_"] ?? null)) && R.t(R.eq(R.m((S["_"] ?? null), "namespace"), "Microsoft.SerialConsole"))));
         })], R.cmd(S, "Get-IngestData", ["subscription/providers"], null)))));
-        R.ln = F + 405;
+        R.ln = F + 412;
         S["evidence"] = R.ht(["providerRegistration", R.m((S["provider"] ?? null), "registrationState"), "machines", R.m((S["machines"] ?? null), "Count")], true);
-        R.ln = F + 406;
+        R.ln = F + 413;
         if ((R.t((S["provider"] ?? null)) && R.t(R.eq(R.m((S["provider"] ?? null), "registrationState"), "NotRegistered")))) {
-            R.ln = F + 406;
+            R.ln = F + 413;
             R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Fail", ["The serial console has its default, enabled: the Microsoft.SerialConsole provider was never registered to turn it off", (S["evidence"] ?? null)], null))], null));
             return;
         }
-        R.ln = F + 407;
+        R.ln = F + 414;
         R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Unknown", [("The serial console setting could not be read: " + R.str(R.u(R.cmd(S, "Get-IngestSectionProblem", ["subscription/serialConsole"], null)))), (S["evidence"] ?? null)], null))], null));
     })], false)], null));
-    R.ln = F + 413;
+    R.ln = F + 420;
     S["dcports"] = R.a([R.v(88), R.v(464), R.v(3268), R.v(3269), R.v(9389)]);
-    R.ln = F + 414;
+    R.ln = F + 421;
     S["addspromotionpattern"] = "(?i)\\b(Install-ADDS(Forest|DomainController|Domain)|ADDSDeployment|AD-Domain-Services|dcpromo|(Create|Configure|Prepare)AD[PB]DC|CreateADForest|xADDomain(Controller)?)\\b";
-    R.ln = F + 415;
-    S["dcnamepattern"] = "(?i)(^|[^a-z0-9])(ad)?dc([^a-z]|$)|dc\\d{1,3}$|domaincontroller";
-    R.ln = F + 417;
+    R.ln = F + 423;
+    S["dcnamepattern"] = "(?i)(^|[^a-z0-9])(ad)?dc([^a-z]|$)|dc\\d{1,3}$|adc[a-z]?\\d{1,3}$|(^|[^a-z0-9])adds([^a-z]|$)|domaincontroller";
+    R.ln = F + 425;
     R.def(S, "Test-AddressInPrefix", { params: [{ n: "Address", t: "string", pos: null }, { n: "Prefix", t: "string", pos: null }], adv: 0, h: "ea3726ef9d504432" }, (S, O) => {
-        R.ln = F + 420;
+        R.ln = F + 428;
         S["parts"] = R.a(R.split((S["prefix"] ?? null), "/"));
-        R.ln = F + 421;
+        R.ln = F + 429;
         if ((R.t(R.gt(R.m((S["parts"] ?? null), "Count"), 2)) || (R.t(R.eq(R.m((S["parts"] ?? null), "Count"), 2)) && R.t(R.nmatch(S, R.i((S["parts"] ?? null), 1), "^\\d{1,2}$"))))) {
-            R.ln = F + 421;
+            R.ln = F + 429;
             R.e(O, false);
             return;
         }
-        R.ln = F + 422;
+        R.ln = F + 430;
         const v11 = [];
-        R.ln = F + 422;
+        R.ln = F + 430;
         if (R.t(R.eq(R.m((S["parts"] ?? null), "Count"), 2))) {
-            R.ln = F + 422;
+            R.ln = F + 430;
             R.e(v11, R.c("int", R.i((S["parts"] ?? null), 1)));
         } else {
-            R.ln = F + 422;
+            R.ln = F + 430;
             R.e(v11, 32);
         }
         S["bits"] = R.u(v11);
-        R.ln = F + 423;
+        R.ln = F + 431;
         S["network"] = R.u(R.cmd(S, "ConvertTo-IPv4Number", [R.i((S["parts"] ?? null), 0)], null));
-        R.ln = F + 424;
+        R.ln = F + 432;
         S["value"] = R.u(R.cmd(S, "ConvertTo-IPv4Number", [(S["address"] ?? null)], null));
-        R.ln = F + 425;
+        R.ln = F + 433;
         if (((R.t(R.eq(null, (S["network"] ?? null))) || R.t(R.eq(null, (S["value"] ?? null)))) || R.t(R.gt((S["bits"] ?? null), 32)))) {
-            R.ln = F + 425;
+            R.ln = F + 433;
             R.e(O, false);
             return;
         }
-        R.ln = F + 426;
+        R.ln = F + 434;
         R.e(O, (R.eq((R.shr((S["value"] ?? null), (R.sub(32, (S["bits"] ?? null))))), (R.shr((S["network"] ?? null), (R.sub(32, (S["bits"] ?? null))))))));
         return;
     });
-    R.ln = F + 429;
+    R.ln = F + 437;
     R.def(S, "Get-DnsServerReferences", { params: [], adv: 0, h: "95c7c5956ce8e903" }, (S, O) => {
-        R.ln = F + 432;
+        R.ln = F + 440;
         if (!R.t(R.im(R.m((R.ss(S)["script:ingest"] ?? null), "Cache"), "ContainsKey", ["#dnsServers"]))) {
-            R.ln = F + 433;
+            R.ln = F + 441;
             S["entries"] = R.sc("System.Collections.Generic.List[object]", "new", []);
-            R.ln = F + 434;
+            R.ln = F + 442;
             for (const it12 of R.fi(R.u(R.cmd(S, "Get-AzResourceRecords", [R.np("Type"), "Microsoft.Network/virtualNetworks"], null)))) {
                 S["vnet"] = it12;
-                R.ln = F + 435;
+                R.ln = F + 443;
                 for (const it13 of R.fi(R.a(R.m(R.m(R.m(R.m((S["vnet"] ?? null), "resource"), "properties"), "dhcpOptions"), "dnsServers")))) {
                     S["address"] = it13;
-                    R.ln = F + 435;
+                    R.ln = F + 443;
                     R.e(O, R.im((S["entries"] ?? null), "Add", [R.pso(["Address", (S["address"] ?? null), "Source", ("virtual network " + R.str(R.u(R.pi(R.m(R.m((S["vnet"] ?? null), "resource"), "name")))))])]));
                 }
             }
-            R.ln = F + 437;
+            R.ln = F + 445;
             for (const it14 of R.fi(R.u(R.cmd(S, "Get-AzResourceRecords", [R.np("Type"), "Microsoft.Network/networkInterfaces"], null)))) {
                 S["nic"] = it14;
-                R.ln = F + 438;
+                R.ln = F + 446;
                 for (const it15 of R.fi(R.a(R.m(R.m(R.m(R.m((S["nic"] ?? null), "resource"), "properties"), "dnsSettings"), "dnsServers")))) {
                     S["address"] = it15;
-                    R.ln = F + 438;
+                    R.ln = F + 446;
                     R.e(O, R.im((S["entries"] ?? null), "Add", [R.pso(["Address", (S["address"] ?? null), "Source", ("network interface " + R.str(R.u(R.pi(R.m(R.m((S["nic"] ?? null), "resource"), "name")))))])]));
                 }
             }
-            R.ln = F + 440;
+            R.ln = F + 448;
             for (const it16 of R.fi(R.u(R.cmd(S, "Get-AzResourceRecords", [R.np("Type"), "Microsoft.Network/firewallPolicies"], null)))) {
                 S["policy"] = it16;
-                R.ln = F + 441;
+                R.ln = F + 449;
                 for (const it17 of R.fi(R.a(R.m(R.m(R.m(R.m((S["policy"] ?? null), "resource"), "properties"), "dnsSettings"), "servers")))) {
                     S["address"] = it17;
-                    R.ln = F + 441;
+                    R.ln = F + 449;
                     R.e(O, R.im((S["entries"] ?? null), "Add", [R.pso(["Address", (S["address"] ?? null), "Source", ("firewall policy " + R.str(R.u(R.pi(R.m(R.m((S["policy"] ?? null), "resource"), "name")))))])]));
                 }
             }
-            R.ln = F + 443;
+            R.ln = F + 451;
             for (const it18 of R.fi(R.u(R.cmd(S, "Get-AzResourceRecords", [R.np("Type"), "Microsoft.Network/azureFirewalls"], null)))) {
                 S["firewall"] = it18;
-                R.ln = F + 445;
+                R.ln = F + 453;
                 for (const it19 of R.fi(R.a(R.split(R.c("string", R.m(R.m(R.m(R.m((S["firewall"] ?? null), "resource"), "properties"), "additionalProperties"), "Network.DNS.Servers")), ",")))) {
                     S["address"] = it19;
-                    R.ln = F + 445;
+                    R.ln = F + 453;
                     R.e(O, R.im((S["entries"] ?? null), "Add", [R.pso(["Address", (S["address"] ?? null), "Source", ("firewall " + R.str(R.u(R.pi(R.m(R.m((S["firewall"] ?? null), "resource"), "name")))))])]));
                 }
             }
-            R.ln = F + 447;
+            R.ln = F + 455;
             S["unread"] = R.sc("System.Collections.Generic.List[string]", "new", []);
-            R.ln = F + 448;
+            R.ln = F + 456;
             for (const it20 of R.fi(R.u(R.cmd(S, "Get-AzResourceRecords", [R.np("Type"), "Microsoft.Network/dnsForwardingRulesets"], null)))) {
                 S["ruleset"] = it20;
-                R.ln = F + 449;
+                R.ln = F + 457;
                 if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["ruleset"] ?? null), "forwardingRules"], null)))) {
-                    R.ln = F + 449;
+                    R.ln = F + 457;
                     R.e(O, R.im((S["unread"] ?? null), "Add", [("forwarding rules of " + R.str(R.u(R.pi(R.m(R.m((S["ruleset"] ?? null), "resource"), "name")))))]));
                     continue;
                 }
-                R.ln = F + 450;
+                R.ln = F + 458;
                 for (const it21 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.properties.forwardingRuleState -ne 'Disabled' " }, (S, O) => {
-                    R.ln = F + 450;
+                    R.ln = F + 458;
                     R.e(O, (R.t((S["_"] ?? null)) && R.t(R.ne(R.m(R.m((S["_"] ?? null), "properties"), "forwardingRuleState"), "Disabled"))));
                 })], R.cmd(S, "Get-Child", [(S["ruleset"] ?? null), "forwardingRules"], null)))) {
                     S["rule"] = it21;
-                    R.ln = F + 451;
+                    R.ln = F + 459;
                     for (const it22 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                        R.ln = F + 451;
+                        R.ln = F + 459;
                         R.e(O, (S["_"] ?? null));
                     })], R.pi(R.m(R.m((S["rule"] ?? null), "properties"), "targetDnsServers"))))) {
                         S["target"] = it22;
-                        R.ln = F + 451;
+                        R.ln = F + 459;
                         R.e(O, R.im((S["entries"] ?? null), "Add", [R.pso(["Address", R.m((S["target"] ?? null), "ipAddress"), "Source", ("forwarding rule for " + R.str(R.u(R.pi(R.m(R.m((S["rule"] ?? null), "properties"), "domainName")))) + " in " + R.str(R.u(R.pi(R.m(R.m((S["ruleset"] ?? null), "resource"), "name")))))])]));
                     }
                 }
             }
-            R.ln = F + 454;
+            R.ln = F + 462;
             for (const it23 of R.fi(R.u(R.cmd(S, "Get-FailedResourceIds", [R.np("Type"), [R.v("Microsoft.Network/virtualNetworks"), R.v("Microsoft.Network/networkInterfaces"), R.v("Microsoft.Network/firewallPolicies"), R.v("Microsoft.Network/azureFirewalls"), R.v("Microsoft.Network/dnsForwardingRulesets")]], null)))) {
                 S["id"] = it23;
-                R.ln = F + 455;
+                R.ln = F + 463;
                 R.e(O, R.im((S["unread"] ?? null), "Add", [(R.rep((S["id"] ?? null), [R.v("(?i)^.*/providers/Microsoft\\.Network/"), R.v("")]))]));
             }
-            R.ln = F + 457;
+            R.ln = F + 465;
             S["servers"] = R.ht([], false);
-            R.ln = F + 458;
+            R.ln = F + 466;
             for (const it24 of R.fi((S["entries"] ?? null))) {
                 S["entry"] = it24;
-                R.ln = F + 459;
+                R.ln = F + 467;
                 S["address"] = R.im((R.c("string", R.m((S["entry"] ?? null), "Address"))), "Trim", []);
-                R.ln = F + 460;
+                R.ln = F + 468;
                 if (!R.t((S["address"] ?? null))) {
                     continue;
                 }
-                R.ln = F + 461;
+                R.ln = F + 469;
                 if (!R.t(R.im((S["servers"] ?? null), "ContainsKey", [(S["address"] ?? null)]))) {
-                    R.ln = F + 461;
+                    R.ln = F + 469;
                     R.si((S["servers"] ?? null), (S["address"] ?? null), R.sc("System.Collections.Generic.List[string]", "new", []));
                 }
-                R.ln = F + 462;
+                R.ln = F + 470;
                 if (!R.t(R.im(R.i((S["servers"] ?? null), (S["address"] ?? null)), "Contains", [R.m((S["entry"] ?? null), "Source")]))) {
-                    R.ln = F + 462;
+                    R.ln = F + 470;
                     R.e(O, R.im(R.i((S["servers"] ?? null), (S["address"] ?? null)), "Add", [R.m((S["entry"] ?? null), "Source")]));
                 }
             }
-            R.ln = F + 464;
+            R.ln = F + 472;
             R.si(R.m((R.ss(S)["script:ingest"] ?? null), "Cache"), "#dnsServers", R.pso(["Servers", (S["servers"] ?? null), "Unread", R.cmd(S, "Sort-Object", [R.np("Unique")], R.pi((S["unread"] ?? null)))]));
         }
-        R.ln = F + 466;
+        R.ln = F + 474;
         R.e(O, R.i(R.m((R.ss(S)["script:ingest"] ?? null), "Cache"), "#dnsServers"));
         return;
     });
-    R.ln = F + 469;
+    R.ln = F + 477;
     R.def(S, "Get-RuleDcPorts", { params: [{ n: "Rule", t: null, pos: null }], adv: 0, h: "73ae88106f78d0a4" }, (S, O) => {
-        R.ln = F + 472;
+        R.ln = F + 480;
         S["p"] = R.m((S["rule"] ?? null), "properties");
-        R.ln = F + 473;
+        R.ln = F + 481;
         if (((R.t(R.ne(R.m((S["p"] ?? null), "direction"), "Inbound")) || R.t(R.ne(R.m((S["p"] ?? null), "access"), "Allow"))) || R.t(R.nin(R.m((S["p"] ?? null), "protocol"), [R.v("*"), R.v("Tcp"), R.v("Udp")])))) {
-            R.ln = F + 473;
+            R.ln = F + 481;
             return;
         }
-        R.ln = F + 474;
+        R.ln = F + 482;
         S["ranges"] = R.sc("System.Collections.Generic.List[string]", "new", []);
-        R.ln = F + 475;
+        R.ln = F + 483;
         for (const it25 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 475;
+            R.ln = F + 483;
             R.e(O, (S["_"] ?? null));
         })], R.pi(R.add(R.a(R.m((S["p"] ?? null), "destinationPortRange")), R.a(R.m((S["p"] ?? null), "destinationPortRanges"))))))) {
             S["range"] = it25;
-            R.ln = F + 476;
+            R.ln = F + 484;
             if (R.t(R.match(S, R.c("string", (S["range"] ?? null)), "^\\d+$"))) {
-                R.ln = F + 476;
+                R.ln = F + 484;
                 R.e(O, R.im((S["ranges"] ?? null), "Add", [R.c("string", (S["range"] ?? null))]));
                 continue;
             }
-            R.ln = F + 477;
+            R.ln = F + 485;
             if ((R.t(R.match(S, R.c("string", (S["range"] ?? null)), "^(\\d+)-(\\d+)$")) && R.t(R.le((R.sub(R.c("int", R.i((S["matches"] ?? null), 2)), R.c("int", R.i((S["matches"] ?? null), 1)))), 10)))) {
-                R.ln = F + 477;
+                R.ln = F + 485;
                 R.e(O, R.im((S["ranges"] ?? null), "Add", [R.c("string", (S["range"] ?? null))]));
             }
         }
-        R.ln = F + 479;
+        R.ln = F + 487;
         for (const it26 of R.fi((S["dcports"] ?? null))) {
             S["port"] = it26;
-            R.ln = F + 480;
+            R.ln = F + 488;
             if (R.t(R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " Test-PortInRange -Range $_ -Port $port " }, (S, O) => {
-                R.ln = F + 480;
+                R.ln = F + 488;
                 R.pa(O, R.cmd(S, "Test-PortInRange", [R.np("Range"), (S["_"] ?? null), R.np("Port"), (S["port"] ?? null)], null));
             })], R.pi((S["ranges"] ?? null))), "Count"))) {
-                R.ln = F + 480;
+                R.ln = F + 488;
                 R.e(O, (S["port"] ?? null));
             }
         }
     });
-    R.ln = F + 484;
+    R.ln = F + 492;
     R.def(S, "Test-RuleTargetsMachine", { params: [{ n: "Rule", t: null, pos: null }, { n: "Addresses", t: "string[]", pos: null }, { n: "SecurityGroups", t: "string[]", pos: null }], adv: 0, h: "2b0b7853902ed49f" }, (S, O) => {
-        R.ln = F + 487;
+        R.ln = F + 495;
         S["p"] = R.m((S["rule"] ?? null), "properties");
-        R.ln = F + 488;
+        R.ln = F + 496;
         S["groups"] = R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " ([string]$_.id).ToLowerInvariant() " }, (S, O) => {
-            R.ln = F + 488;
+            R.ln = F + 496;
             R.e(O, R.im((R.c("string", R.m((S["_"] ?? null), "id"))), "ToLowerInvariant", []));
         })], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.id " }, (S, O) => {
-            R.ln = F + 488;
+            R.ln = F + 496;
             R.e(O, R.m((S["_"] ?? null), "id"));
         })], R.pi(R.m((S["p"] ?? null), "destinationApplicationSecurityGroups"))));
-        R.ln = F + 489;
+        R.ln = F + 497;
         if (R.t(R.m((S["groups"] ?? null), "Count"))) {
-            R.ln = F + 489;
+            R.ln = F + 497;
             R.e(O, R.c("bool", R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -in $SecurityGroups " }, (S, O) => {
-                R.ln = F + 489;
+                R.ln = F + 497;
                 R.e(O, R.in((S["_"] ?? null), (S["securitygroups"] ?? null)));
             })], R.pi((S["groups"] ?? null))), "Count")));
             return;
         }
-        R.ln = F + 490;
+        R.ln = F + 498;
         for (const it27 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 490;
+            R.ln = F + 498;
             R.e(O, (S["_"] ?? null));
         })], R.pi(R.add(R.a(R.m((S["p"] ?? null), "destinationAddressPrefix")), R.a(R.m((S["p"] ?? null), "destinationAddressPrefixes"))))))) {
             S["prefix"] = it27;
-            R.ln = F + 491;
+            R.ln = F + 499;
             if (R.t(R.in((S["prefix"] ?? null), [R.v("*"), R.v("Any"), R.v("VirtualNetwork")]))) {
-                R.ln = F + 491;
+                R.ln = F + 499;
                 R.e(O, true);
                 return;
             }
-            R.ln = F + 492;
+            R.ln = F + 500;
             if (R.t(R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " Test-AddressInPrefix $_ $prefix " }, (S, O) => {
-                R.ln = F + 492;
+                R.ln = F + 500;
                 R.pa(O, R.cmd(S, "Test-AddressInPrefix", [(S["_"] ?? null), (S["prefix"] ?? null)], null));
             })], R.pi((S["addresses"] ?? null))), "Count"))) {
-                R.ln = F + 492;
+                R.ln = F + 500;
                 R.e(O, true);
                 return;
             }
         }
-        R.ln = F + 494;
+        R.ln = F + 502;
         R.e(O, false);
         return;
     });
-    R.ln = F + 497;
+    R.ln = F + 505;
     R.def(S, "Get-DomainControllerSignals", { params: [{ n: "Record", t: null, pos: null }], adv: 0, h: "b820ef1fb1622ba4" }, (S, O) => {
-        R.ln = F + 501;
+        R.ln = F + 509;
         if (!R.t(R.im(R.m((R.ss(S)["script:ingest"] ?? null), "Cache"), "ContainsKey", ["#dcSignals"]))) {
-            R.ln = F + 501;
+            R.ln = F + 509;
             R.si(R.m((R.ss(S)["script:ingest"] ?? null), "Cache"), "#dcSignals", R.ht([], false));
         }
-        R.ln = F + 502;
+        R.ln = F + 510;
         S["cache"] = R.i(R.m((R.ss(S)["script:ingest"] ?? null), "Cache"), "#dcSignals");
-        R.ln = F + 503;
+        R.ln = F + 511;
         S["key"] = R.im(R.m((S["record"] ?? null), "id"), "ToLowerInvariant", []);
-        R.ln = F + 504;
+        R.ln = F + 512;
         if (R.t(R.im((S["cache"] ?? null), "ContainsKey", [(S["key"] ?? null)]))) {
-            R.ln = F + 504;
+            R.ln = F + 512;
             R.e(O, R.i((S["cache"] ?? null), (S["key"] ?? null)));
             return;
         }
-        R.ln = F + 506;
+        R.ln = F + 514;
         S["p"] = R.m(R.m((S["record"] ?? null), "resource"), "properties");
-        R.ln = F + 507;
+        R.ln = F + 515;
         S["unread"] = R.sc("System.Collections.Generic.List[string]", "new", []);
-        R.ln = F + 508;
+        R.ln = F + 516;
         S["addresses"] = R.sc("System.Collections.Generic.List[string]", "new", []);
-        R.ln = F + 509;
+        R.ln = F + 517;
         S["securitygroups"] = R.sc("System.Collections.Generic.List[string]", "new", []);
-        R.ln = F + 510;
+        R.ln = F + 518;
         S["nsgids"] = R.ht([], true);
-        R.ln = F + 511;
+        R.ln = F + 519;
         S["static"] = false;
-        R.ln = F + 512;
+        R.ln = F + 520;
         S["nicreferences"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.id " }, (S, O) => {
-            R.ln = F + 512;
+            R.ln = F + 520;
             R.e(O, R.m((S["_"] ?? null), "id"));
         })], R.pi(R.m(R.m((S["p"] ?? null), "networkProfile"), "networkInterfaces")));
-        R.ln = F + 513;
+        R.ln = F + 521;
         if (!R.t((S["nicreferences"] ?? null))) {
-            R.ln = F + 513;
+            R.ln = F + 521;
             R.e(O, R.im((S["unread"] ?? null), "Add", ["network interfaces"]));
         }
-        R.ln = F + 514;
+        R.ln = F + 522;
         for (const it28 of R.fi((S["nicreferences"] ?? null))) {
             S["reference"] = it28;
-            R.ln = F + 515;
+            R.ln = F + 523;
             S["nic"] = R.u(R.cmd(S, "Get-AzResourceRecord", [R.m((S["reference"] ?? null), "id")], null));
-            R.ln = F + 516;
+            R.ln = F + 524;
             if (!R.t((S["nic"] ?? null))) {
-                R.ln = F + 516;
+                R.ln = F + 524;
                 R.e(O, R.im((S["unread"] ?? null), "Add", [("network interface " + R.str(R.u(R.cmd(S, "Get-ResourceName", [R.m((S["reference"] ?? null), "id")], null))))]));
                 continue;
             }
-            R.ln = F + 517;
+            R.ln = F + 525;
             if (R.t(R.m(R.m(R.m(R.m((S["nic"] ?? null), "resource"), "properties"), "networkSecurityGroup"), "id"))) {
-                R.ln = F + 517;
+                R.ln = F + 525;
                 R.si((S["nsgids"] ?? null), R.im((R.c("string", R.m(R.m(R.m(R.m((S["nic"] ?? null), "resource"), "properties"), "networkSecurityGroup"), "id"))), "ToLowerInvariant", []), true);
             }
-            R.ln = F + 518;
+            R.ln = F + 526;
             for (const it29 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                R.ln = F + 518;
+                R.ln = F + 526;
                 R.e(O, (S["_"] ?? null));
             })], R.pi(R.m(R.m(R.m((S["nic"] ?? null), "resource"), "properties"), "ipConfigurations"))))) {
                 S["configuration"] = it29;
-                R.ln = F + 519;
+                R.ln = F + 527;
                 S["c"] = R.m((S["configuration"] ?? null), "properties");
-                R.ln = F + 520;
+                R.ln = F + 528;
                 if (R.t(R.m((S["c"] ?? null), "privateIPAddress"))) {
-                    R.ln = F + 520;
+                    R.ln = F + 528;
                     R.e(O, R.im((S["addresses"] ?? null), "Add", [R.c("string", R.m((S["c"] ?? null), "privateIPAddress"))]));
                 }
-                R.ln = F + 521;
+                R.ln = F + 529;
                 if (R.t(R.eq(R.m((S["c"] ?? null), "privateIPAllocationMethod"), "Static"))) {
-                    R.ln = F + 521;
+                    R.ln = F + 529;
                     S["static"] = true;
                 }
-                R.ln = F + 522;
+                R.ln = F + 530;
                 for (const it30 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.id " }, (S, O) => {
-                    R.ln = F + 522;
+                    R.ln = F + 530;
                     R.e(O, R.m((S["_"] ?? null), "id"));
                 })], R.pi(R.m((S["c"] ?? null), "applicationSecurityGroups"))))) {
                     S["group"] = it30;
-                    R.ln = F + 522;
+                    R.ln = F + 530;
                     R.e(O, R.im((S["securitygroups"] ?? null), "Add", [R.im((R.c("string", R.m((S["group"] ?? null), "id"))), "ToLowerInvariant", [])]));
                 }
-                R.ln = F + 523;
+                R.ln = F + 531;
                 if (!R.t(R.m(R.m((S["c"] ?? null), "subnet"), "id"))) {
                     continue;
                 }
-                R.ln = F + 524;
+                R.ln = F + 532;
                 S["subnetid"] = R.c("string", R.m(R.m((S["c"] ?? null), "subnet"), "id"));
-                R.ln = F + 525;
+                R.ln = F + 533;
                 S["vnetid"] = R.rep((S["subnetid"] ?? null), [R.v("(?i)/subnets/[^/]+$"), R.v("")]);
-                R.ln = F + 526;
+                R.ln = F + 534;
                 S["vnet"] = R.u(R.cmd(S, "Get-AzResourceRecord", [(S["vnetid"] ?? null)], null));
-                R.ln = F + 527;
+                R.ln = F + 535;
                 if (!R.t((S["vnet"] ?? null))) {
-                    R.ln = F + 527;
+                    R.ln = F + 535;
                     R.e(O, R.im((S["unread"] ?? null), "Add", [("virtual network " + R.str(R.u(R.cmd(S, "Get-ResourceName", [(S["vnetid"] ?? null)], null))))]));
                     continue;
                 }
-                R.ln = F + 528;
+                R.ln = F + 536;
                 S["subnet"] = R.u(R.cmd(S, "Select-Object", [R.np("First"), 1], R.pi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.id -and $_.id -eq $subnetId " }, (S, O) => {
-                    R.ln = F + 528;
+                    R.ln = F + 536;
                     R.e(O, (R.t(R.m((S["_"] ?? null), "id")) && R.t(R.eq(R.m((S["_"] ?? null), "id"), (S["subnetid"] ?? null)))));
                 })], R.pi(R.m(R.m(R.m((S["vnet"] ?? null), "resource"), "properties"), "subnets"))))));
-                R.ln = F + 529;
+                R.ln = F + 537;
                 if (R.t(R.m(R.m(R.m((S["subnet"] ?? null), "properties"), "networkSecurityGroup"), "id"))) {
-                    R.ln = F + 529;
+                    R.ln = F + 537;
                     R.si((S["nsgids"] ?? null), R.im((R.c("string", R.m(R.m(R.m((S["subnet"] ?? null), "properties"), "networkSecurityGroup"), "id"))), "ToLowerInvariant", []), true);
                 }
             }
         }
-        R.ln = F + 533;
+        R.ln = F + 541;
         S["dns"] = R.u(R.cmd(S, "Get-DnsServerReferences", [], null));
-        R.ln = F + 534;
+        R.ln = F + 542;
         S["dnsfor"] = R.cmd(S, "Sort-Object", [R.np("Unique")], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 534;
+            R.ln = F + 542;
             R.e(O, (S["_"] ?? null));
         })], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " $dns.Servers[$_] " }, (S, O) => {
-            R.ln = F + 534;
+            R.ln = F + 542;
             R.e(O, R.i(R.m((S["dns"] ?? null), "Servers"), (S["_"] ?? null)));
         })], R.pi((S["addresses"] ?? null)))));
-        R.ln = F + 536;
+        R.ln = F + 544;
         S["portrules"] = R.sc("System.Collections.Generic.List[string]", "new", []);
-        R.ln = F + 537;
+        R.ln = F + 545;
         for (const it31 of R.fi(R.a(R.m((S["nsgids"] ?? null), "Keys")))) {
             S["nsgid"] = it31;
-            R.ln = F + 538;
+            R.ln = F + 546;
             S["nsg"] = R.u(R.cmd(S, "Get-AzResourceRecord", [(S["nsgid"] ?? null)], null));
-            R.ln = F + 539;
+            R.ln = F + 547;
             if (!R.t((S["nsg"] ?? null))) {
-                R.ln = F + 539;
+                R.ln = F + 547;
                 R.e(O, R.im((S["unread"] ?? null), "Add", [("network security group " + R.str(R.u(R.cmd(S, "Get-ResourceName", [(S["nsgid"] ?? null)], null))))]));
                 continue;
             }
-            R.ln = F + 540;
+            R.ln = F + 548;
             for (const it32 of R.fi(R.cmd(S, "Sort-Object", [[R.v(R.sb({ params: [], adv: 0, text: " [int]$_.properties.priority " }, (S, O) => {
-                R.ln = F + 540;
+                R.ln = F + 548;
                 R.e(O, R.c("int", R.m(R.m((S["_"] ?? null), "properties"), "priority")));
             })), R.v("name")]], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                R.ln = F + 540;
+                R.ln = F + 548;
                 R.e(O, (S["_"] ?? null));
             })], R.pi(R.m(R.m(R.m((S["nsg"] ?? null), "resource"), "properties"), "securityRules")))))) {
                 S["rule"] = it32;
-                R.ln = F + 541;
+                R.ln = F + 549;
                 S["ports"] = R.cmd(S, "Get-RuleDcPorts", [(S["rule"] ?? null)], null);
-                R.ln = F + 542;
+                R.ln = F + 550;
                 if ((R.t(R.m((S["ports"] ?? null), "Count")) && R.t(R.u(R.cmd(S, "Test-RuleTargetsMachine", [(S["rule"] ?? null), (S["addresses"] ?? null), (S["securitygroups"] ?? null)], null))))) {
-                    R.ln = F + 542;
+                    R.ln = F + 550;
                     R.e(O, R.im((S["portrules"] ?? null), "Add", [("" + R.str(R.u(R.pi(R.m(R.m((S["nsg"] ?? null), "resource"), "name")))) + "/" + R.str(R.u(R.pi(R.m((S["rule"] ?? null), "name")))) + " (" + R.str(R.u(R.pi(R.join((S["ports"] ?? null), ", ")))) + ")")]));
                 }
             }
         }
-        R.ln = F + 547;
+        R.ln = F + 555;
         S["surfaces"] = R.ht([], true);
-        R.ln = F + 548;
+        R.ln = F + 556;
         if (R.t(R.m((S["p"] ?? null), "userData"))) {
-            R.ln = F + 548;
+            R.ln = F + 556;
             R.si((S["surfaces"] ?? null), "userData", R.u(R.cmd(S, "Convert-FromBase64Utf8", [(R.c("string", R.m((S["p"] ?? null), "userData")))], null)));
         }
-        R.ln = F + 549;
+        R.ln = F + 557;
         if (R.t(R.m(R.m((S["p"] ?? null), "osProfile"), "customData"))) {
-            R.ln = F + 549;
+            R.ln = F + 557;
             R.si((S["surfaces"] ?? null), "custom data", R.u(R.cmd(S, "Convert-FromBase64Utf8", [(R.c("string", R.m(R.m((S["p"] ?? null), "osProfile"), "customData")))], null)));
         }
-        R.ln = F + 550;
+        R.ln = F + 558;
         if (R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "extensions"], null)))) {
-            R.ln = F + 551;
+            R.ln = F + 559;
             for (const it33 of R.fi(R.cmd(S, "Sort-Object", ["name"], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                R.ln = F + 551;
+                R.ln = F + 559;
                 R.e(O, (S["_"] ?? null));
             })], R.cmd(S, "Get-Child", [(S["record"] ?? null), "extensions"], null))))) {
                 S["extension"] = it33;
-                R.ln = F + 552;
+                R.ln = F + 560;
                 S["settings"] = R.m(R.m((S["extension"] ?? null), "properties"), "settings");
-                R.ln = F + 553;
+                R.ln = F + 561;
                 S["text"] = ("" + R.str(R.u(R.pi(R.m((S["extension"] ?? null), "name")))) + " " + R.str((() => {
                     const v34 = [];
-                    R.ln = F + 553;
+                    R.ln = F + 561;
                     if (R.t(R.ne(null, (S["settings"] ?? null)))) {
-                        R.ln = F + 553;
+                        R.ln = F + 561;
                         R.pa(v34, R.cmd(S, "ConvertTo-Json", [R.np("Depth"), 20, R.np("Compress")], R.pi((S["settings"] ?? null))));
                     }
                     return R.u(v34);
                 })()));
-                R.ln = F + 554;
+                R.ln = F + 562;
                 S["script"] = R.u(R.cmd(S, "Get-Prop", [(S["settings"] ?? null), "script"], null));
-                R.ln = F + 555;
+                R.ln = F + 563;
                 if (R.t((S["script"] ?? null))) {
-                    R.ln = F + 555;
+                    R.ln = F + 563;
                     S["text"] = R.add(S["text"] ?? null, (" " + R.str(R.u(R.cmd(S, "Convert-FromBase64Utf8", [(R.c("string", (S["script"] ?? null)))], null)))));
                 }
-                R.ln = F + 556;
+                R.ln = F + 564;
                 R.si((S["surfaces"] ?? null), ("extension " + R.str(R.u(R.pi(R.m((S["extension"] ?? null), "name"))))), (S["text"] ?? null));
             }
         } else {
-            R.ln = F + 559;
+            R.ln = F + 567;
             R.e(O, R.im((S["unread"] ?? null), "Add", ["installed extensions"]));
         }
-        R.ln = F + 561;
+        R.ln = F + 569;
         S["promotion"] = (() => {
             const v35 = [];
-            R.ln = F + 561;
+            R.ln = F + 569;
             for (const it36 of R.fi(R.m((S["surfaces"] ?? null), "Keys"))) {
                 S["name"] = it36;
-                R.ln = F + 561;
+                R.ln = F + 569;
                 if (R.t(R.match(S, R.c("string", R.i((S["surfaces"] ?? null), (S["name"] ?? null))), (S["addspromotionpattern"] ?? null)))) {
-                    R.ln = F + 561;
+                    R.ln = F + 569;
                     R.e(v35, ("" + R.str((S["name"] ?? null)) + " (" + R.str(R.u(R.pi(R.i((S["matches"] ?? null), 1)))) + ")"));
                 }
             }
             return v35;
         })();
-        R.ln = F + 563;
+        R.ln = F + 571;
         S["dcname"] = R.u(R.cmd(S, "Select-Object", [R.np("First"), 1], R.pi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and [string]$_ -match $dcNamePattern " }, (S, O) => {
-            R.ln = F + 563;
+            R.ln = F + 571;
             R.e(O, (R.t((S["_"] ?? null)) && R.t(R.match(S, R.c("string", (S["_"] ?? null)), (S["dcnamepattern"] ?? null)))));
         })], R.pi(R.a([R.v(R.m(R.m((S["record"] ?? null), "resource"), "name")), R.v(R.m(R.m((S["p"] ?? null), "osProfile"), "computerName"))]))))));
-        R.ln = F + 564;
+        R.ln = F + 572;
         S["evidence"] = R.ht(["privateIpAddresses", R.cmd(S, "Sort-Object", [], R.pi((S["addresses"] ?? null))), "dnsServerFor", (S["dnsfor"] ?? null), "domainControllerPortRules", R.a((S["portrules"] ?? null)), "adDsPromotion", (S["promotion"] ?? null), "domainControllerName", (S["dcname"] ?? null), "staticPrivateIp", (S["static"] ?? null), "dataDisksWithoutHostCaching", R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.caching -eq 'None' " }, (S, O) => {
-            R.ln = F + 571;
+            R.ln = F + 579;
             R.e(O, (R.t((S["_"] ?? null)) && R.t(R.eq(R.m((S["_"] ?? null), "caching"), "None"))));
         })], R.pi(R.m(R.m((S["p"] ?? null), "storageProfile"), "dataDisks"))), "Count")], true);
-        R.ln = F + 573;
+        R.ln = F + 581;
         S["notread"] = R.cmd(S, "Sort-Object", [R.np("Unique")], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 573;
+            R.ln = F + 581;
             R.e(O, (S["_"] ?? null));
         })], R.pi(R.add(R.a((S["unread"] ?? null)), R.a(R.m((S["dns"] ?? null), "Unread"))))));
-        R.ln = F + 574;
+        R.ln = F + 582;
         if (R.t((S["notread"] ?? null))) {
-            R.ln = F + 574;
+            R.ln = F + 582;
             R.sm((S["evidence"] ?? null), "signalsNotRead", (S["notread"] ?? null));
         }
-        R.ln = F + 576;
+        R.ln = F + 584;
         S["signals"] = R.sc("System.Collections.Generic.List[string]", "new", []);
-        R.ln = F + 577;
+        R.ln = F + 585;
         if (R.t((S["dnsfor"] ?? null))) {
-            R.ln = F + 577;
+            R.ln = F + 585;
             R.e(O, R.im((S["signals"] ?? null), "Add", ["DNS server"]));
         }
-        R.ln = F + 578;
+        R.ln = F + 586;
         if (R.t(R.m((S["portrules"] ?? null), "Count"))) {
-            R.ln = F + 578;
+            R.ln = F + 586;
             R.e(O, R.im((S["signals"] ?? null), "Add", ["domain controller ports"]));
         }
-        R.ln = F + 579;
+        R.ln = F + 587;
         if (R.t((S["promotion"] ?? null))) {
-            R.ln = F + 579;
+            R.ln = F + 587;
             R.e(O, R.im((S["signals"] ?? null), "Add", ["AD DS promotion"]));
         }
-        R.ln = F + 580;
+        R.ln = F + 588;
         if (R.t((S["dcname"] ?? null))) {
-            R.ln = F + 580;
+            R.ln = F + 588;
             R.e(O, R.im((S["signals"] ?? null), "Add", ["name"]));
         }
-        R.ln = F + 581;
+        R.ln = F + 589;
         const v37 = [];
-        R.ln = F + 581;
+        R.ln = F + 589;
         if ((R.t((S["promotion"] ?? null)) || R.t(R.ge(R.m((S["signals"] ?? null), "Count"), 2)))) {
-            R.ln = F + 581;
+            R.ln = F + 589;
             R.e(v37, "Likely");
         } else if (R.t(R.m((S["signals"] ?? null), "Count"))) {
-            R.ln = F + 581;
+            R.ln = F + 589;
             R.e(v37, "Possible");
         } else {
-            R.ln = F + 581;
+            R.ln = F + 589;
             R.e(v37, null);
         }
         S["confidence"] = R.u(v37);
-        R.ln = F + 582;
+        R.ln = F + 590;
         R.si((S["cache"] ?? null), (S["key"] ?? null), R.pso(["Confidence", (S["confidence"] ?? null), "Signals", R.a((S["signals"] ?? null)), "NotRead", (S["notread"] ?? null), "Evidence", (S["evidence"] ?? null)]));
-        R.ln = F + 583;
+        R.ln = F + 591;
         R.e(O, R.i((S["cache"] ?? null), (S["key"] ?? null)));
         return;
     });
-    R.ln = F + 586;
+    R.ln = F + 594;
     R.def(S, "Get-DomainControllerIds", { params: [], adv: 0, h: "6b83667ffdf32ca3" }, (S, O) => {
-        R.ln = F + 588;
+        R.ln = F + 596;
         if (!R.t(R.im(R.m((R.ss(S)["script:ingest"] ?? null), "Cache"), "ContainsKey", ["#dcIds"]))) {
-            R.ln = F + 589;
+            R.ln = F + 597;
             S["ids"] = R.sc("System.Collections.Generic.HashSet[string]", "new", []);
-            R.ln = F + 590;
+            R.ln = F + 598;
             for (const it38 of R.fi(R.u(R.cmd(S, "Get-AzResourceRecords", [R.np("Type"), (S["vmtype"] ?? null)], null)))) {
                 S["machine"] = it38;
-                R.ln = F + 591;
+                R.ln = F + 599;
                 if ((R.t(R.eq(R.u(R.cmd(S, "Get-MachineOsType", [(S["machine"] ?? null)], null)), "Windows")) && R.t(R.m(R.u(R.cmd(S, "Get-DomainControllerSignals", [(S["machine"] ?? null)], null)), "Confidence")))) {
-                    R.ln = F + 591;
+                    R.ln = F + 599;
                     R.im((S["ids"] ?? null), "Add", [R.im(R.m((S["machine"] ?? null), "id"), "ToLowerInvariant", [])]);
                 }
             }
-            R.ln = F + 593;
+            R.ln = F + 601;
             R.si(R.m((R.ss(S)["script:ingest"] ?? null), "Cache"), "#dcIds", (S["ids"] ?? null));
         }
-        R.ln = F + 595;
+        R.ln = F + 603;
         R.e(O, [R.v(R.i(R.m((R.ss(S)["script:ingest"] ?? null), "Cache"), "#dcIds"))]);
         return;
     });
-    R.ln = F + 600;
-    S["dctakeoveractions"] = R.a([R.v("Microsoft.Compute/virtualMachines/runCommand/action"), R.v("Microsoft.Compute/virtualMachines/runCommands/write"), R.v("Microsoft.Compute/virtualMachines/extensions/write"), R.v("Microsoft.Compute/virtualMachines/write"), R.v("Microsoft.GuestConfiguration/guestConfigurationAssignments/write"), R.v("Microsoft.Compute/disks/beginGetAccess/action"), R.v("Microsoft.Compute/snapshots/write"), R.v("Microsoft.RecoveryServices/vaults/backupFabrics/protectionContainers/protectedItems/recoveryPoints/restore/action")]);
-    R.ln = F + 606;
-    S["roleassignmentwriteaction"] = "Microsoft.Authorization/roleAssignments/write";
     R.ln = F + 608;
-    S["dcsupportingtypes"] = R.a([R.v("Microsoft.Network/*"), R.v("Microsoft.Compute/disks"), R.v("Microsoft.Compute/snapshots"), R.v("Microsoft.Compute/availabilitySets"), R.v("Microsoft.Compute/proximityPlacementGroups"), R.v("Microsoft.Compute/restorePointCollections"), R.v("Microsoft.Compute/diskEncryptionSets"), R.v("Microsoft.RecoveryServices/vaults"), R.v("Microsoft.DataProtection/backupVaults"), R.v("Microsoft.KeyVault/vaults"), R.v("Microsoft.Storage/storageAccounts"), R.v("Microsoft.ManagedIdentity/userAssignedIdentities"), R.v("Microsoft.Insights/*"), R.v("Microsoft.OperationalInsights/*"), R.v("Microsoft.OperationsManagement/*"), R.v("Microsoft.AlertsManagement/*"), R.v("Microsoft.Maintenance/*")]);
+    S["dctakeoveractions"] = R.a([R.v("Microsoft.Compute/virtualMachines/runCommand/action"), R.v("Microsoft.Compute/virtualMachines/runCommands/write"), R.v("Microsoft.Compute/virtualMachines/extensions/write"), R.v("Microsoft.Compute/virtualMachines/write"), R.v("Microsoft.GuestConfiguration/guestConfigurationAssignments/write"), R.v("Microsoft.Compute/disks/beginGetAccess/action"), R.v("Microsoft.Compute/snapshots/write"), R.v("Microsoft.RecoveryServices/vaults/backupFabrics/protectionContainers/protectedItems/recoveryPoints/restore/action")]);
+    R.ln = F + 614;
+    S["roleassignmentwriteaction"] = "Microsoft.Authorization/roleAssignments/write";
     R.ln = F + 616;
+    S["dcsupportingtypes"] = R.a([R.v("Microsoft.Network/*"), R.v("Microsoft.Compute/disks"), R.v("Microsoft.Compute/snapshots"), R.v("Microsoft.Compute/availabilitySets"), R.v("Microsoft.Compute/proximityPlacementGroups"), R.v("Microsoft.Compute/restorePointCollections"), R.v("Microsoft.Compute/diskEncryptionSets"), R.v("Microsoft.RecoveryServices/vaults"), R.v("Microsoft.DataProtection/backupVaults"), R.v("Microsoft.KeyVault/vaults"), R.v("Microsoft.Storage/storageAccounts"), R.v("Microsoft.ManagedIdentity/userAssignedIdentities"), R.v("Microsoft.Insights/*"), R.v("Microsoft.OperationalInsights/*"), R.v("Microsoft.OperationsManagement/*"), R.v("Microsoft.AlertsManagement/*"), R.v("Microsoft.Maintenance/*")]);
+    R.ln = F + 624;
     R.def(S, "Test-RoleGrantsAction", { params: [{ n: "Definition", t: null, pos: null }, { n: "Action", t: "string", pos: null }], adv: 0, h: "adabb4582bfdb17d" }, (S, O) => {
-        R.ln = F + 619;
+        R.ln = F + 627;
         for (const it39 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 619;
+            R.ln = F + 627;
             R.e(O, (S["_"] ?? null));
         })], R.pi(R.m(R.m((S["definition"] ?? null), "properties"), "permissions"))))) {
             S["permission"] = it39;
-            R.ln = F + 620;
+            R.ln = F + 628;
             if (!R.t(R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $Action -like $_ " }, (S, O) => {
-                R.ln = F + 620;
+                R.ln = F + 628;
                 R.e(O, (R.t((S["_"] ?? null)) && R.t(R.like((S["action"] ?? null), (S["_"] ?? null)))));
             })], R.pi(R.m((S["permission"] ?? null), "actions"))), "Count"))) {
                 continue;
             }
-            R.ln = F + 621;
+            R.ln = F + 629;
             if (R.t(R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $Action -like $_ " }, (S, O) => {
-                R.ln = F + 621;
+                R.ln = F + 629;
                 R.e(O, (R.t((S["_"] ?? null)) && R.t(R.like((S["action"] ?? null), (S["_"] ?? null)))));
             })], R.pi(R.m((S["permission"] ?? null), "notActions"))), "Count"))) {
                 continue;
             }
-            R.ln = F + 622;
-            R.e(O, true);
-            return;
-        }
-        R.ln = F + 624;
-        R.e(O, false);
-        return;
-    });
-    R.ln = F + 627;
-    R.def(S, "Test-ScopeCovers", { params: [{ n: "Scope", t: "string", pos: null }, { n: "ResourceIds", t: "string[]", pos: null }], adv: 0, h: "9355170e5698b5b8" }, (S, O) => {
-        R.ln = F + 631;
-        if (R.t(R.in(R.u(R.cmd(S, "Get-ScopeLevel", [(S["scope"] ?? null)], null)), [R.v("root"), R.v("managementGroup")]))) {
-            R.ln = F + 631;
+            R.ln = F + 630;
             R.e(O, true);
             return;
         }
         R.ln = F + 632;
+        R.e(O, false);
+        return;
+    });
+    R.ln = F + 635;
+    R.def(S, "Test-ScopeCovers", { params: [{ n: "Scope", t: "string", pos: null }, { n: "ResourceIds", t: "string[]", pos: null }], adv: 0, h: "9355170e5698b5b8" }, (S, O) => {
+        R.ln = F + 639;
+        if (R.t(R.in(R.u(R.cmd(S, "Get-ScopeLevel", [(S["scope"] ?? null)], null)), [R.v("root"), R.v("managementGroup")]))) {
+            R.ln = F + 639;
+            R.e(O, true);
+            return;
+        }
+        R.ln = F + 640;
         S["prefix"] = R.im(R.im((S["scope"] ?? null), "TrimEnd", ["/"]), "ToLowerInvariant", []);
-        R.ln = F + 633;
+        R.ln = F + 641;
         R.e(O, R.c("bool", R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -eq $prefix -or $_.StartsWith(\"$prefix/\") " }, (S, O) => {
-            R.ln = F + 633;
+            R.ln = F + 641;
             R.e(O, (R.t(R.eq((S["_"] ?? null), (S["prefix"] ?? null))) || R.t(R.im((S["_"] ?? null), "StartsWith", [("" + R.str((S["prefix"] ?? null)) + "/")]))));
         })], R.pi((S["resourceids"] ?? null))), "Count")));
         return;
     });
-    R.ln = F + 636;
+    R.ln = F + 644;
     R.def(S, "Get-ScopeLabel", { params: [{ n: "Scope", t: "string", pos: null }], adv: 0, h: "7af2c94208bc60d1" }, (S, O) => {
-        R.ln = F + 638;
+        R.ln = F + 646;
         const had43 = Object.prototype.hasOwnProperty.call(S, '_'), prev42 = S['_'];
         try {
             for (const sw40 of R.cmd(S, "Get-ScopeLevel", [(S["scope"] ?? null)], null)) {
@@ -1183,400 +1193,488 @@ export default R.script("/app/Analyze/tests/10-Compute.ps1", { params: [], adv: 
                 let hit41 = false;
                 if (R.t(R.eq(sw40, "root", false))) {
                     hit41 = true;
-                    R.ln = F + 639;
+                    R.ln = F + 647;
                     R.e(O, "the tenant root");
                     return;
                 }
                 if (R.t(R.eq(sw40, "managementGroup", false))) {
                     hit41 = true;
-                    R.ln = F + 640;
+                    R.ln = F + 648;
                     R.e(O, ("management group " + R.str(R.u(R.cmd(S, "Get-ResourceName", [(S["scope"] ?? null)], null)))));
                     return;
                 }
                 if (R.t(R.eq(sw40, "subscription", false))) {
                     hit41 = true;
-                    R.ln = F + 641;
+                    R.ln = F + 649;
                     R.e(O, "the subscription");
                     return;
                 }
                 if (R.t(R.eq(sw40, "resourceGroup", false))) {
                     hit41 = true;
-                    R.ln = F + 642;
+                    R.ln = F + 650;
                     R.e(O, ("resource group " + R.str(R.u(R.cmd(S, "Get-ResourceName", [(S["scope"] ?? null)], null)))));
                     return;
                 }
             }
         } finally { if (had43) { S['_'] = prev42; } else { delete S['_']; } }
-        R.ln = F + 644;
+        R.ln = F + 652;
         R.pa(O, R.cmd(S, "Get-ResourceName", [(S["scope"] ?? null)], null));
         return;
     });
-    R.ln = F + 647;
+    R.ln = F + 655;
     R.def(S, "Get-ScopeWorkloads", { params: [{ n: "Scope", t: "string", pos: null }], adv: 0, h: "1dd5589298d908e4" }, (S, O) => {
-        R.ln = F + 651;
+        R.ln = F + 659;
         if (!R.t(R.im(R.m((R.ss(S)["script:ingest"] ?? null), "Cache"), "ContainsKey", ["#dcScopes"]))) {
-            R.ln = F + 651;
+            R.ln = F + 659;
             R.si(R.m((R.ss(S)["script:ingest"] ?? null), "Cache"), "#dcScopes", R.ht([], false));
         }
-        R.ln = F + 652;
+        R.ln = F + 660;
         S["cache"] = R.i(R.m((R.ss(S)["script:ingest"] ?? null), "Cache"), "#dcScopes");
-        R.ln = F + 653;
+        R.ln = F + 661;
         S["prefix"] = R.im(R.im((S["scope"] ?? null), "TrimEnd", ["/"]), "ToLowerInvariant", []);
-        R.ln = F + 654;
+        R.ln = F + 662;
         if (!R.t(R.im((S["cache"] ?? null), "ContainsKey", [(S["prefix"] ?? null)]))) {
-            R.ln = F + 655;
+            R.ln = F + 663;
             S["controllers"] = R.u(R.cmd(S, "Get-DomainControllerIds", [], null));
-            R.ln = F + 656;
+            R.ln = F + 664;
             S["others"] = R.sc("System.Collections.Generic.List[string]", "new", []);
-            R.ln = F + 657;
+            R.ln = F + 665;
             S["unread"] = R.sc("System.Collections.Generic.List[string]", "new", []);
-            R.ln = F + 658;
+            R.ln = F + 666;
             for (const it44 of R.fi(R.cmd(S, "Sort-Object", [R.sb({ params: [], adv: 0, text: " ([string]$_.id).ToLowerInvariant() " }, (S, O) => {
-                R.ln = F + 658;
+                R.ln = F + 666;
                 R.e(O, R.im((R.c("string", R.m((S["_"] ?? null), "id"))), "ToLowerInvariant", []));
             })], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.id " }, (S, O) => {
-                R.ln = F + 658;
+                R.ln = F + 666;
                 R.e(O, (R.t((S["_"] ?? null)) && R.t(R.m((S["_"] ?? null), "id"))));
             })], R.cmd(S, "Get-IngestData", ["subscription/resources"], null))))) {
                 S["resource"] = it44;
-                R.ln = F + 659;
+                R.ln = F + 667;
                 S["id"] = R.im((R.c("string", R.m((S["resource"] ?? null), "id"))), "ToLowerInvariant", []);
-                R.ln = F + 660;
+                R.ln = F + 668;
                 if (!R.t(R.im((S["id"] ?? null), "StartsWith", [("" + R.str((S["prefix"] ?? null)) + "/")]))) {
                     continue;
                 }
-                R.ln = F + 661;
+                R.ln = F + 669;
                 if (R.t(R.match(S, (S["id"] ?? null), "^(/subscriptions/[^/]+/resourcegroups/[^/]+/providers/microsoft\\.compute/virtualmachines/[^/]+)"))) {
-                    R.ln = F + 663;
+                    R.ln = F + 671;
                     S["machineid"] = R.i((S["matches"] ?? null), 1);
-                    R.ln = F + 664;
+                    R.ln = F + 672;
                     if ((R.t(R.ne((S["machineid"] ?? null), (S["id"] ?? null))) || R.t(R.im((S["controllers"] ?? null), "Contains", [(S["machineid"] ?? null)])))) {
                         continue;
                     }
-                    R.ln = F + 665;
+                    R.ln = F + 673;
                     if (R.t(R.u(R.cmd(S, "Get-AzResourceRecord", [(S["machineid"] ?? null)], null)))) {
-                        R.ln = F + 665;
+                        R.ln = F + 673;
                         R.e(O, R.im((S["others"] ?? null), "Add", [R.c("string", R.m((S["resource"] ?? null), "name"))]));
                     } else {
-                        R.ln = F + 665;
+                        R.ln = F + 673;
                         R.e(O, R.im((S["unread"] ?? null), "Add", [("virtual machine " + R.str(R.u(R.pi(R.m((S["resource"] ?? null), "name")))))]));
                     }
                     continue;
                 }
-                R.ln = F + 668;
+                R.ln = F + 676;
                 if (R.t(R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " [string]$resource.type -like $_ " }, (S, O) => {
-                    R.ln = F + 668;
+                    R.ln = F + 676;
                     R.e(O, R.like(R.c("string", R.m((S["resource"] ?? null), "type")), (S["_"] ?? null)));
                 })], R.pi((S["dcsupportingtypes"] ?? null))), "Count"))) {
                     continue;
                 }
-                R.ln = F + 669;
+                R.ln = F + 677;
                 R.e(O, R.im((S["others"] ?? null), "Add", [R.c("string", R.m((S["resource"] ?? null), "name"))]));
             }
-            R.ln = F + 671;
+            R.ln = F + 679;
             R.si((S["cache"] ?? null), (S["prefix"] ?? null), R.pso(["Others", R.a((S["others"] ?? null)), "Unread", R.a((S["unread"] ?? null))]));
         }
-        R.ln = F + 673;
+        R.ln = F + 681;
         R.e(O, R.i((S["cache"] ?? null), (S["prefix"] ?? null)));
         return;
     });
-    R.ln = F + 676;
-    R.def(S, "Get-DomainControllerProtection", { params: [{ n: "Record", t: null, pos: null }, { n: "Signals", t: null, pos: null }], adv: 0, h: "5610b7eec7ced3a0" }, (S, O) => {
-        R.ln = F + 680;
+    R.ln = F + 684;
+    R.def(S, "Get-DomainControllerProtection", { params: [{ n: "Record", t: null, pos: null }, { n: "Signals", t: null, pos: null }], adv: 0, h: "83e7e3226d27f150" }, (S, O) => {
+        R.ln = F + 688;
         S["p"] = R.m(R.m((S["record"] ?? null), "resource"), "properties");
-        R.ln = F + 681;
+        R.ln = F + 689;
         S["machineid"] = R.im(R.m((S["record"] ?? null), "id"), "ToLowerInvariant", []);
-        R.ln = F + 682;
+        R.ln = F + 690;
         S["notread"] = R.sc("System.Collections.Generic.List[string]", "new", []);
-        R.ln = F + 683;
+        R.ln = F + 691;
         S["resourceids"] = R.sc("System.Collections.Generic.List[string]", "new", []);
-        R.ln = F + 684;
+        R.ln = F + 692;
         R.e(O, R.im((S["resourceids"] ?? null), "Add", [(S["machineid"] ?? null)]));
-        R.ln = F + 685;
+        R.ln = F + 693;
         for (const it45 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.managedDisk.id " }, (S, O) => {
-            R.ln = F + 685;
+            R.ln = F + 693;
             R.e(O, R.m(R.m((S["_"] ?? null), "managedDisk"), "id"));
         })], R.pi(R.add(R.a(R.m(R.m((S["p"] ?? null), "storageProfile"), "osDisk")), R.a(R.m(R.m((S["p"] ?? null), "storageProfile"), "dataDisks"))))))) {
             S["disk"] = it45;
-            R.ln = F + 685;
+            R.ln = F + 693;
             R.e(O, R.im((S["resourceids"] ?? null), "Add", [R.im((R.c("string", R.m(R.m((S["disk"] ?? null), "managedDisk"), "id"))), "ToLowerInvariant", [])]));
         }
-        R.ln = F + 687;
+        R.ln = F + 695;
         for (const it46 of R.fi(R.u(R.cmd(S, "Get-FailedResourceIds", [R.np("Type"), "Microsoft.RecoveryServices/vaults"], null)))) {
             S["id"] = it46;
-            R.ln = F + 687;
+            R.ln = F + 695;
             R.e(O, R.im((S["notread"] ?? null), "Add", [("vault " + R.str(R.u(R.cmd(S, "Get-ResourceName", [(S["id"] ?? null)], null))))]));
         }
-        R.ln = F + 688;
+        R.ln = F + 696;
         for (const it47 of R.fi(R.u(R.cmd(S, "Get-AzResourceRecords", [R.np("Type"), "Microsoft.RecoveryServices/vaults"], null)))) {
             S["vault"] = it47;
-            R.ln = F + 689;
+            R.ln = F + 697;
             if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["vault"] ?? null), "backupProtectedItems"], null)))) {
-                R.ln = F + 689;
+                R.ln = F + 697;
                 R.e(O, R.im((S["notread"] ?? null), "Add", [("protected items of vault " + R.str(R.u(R.pi(R.m(R.m((S["vault"] ?? null), "resource"), "name")))))]));
                 continue;
             }
-            R.ln = F + 690;
+            R.ln = F + 698;
             for (const it48 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                R.ln = F + 690;
+                R.ln = F + 698;
                 R.e(O, (S["_"] ?? null));
             })], R.cmd(S, "Get-Child", [(S["vault"] ?? null), "backupProtectedItems"], null)))) {
                 S["item"] = it48;
-                R.ln = F + 691;
+                R.ln = F + 699;
                 if (R.t(R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and ([string]$_).ToLowerInvariant() -eq $machineId " }, (S, O) => {
-                    R.ln = F + 691;
+                    R.ln = F + 699;
                     R.e(O, (R.t((S["_"] ?? null)) && R.t(R.eq(R.im((R.c("string", (S["_"] ?? null))), "ToLowerInvariant", []), (S["machineid"] ?? null)))));
                 })], R.pi(R.a([R.v(R.m(R.m((S["item"] ?? null), "properties"), "sourceResourceId")), R.v(R.m(R.m((S["item"] ?? null), "properties"), "virtualMachineId"))]))), "Count"))) {
-                    R.ln = F + 691;
+                    R.ln = F + 699;
                     R.e(O, R.im((S["resourceids"] ?? null), "Add", [R.im(R.m((S["vault"] ?? null), "id"), "ToLowerInvariant", [])]));
                     break;
                 }
             }
         }
-        R.ln = F + 695;
+        R.ln = F + 703;
         S["candidates"] = R.sc("System.Collections.Generic.List[object]", "new", []);
-        R.ln = F + 696;
+        R.ln = F + 704;
         for (const it49 of R.fi(R.u(R.cmd(S, "Get-ActiveRoleAssignments", [], null)))) {
             S["assignment"] = it49;
-            R.ln = F + 696;
+            R.ln = F + 704;
             R.e(O, R.im((S["candidates"] ?? null), "Add", [R.pso(["Item", (S["assignment"] ?? null), "Kind", "active"])]));
         }
-        R.ln = F + 697;
+        R.ln = F + 705;
         if (R.t(R.u(R.cmd(S, "Test-IngestSection", ["rbac/roleEligibilitySchedules"], null)))) {
-            R.ln = F + 698;
+            R.ln = F + 706;
             for (const it50 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                R.ln = F + 698;
+                R.ln = F + 706;
                 R.e(O, (S["_"] ?? null));
             })], R.cmd(S, "Get-IngestData", ["rbac/roleEligibilitySchedules"], null)))) {
                 S["schedule"] = it50;
-                R.ln = F + 698;
+                R.ln = F + 706;
                 R.e(O, R.im((S["candidates"] ?? null), "Add", [R.pso(["Item", (S["schedule"] ?? null), "Kind", "eligible"])]));
             }
         } else {
-            R.ln = F + 700;
+            R.ln = F + 708;
             R.e(O, R.im((S["notread"] ?? null), "Add", ["eligible role assignments"]));
         }
-        R.ln = F + 702;
+        R.ln = F + 710;
         S["instancesread"] = R.u(R.cmd(S, "Test-IngestSection", ["rbac/roleAssignmentScheduleInstances"], null));
-        R.ln = F + 703;
+        R.ln = F + 711;
         S["instances"] = R.ht([], false);
-        R.ln = F + 704;
+        R.ln = F + 712;
         if (R.t((S["instancesread"] ?? null))) {
-            R.ln = F + 705;
+            R.ln = F + 713;
             for (const it51 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.properties.originRoleAssignmentId " }, (S, O) => {
-                R.ln = F + 705;
+                R.ln = F + 713;
                 R.e(O, (R.t((S["_"] ?? null)) && R.t(R.m(R.m((S["_"] ?? null), "properties"), "originRoleAssignmentId"))));
             })], R.cmd(S, "Get-IngestData", ["rbac/roleAssignmentScheduleInstances"], null)))) {
                 S["instance"] = it51;
-                R.ln = F + 705;
+                R.ln = F + 713;
                 R.si((S["instances"] ?? null), R.im((R.c("string", R.m(R.m((S["instance"] ?? null), "properties"), "originRoleAssignmentId"))), "ToLowerInvariant", []), (S["instance"] ?? null));
             }
         }
-        R.ln = F + 708;
+        R.ln = F + 716;
         S["takeover"] = R.sc("System.Collections.Generic.List[string]", "new", []);
-        R.ln = F + 709;
+        R.ln = F + 717;
         S["shared"] = R.sc("System.Collections.Generic.List[string]", "new", []);
-        R.ln = F + 710;
+        R.ln = F + 718;
         S["workload"] = R.sc("System.Collections.Generic.List[string]", "new", []);
-        R.ln = F + 711;
+        R.ln = F + 719;
         S["standing"] = R.sc("System.Collections.Generic.List[string]", "new", []);
-        R.ln = F + 712;
+        R.ln = F + 720;
         for (const it52 of R.fi((S["candidates"] ?? null))) {
             S["candidate"] = it52;
-            R.ln = F + 713;
+            R.ln = F + 721;
             S["a"] = R.m(R.m((S["candidate"] ?? null), "Item"), "properties");
-            R.ln = F + 714;
+            R.ln = F + 722;
             if ((!R.t(R.m((S["a"] ?? null), "scope")) || !R.t(R.u(R.cmd(S, "Test-ScopeCovers", [R.m((S["a"] ?? null), "scope"), (S["resourceids"] ?? null)], null))))) {
                 continue;
             }
-            R.ln = F + 715;
+            R.ln = F + 723;
             S["definition"] = R.i(R.u(R.cmd(S, "Get-RoleDefinitionMap", [], null)), R.u(R.cmd(S, "Get-RoleDefinitionGuid", [R.m((S["a"] ?? null), "roleDefinitionId")], null)));
-            R.ln = F + 716;
+            R.ln = F + 724;
             if (!R.t((S["definition"] ?? null))) {
-                R.ln = F + 716;
+                R.ln = F + 724;
                 R.e(O, R.im((S["notread"] ?? null), "Add", [("role definition " + R.str(R.u(R.cmd(S, "Get-RoleName", [R.m((S["a"] ?? null), "roleDefinitionId")], null))))]));
                 continue;
             }
-            R.ln = F + 717;
+            R.ln = F + 725;
             S["assignsroles"] = R.u(R.cmd(S, "Test-RoleGrantsAction", [(S["definition"] ?? null), (S["roleassignmentwriteaction"] ?? null)], null));
-            R.ln = F + 718;
+            R.ln = F + 726;
             if ((!R.t((S["assignsroles"] ?? null)) && !R.t(R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " Test-RoleGrantsAction $definition $_ " }, (S, O) => {
-                R.ln = F + 718;
+                R.ln = F + 726;
                 R.pa(O, R.cmd(S, "Test-RoleGrantsAction", [(S["definition"] ?? null), (S["_"] ?? null)], null));
             })], R.pi((S["dctakeoveractions"] ?? null))), "Count")))) {
                 continue;
             }
-            R.ln = F + 719;
+            R.ln = F + 727;
             S["label"] = ("" + R.str(R.u(R.pi(R.m(R.m((S["definition"] ?? null), "properties"), "roleName")))) + " for " + R.str(R.u(R.cmd(S, "Get-PrincipalLabel", [R.m((S["a"] ?? null), "principalId")], null))) + " on " + R.str(R.u(R.cmd(S, "Get-ScopeLabel", [R.m((S["a"] ?? null), "scope")], null))));
-            R.ln = F + 720;
+            R.ln = F + 728;
             R.e(O, R.im((S["takeover"] ?? null), "Add", [("" + R.str((S["label"] ?? null)) + " (" + R.str(R.u(R.pi(R.m((S["candidate"] ?? null), "Kind")))) + ")")]));
-            R.ln = F + 721;
+            R.ln = F + 729;
             if (R.t(R.eq(R.m((S["a"] ?? null), "principalType"), "ServicePrincipal"))) {
-                R.ln = F + 722;
+                R.ln = F + 730;
                 R.e(O, R.im((S["workload"] ?? null), "Add", [(S["label"] ?? null)]));
             } else if (R.t(R.eq(R.m((S["a"] ?? null), "principalType"), "Group"))) {
-                R.ln = F + 724;
+                R.ln = F + 732;
                 if (R.t(R.u(R.cmd(S, "Test-GroupMembersComplete", [R.m((S["a"] ?? null), "principalId")], null)))) {
-                    R.ln = F + 725;
-                    for (const it53 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.'@odata.type' -eq '#microsoft.graph.servicePrincipal' " }, (S, O) => {
-                        R.ln = F + 725;
-                        R.e(O, R.eq(R.m((S["_"] ?? null), "@odata.type"), "#microsoft.graph.servicePrincipal"));
+                    R.ln = F + 733;
+                    for (const it53 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " (Get-DirectoryObjectType $_) -eq '#microsoft.graph.servicePrincipal' " }, (S, O) => {
+                        R.ln = F + 733;
+                        R.e(O, R.eq(R.u(R.cmd(S, "Get-DirectoryObjectType", [(S["_"] ?? null)], null)), "#microsoft.graph.servicePrincipal"));
                     })], R.cmd(S, "Get-GroupMembers", [R.m((S["a"] ?? null), "principalId")], null)))) {
                         S["member"] = it53;
-                        R.ln = F + 725;
+                        R.ln = F + 733;
                         R.e(O, R.im((S["workload"] ?? null), "Add", [("" + R.str((S["label"] ?? null)) + ", through " + R.str(R.u(R.pi(R.m((S["member"] ?? null), "displayName")))))]));
                     }
                 } else {
-                    R.ln = F + 727;
+                    R.ln = F + 735;
                     R.e(O, R.im((S["notread"] ?? null), "Add", [("members of " + R.str(R.u(R.cmd(S, "Get-PrincipalLabel", [R.m((S["a"] ?? null), "principalId")], null))))]));
                 }
             }
-            R.ln = F + 730;
+            R.ln = F + 738;
             if ((R.t(R.eq(R.m((S["candidate"] ?? null), "Kind"), "active")) && R.t(R.in(R.m((S["a"] ?? null), "principalType"), [R.v("User"), R.v("Group")])))) {
-                R.ln = F + 731;
+                R.ln = F + 739;
                 S["instance"] = R.i((S["instances"] ?? null), R.im((R.c("string", R.m(R.m((S["candidate"] ?? null), "Item"), "id"))), "ToLowerInvariant", []));
-                R.ln = F + 732;
+                R.ln = F + 740;
                 if (!R.t((S["instancesread"] ?? null))) {
-                    R.ln = F + 732;
+                    R.ln = F + 740;
                     R.e(O, R.im((S["notread"] ?? null), "Add", ["role assignment schedules"]));
                 } else if (!R.t((S["instance"] ?? null))) {
-                    R.ln = F + 733;
+                    R.ln = F + 741;
                     R.e(O, R.im((S["notread"] ?? null), "Add", [("assignment schedule of " + R.str((S["label"] ?? null)))]));
                 } else if ((R.t(R.eq(R.m(R.m((S["instance"] ?? null), "properties"), "assignmentType"), "Assigned")) && !R.t(R.m(R.m((S["instance"] ?? null), "properties"), "endDateTime")))) {
-                    R.ln = F + 734;
+                    R.ln = F + 742;
                     R.e(O, R.im((S["standing"] ?? null), "Add", [(S["label"] ?? null)]));
                 }
             }
-            R.ln = F + 737;
+            R.ln = F + 745;
             if ((!R.t((S["assignsroles"] ?? null)) && R.t(R.in(R.u(R.cmd(S, "Get-ScopeLevel", [R.m((S["a"] ?? null), "scope")], null)), [R.v("subscription"), R.v("resourceGroup")])))) {
-                R.ln = F + 738;
+                R.ln = F + 746;
                 S["scope"] = R.u(R.cmd(S, "Get-ScopeWorkloads", [R.m((S["a"] ?? null), "scope")], null));
-                R.ln = F + 739;
+                R.ln = F + 747;
                 if (R.t(R.m(R.m((S["scope"] ?? null), "Others"), "Count"))) {
-                    R.ln = F + 739;
+                    R.ln = F + 747;
                     R.e(O, R.im((S["shared"] ?? null), "Add", [("" + R.str((S["label"] ?? null)) + ", shared with " + R.str(R.u(R.pi(R.m(R.m((S["scope"] ?? null), "Others"), "Count")))) + " other resource(s): " + R.str(R.u(R.pi(R.join(R.cmd(S, "Select-Object", [R.np("First"), 3], R.pi(R.m((S["scope"] ?? null), "Others"))), ", ")))))]));
                 }
-                R.ln = F + 740;
+                R.ln = F + 748;
                 for (const it54 of R.fi(R.m((S["scope"] ?? null), "Unread"))) {
                     S["item"] = it54;
-                    R.ln = F + 740;
+                    R.ln = F + 748;
                     R.e(O, R.im((S["notread"] ?? null), "Add", [(S["item"] ?? null)]));
                 }
             }
         }
-        R.ln = F + 744;
+        R.ln = F + 752;
         S["evidence"] = R.ht([], true);
-        R.ln = F + 745;
+        R.ln = F + 753;
         for (const it55 of R.fi(R.m(R.m((S["signals"] ?? null), "Evidence"), "Keys"))) {
             S["name"] = it55;
-            R.ln = F + 745;
+            R.ln = F + 753;
             R.si((S["evidence"] ?? null), (S["name"] ?? null), R.i(R.m((S["signals"] ?? null), "Evidence"), (S["name"] ?? null)));
         }
-        R.ln = F + 746;
+        R.ln = F + 754;
         R.sm((S["evidence"] ?? null), "takeoverRoles", R.cmd(S, "Sort-Object", [R.np("Unique")], R.pi((S["takeover"] ?? null))));
-        R.ln = F + 747;
+        R.ln = F + 755;
         R.sm((S["evidence"] ?? null), "sharedScopes", R.cmd(S, "Sort-Object", [R.np("Unique")], R.pi((S["shared"] ?? null))));
-        R.ln = F + 748;
+        R.ln = F + 756;
         R.sm((S["evidence"] ?? null), "workloadIdentities", R.cmd(S, "Sort-Object", [R.np("Unique")], R.pi((S["workload"] ?? null))));
-        R.ln = F + 749;
+        R.ln = F + 757;
         R.sm((S["evidence"] ?? null), "standingAccess", R.cmd(S, "Sort-Object", [R.np("Unique")], R.pi((S["standing"] ?? null))));
-        R.ln = F + 750;
+        R.ln = F + 758;
         S["protectionnotread"] = R.cmd(S, "Sort-Object", [R.np("Unique")], R.pi((S["notread"] ?? null)));
-        R.ln = F + 751;
+        R.ln = F + 759;
         if (R.t((S["protectionnotread"] ?? null))) {
-            R.ln = F + 751;
+            R.ln = F + 759;
             R.sm((S["evidence"] ?? null), "protectionNotRead", (S["protectionnotread"] ?? null));
         }
-        R.ln = F + 753;
+        R.ln = F + 761;
         S["issues"] = R.sc("System.Collections.Generic.List[string]", "new", []);
-        R.ln = F + 754;
+        R.ln = F + 762;
         for (const it56 of R.fi(R.m((S["evidence"] ?? null), "sharedScopes"))) {
             S["item"] = it56;
-            R.ln = F + 754;
+            R.ln = F + 762;
             R.e(O, R.im((S["issues"] ?? null), "Add", [("delegated on a shared scope: " + R.str((S["item"] ?? null)))]));
         }
-        R.ln = F + 755;
+        R.ln = F + 763;
         for (const it57 of R.fi(R.m((S["evidence"] ?? null), "workloadIdentities"))) {
             S["item"] = it57;
-            R.ln = F + 755;
+            R.ln = F + 763;
             R.e(O, R.im((S["issues"] ?? null), "Add", [("workload identity: " + R.str((S["item"] ?? null)))]));
         }
-        R.ln = F + 756;
+        R.ln = F + 764;
         for (const it58 of R.fi(R.m((S["evidence"] ?? null), "standingAccess"))) {
             S["item"] = it58;
-            R.ln = F + 756;
+            R.ln = F + 764;
             R.e(O, R.im((S["issues"] ?? null), "Add", [("permanent: " + R.str((S["item"] ?? null)))]));
         }
-        R.ln = F + 757;
+        R.ln = F + 765;
         S["subject"] = ("" + R.str(R.u(R.pi(R.m((S["signals"] ?? null), "Confidence")))) + " domain controller (" + R.str(R.u(R.pi(R.join(R.m((S["signals"] ?? null), "Signals"), ", ")))) + ")");
-        R.ln = F + 758;
+        R.ln = F + 766;
         if (R.t(R.m((S["issues"] ?? null), "Count"))) {
-            R.ln = F + 759;
+            R.ln = F + 767;
             const v59 = [];
-            R.ln = F + 759;
+            R.ln = F + 767;
             if (R.t(R.gt(R.m((S["issues"] ?? null), "Count"), 3))) {
-                R.ln = F + 759;
+                R.ln = F + 767;
                 R.e(v59, ("; and " + R.str(R.u(R.pi(R.sub(R.m((S["issues"] ?? null), "Count"), 3)))) + " more"));
             } else {
-                R.ln = F + 759;
+                R.ln = F + 767;
                 R.e(v59, "");
             }
             S["more"] = R.u(v59);
-            R.ln = F + 760;
+            R.ln = F + 768;
             R.pa(O, R.cmd(S, "New-Fail", [("" + R.str((S["subject"] ?? null)) + " without Tier 0 protection: " + R.str(R.u(R.pi(R.join(R.cmd(S, "Select-Object", [R.np("First"), 3], R.pi((S["issues"] ?? null))), "; ")))) + R.str((S["more"] ?? null))), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 762;
+        R.ln = F + 770;
         if (R.t((S["protectionnotread"] ?? null))) {
-            R.ln = F + 762;
+            R.ln = F + 770;
             R.pa(O, R.cmd(S, "New-Unknown", [("" + R.str((S["subject"] ?? null)) + ", Tier 0 protection not established; not read: " + R.str(R.u(R.pi(R.join((S["protectionnotread"] ?? null), ", "))))), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 763;
+        R.ln = F + 771;
         R.pa(O, R.cmd(S, "New-Pass", [("" + R.str((S["subject"] ?? null)) + " with Tier 0 protection: " + R.str(R.u(R.pi(R.m((S["takeover"] ?? null), "Count")))) + " role assignment(s) can take it over, none delegated on a shared scope, held by a workload identity or permanent"), (S["evidence"] ?? null)], null));
     });
-    R.ln = F + 766;
+    R.ln = F + 774;
     S["dcdetection"] = "A Windows virtual machine is a likely domain controller with an AD DS promotion or two of these signals, a possible one with one: its private address is the DNS server of a virtual network, network interface, Azure Firewall or DNS forwarding rule; a network security group rule allows Kerberos (88, 464), the global catalog (3268, 3269) or AD Web Services (9389) to it; its userData, custom data or extension settings promote it (Install-ADDSForest, CreateADPDC); its name is one (DC01, vm-dc-02).";
-    R.ln = F + 767;
+    R.ln = F + 775;
     S["dcprotection"] = "Tier 0 protection: no role that can take the machine over (run command, extensions, changing the machine, disk export, snapshots, restore from its backup vault, or assigning roles) is delegated on a subscription or resource group that also holds other workloads, held by a service principal or managed identity (also through a group), or held permanently by a user or group instead of through PIM. Roles that assign roles are Tier 0 administration of their scope and do not count as delegated; management group and root roles count for the last two checks.";
-    R.ln = F + 768;
+    R.ln = F + 776;
     S["dcrationale"] = "A domain controller holds the password hashes of every account in the domain. Anyone who can run commands on it, install an extension, change it, copy its disks or restore its backup through Azure controls the domain: Virtual Machine Contributor on a domain controller amounts to Domain Admin. Those rights have to stay with Tier 0 administrators, not with the administrators of other workloads in the same subscription or resource group, not with pipelines and automation that cannot use MFA, and not permanently available to an account that is phished.";
-    R.ln = F + 769;
+    R.ln = F + 777;
     S["dcremediation"] = "Place domain controllers in a subscription or resource group of their own (the identity landing zone) and remove the delegated roles other teams hold there. Grant the remaining roles through PIM eligibility to role-assignable groups, remove workload identities, and alert on run command (AZ-LOG-029).";
-    R.ln = F + 770;
+    R.ln = F + 778;
     S["dcreferences"] = R.a([R.v("https://learn.microsoft.com/azure/architecture/example-scenario/identity/adds-extend-domain"), R.v("https://learn.microsoft.com/security/privileged-access-workstations/privileged-access-access-model")]);
-    R.ln = F + 772;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-VM-015", "Title", "No virtual machine acts as a domain controller without Tier 0 protection", "Category", "Privileged access", "Service", "Virtual machines", "Severity", "High", "Description", ("Checks the Tier 0 protection of likely domain controllers. " + R.str((S["dcdetection"] ?? null)) + " " + R.str((S["dcprotection"] ?? null)) + " Best effort: a domain controller promoted from inside the machine, with another name, and used as DNS server only outside this subscription shows no signal. A machine whose signals could not all be read is reported as unknown here; possible domain controllers are AZ-VM-016."), "Rationale", (S["dcrationale"] ?? null), "Remediation", (S["dcremediation"] ?? null), "References", (S["dcreferences"] ?? null), "Requires", R.a([R.v("rbac/roleAssignments"), R.v("rbac/roleDefinitions"), R.v("subscription/resources")]), "ResourceTypes", R.a((S["vmtype"] ?? null)), "Filter", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) (Get-MachineOsType $Record) -eq 'Windows' " }, (S, O) => {
-        R.ln = F + 784;
+    R.ln = F + 780;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-VM-015", "Version", 2, "Title", "No virtual machine acts as a domain controller without Tier 0 protection", "Category", "Privileged access", "Service", "Virtual machines", "Severity", "High", "Description", ("Checks the Tier 0 protection of likely domain controllers. " + R.str((S["dcdetection"] ?? null)) + " " + R.str((S["dcprotection"] ?? null)) + " Best effort: a domain controller promoted from inside the machine, with another name, and used as DNS server only outside this subscription shows no signal. A machine whose signals could not all be read is reported as unknown here; possible domain controllers are AZ-VM-016."), "Rationale", (S["dcrationale"] ?? null), "Remediation", (S["dcremediation"] ?? null), "References", (S["dcreferences"] ?? null), "Requires", R.a([R.v("rbac/roleAssignments"), R.v("rbac/roleDefinitions"), R.v("subscription/resources")]), "ResourceTypes", R.a((S["vmtype"] ?? null)), "Filter", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) (Get-MachineOsType $Record) -eq 'Windows' " }, (S, O) => {
+        R.ln = F + 793;
         R.e(O, R.eq(R.u(R.cmd(S, "Get-MachineOsType", [(S["record"] ?? null)], null)), "Windows"));
     }), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $signals = Get-DomainControllerSignals $Record\n        if ($signals.Confidence -eq 'Likely') { return Get-DomainControllerProtection $Record $signals }\n        if ($signals.NotRead) { return New-Unknown \"Not ruled out as a likely domain controller; not read: $($signals.NotRead -join ', ')\" $signals.Evidence }\n    " }, (S, O) => {
-        R.ln = F + 787;
+        R.ln = F + 796;
         S["signals"] = R.u(R.cmd(S, "Get-DomainControllerSignals", [(S["record"] ?? null)], null));
-        R.ln = F + 788;
+        R.ln = F + 797;
         if (R.t(R.eq(R.m((S["signals"] ?? null), "Confidence"), "Likely"))) {
-            R.ln = F + 788;
+            R.ln = F + 797;
             R.pa(O, R.cmd(S, "Get-DomainControllerProtection", [(S["record"] ?? null), (S["signals"] ?? null)], null));
             return;
         }
-        R.ln = F + 789;
+        R.ln = F + 798;
         if (R.t(R.m((S["signals"] ?? null), "NotRead"))) {
-            R.ln = F + 789;
+            R.ln = F + 798;
             R.pa(O, R.cmd(S, "New-Unknown", [("Not ruled out as a likely domain controller; not read: " + R.str(R.u(R.pi(R.join(R.m((S["signals"] ?? null), "NotRead"), ", "))))), R.m((S["signals"] ?? null), "Evidence")], null));
             return;
         }
     })], false)], null));
-    R.ln = F + 793;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-VM-016", "Title", "No virtual machine that may be a domain controller runs without Tier 0 protection", "Category", "Privileged access", "Service", "Virtual machines", "Severity", "Informational", "Description", ("Checks the Tier 0 protection of possible domain controllers: machines with one signal, which AZ-VM-015 leaves out. " + R.str((S["dcdetection"] ?? null)) + " " + R.str((S["dcprotection"] ?? null))), "Rationale", ("" + R.str((S["dcrationale"] ?? null)) + " One signal is not proof: confirm whether the machine is a domain controller."), "Remediation", ("Confirm whether the machine is a domain controller. If it is: " + R.str((S["dcremediation"] ?? null))), "References", (S["dcreferences"] ?? null), "Requires", R.a([R.v("rbac/roleAssignments"), R.v("rbac/roleDefinitions"), R.v("subscription/resources")]), "ResourceTypes", R.a((S["vmtype"] ?? null)), "Filter", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) (Get-MachineOsType $Record) -eq 'Windows' " }, (S, O) => {
-        R.ln = F + 805;
+    R.ln = F + 802;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-VM-016", "Version", 2, "Title", "No virtual machine that may be a domain controller runs without Tier 0 protection", "Category", "Privileged access", "Service", "Virtual machines", "Severity", "Informational", "Description", ("Checks the Tier 0 protection of possible domain controllers: machines with one signal, which AZ-VM-015 leaves out. " + R.str((S["dcdetection"] ?? null)) + " " + R.str((S["dcprotection"] ?? null))), "Rationale", ("" + R.str((S["dcrationale"] ?? null)) + " One signal is not proof: confirm whether the machine is a domain controller."), "Remediation", ("Confirm whether the machine is a domain controller. If it is: " + R.str((S["dcremediation"] ?? null))), "References", (S["dcreferences"] ?? null), "Requires", R.a([R.v("rbac/roleAssignments"), R.v("rbac/roleDefinitions"), R.v("subscription/resources")]), "ResourceTypes", R.a((S["vmtype"] ?? null)), "Filter", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) (Get-MachineOsType $Record) -eq 'Windows' " }, (S, O) => {
+        R.ln = F + 815;
         R.e(O, R.eq(R.u(R.cmd(S, "Get-MachineOsType", [(S["record"] ?? null)], null)), "Windows"));
     }), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $signals = Get-DomainControllerSignals $Record\n        if ($signals.Confidence -eq 'Possible') { return Get-DomainControllerProtection $Record $signals }\n    " }, (S, O) => {
-        R.ln = F + 808;
+        R.ln = F + 818;
         S["signals"] = R.u(R.cmd(S, "Get-DomainControllerSignals", [(S["record"] ?? null)], null));
-        R.ln = F + 809;
+        R.ln = F + 819;
         if (R.t(R.eq(R.m((S["signals"] ?? null), "Confidence"), "Possible"))) {
-            R.ln = F + 809;
+            R.ln = F + 819;
             R.pa(O, R.cmd(S, "Get-DomainControllerProtection", [(S["record"] ?? null), (S["signals"] ?? null)], null));
             return;
         }
+    })], false)], null));
+    R.ln = F + 823;
+    S["arcscriptextensions"] = R.a([R.v("Microsoft.Cplat.Core/RunCommandHandlerWindows"), R.v("Microsoft.Cplat.Core/RunCommandHandlerLinux"), R.v("Microsoft.Compute/CustomScriptExtension"), R.v("Microsoft.Azure.Extensions/CustomScript"), R.v("Microsoft.Azure.Automation.HybridWorker/HybridWorkerForWindows"), R.v("Microsoft.Azure.Automation/HybridWorkerForLinux"), R.v("Microsoft.EnterpriseCloud.Monitoring/MicrosoftMonitoringAgent"), R.v("Microsoft.EnterpriseCloud.Monitoring/OMSAgentForLinux")]);
+    R.ln = F + 829;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-VM-017", "Title", "Arc-enabled domain controllers do not accept scripts or machine configuration from Azure", "Category", "Privileged access", "Service", "Azure Arc", "Severity", "High", "Description", ("For Windows servers connected with Azure Arc that report being a domain controller (serverType), checks the local security controls of the Connected Machine agent: monitor mode, the extension manager disabled, or an allow list without the extensions Microsoft names as able to run scripts (" + R.str(R.u(R.pi(R.join((S["arcscriptextensions"] ?? null), ", ")))) + "), and machine configuration (guest configuration) disabled. A server whose agent does not report its server type is reported as unknown when its name is that of a domain controller."), "Rationale", "Scripts that Azure sends through Run Command or the Custom Script Extension run as Local System, and a machine configuration assignment applies DSC as Local System too. Without the local controls, everyone who can install an extension or assign a configuration on the Arc resource (Contributor, Virtual Machine Contributor, Log Analytics Contributor, Azure Connected Machine Resource Administrator on any scope above it) controls the domain. Only the server itself can set these controls, not even a Global Administrator in Azure, which is why Microsoft intends them for domain controllers.", "Remediation", "On the domain controller run 'azcmagent config set config.mode monitor', or set an allow list of the monitoring and security extensions it needs ('azcmagent config set extensions.allowlist ...') and 'azcmagent config set guestconfiguration.enabled false'. Remove extensions that are no longer allowed from Azure.", "References", R.a([R.v("https://learn.microsoft.com/azure/azure-arc/servers/security-extensions"), R.v("https://learn.microsoft.com/azure/azure-arc/servers/security-overview")]), "ResourceTypes", R.a((S["arctype"] ?? null)), "Filter", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) (Get-MachineOsType $Record) -eq 'Windows' " }, (S, O) => {
+        R.ln = F + 840;
+        R.e(O, R.eq(R.u(R.cmd(S, "Get-MachineOsType", [(S["record"] ?? null)], null)), "Windows"));
+    }), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $p = $Record.resource.properties\n        $serverType = [string]$p.detectedProperties.serverType\n        if (-not $serverType) {\n            if ([string]$Record.resource.name -match $dcNamePattern) { return New-Unknown 'The agent does not report its server type, and the name is that of a domain controller' }\n            return New-NotApplicable 'The agent does not report its server type, and the name is not that of a domain controller'\n        }\n        if (@($serverType -split ';' | Where-Object { $_.Trim() -eq 'Domain Controller' }).Count -eq 0) { return New-NotApplicable \"Not a domain controller ($serverType)\" }\n        $configuration = $p.agentConfiguration\n        if (-not $configuration) { return New-Unknown 'The domain controller does not report the configuration of its agent' }\n        $allowList = @($configuration.extensionsAllowList | Where-Object { $_ })\n        $evidence = [ordered]@{\n            serverType                = $serverType\n            agentStatus               = $p.status\n            agentVersion              = $p.agentVersion\n            configMode                = $configuration.configMode\n            extensionsEnabled         = $configuration.extensionsEnabled\n            extensionsAllowList       = $allowList\n            extensionsBlockList       = @($configuration.extensionsBlockList | Where-Object { $_ })\n            guestConfigurationEnabled = $configuration.guestConfigurationEnabled\n        }\n        if ([string]$configuration.configMode -eq 'monitor') { return New-Pass 'The agent runs in monitor mode: only monitoring and security extensions, no machine configuration' $evidence }\n        $issues = [System.Collections.Generic.List[string]]::new()\n        if ([string]$configuration.extensionsEnabled -ne 'false') {\n            $scripts = @($allowList | Where-Object { $_ -in $arcScriptExtensions })\n            if (-not $allowList.Count) { $issues.Add('extensions are allowed without an allow list') }\n            elseif ($scripts.Count) { $issues.Add(\"the allow list includes $($scripts -join ', ')\") }\n        }\n        if ([string]$configuration.guestConfigurationEnabled -ne 'false') { $issues.Add('machine configuration is enabled') }\n        if ($issues.Count) { return New-Fail \"The domain controller accepts code from Azure: $($issues -join '; ')\" $evidence }\n        New-Pass 'The agent accepts no script extensions and no machine configuration' $evidence\n    " }, (S, O) => {
+        R.ln = F + 843;
+        S["p"] = R.m(R.m((S["record"] ?? null), "resource"), "properties");
+        R.ln = F + 844;
+        S["servertype"] = R.c("string", R.m(R.m((S["p"] ?? null), "detectedProperties"), "serverType"));
+        R.ln = F + 845;
+        if (!R.t((S["servertype"] ?? null))) {
+            R.ln = F + 846;
+            if (R.t(R.match(S, R.c("string", R.m(R.m((S["record"] ?? null), "resource"), "name")), (S["dcnamepattern"] ?? null)))) {
+                R.ln = F + 846;
+                R.pa(O, R.cmd(S, "New-Unknown", ["The agent does not report its server type, and the name is that of a domain controller"], null));
+                return;
+            }
+            R.ln = F + 847;
+            R.pa(O, R.cmd(S, "New-NotApplicable", ["The agent does not report its server type, and the name is not that of a domain controller"], null));
+            return;
+        }
+        R.ln = F + 849;
+        if (R.t(R.eq(R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.Trim() -eq 'Domain Controller' " }, (S, O) => {
+            R.ln = F + 849;
+            R.e(O, R.eq(R.im((S["_"] ?? null), "Trim", []), "Domain Controller"));
+        })], R.pi(R.split((S["servertype"] ?? null), ";"))), "Count"), 0))) {
+            R.ln = F + 849;
+            R.pa(O, R.cmd(S, "New-NotApplicable", [("Not a domain controller (" + R.str((S["servertype"] ?? null)) + ")")], null));
+            return;
+        }
+        R.ln = F + 850;
+        S["configuration"] = R.m((S["p"] ?? null), "agentConfiguration");
+        R.ln = F + 851;
+        if (!R.t((S["configuration"] ?? null))) {
+            R.ln = F + 851;
+            R.pa(O, R.cmd(S, "New-Unknown", ["The domain controller does not report the configuration of its agent"], null));
+            return;
+        }
+        R.ln = F + 852;
+        S["allowlist"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+            R.ln = F + 852;
+            R.e(O, (S["_"] ?? null));
+        })], R.pi(R.m((S["configuration"] ?? null), "extensionsAllowList")));
+        R.ln = F + 853;
+        S["evidence"] = R.ht(["serverType", (S["servertype"] ?? null), "agentStatus", R.m((S["p"] ?? null), "status"), "agentVersion", R.m((S["p"] ?? null), "agentVersion"), "configMode", R.m((S["configuration"] ?? null), "configMode"), "extensionsEnabled", R.m((S["configuration"] ?? null), "extensionsEnabled"), "extensionsAllowList", (S["allowlist"] ?? null), "extensionsBlockList", R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+            R.ln = F + 860;
+            R.e(O, (S["_"] ?? null));
+        })], R.pi(R.m((S["configuration"] ?? null), "extensionsBlockList"))), "guestConfigurationEnabled", R.m((S["configuration"] ?? null), "guestConfigurationEnabled")], true);
+        R.ln = F + 863;
+        if (R.t(R.eq(R.c("string", R.m((S["configuration"] ?? null), "configMode")), "monitor"))) {
+            R.ln = F + 863;
+            R.pa(O, R.cmd(S, "New-Pass", ["The agent runs in monitor mode: only monitoring and security extensions, no machine configuration", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 864;
+        S["issues"] = R.sc("System.Collections.Generic.List[string]", "new", []);
+        R.ln = F + 865;
+        if (R.t(R.ne(R.c("string", R.m((S["configuration"] ?? null), "extensionsEnabled")), "false"))) {
+            R.ln = F + 866;
+            S["scripts"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -in $arcScriptExtensions " }, (S, O) => {
+                R.ln = F + 866;
+                R.e(O, R.in((S["_"] ?? null), (S["arcscriptextensions"] ?? null)));
+            })], R.pi((S["allowlist"] ?? null)));
+            R.ln = F + 867;
+            if (!R.t(R.m((S["allowlist"] ?? null), "Count"))) {
+                R.ln = F + 867;
+                R.e(O, R.im((S["issues"] ?? null), "Add", ["extensions are allowed without an allow list"]));
+            } else if (R.t(R.m((S["scripts"] ?? null), "Count"))) {
+                R.ln = F + 868;
+                R.e(O, R.im((S["issues"] ?? null), "Add", [("the allow list includes " + R.str(R.u(R.pi(R.join((S["scripts"] ?? null), ", ")))))]));
+            }
+        }
+        R.ln = F + 870;
+        if (R.t(R.ne(R.c("string", R.m((S["configuration"] ?? null), "guestConfigurationEnabled")), "false"))) {
+            R.ln = F + 870;
+            R.e(O, R.im((S["issues"] ?? null), "Add", ["machine configuration is enabled"]));
+        }
+        R.ln = F + 871;
+        if (R.t(R.m((S["issues"] ?? null), "Count"))) {
+            R.ln = F + 871;
+            R.pa(O, R.cmd(S, "New-Fail", [("The domain controller accepts code from Azure: " + R.str(R.u(R.pi(R.join((S["issues"] ?? null), "; "))))), (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 872;
+        R.pa(O, R.cmd(S, "New-Pass", ["The agent accepts no script extensions and no machine configuration", (S["evidence"] ?? null)], null));
     })], false)], null));
 });

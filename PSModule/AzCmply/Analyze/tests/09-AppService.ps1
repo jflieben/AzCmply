@@ -546,17 +546,18 @@ Add-AzTest @{
 
 Add-AzTest @{
     Id            = 'AZ-FUNC-001'
+    Version       = 2
     Title         = 'Only those who can change a function app can change the storage it runs from'
     Category      = 'Privileged access'
     Service       = 'Azure Functions'
     Severity      = 'High'
-    Description   = 'Finds the storage account a function app runs from (the deployment container of a Flex Consumption app, or the content share named after the app) and lists the principals, other than the identities of the app itself, that can list its keys or write its blobs or files without being able to change the app. Role assignments are compared per assigned principal. The storage of apps on dedicated plans cannot be found without the app settings and is reported as unknown.'
-    Rationale     = 'The storage account holds the code package or content share and the function keys. Whoever can write there can replace the code and run it as the app, with its managed identity and keys, which turns storage rights into the rights of the function (Orca Security, 2023; NetSPI).'
+    Description   = 'Finds the storage account a function app or Logic App (Standard) app runs from (the deployment container of a Flex Consumption app, or the content share named after the app) and lists the principals, other than the identities of the app itself, that can list its keys or write its blobs or files without being able to change the app. Role assignments are compared per assigned principal. The storage of apps on dedicated plans cannot be found without the app settings and is reported as unknown.'
+    Rationale     = 'The storage account holds the code package or content share (for a Logic App (Standard) app, the workflow definitions) and the function keys. Whoever can write there can replace the code or a workflow and run it as the app, with its managed identity and keys, which turns storage rights into the rights of the function (Orca Security, 2023; NetSPI).'
     Remediation   = 'Take storage write and key rights away from principals that should not control the function, give the app a storage account of its own in its own resource group with the same owners, and disable shared key access (AZ-STG-005).'
     References    = @('https://orca.security/resources/blog/azure-shared-key-authorization-exploitation/', 'https://www.netspi.com/blog/technical-blog/cloud-pentesting/azure-function-apps/', 'https://learn.microsoft.com/azure/azure-functions/storage-considerations')
     Requires      = @('rbac/roleAssignments', 'rbac/roleDefinitions')
     ResourceTypes = @('Microsoft.Web/sites')
-    Filter        = $functionsOnlyFilter
+    Filter        = $functionAppFilter
     Evaluate      = {
         param($Record)
         $hosts = @(Get-FunctionHostStorage $Record)
@@ -616,6 +617,7 @@ Add-AzTest @{
 
 Add-AzTest @{
     Id            = 'AZ-FUNC-003'
+    Version       = 2
     Title         = 'Functions that anyone can call have no write access in Azure'
     Category      = 'Privileged access'
     Service       = 'Azure Functions'

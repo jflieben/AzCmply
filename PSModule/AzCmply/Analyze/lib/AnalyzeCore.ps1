@@ -82,7 +82,8 @@ function Get-IngestSectionProblem {
 }
 
 function Get-AzResourceRecords {
-    #resource files (id, type, resource, diagnosticSettings, children, textContent, failures) of the given types
+    #resource files (id, type, resource, diagnosticSettings, children, textContent, failures) of the given types. The
+    #workflows of Logic App (Standard) apps (Microsoft.Web/sites/workflows) come only when that type is asked for
     param([string[]]$Type)
     $typeSet = @($Type | Where-Object { $_ } | ForEach-Object { $_.ToLowerInvariant() })
     $records = [System.Collections.Generic.List[object]]::new()
@@ -95,7 +96,30 @@ function Get-AzResourceRecords {
         }
         if ($null -ne $script:Ingest.Records[$key]) { $records.Add($script:Ingest.Records[$key]) }
     }
+    if ($typeSet -contains 'microsoft.web/sites/workflows') { foreach ($workflow in (Get-StandardWorkflowRecords)) { $records.Add($workflow) } }
     return $records
+}
+
+function Test-WorkflowApp {
+    #true for a Logic App (Standard) app: a site of kind workflowapp
+    param($Record)
+    return ($Record.type -eq 'Microsoft.Web/sites' -and [string]$Record.resource.kind -match 'workflowapp')
+}
+
+function Get-StandardWorkflowRecords {
+    #the workflows of Logic App (Standard) apps as records of type Microsoft.Web/sites/workflows: resource is the workflow
+    #as ARM returns it (the definition in properties.files['workflow.json']), Site the record of the app
+    if (-not $script:Ingest.Cache.ContainsKey('#standardWorkflows')) {
+        $list = [System.Collections.Generic.List[object]]::new()
+        foreach ($site in (Get-AzResourceRecords -Type 'Microsoft.Web/sites')) {
+            if (-not (Test-WorkflowApp $site)) { continue }
+            foreach ($workflow in @(Get-Child $site 'workflows/*' | Where-Object { $_ -and $_.id })) {
+                $list.Add([pscustomobject]@{ id = [string]$workflow.id; type = 'Microsoft.Web/sites/workflows'; resource = $workflow; Site = $site; children = $null; failures = @() })
+            }
+        }
+        $script:Ingest.Cache['#standardWorkflows'] = $list
+    }
+    return $script:Ingest.Cache['#standardWorkflows']
 }
 
 function Get-AzResourceRecord {
@@ -109,11 +133,26 @@ function Get-AzResourceRecord {
     return $script:Ingest.Records[$key]
 }
 
+function Get-ReferencedResourceRecord {
+    #a resource this subscription relies on: its resource file, or for a resource in another subscription its record in
+    #subscription/referencedResources (resource and the children the ingestion follows); $null when not read
+    param([Parameter(Mandatory = $true)][string]$Id)
+    $record = Get-AzResourceRecord -Id $Id
+    if ($record) { return $record }
+    $key = $Id.ToLowerInvariant()
+    return @(Get-IngestData 'subscription/referencedResources' | Where-Object { $_ -and $null -ne $_.resource -and ([string]$_.id).ToLowerInvariant() -eq $key }) | Select-Object -First 1
+}
+
 function Get-FailedResourceIds {
-    #ids of resources whose collection failed, per type
+    #ids of resources whose collection failed, per type; for Microsoft.Web/sites/workflows the Logic App (Standard) apps
+    #whose workflows could not be read
     param([string[]]$Type)
     $typeSet = @($Type | Where-Object { $_ } | ForEach-Object { $_.ToLowerInvariant() })
-    return @($script:Ingest.Index | Where-Object { $_.type -ne 'resourceGroup' -and $_.status -ne 'ok' -and ($typeSet.Count -eq 0 -or $_.type.ToLowerInvariant() -in $typeSet) } | ForEach-Object id)
+    $failed = @($script:Ingest.Index | Where-Object { $_.type -ne 'resourceGroup' -and $_.status -ne 'ok' -and ($typeSet.Count -eq 0 -or $_.type.ToLowerInvariant() -in $typeSet) } | ForEach-Object id)
+    if ($typeSet -contains 'microsoft.web/sites/workflows') {
+        $failed += @(Get-AzResourceRecords -Type 'Microsoft.Web/sites' | Where-Object { (Test-WorkflowApp $_) -and -not (Test-ChildCollected $_ 'workflows/*') } | ForEach-Object id)
+    }
+    return @($failed)
 }
 
 function Get-ResourceGroupRecords {
@@ -162,6 +201,13 @@ function Get-ChildFailure {
     $failure = @($Record.failures) | Where-Object { $_.path -and $_.path.ToLowerInvariant().EndsWith("/$($Path.ToLowerInvariant())") } | Select-Object -First 1
     if ($failure) { return [int]$failure.statusCode }
     return $null
+}
+
+function Test-ChildNotSupported {
+    #true when a child call failed because the resource does not offer it (FeatureNotSupportedForAccount)
+    param([Parameter(Mandatory = $true)]$Record, [Parameter(Mandatory = $true)][string]$Path)
+    $suffix = "/$($Path.ToLowerInvariant())"
+    return [bool](@($Record.failures) | Where-Object { $_.path -and ([string]$_.path).ToLowerInvariant().EndsWith($suffix) -and $_.errorCode -eq 'FeatureNotSupportedForAccount' })
 }
 
 function ConvertTo-UtcDate {
@@ -342,6 +388,10 @@ function Get-RoleName {
     return $guid
 }
 
+#actions that change nothing: support requests, log queries, and user delegation keys (a SAS signed with one carries only
+#the data rights of the caller). Keys (listKeys) are not among them
+$script:NonMutatingActions = @('Microsoft.Support/*', 'Microsoft.OperationalInsights/workspaces/search/action', 'Microsoft.Storage/storageAccounts/blobServices/generateUserDelegationKey/action')
+
 function Test-RoleCanWrite {
     #true when a role grants any write/delete/action outside pure reads
     param([string]$RoleDefinitionId)
@@ -350,7 +400,7 @@ function Test-RoleCanWrite {
     $definition = (Get-RoleDefinitionMap)[$guid]
     if (-not $definition) { return $true }
     foreach ($permission in @($definition.properties.permissions)) {
-        foreach ($action in @($permission.actions)) { if ($action -and $action -notmatch '/read$' -and $action -ne '*/read') { return $true } }
+        foreach ($action in @($permission.actions)) { if ($action -and $action -notmatch '/read$' -and $action -ne '*/read' -and $action -notin $script:NonMutatingActions) { return $true } }
     }
     return $false
 }
@@ -412,21 +462,44 @@ function Get-GroupMap {
 }
 
 function Get-GroupMembers {
-    #transitive members of a group as collected by the ingestion; empty when unknown
+    #transitive members (users, groups and, from Graph beta, service principals) and eligible members (PIM for Groups) of a
+    #group as collected by the ingestion, each once; empty when unknown
     param([string]$GroupId)
     $group = (Get-GroupMap)[$GroupId.ToLowerInvariant()]
     if (-not $group) { return }
-    return @($group.transitiveMembers | Where-Object { $_ })
+    $members = [System.Collections.Generic.List[object]]::new()
+    $seen = @{}
+    foreach ($member in @(@($group.transitiveMembers) + @($group.servicePrincipalMembers) + @($group.eligibleMembers))) {
+        if (-not $member) { continue }
+        $key = ([string]$member.id).ToLowerInvariant()
+        if ($seen.ContainsKey($key)) { continue }
+        $seen[$key] = $true
+        $members.Add($member)
+    }
+    return @($members)
 }
 
 function Test-GroupMembersComplete {
-    #false when the group was not collected or its transitive member listing failed during ingestion,
-    #so "no members match" cannot be distinguished from "members unknown"
+    #false when the group was not collected, or its transitive, service principal or eligible members (PIM for Groups, which
+    #needs PrivilegedAccess.Read.AzureADGroup) were not read, so "no members match" cannot be told from "members unknown"
     param([string]$GroupId)
     if (-not $GroupId) { return $false }
     $group = (Get-GroupMap)[$GroupId.ToLowerInvariant()]
     if (-not $group) { return $false }
-    return ($null -eq $group.transitiveMembersError)
+    if ($null -ne $group.transitiveMembersError -or $null -ne $group.eligibleMembersError -or $null -ne $group.servicePrincipalMembersError) { return $false }
+    $read = @($group.PSObject.Properties.Name)
+    return ($read -contains 'eligibleMembers' -and $null -ne $group.eligibleMembers -and $read -contains 'servicePrincipalMembers' -and $null -ne $group.servicePrincipalMembers)
+}
+
+function Get-DirectoryObjectType {
+    #@odata.type of a Graph object. A user read by id (/users/{id}) carries only its @odata.context (#users(...)/$entity),
+    #and a service principal listed through a cast (transitiveMembers/microsoft.graph.servicePrincipal) no type at all,
+    #but its servicePrincipalType
+    param($Object)
+    if ($Object.'@odata.type') { return [string]$Object.'@odata.type' }
+    if ([string]$Object.'@odata.context' -match '#users[(/]') { return '#microsoft.graph.user' }
+    if ($Object.servicePrincipalType) { return '#microsoft.graph.servicePrincipal' }
+    return $null
 }
 
 function Test-GuestUser {
@@ -435,7 +508,7 @@ function Test-GuestUser {
 }
 
 function Get-AssignmentUsers {
-    #users behind a role assignment: the user itself, or the transitive user members of a group
+    #users behind a role assignment: the user itself, or the transitive and eligible user members of a group
     param([Parameter(Mandatory = $true)]$Assignment)
     $principalId = $Assignment.properties.principalId
     if ($Assignment.properties.principalType -eq 'User') {
@@ -444,7 +517,7 @@ function Get-AssignmentUsers {
         return
     }
     if ($Assignment.properties.principalType -eq 'Group') {
-        return @(Get-GroupMembers $principalId | Where-Object { $_.'@odata.type' -eq '#microsoft.graph.user' } | ForEach-Object {
+        return @(Get-GroupMembers $principalId | Where-Object { (Get-DirectoryObjectType $_) -eq '#microsoft.graph.user' } | ForEach-Object {
                 $detail = Get-Principal $_.id
                 if ($detail) { $detail } else { $_ }
             })
@@ -452,11 +525,25 @@ function Get-AssignmentUsers {
     return
 }
 
+function Test-PrincipalDeleted {
+    #true when the directory lookup succeeded and did not find the principal: it no longer exists (AZ-IAM-007)
+    param([string]$Id)
+    if (-not $Id -or -not (Test-IngestSection 'identity/directoryObjects')) { return $false }
+    if (-not $script:Ingest.Cache.ContainsKey('#unresolved')) {
+        $set = @{}
+        foreach ($unresolvedId in @(Get-IngestData 'identity/unresolvedPrincipalIds')) { if ($unresolvedId) { $set[([string]$unresolvedId).ToLowerInvariant()] = $true } }
+        $script:Ingest.Cache['#unresolved'] = $set
+    }
+    return $script:Ingest.Cache['#unresolved'].ContainsKey($Id.ToLowerInvariant())
+}
+
 function Test-AssignmentUsersResolved {
     #false when the users behind an assignment cannot be determined: an unresolved user principal,
     #or a group whose transitive members were not collected. Tests report Unknown instead of Pass in that case.
+    #A deleted principal has no users behind it
     param([Parameter(Mandatory = $true)]$Assignment)
     $principalId = $Assignment.properties.principalId
+    if (Test-PrincipalDeleted $principalId) { return $true }
     switch ($Assignment.properties.principalType) {
         'User' { return [bool](Get-Principal $principalId) }
         'Group' { return (Test-GroupMembersComplete $principalId) }

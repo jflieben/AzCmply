@@ -102,6 +102,22 @@ try {
     Write-Result -Name "$($names.Count) section statuses" -Ok (-not $sectionDiff.Count) -Detail $sectionDiff
     if ($countNotes.Count) { Write-Host "        counts that differ (data changes between the runs): $($countNotes -join '; ')" }
 
+    #the fields each side keeps of an activity log event: top-level names and the keys of the objects under them
+    Write-Host 'Activity log'
+    $fieldSet = {
+        param([string]$Path)
+        $keys = [System.Collections.Generic.SortedSet[string]]::new([System.StringComparer]::Ordinal)
+        foreach ($event in @(Read-Json $Path | Where-Object { $_ })) {
+            foreach ($property in $event.PSObject.Properties) {
+                $null = $keys.Add($property.Name)
+                if ($property.Value -is [pscustomobject]) { foreach ($inner in $property.Value.PSObject.Properties) { $null = $keys.Add("$($property.Name).$($inner.Name)") } }
+            }
+        }
+        , @($keys)
+    }
+    $fieldDiff = @(Compare-Object (& $fieldSet "$ps/activityLog/activityLog.json") (& $fieldSet "$js/activityLog/activityLog.json") | ForEach-Object { "$(if ($_.SideIndicator -eq '<=') { 'only PowerShell' } else { 'only browser' }): $($_.InputObject)" })
+    Write-Result -Name 'activity log event fields' -Ok (-not $fieldDiff.Count) -Detail $fieldDiff
+
     Write-Host 'Resources'
     $resourceDiff = [System.Collections.Generic.List[string]]::new()
     foreach ($file in ($psFiles | Where-Object { $_ -like 'resources/*' -and $_ -in $jsFiles })) {

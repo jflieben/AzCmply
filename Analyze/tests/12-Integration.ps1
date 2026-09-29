@@ -296,6 +296,42 @@ Add-AzTest @{
     }
 }
 
+Add-AzTest @{
+    Id            = 'AZ-AUTO-004'
+    Title         = 'Hybrid runbook workers are in the resource group of their Automation account'
+    Category      = 'Privileged access'
+    Service       = 'Automation'
+    Severity      = 'High'
+    Description   = 'For Automation accounts with hybrid runbook workers, checks that every worker is a virtual machine or Arc-enabled server in the resource group of the account.'
+    Rationale     = 'Runbooks run on a hybrid worker as Local System, or as the credential of the worker group. Whoever can change a runbook, import a module or change the source control of the account runs code on the worker, and on everything the worker can reach, without any role on the machine. A worker in another resource group or subscription, or outside Azure, hands the machine to the contributors of the account: a path that no role assignment on the machine shows.'
+    Remediation   = 'Keep the Automation account and its worker machines in one resource group, so that the same administrators control both, or give the machines an Automation account of their own next to them. Remove workers that are domain controllers or other Tier 0 servers.'
+    References    = @('https://learn.microsoft.com/azure/automation/automation-hybrid-runbook-worker', 'https://learn.microsoft.com/azure/automation/automation-hrw-run-runbooks')
+    ResourceTypes = @('Microsoft.Automation/automationAccounts')
+    Evaluate      = {
+        param($Record)
+        foreach ($path in 'hybridRunbookWorkerGroups', 'hybridRunbookWorkerGroups/*/hybridRunbookWorkers') {
+            if (-not (Test-ChildCollected $Record $path)) { return New-Unknown "The hybrid runbook workers could not be read ($path)" }
+        }
+        $workers = @(Get-Child $Record 'hybridRunbookWorkerGroups/*/hybridRunbookWorkers' | Where-Object { $_ } | Sort-Object { [string]$_.id })
+        if (-not $workers) { return New-NotApplicable 'The account has no hybrid runbook workers' }
+        $resourceGroup = (($Record.id -split '/')[0..4] -join '/').ToLowerInvariant()
+        $outside = [System.Collections.Generic.List[string]]::new()
+        foreach ($worker in $workers) {
+            $group = (([string]$worker.id -split '/hybridRunbookWorkerGroups/')[1] -split '/')[0]
+            $label = "$($worker.properties.workerName) (group $group)"
+            $machine = [string]$worker.properties.vmResourceId
+            if (-not $machine) { $outside.Add("$label, not an Azure or Arc machine"); continue }
+            $parts = $machine -split '/'
+            if (($parts[0..4] -join '/').ToLowerInvariant() -eq $resourceGroup) { continue }
+            $where = if ($parts[2] -ne ($Record.id -split '/')[2]) { "resource group $($parts[4]) of subscription $($parts[2])" } else { "resource group $($parts[4])" }
+            $outside.Add("$label in $where")
+        }
+        $evidence = [ordered]@{ workers = $workers.Count; workersOutsideResourceGroup = @($outside) }
+        if ($outside.Count) { return New-Fail "Runbooks run as Local System on machines outside the resource group of the account: $($outside -join '; ')" $evidence }
+        New-Pass "The $($workers.Count) hybrid worker(s) are in the resource group of the account" $evidence
+    }
+}
+
 function Test-PolicyValidatesToken {
     #whether an API Management policy document validates a JSON web token
     param($Policy)
@@ -331,9 +367,10 @@ Add-AzTest @{
     }
 }
 
-#region Logic Apps (Consumption) and API connections
+#region Logic Apps (Consumption and Standard) and API connections
 
-$workflowType = @('Microsoft.Logic/workflows')
+#Consumption workflows, and the workflows of Logic App (Standard) apps (see Get-StandardWorkflowRecords)
+$workflowType = @('Microsoft.Logic/workflows', 'Microsoft.Web/sites/workflows')
 $connectionType = @('Microsoft.Web/connections')
 #runs fail when, in the $logicFailureDays days before the ingestion, at least $logicFailureMinimum and $logicFailurePercent percent of them failed
 $logicFailureDays = 30
@@ -343,6 +380,39 @@ $logicFailurePercent = 10
 $logicIdleDays = 75
 $credentialHeaderPattern = '^(authorization|x-api-key|api-key|apikey|ocp-apim-subscription-key|x-functions-key|x-auth-token|x-access-token|private-token)$'
 $credentialQueryPattern = '(?i)[?&](code|sig|key|apikey|api_key|api-key|subscription-key|access_token|token)=([^&]*)'
+
+function Test-StandardWorkflow { param($Record) return ($Record.type -eq 'Microsoft.Web/sites/workflows') }
+
+function Get-WorkflowDefinition {
+    #definition of a Consumption workflow, or the workflow.json of a Standard workflow
+    param($Record)
+    if (Test-StandardWorkflow $Record) { return $Record.resource.properties.files.'workflow.json'.definition }
+    return $Record.resource.properties.definition
+}
+
+function Get-WorkflowState {
+    #Enabled, Disabled or Suspended; a Standard workflow is disabled when its app is stopped
+    param($Record)
+    if (Test-StandardWorkflow $Record) {
+        if ([string]$Record.Site.resource.properties.state -eq 'Stopped') { return 'Disabled' }
+        return [string]$Record.resource.properties.flowState
+    }
+    return [string]$Record.resource.properties.state
+}
+
+function Get-WorkflowAppConnections {
+    #connections.json of a Logic App (Standard) app (managedApiConnections, serviceProviderConnections); $null when not read
+    param($Site)
+    if (-not (Test-ChildCollected $Site 'workflowsconfiguration/connections')) { return $null }
+    return (Get-Child $Site 'workflowsconfiguration/connections').properties.files.'connections.json'
+}
+
+function Get-WorkflowIdentityRecord {
+    #the record whose managed identities a workflow acts with: the workflow, or the app of a Standard workflow
+    param($Record)
+    if (Test-StandardWorkflow $Record) { return $Record.Site }
+    return $Record
+}
 
 function Get-WorkflowActions {
     #actions and the actions nested in them (scopes, conditions, switches, loops)
@@ -374,9 +444,20 @@ function Get-WorkflowSteps {
 }
 
 function Get-WorkflowConnectionMap {
-    #entries of the $connections parameter: key > connector (last segment of the managed API id) and connection id, lowercase
+    #the connections a workflow names: key > connector (last segment of the managed API id) and connection id, lowercase.
+    #Consumption: the $connections parameter; Standard: the managedApiConnections of connections.json
     param($Record)
     $map = [ordered]@{}
+    if (Test-StandardWorkflow $Record) {
+        $connections = Get-WorkflowAppConnections $Record.Site
+        if ($null -eq $connections -or $null -eq $connections.managedApiConnections) { return $map }
+        foreach ($entry in @($connections.managedApiConnections.PSObject.Properties)) {
+            if (-not $entry) { continue }
+            $api = if ($entry.Value.api.id) { Get-ResourceName ([string]$entry.Value.api.id) } else { $entry.Name }
+            $map[$entry.Name] = [pscustomobject]@{ Api = $api.ToLowerInvariant(); ConnectionId = ([string]$entry.Value.connection.id).ToLowerInvariant() }
+        }
+        return $map
+    }
     $parameter = @($Record.resource.properties.parameters.PSObject.Properties | Where-Object { $_ -and $_.Name -eq '$connections' }) | Select-Object -First 1
     if (-not $parameter) { return $map }
     foreach ($entry in @($parameter.Value.value.PSObject.Properties)) {
@@ -388,8 +469,14 @@ function Get-WorkflowConnectionMap {
 }
 
 function Get-StepConnector {
-    #connector of an ApiConnection trigger or action ('keyvault'), from the $connections entry it names
+    #connector of an ApiConnection trigger or action ('keyvault'), from the connection it names: an expression on the
+    #$connections parameter (Consumption) or the referenceName of an entry of connections.json (Standard)
     param($Step, $Connections)
+    $reference = [string]$Step.inputs.host.connection.referenceName
+    if ($reference) {
+        if ($Connections.Contains($reference)) { return $Connections[$reference].Api }
+        return $reference.ToLowerInvariant()
+    }
     $name = [string]$Step.inputs.host.connection.name
     if ($name -notmatch "\[\s*'([^']+)'\s*\]") { return $null }
     $key = $Matches[1]
@@ -400,8 +487,7 @@ function Get-StepConnector {
 function Get-WorkflowParameterType {
     #declared type of a workflow parameter ('SecureString', 'String'), from the definition or the workflow parameters
     param($Record, [string]$Name)
-    $p = $Record.resource.properties
-    foreach ($source in @($p.definition.parameters, $p.parameters)) {
+    foreach ($source in @((Get-WorkflowDefinition $Record).parameters, $Record.resource.properties.parameters)) {
         if ($null -eq $source) { continue }
         $parameter = @($source.PSObject.Properties | Where-Object { $_ -and $_.Name -eq $Name }) | Select-Object -First 1
         if ($parameter -and $parameter.Value.type) { return [string]$parameter.Value.type }
@@ -421,6 +507,7 @@ function Get-WorkflowValueSource {
     param($Value, $Record, [string[]]$SecretSteps = @())
     if (-not (Test-WorkflowExpression $Value)) { return [pscustomobject]@{ Label = 'a literal value'; Step = $null } }
     $text = [string]$Value
+    if ($text -match "appsetting\('([^']+)'\)") { return [pscustomobject]@{ Label = 'an app setting'; Step = $null } }
     if ($text -match "parameters\('([^']+)'\)") {
         $label = if ((Get-WorkflowParameterType $Record $Matches[1]) -match '^secure') { 'a secure parameter' } else { 'a parameter' }
         return [pscustomobject]@{ Label = $label; Step = $null }
@@ -502,6 +589,8 @@ function Get-SecretReadSteps {
         $inputs = $step.Step.inputs
         if ($step.Type -eq 'ApiConnection' -and (Get-StepConnector $step.Step $Connections) -eq 'keyvault' -and [string]$inputs.path -match '(?i)^/secrets/.+/value$') {
             [pscustomobject]@{ Step = $step; Reason = 'reads a Key Vault secret' }
+        } elseif ($step.Type -eq 'ServiceProvider' -and [string]$inputs.serviceProviderConfiguration.serviceProviderId -match '(?i)/serviceProviders/keyVault$' -and [string]$inputs.serviceProviderConfiguration.operationId -match '(?i)^getSecret') {
+            [pscustomobject]@{ Step = $step; Reason = 'reads a Key Vault secret' }
         } elseif ($step.Type -eq 'Http' -and [string]$inputs.uri -match '(?i)\.vault\.(azure\.net|azure\.cn|usgovcloudapi\.net)/secrets/') {
             [pscustomobject]@{ Step = $step; Reason = 'reads a Key Vault secret' }
         } elseif ($step.Type -eq 'Http' -and [string]$inputs.uri -match '(?i)/oauth2/(v2\.0/)?token') {
@@ -517,11 +606,26 @@ function Test-StepSecured {
 }
 
 function Get-RequestTriggerExposure {
-    #who can call the Request triggers of a workflow; $null when it has none
+    #who can call the Request triggers of a workflow; $null when it has none. Unread: the network access of the app of a
+    #Standard workflow could not be read
     param($Record)
     $p = $Record.resource.properties
-    $triggers = @(Get-WorkflowSteps $p.definition | Where-Object { $_.Kind -eq 'trigger' -and $_.Type -eq 'Request' })
+    $triggers = @(Get-WorkflowSteps (Get-WorkflowDefinition $Record) | Where-Object { $_.Kind -eq 'trigger' -and $_.Type -eq 'Request' })
     if (-not $triggers) { return $null }
+    $names = @($triggers | ForEach-Object { if ($_.Step.kind) { "$($_.Name) ($($_.Step.kind))" } else { $_.Name } })
+    $state = Get-WorkflowState $Record
+    if (Test-StandardWorkflow $Record) {
+        #a Standard workflow is called on the address of its app, with a SAS signature; only the network access of the
+        #app limits the callers
+        $site = $Record.Site
+        $config = Get-SiteConfig $site
+        $publicAccess = if ($site.resource.properties.publicNetworkAccess) { [string]$site.resource.properties.publicNetworkAccess } else { [string]$config.publicNetworkAccess }
+        $evidence = [ordered]@{ requestTriggers = $names; app = $site.resource.name; publicNetworkAccess = $publicAccess; accessRestrictionsDefault = $config.ipSecurityRestrictionsDefaultAction; state = $state }
+        $reason = $null
+        if ($publicAccess -eq 'Disabled') { $reason = 'Public network access of the app is disabled' }
+        elseif ($config -and (Test-SiteRestricted $config.ipSecurityRestrictions $config.ipSecurityRestrictionsDefaultAction)) { $reason = 'Access restrictions of the app limit the callers' }
+        return [pscustomobject]@{ Open = -not $reason; Disabled = $state -in 'Disabled', 'Suspended'; Reason = $reason; Evidence = $evidence; Unread = -not $reason -and -not $config }
+    }
     $access = $p.accessControl.triggers
     $rangesSet = $null -ne $access -and @($access.PSObject.Properties.Name) -contains 'allowedCallerIpAddresses' -and $null -ne $access.allowedCallerIpAddresses
     $ranges = @($access.allowedCallerIpAddresses | Where-Object { $_ } | ForEach-Object { [string]$_.addressRange } | Where-Object { $_ } | Sort-Object)
@@ -531,19 +635,19 @@ function Get-RequestTriggerExposure {
     $sasDisabled = [string]$access.sasAuthenticationPolicy.state -eq 'Disabled'
     $restriction = if (-not $rangesSet) { 'none' } elseif (-not $ranges) { 'other Logic Apps only' } else { 'address ranges' }
     $evidence = [ordered]@{
-        requestTriggers     = @($triggers | ForEach-Object { if ($_.Step.kind) { "$($_.Name) ($($_.Step.kind))" } else { $_.Name } })
+        requestTriggers     = $names
         callerRestriction   = $restriction
         allowedCallerRanges = $ranges
         sasAuthentication   = if ($sasDisabled) { 'Disabled' } else { 'Enabled' }
         entraIdPolicies     = $policies
-        state               = $p.state
+        state               = $state
     }
     $reason = $null
     if ($restriction -eq 'other Logic Apps only') { $reason = 'Only other Logic Apps can call the request trigger' }
     elseif ($restriction -eq 'address ranges' -and -not $wide) { $reason = "Callers are limited to $($ranges.Count) address range(s)" }
     elseif ($sasDisabled -and $policies) { $reason = 'SAS is disabled; callers need a Microsoft Entra ID token' }
     elseif ($sasDisabled) { $reason = 'SAS is disabled and no Microsoft Entra ID policy is set, so nobody can call the trigger' }
-    return [pscustomobject]@{ Open = -not $reason; Disabled = $p.state -in 'Disabled', 'Suspended'; Reason = $reason; Evidence = $evidence }
+    return [pscustomobject]@{ Open = -not $reason; Disabled = $state -in 'Disabled', 'Suspended'; Reason = $reason; Evidence = $evidence; Unread = $false }
 }
 
 function Get-ConnectionConnector {
@@ -567,11 +671,19 @@ function Get-ManagedApiMap {
 }
 
 function Get-ConnectionUseMap {
-    #API connection id, lowercase > names of the workflows whose $connections parameter uses it
+    #API connection id, lowercase > names of the workflows that use it: in their $connections parameter (Consumption), or
+    #in a step that refers to its entry of connections.json (Standard)
     if (-not $script:Ingest.Cache.ContainsKey('#connectionUse')) {
         $map = @{}
         foreach ($workflow in (Get-AzResourceRecords -Type $workflowType)) {
-            foreach ($entry in @((Get-WorkflowConnectionMap $workflow).Values)) {
+            $entries = Get-WorkflowConnectionMap $workflow
+            if (Test-StandardWorkflow $workflow) {
+                $referenced = @(Get-WorkflowSteps (Get-WorkflowDefinition $workflow) | ForEach-Object { [string]$_.Step.inputs.host.connection.referenceName } | Where-Object { $_ } | Sort-Object -Unique)
+                $used = @($entries.Keys | Where-Object { $_ -in $referenced } | ForEach-Object { $entries[$_] })
+            } else {
+                $used = @($entries.Values)
+            }
+            foreach ($entry in $used) {
                 if (-not $entry -or -not $entry.ConnectionId) { continue }
                 if (-not $map.ContainsKey($entry.ConnectionId)) { $map[$entry.ConnectionId] = [System.Collections.Generic.List[string]]::new() }
                 $map[$entry.ConnectionId].Add((Get-ResourceName $workflow.id))
@@ -618,47 +730,89 @@ function Test-AlertTriggered {
     #true when a workflow starts on a Microsoft Sentinel or Defender for Cloud alert, incident or assessment
     param($Record)
     $connections = Get-WorkflowConnectionMap $Record
-    foreach ($step in @(Get-WorkflowSteps $Record.resource.properties.definition | Where-Object { $_.Kind -eq 'trigger' -and $_.Type -eq 'ApiConnectionWebhook' })) {
+    foreach ($step in @(Get-WorkflowSteps (Get-WorkflowDefinition $Record) | Where-Object { $_.Kind -eq 'trigger' -and $_.Type -eq 'ApiConnectionWebhook' })) {
         if ((Get-StepConnector $step.Step $connections) -match '^(azuresentinel|ascalert|ascassessment)$') { return $true }
     }
     return $false
 }
 
+function Get-WorkflowMetricSource {
+    #the record whose child 'metrics' holds the run metrics of a workflow: the workflow, or the app of a Standard workflow
+    param($Record)
+    if (Test-StandardWorkflow $Record) { return $Record.Site }
+    return $Record
+}
+
 function Get-WorkflowMetricTotals {
-    #totals of the daily run metrics the ingestion collected, over the given number of days before the ingestion
+    #totals of the daily run metrics the ingestion collected, over the given number of days before the ingestion. A
+    #Standard workflow has its series in the metrics of its app, per workflowName and status
     param($Record, [int]$Days)
     $totals = [ordered]@{ RunsStarted = 0; RunsCompleted = 0; RunsFailed = 0; TriggersCompleted = 0; TriggersFailed = 0 }
+    $standard = Test-StandardWorkflow $Record
+    $workflowName = if ($standard) { (Get-ResourceName $Record.id).ToLowerInvariant() } else { '' }
     #one metrics response per query window
-    foreach ($metric in @(Get-Child $Record 'metrics' | Where-Object { $_ } | ForEach-Object { $_.value } | Where-Object { $_ })) {
+    foreach ($metric in @(Get-Child (Get-WorkflowMetricSource $Record) 'metrics' | Where-Object { $_ } | ForEach-Object { $_.value } | Where-Object { $_ })) {
         $name = [string]$metric.name.value
-        if (-not $totals.Contains($name)) { continue }
-        foreach ($point in @($metric.timeseries | Where-Object { $_ } | ForEach-Object { $_.data } | Where-Object { $_ })) {
-            $age = Get-AgeInDays $point.timeStamp
-            if ($null -ne $age -and $age -ge $Days) { continue }
-            #counts; whole numbers keep the evidence the same in PowerShell and the browser
-            if ($null -ne $point.total) { $totals[$name] += [int]$point.total }
+        foreach ($series in @($metric.timeseries | Where-Object { $_ })) {
+            $targets = @()
+            if ($standard) {
+                $dimensions = @{}
+                foreach ($value in @($series.metadatavalues | Where-Object { $_ })) { $dimensions[([string]$value.name.value).ToLowerInvariant()] = [string]$value.value }
+                if (([string]$dimensions['workflowname']).ToLowerInvariant() -ne $workflowName) { continue }
+                $failed = $dimensions['status'] -eq 'Failed'
+                switch ($name) {
+                    'WorkflowRunsStarted' { $targets = @('RunsStarted') }
+                    'WorkflowRunsCompleted' { $targets = @('RunsCompleted') + @(if ($failed) { 'RunsFailed' }) }
+                    'WorkflowTriggersCompleted' { $targets = @('TriggersCompleted') + @(if ($failed) { 'TriggersFailed' }) }
+                }
+            } elseif ($totals.Contains($name)) {
+                $targets = @($name)
+            }
+            if (-not $targets) { continue }
+            foreach ($point in @($series.data | Where-Object { $_ })) {
+                $age = Get-AgeInDays $point.timeStamp
+                if ($null -ne $age -and $age -ge $Days) { continue }
+                #counts; whole numbers keep the evidence the same in PowerShell and the browser
+                if ($null -ne $point.total) { foreach ($target in $targets) { $totals[$target] += [int]$point.total } }
+            }
         }
     }
     return $totals
 }
 
+function Get-WorkflowDates {
+    #Created and Changed of a workflow: from the workflow (Consumption), or the oldest and newest of the versions kept
+    #(Standard). Read is false when the versions of a Standard workflow were not collected
+    param($Record)
+    if (-not (Test-StandardWorkflow $Record)) { return [pscustomobject]@{ Created = $Record.resource.properties.createdTime; Changed = $Record.resource.properties.changedTime; Read = $true } }
+    $name = Get-ResourceName $Record.id
+    $all = Get-Child $Record.Site 'workflowVersions'
+    if ($null -eq $all -or @($all.PSObject.Properties.Name) -notcontains $name -or $null -eq $all.$name) { return [pscustomobject]@{ Created = $null; Changed = $null; Read = $false } }
+    $versions = @($all.$name | Where-Object { $_ })
+    $created = @($versions | ForEach-Object { ConvertTo-UtcDate $_.properties.createdTime } | Where-Object { $_ } | Sort-Object)
+    $changed = @($versions | ForEach-Object { @((ConvertTo-UtcDate $_.properties.createdTime), (ConvertTo-UtcDate $_.properties.changedTime)) } | Where-Object { $_ } | Sort-Object)
+    return [pscustomobject]@{ Created = $(if ($created) { $created[0] } else { $null }); Changed = $(if ($changed) { $changed[-1] } else { $null }); Read = $true }
+}
+
 Add-AzTest @{
     Id            = 'AZ-LOGIC-001'
+    Version       = 2
     Title         = 'Logic App request triggers restrict who can call them'
     Category      = 'Identity management'
     Service       = 'Logic Apps'
     Severity      = 'Medium'
-    Description   = 'For enabled Consumption workflows with a Request trigger (HTTP, Power Apps, Teams and the other request kinds), checks that callers are limited to address ranges or to other Logic Apps, or that shared access signature (SAS) authentication is disabled so that callers need a Microsoft Entra ID token. A Microsoft Entra ID policy next to SAS does not count, because the trigger then accepts either.'
+    Description   = 'For enabled Consumption workflows with a Request trigger (HTTP, Power Apps, Teams and the other request kinds), checks that callers are limited to address ranges or to other Logic Apps, or that shared access signature (SAS) authentication is disabled so that callers need a Microsoft Entra ID token. A Microsoft Entra ID policy next to SAS does not count, because the trigger then accepts either. Workflows of Logic App (Standard) apps are called on the address of the app with a SAS signature: they pass when the app disables public network access or limits callers with access restrictions.'
     Rationale     = 'The callback URL of a Request trigger carries a SAS signature that works from any address, does not expire and is not tied to an identity. It ends up in callers, scripts, alert rules, tickets and logs; anyone who has it can start the workflow with input of their choice until the access keys are regenerated.'
-    Remediation   = "Limit 'Allowed inbound IP addresses' of the triggers to the callers (or to other Logic Apps only), or require Microsoft Entra ID OAuth and disable SAS (accessControl.triggers.sasAuthenticationPolicy.state Disabled). Regenerate the access keys when a URL may have leaked."
+    Remediation   = "Limit 'Allowed inbound IP addresses' of the triggers to the callers (or to other Logic Apps only), or require Microsoft Entra ID OAuth and disable SAS (accessControl.triggers.sasAuthenticationPolicy.state Disabled). For a Logic App (Standard) app, disable public network access and use a private endpoint, or add access restrictions for the callers. Regenerate the access keys when a URL may have leaked."
     References    = @('https://learn.microsoft.com/azure/logic-apps/logic-apps-securing-a-logic-app')
     ResourceTypes = $workflowType
     Evaluate      = {
         param($Record)
-        if (-not $Record.resource.properties.definition) { return New-Unknown 'The workflow definition was not returned' }
+        if (-not (Get-WorkflowDefinition $Record)) { return New-Unknown 'The workflow definition was not returned' }
         $exposure = Get-RequestTriggerExposure $Record
         if (-not $exposure) { return New-NotApplicable 'No request trigger' }
         if ($exposure.Disabled) { return New-NotApplicable "The workflow is $($exposure.Evidence.state)" $exposure.Evidence }
+        if ($exposure.Unread) { return New-Unknown 'The network access of the app could not be read' $exposure.Evidence }
         if ($exposure.Open) { return New-Fail "$($exposure.Evidence.requestTriggers -join ', ') can be called with the signed URL from any address" $exposure.Evidence }
         New-Pass $exposure.Reason $exposure.Evidence
     }
@@ -666,11 +820,12 @@ Add-AzTest @{
 
 Add-AzTest @{
     Id            = 'AZ-LOGIC-002'
+    Version       = 2
     Title         = 'Logic Apps that anyone can call have no write access in Azure'
     Category      = 'Privileged access'
     Service       = 'Logic Apps'
     Severity      = 'High'
-    Description   = 'For enabled Consumption workflows whose Request trigger can be called from any address with its signed URL (AZ-LOGIC-001), lists the write capable role assignments of their system and user assigned managed identities, including assignments through groups whose members were collected.'
+    Description   = 'For enabled workflows whose Request trigger can be called from any address with its signed URL (AZ-LOGIC-001), lists the write capable role assignments of their system and user assigned managed identities (for a Logic App (Standard) workflow, those of its app), including assignments through groups whose members were collected.'
     Rationale     = 'The caller decides the input of the run, and the workflow acts on that input with the rights of its managed identity. A leaked trigger URL then gives anyone on the Internet write access to Azure, without an account, MFA or Conditional Access, and the activity log names the managed identity instead of the caller.'
     Remediation   = 'Restrict the trigger (allowed caller addresses, or Microsoft Entra ID OAuth with SAS disabled), or take the write access away from the identity and leave the privileged work to a workflow without a public trigger.'
     References    = @('https://learn.microsoft.com/azure/logic-apps/logic-apps-securing-a-logic-app', 'https://learn.microsoft.com/azure/logic-apps/authenticate-with-managed-identity')
@@ -678,11 +833,12 @@ Add-AzTest @{
     ResourceTypes = $workflowType
     Evaluate      = {
         param($Record)
-        if (-not $Record.resource.properties.definition) { return New-Unknown 'The workflow definition was not returned' }
+        if (-not (Get-WorkflowDefinition $Record)) { return New-Unknown 'The workflow definition was not returned' }
         $exposure = Get-RequestTriggerExposure $Record
-        if (-not $exposure -or $exposure.Disabled -or -not $exposure.Open) { return New-NotApplicable 'Not callable from any address (AZ-LOGIC-001)' }
-        $principals = @(Get-ResourceIdentityPrincipals $Record)
-        $evidence = [ordered]@{ identityType = $Record.resource.identity.type; writeAssignments = @() }
+        if (-not $exposure -or $exposure.Disabled -or $exposure.Unread -or -not $exposure.Open) { return New-NotApplicable 'Not callable from any address (AZ-LOGIC-001)' }
+        $identityRecord = Get-WorkflowIdentityRecord $Record
+        $principals = @(Get-ResourceIdentityPrincipals $identityRecord)
+        $evidence = [ordered]@{ identityType = $identityRecord.resource.identity.type; writeAssignments = @() }
         if (-not $principals) { return New-Pass 'Callable from any address, but without a managed identity' $evidence }
         $evidence.writeAssignments = @(Get-PrincipalWriteGrants $principals)
         if ($evidence.writeAssignments) { return New-Fail "Anyone with the trigger URL can start it, and it acts with $($evidence.writeAssignments -join '; ')" $evidence }
@@ -692,18 +848,19 @@ Add-AzTest @{
 
 Add-AzTest @{
     Id            = 'AZ-LOGIC-003'
+    Version       = 2
     Title         = 'Logic App HTTP steps sign in with a managed identity or service principal'
     Category      = 'Identity management'
     Service       = 'Logic Apps'
     Severity      = 'Medium'
-    Description   = 'Finds HTTP and HTTP webhook triggers and actions of Consumption workflows, nested ones included, that sign in with Basic authentication, a client certificate, a raw authorization value, a credential header (Authorization, API key, subscription key or function key headers) or a key in the URL, and API Management actions with a subscription key. Managed identity and Microsoft Entra ID OAuth (service principal) authentication pass. API connections are AZ-LOGIC-005 and AZ-LOGIC-006.'
+    Description   = 'Finds HTTP and HTTP webhook triggers and actions of Consumption and Logic App (Standard) workflows, nested ones included, that sign in with Basic authentication, a client certificate, a raw authorization value, a credential header (Authorization, API key, subscription key or function key headers) or a key in the URL, and API Management actions with a subscription key. Managed identity and Microsoft Entra ID OAuth (service principal) authentication pass. API connections are AZ-LOGIC-005 and AZ-LOGIC-006.'
     Rationale     = 'Passwords, API keys and certificates in a workflow are shared secrets: not tied to an identity, outside Conditional Access, rarely rotated and available to everyone who can edit or export the workflow. A managed identity has no secret to leak.'
     Remediation   = 'Use the managed identity of the workflow (authentication type ManagedServiceIdentity) for services that accept Microsoft Entra ID tokens, or a service principal; where a service only accepts a key, keep it in Key Vault and read it with the managed identity.'
     References    = @('https://learn.microsoft.com/azure/logic-apps/authenticate-with-managed-identity', 'https://learn.microsoft.com/azure/logic-apps/logic-apps-securing-a-logic-app')
     ResourceTypes = $workflowType
     Evaluate      = {
         param($Record)
-        $definition = $Record.resource.properties.definition
+        $definition = Get-WorkflowDefinition $Record
         if (-not $definition) { return New-Unknown 'The workflow definition was not returned' }
         $steps = @(Get-WorkflowSteps $definition)
         $secretSteps = @(Get-SecretReadSteps $steps (Get-WorkflowConnectionMap $Record) | ForEach-Object { $_.Step.Name })
@@ -723,19 +880,21 @@ Add-AzTest @{
 
 Add-AzTest @{
     Id            = 'AZ-LOGIC-004'
+    Version       = 2
     Title         = 'Logic App steps that handle secrets hide them from run history'
     Category      = 'Data protection'
     Service       = 'Logic Apps'
     Severity      = 'High'
-    Description   = 'Finds steps of Consumption workflows that read a Key Vault secret (Key Vault connector or HTTP) or request an access token without secure outputs, and steps that send a credential in a header, the URL or the body without secure inputs. Not counted: the Authorization header and inputs that use secured outputs, which the platform hides, and the authentication settings of HTTP steps.'
+    Description   = 'Finds steps of Consumption and Logic App (Standard) workflows that read a Key Vault secret (Key Vault connector, built-in Key Vault operation or HTTP) or request an access token without secure outputs, and steps that send a credential in a header, the URL or the body without secure inputs. Not counted: the Authorization header and inputs that use secured outputs, which the platform hides, the authentication settings of HTTP steps, and stateless Standard workflows, which keep no run history unless an app setting turns it on.'
     Rationale     = 'Run history keeps the inputs and outputs of every step for 90 days and shows them to everyone who can read the workflow, Reader and Logic App Operator included. A secret read from Key Vault without secure outputs is readable there by all of them, which undoes keeping it in Key Vault.'
     Remediation   = "Turn on 'Secure outputs' for steps that read secrets or tokens and 'Secure inputs' for steps that send them (runtimeConfiguration.secureData.properties). Steps that use secured outputs get their inputs hidden, but not their own outputs; secure those where they return the secret."
     References    = @('https://learn.microsoft.com/azure/logic-apps/logic-apps-securing-a-logic-app')
     ResourceTypes = $workflowType
     Evaluate      = {
         param($Record)
-        $definition = $Record.resource.properties.definition
+        $definition = Get-WorkflowDefinition $Record
         if (-not $definition) { return New-Unknown 'The workflow definition was not returned' }
+        if ((Test-StandardWorkflow $Record) -and [string]$Record.resource.kind -eq 'Stateless') { return New-NotApplicable 'A stateless workflow keeps no run history unless an app setting turns it on' }
         $steps = @(Get-WorkflowSteps $definition)
         $reads = @(Get-SecretReadSteps $steps (Get-WorkflowConnectionMap $Record))
         $secretSteps = @($reads | ForEach-Object { $_.Step.Name })
@@ -873,40 +1032,42 @@ Add-AzTest @{
 
 Add-AzTest @{
     Id            = 'AZ-LOGIC-008'
+    Version       = 2
     Title         = 'API connections are used by a Logic App'
     Category      = 'Asset management'
     Service       = 'Logic Apps'
     Severity      = 'Medium'
-    Description   = 'Finds API connections of Consumption Logic Apps (V1) that no workflow in the subscription uses. Connections of Standard logic apps (V2) are referenced from the files of the app, which the ingestion does not read, and are not evaluated.'
+    Description   = 'Finds API connections that no workflow in the subscription uses: connections of Consumption Logic Apps (V1) that no $connections parameter names, and connections of Logic App (Standard) apps (V2) that no step of a workflow refers to through connections.json.'
     Rationale     = 'The designer creates a connection, with its credential, as soon as an action is added, and the connection stays when the workflow is deleted or never saved. An unused connection is a stored token or secret without an owner that anyone who can join it can still use; until January 2025 even Readers could call the connected service through it (Binary Security).'
     Remediation   = 'Delete connections that no workflow uses, and revoke or rotate the credential they held.'
     References    = @('https://www.binarysecurity.no/posts/2025/03/api-connections', 'https://learn.microsoft.com/azure/logic-apps/logic-apps-securing-a-logic-app')
     ResourceTypes = $connectionType
-    Filter        = { param($Record) [string]$Record.resource.kind -ne 'V2' }
     Evaluate      = {
         param($Record)
         $users = @((Get-ConnectionUseMap)[$Record.id.ToLowerInvariant()] | Where-Object { $_ } | Sort-Object -Unique)
-        $evidence = [ordered]@{ connector = Get-ConnectionConnector $Record; createdTime = Format-UtcDate $Record.resource.properties.createdTime; usedBy = $users }
+        $evidence = [ordered]@{ connector = Get-ConnectionConnector $Record; kind = $Record.resource.kind; createdTime = Format-UtcDate $Record.resource.properties.createdTime; usedBy = $users }
         if ($users) { return New-Pass "Used by $($users -join ', ')" $evidence }
         if (Get-FailedResourceIds -Type $workflowType) { return New-Unknown 'Not every workflow could be read, so one of them may use the connection' $evidence }
+        if ([string]$Record.resource.kind -eq 'V2' -and @(Get-AzResourceRecords -Type 'Microsoft.Web/sites' | Where-Object { (Test-WorkflowApp $_) -and $null -eq (Get-WorkflowAppConnections $_) }).Count) { return New-Unknown 'The connections.json of a Logic App (Standard) app could not be read, so it may use the connection' $evidence }
         New-Fail "No workflow in the subscription uses this $($evidence.connector) connection" $evidence
     }
 }
 
 Add-AzTest @{
     Id            = 'AZ-LOGIC-009'
+    Version       = 2
     Title         = 'Logic App runs and triggers succeed'
     Category      = 'Asset management'
     Service       = 'Logic Apps'
     Severity      = 'Low'
-    Description   = "For Consumption workflows, reads the run metrics of the $logicFailureDays days before the ingestion and fails when at least $logicFailureMinimum runs, and at least $logicFailurePercent percent of the completed runs, failed. The same applies to trigger evaluations, because a polling trigger with a broken connection fails without starting runs."
+    Description   = "For Consumption workflows, and Logic App (Standard) workflows from the metrics of their app per workflow, reads the run metrics of the $logicFailureDays days before the ingestion and fails when at least $logicFailureMinimum runs, and at least $logicFailurePercent percent of the completed runs, failed. The same applies to trigger evaluations, because a polling trigger with a broken connection fails without starting runs."
     Rationale     = 'Workflows that keep failing often run on expired or revoked credentials, or on permissions that were taken away, and nobody notices. When the workflow is a response playbook or an integration, its work silently does not happen.'
     Remediation   = 'Look up the failing runs in the run history, fix the cause (credentials, permissions, target) and add an alert on Runs Failed and Triggers Failed; delete the workflow when it is no longer needed.'
     References    = @('https://learn.microsoft.com/azure/logic-apps/monitor-logic-apps-overview', 'https://learn.microsoft.com/azure/azure-monitor/reference/supported-metrics/microsoft-logic-workflows-metrics')
     ResourceTypes = $workflowType
     Evaluate      = {
         param($Record)
-        if (-not (Test-ChildCollected $Record 'metrics')) { return New-Unknown 'The run metrics could not be read' }
+        if (-not (Test-ChildCollected (Get-WorkflowMetricSource $Record) 'metrics')) { return New-Unknown 'The run metrics could not be read' }
         $totals = Get-WorkflowMetricTotals $Record $logicFailureDays
         $runs = [math]::Max($totals.RunsCompleted, $totals.RunsFailed)
         $triggers = [math]::Max($totals.TriggersCompleted, $totals.TriggersFailed)
@@ -922,26 +1083,29 @@ Add-AzTest @{
 
 Add-AzTest @{
     Id            = 'AZ-LOGIC-010'
+    Version       = 2
     Title         = 'Logic Apps are in use'
     Category      = 'Asset management'
     Service       = 'Logic Apps'
     Severity      = 'Low'
-    Description   = "Finds Consumption workflows older than $logicIdleDays days that are disabled and were not changed for $logicIdleDays days, or that are enabled without a run in the last $logicIdleDays days. Workflows that start on a Microsoft Sentinel or Defender for Cloud alert or incident, or from a Defender for Cloud workflow automation or an Azure Monitor action group, only run when an alert fires and are not evaluated."
+    Description   = "Finds workflows older than $logicIdleDays days that are disabled and were not changed for $logicIdleDays days, or that are enabled without a run in the last $logicIdleDays days. Workflows that start on a Microsoft Sentinel or Defender for Cloud alert or incident, or from a Defender for Cloud workflow automation or an Azure Monitor action group, only run when an alert fires and are not evaluated. The age of a Logic App (Standard) workflow comes from the versions it keeps, and a workflow of a stopped app counts as disabled."
     Rationale     = 'An unused workflow keeps its managed identity and role assignments, its API connections with their tokens and secrets, and its callable trigger URL, and nobody watches it. Removing it removes that access.'
     Remediation   = 'Delete workflows that are no longer needed, together with their API connections and the role assignments of their managed identity. Document the ones kept for rare events.'
     References    = @('https://learn.microsoft.com/azure/logic-apps/manage-logic-apps-with-azure-portal')
     ResourceTypes = $workflowType
     Evaluate      = {
         param($Record)
-        $p = $Record.resource.properties
-        $evidence = [ordered]@{ state = $p.state; createdDaysAgo = Get-AgeInDays $p.createdTime; changedDaysAgo = Get-AgeInDays $p.changedTime; days = $logicIdleDays; runsStarted = $null }
+        $state = Get-WorkflowState $Record
+        $dates = Get-WorkflowDates $Record
+        $evidence = [ordered]@{ state = $state; createdDaysAgo = Get-AgeInDays $dates.Created; changedDaysAgo = Get-AgeInDays $dates.Changed; days = $logicIdleDays; runsStarted = $null }
+        if (-not $dates.Read) { return New-Unknown 'The versions of the workflow could not be read, so its age is not known' $evidence }
         if ($null -ne $evidence.createdDaysAgo -and $evidence.createdDaysAgo -lt $logicIdleDays) { return New-NotApplicable "Created $($evidence.createdDaysAgo) day(s) ago" $evidence }
-        if ($p.state -in 'Disabled', 'Suspended') {
-            if ($null -eq $evidence.changedDaysAgo) { return New-Unknown "$($p.state), and when it was last changed is not known" $evidence }
-            if ($evidence.changedDaysAgo -ge $logicIdleDays) { return New-Fail "$($p.state) and not changed for $($evidence.changedDaysAgo) days" $evidence }
-            return New-NotApplicable "$($p.state) since $($evidence.changedDaysAgo) day(s)" $evidence
+        if ($state -in 'Disabled', 'Suspended') {
+            if ($null -eq $evidence.changedDaysAgo) { return New-Unknown "$state, and when it was last changed is not known" $evidence }
+            if ($evidence.changedDaysAgo -ge $logicIdleDays) { return New-Fail "$state and not changed for $($evidence.changedDaysAgo) days" $evidence }
+            return New-NotApplicable "$state since $($evidence.changedDaysAgo) day(s)" $evidence
         }
-        if (-not (Test-ChildCollected $Record 'metrics')) { return New-Unknown 'The run metrics could not be read' $evidence }
+        if (-not (Test-ChildCollected (Get-WorkflowMetricSource $Record) 'metrics')) { return New-Unknown 'The run metrics could not be read' $evidence }
         $evidence.runsStarted = (Get-WorkflowMetricTotals $Record $logicIdleDays).RunsStarted
         if ($evidence.runsStarted) { return New-Pass "$($evidence.runsStarted) run(s) in the last $logicIdleDays days" $evidence }
         if (Test-AlertTriggered $Record) { return New-NotApplicable 'Starts on a Microsoft Sentinel or Defender for Cloud alert or incident' $evidence }
@@ -950,6 +1114,55 @@ Add-AzTest @{
         if ($startedBy) { return New-NotApplicable "Started by $($startedBy -join ', ')" $evidence }
         if ($use.Missing) { return New-Unknown "No runs in the last $logicIdleDays days, and whether an alert starts it is not known: $($use.Missing -join ', ') could not be read" $evidence }
         New-Fail "No runs in the last $logicIdleDays days" $evidence
+    }
+}
+
+#parameters of built-in connections that hold a credential
+$credentialParameterPattern = '(?i)^(password|connectionString|sasToken|sharedAccessKey|accountKey|accessKey|key|apiKey|sshPrivateKey|sshPrivateKeyPassphrase|clientSecret|secret|token)$'
+
+Add-AzTest @{
+    Id            = 'AZ-LOGIC-011'
+    Title         = 'Logic App (Standard) connections sign in with a managed identity'
+    Category      = 'Identity management'
+    Service       = 'Logic Apps'
+    Severity      = 'Medium'
+    Description   = 'Reads the connections.json of Logic App (Standard) apps. Built-in (service provider) connections pass when they sign in with the managed identity of the app and fail when a parameter holds a credential: a connection string, password, key or token, from an app setting or written into the file. Managed API connections pass with the managed identity and fail with a connection key. The API connections they point to are AZ-LOGIC-005 and AZ-LOGIC-006.'
+    Rationale     = 'A connection string or password in an app setting is a shared secret: readable by everyone who can list the app settings or deploy to the app, not tied to an identity, outside Conditional Access and rarely rotated. A connection key lets whoever holds it use the API connection without an identity.'
+    Remediation   = 'Switch built-in connections to the managed identity of the app and grant it a data role on the target, set managed API connections to ManagedServiceIdentity authentication with an access policy for the app, then remove the connection strings and keys from the app settings and rotate them.'
+    References    = @('https://learn.microsoft.com/azure/logic-apps/authenticate-with-managed-identity', 'https://learn.microsoft.com/azure/logic-apps/logic-apps-securing-a-logic-app')
+    Run           = {
+        foreach ($app in @(Get-AzResourceRecords -Type 'Microsoft.Web/sites' | Where-Object { Test-WorkflowApp $_ })) {
+            $connections = Get-WorkflowAppConnections $app
+            if ($null -eq $connections) {
+                New-Finding -Record $app -Result (New-Unknown 'connections.json could not be read')
+                continue
+            }
+            $findings = @()
+            foreach ($entry in @($connections.serviceProviderConnections.PSObject.Properties)) {
+                if (-not $entry) { continue }
+                $connection = $entry.Value
+                $provider = ([string]$connection.serviceProvider.id) -replace '^.*/', ''
+                $values = $connection.parameterValues
+                $identity = [string]$values.authProvider.Type -eq 'ManagedServiceIdentity' -or [string]$connection.parameterSetName -eq 'ManagedServiceIdentity'
+                $credentials = @(@($values.PSObject.Properties) | Where-Object { $_ -and $_.Name -match $credentialParameterPattern -and $_.Value -is [string] -and $_.Value } | ForEach-Object { $where = if ($_.Value -like '@appsetting*') { 'app setting' } else { 'written into connections.json' }; "$($_.Name) ($where)" } | Sort-Object)
+                $evidence = [ordered]@{ app = $app.resource.name; connection = $entry.Name; kind = 'built-in'; provider = $provider; parameterSet = $connection.parameterSetName; authentication = $values.authProvider.Type; credentials = $credentials }
+                if ($credentials) { $result = New-Fail "Built-in $provider connection signs in with $($credentials -join ', ')" $evidence }
+                elseif ($identity) { $result = New-Pass "Built-in $provider connection signs in with the managed identity of the app" $evidence }
+                else { $result = New-NotApplicable "Built-in $provider connection holds no credential" $evidence }
+                $findings += New-Finding -ResourceId "$($app.id)/workflowsconfiguration/connections/serviceProviderConnections/$($entry.Name)" -ResourceType 'Microsoft.Web/sites/workflowsconfiguration/connections' -ResourceName "$($app.resource.name)/$($entry.Name)" -Result $result
+            }
+            foreach ($entry in @($connections.managedApiConnections.PSObject.Properties)) {
+                if (-not $entry) { continue }
+                $type = [string]$entry.Value.authentication.type
+                $evidence = [ordered]@{ app = $app.resource.name; connection = $entry.Name; kind = 'managed API'; apiConnection = Get-ResourceName ([string]$entry.Value.connection.id); authentication = $type }
+                if ($type -in 'ManagedServiceIdentity', 'ActiveDirectoryOAuth') { $result = New-Pass "Signs in to API connection $($evidence.apiConnection) with $(if ($type -eq 'ManagedServiceIdentity') { 'the managed identity of the app' } else { 'a service principal' })" $evidence }
+                elseif ($type -eq 'Raw') { $result = New-Fail "Signs in to API connection $($evidence.apiConnection) with a connection key" $evidence }
+                else { $result = New-Unknown "Signs in to API connection $($evidence.apiConnection) with authentication type '$type'" $evidence }
+                $findings += New-Finding -ResourceId "$($app.id)/workflowsconfiguration/connections/managedApiConnections/$($entry.Name)" -ResourceType 'Microsoft.Web/sites/workflowsconfiguration/connections' -ResourceName "$($app.resource.name)/$($entry.Name)" -Result $result
+            }
+            if (-not $findings) { $findings = @(New-Finding -Record $app -Result (New-NotApplicable 'connections.json has no connections')) }
+            $findings
+        }
     }
 }
 

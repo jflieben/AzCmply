@@ -219,14 +219,15 @@ Add-AzTest @{
 
 Add-AzTest @{
     Id          = 'AZ-NET-011'
+    Version     = 2
     Title       = 'Azure Bastion is available for virtual machine administration'
     Category    = 'Network security'
     Service     = 'Azure Bastion'
     Severity    = 'Low'
-    Description = 'Checks that the subscription has an Azure Bastion host when it contains virtual machines.'
+    Description = 'Checks that the subscription has an Azure Bastion host when it contains virtual machines, or that one of its virtual networks is peered with a network that has one (a shared Bastion in a hub, also in another subscription).'
     Rationale   = 'Bastion provides RDP and SSH over TLS through the Azure control plane with Entra authentication, removing the need to expose management ports or public IP addresses.'
     Remediation = 'Deploy Azure Bastion (Standard or Premium, or a shared Bastion in a hub network peered with this subscription) and remove direct management access.'
-    References  = @('https://learn.microsoft.com/azure/bastion/bastion-overview')
+    References  = @('https://learn.microsoft.com/azure/bastion/bastion-overview', 'https://learn.microsoft.com/azure/bastion/vnet-peering')
     Requires    = @('subscription/resources')
     Run         = {
         $resources = @(Get-IngestData 'subscription/resources' | Where-Object { $_ })
@@ -235,7 +236,23 @@ Add-AzTest @{
         $evidence = [ordered]@{ virtualMachines = $vms.Count; bastionHosts = @($bastions | ForEach-Object name | Sort-Object) }
         if (-not $vms) { return New-SubscriptionFinding (New-NotApplicable 'No virtual machines' $evidence) }
         if ($bastions) { return New-SubscriptionFinding (New-Pass "Bastion host(s): $($evidence.bastionHosts -join ', ')" $evidence) }
-        New-SubscriptionFinding (New-Fail 'Virtual machines exist but no Bastion host in this subscription (a hub Bastion may be used)' $evidence)
+        #a Bastion reaches directly peered networks, not networks peered with those (no transitive peering)
+        $peered = @(@(foreach ($vnet in (Get-AzResourceRecords -Type 'Microsoft.Network/virtualNetworks')) {
+                    foreach ($peering in @($vnet.resource.properties.virtualNetworkPeerings | Where-Object { $_ -and $_.properties.peeringState -eq 'Connected' -and $_.properties.remoteVirtualNetwork.id })) { ([string]$peering.properties.remoteVirtualNetwork.id).ToLowerInvariant() }
+                }) | Sort-Object -Unique)
+        $hubBastions = [System.Collections.Generic.List[string]]::new()
+        $unread = [System.Collections.Generic.List[string]]::new()
+        foreach ($remoteId in $peered) {
+            $remote = Get-ReferencedResourceRecord $remoteId
+            if (-not $remote) { $unread.Add((Get-ResourceName $remoteId)); continue }
+            $subnet = @($remote.resource.properties.subnets | Where-Object { $_ -and $_.name -eq 'AzureBastionSubnet' }) | Select-Object -First 1
+            foreach ($configuration in @($subnet.properties.ipConfigurations | Where-Object { $_ -and [string]$_.id -match '(?i)/bastionHosts/' })) { $hubBastions.Add("$([string]$configuration.id -replace '(?i)^.*/bastionHosts/([^/]+)/.*$', '$1') in $($remote.resource.name)") }
+        }
+        $evidence.peeredNetworks = @($peered | ForEach-Object { Get-ResourceName $_ })
+        $evidence.peeredBastionHosts = @($hubBastions | Sort-Object -Unique)
+        if ($hubBastions.Count) { return New-SubscriptionFinding (New-Pass "Bastion host(s) in a peered network: $($evidence.peeredBastionHosts -join ', ')" $evidence) }
+        if ($unread.Count) { return New-SubscriptionFinding (New-Unknown "Virtual machines exist but no Bastion host in this subscription; peered network(s) $($unread -join ', ') could not be read" $evidence) }
+        New-SubscriptionFinding (New-Fail 'Virtual machines exist but no Bastion host in this subscription or in a directly peered network' $evidence)
     }
 }
 

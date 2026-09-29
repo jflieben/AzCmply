@@ -51,6 +51,7 @@ Add-AzTest @{
 
 Add-AzTest @{
     Id            = 'AZ-STG-003'
+    Version       = 2
     Title         = 'Storage accounts disallow anonymous blob access'
     Category      = 'Network security'
     Service       = 'Storage'
@@ -62,6 +63,7 @@ Add-AzTest @{
     Defender      = @{ '51fd8bb1-0db4-bbf1-7e2b-cfcba7eb66a6' = 'Storage account public access should be disallowed' }
     Policy        = @{ '4fa4b6c0-31ca-4c0d-b10d-24b96f62a751' = 'Storage account public access should be disallowed' }
     ResourceTypes = $storageType
+    Filter        = { param($Record) Test-BlobCapable $Record }
     Evaluate      = {
         param($Record)
         $value = $Record.resource.properties.allowBlobPublicAccess
@@ -208,6 +210,7 @@ Add-AzTest @{
 
 Add-AzTest @{
     Id            = 'AZ-STG-010'
+    Version       = 2
     Title         = 'Cross-tenant object replication is disabled'
     Category      = 'Data protection'
     Service       = 'Storage'
@@ -218,6 +221,7 @@ Add-AzTest @{
     References    = @('https://learn.microsoft.com/azure/storage/blobs/object-replication-prevent-cross-tenant-policies')
     Policy        = @{ '92a89a79-6c52-4a7e-a03f-61306fc49312' = 'Storage accounts should prevent cross tenant object replication' }
     ResourceTypes = $storageType
+    Filter        = { param($Record) Test-BlobCapable $Record }
     Evaluate      = {
         param($Record)
         $value = $Record.resource.properties.allowCrossTenantReplication
@@ -360,6 +364,7 @@ Add-AzTest @{
 
 Add-AzTest @{
     Id            = 'AZ-STG-017'
+    Version       = 2
     Title         = 'File share soft delete is enabled'
     Category      = 'Backup and recovery'
     Service       = 'Storage'
@@ -372,6 +377,8 @@ Add-AzTest @{
     Filter        = { param($Record) Test-FileCapable $Record }
     Evaluate      = {
         param($Record)
+        #premium page blob accounts (general-purpose v2 with premium performance) have no file service
+        if (Test-ChildNotSupported $Record 'fileServices/default') { return New-NotApplicable 'The account type does not offer Azure Files' }
         if (-not (Test-ChildCollected $Record 'fileServices/default')) { return New-Unknown 'File service properties could not be read' }
         $policy = (Get-Child $Record 'fileServices/default').properties.shareDeleteRetentionPolicy
         $evidence = [ordered]@{ enabled = [bool]$policy.enabled; days = $policy.days }
@@ -390,6 +397,7 @@ function Get-SmbSetting {
 
 Add-AzTest @{
     Id            = 'AZ-STG-018'
+    Version       = 2
     Title         = 'SMB file shares only allow SMB 3.1.1'
     Category      = 'Data protection'
     Service       = 'Storage'
@@ -402,6 +410,8 @@ Add-AzTest @{
     Filter        = { param($Record) Test-FileCapable $Record }
     Evaluate      = {
         param($Record)
+        #premium page blob accounts (general-purpose v2 with premium performance) have no file service
+        if (Test-ChildNotSupported $Record 'fileServices/default') { return New-NotApplicable 'The account type does not offer Azure Files' }
         if (-not (Test-ChildCollected $Record 'fileServices/default')) { return New-Unknown 'File service properties could not be read' }
         $setting = Get-SmbSetting $Record 'versions'
         if (-not $setting) { return New-NotApplicable 'No SMB file shares' }
@@ -414,6 +424,7 @@ Add-AzTest @{
 
 Add-AzTest @{
     Id            = 'AZ-STG-019'
+    Version       = 2
     Title         = 'SMB file shares only allow AES-256-GCM channel encryption'
     Category      = 'Data protection'
     Service       = 'Storage'
@@ -426,6 +437,8 @@ Add-AzTest @{
     Filter        = { param($Record) Test-FileCapable $Record }
     Evaluate      = {
         param($Record)
+        #premium page blob accounts (general-purpose v2 with premium performance) have no file service
+        if (Test-ChildNotSupported $Record 'fileServices/default') { return New-NotApplicable 'The account type does not offer Azure Files' }
         if (-not (Test-ChildCollected $Record 'fileServices/default')) { return New-Unknown 'File service properties could not be read' }
         $setting = Get-SmbSetting $Record 'channelEncryption'
         if (-not $setting) { return New-NotApplicable 'No SMB file shares' }

@@ -29,8 +29,8 @@ The script returns `{ Path, Resources, FailedRequests }`.
 
 ## Permissions
 
-- Azure: **Reader** on the subscription.
-- Graph application permissions: **Directory.Read.All**. Optional: **RoleManagement.Read.Directory** (eligible directory roles), **AuditLog.Read.All** (user sign-in activity), **Policy.Read.All** (Conditional Access policies and security defaults).
+- Azure: **Reader** on the subscription. Optionally Reader on the shared resources in other subscriptions that `subscription/referencedResources` reads.
+- Graph application permissions: **Directory.Read.All** and **PrivilegedAccess.Read.AzureADGroup** (eligible members of PIM for Groups; without it, the tests of role assignments to groups report Unknown). Optional: **RoleManagement.Read.Directory** (eligible directory roles), **AuditLog.Read.All** (user sign-in activity), **Policy.Read.All** (Conditional Access policies and security defaults).
 
 Missing permissions do not stop the run. Each failed call is listed in `failures.json` and the affected section is marked in `manifest.json`.
 
@@ -41,7 +41,8 @@ manifest.json          run metadata, caller identity, counts, status per section
 failures.json          every failed request: category, statusCode, errorCode, message, uri, context
 index.json             one entry per resource group and resource: id, type, file, apiVersion, status
 subscription/          subscription, subscriptionPolicies (tenant transfer policy), providers, resourceGroups, resources (list), locks, deployments,
-                       deploymentStacks, Lighthouse, blueprints, activity log diagnostic settings, budgets, serialConsole, ...
+                       deploymentStacks, Lighthouse, blueprints, activity log diagnostic settings, budgets, serialConsole,
+                       referencedResources, ...
 rbac/                  roleAssignments, roleDefinitions, denyAssignments, PIM schedules/instances/requests,
                        roleManagementPolicies (+Assignments)
 policy/                policyAssignments, policyDefinitions, policySetDefinitions, policyExemptions, policyStatesSummary, attestations, remediations
@@ -50,15 +51,15 @@ defender/              pricings, securityContacts, settings, assessments, secure
 resourceGroups/        per resource group: deployments, deploymentStacks, lighthouseRegistrationAssignments
 resources/<Namespace>/<type>/<name>_<hash>.json
 resourceGraph/<table>.json   Azure Resource Graph rows scoped to the subscription
-activityLog/activityLog.json
+activityLog/activityLog.json, recoveryOperations.json   the activity log without the noise in $activityLogNoise, and its backup restores and failovers read apart
 web/managedApis.json   connector metadata of the API connections (which connection parameters hold a secret), one entry per connector
 web/functionAppStacks.json, webAppStacks.json   the App Service runtime catalogs: language versions with their end-of-life dates
 identity/              directoryObjects, users, groups, servicePrincipals, apiServicePrincipals,
-                       directoryRole*, conditionalAccessPolicies, conditionalAccessExcludedGroups, securityDefaults,
+                       directoryRole*, directoryRolePrincipals, conditionalAccessPolicies, conditionalAccessExcludedGroups, securityDefaults,
                        unresolvedPrincipalIds, organization
 ```
 
-Collections are JSON arrays of the raw API objects. Values are written exactly as returned (no date conversion).
+Collections are JSON arrays of the raw API objects. Values are written exactly as returned (no date conversion). The one exception is `activityLog/activityLog.json`: of each event it keeps the fields in `$activityLogFields` (who, what, where, when and the outcome, without the token claims, localized names and copies of the resource id that make up three quarters of an event), newest day first until `$activityLogMaxEvents` (100,000) events; the manifest records `daysCollected` and `truncated`. `recoveryOperations.json` holds the restores and failovers of the whole window in full, read by resource provider (`$activityLogRecoveryProviders`), whatever the size of the rest of the log.
 
 A resource file:
 
@@ -75,9 +76,13 @@ A resource file:
 
 A child that is `null` failed or is not configured (e.g. Sentinel not enabled); its reason is in `failures`. An empty array means the call succeeded and nothing exists.
 
+Sites of kind workflowapp (Logic App (Standard)) also get `workflows/*` (every workflow in full, the definition in `properties.files['workflow.json']`), `workflowsconfiguration/connections` (connections.json), `workflowVersions` (per workflow name, the versions with their dates) and `metrics` with the run and trigger totals per workflow and status (`$workflowAppChildren`, `$workflowAppMetrics`). A child path `a/*` lists collection a and reads each item of it in full.
+
 Types in `$resourceMetricsMap` get the child `metrics`: daily totals over the `$metricsDays` (75) days before the run, as Azure Monitor metrics responses of `$metricsWindowDays` (25) days each, because the metrics API returns at most about 30 days per query. For Logic App workflows these are runs started, completed and failed, and triggers completed and failed.
 
-Graph files: `groups.json` holds per group `transitiveMembers`, `owners` and `properties` (role-assignable, dynamic membership, on-premises sync). `servicePrincipals.json` holds per service principal its `appRoleAssignments` (API permissions), `oauth2PermissionGrants`, `owners`, backing `application` with credentials, `applicationOwners` and `applicationFederatedIdentityCredentials`. `apiServicePrincipals.json` resolves app role ids to names. `conditionalAccessExcludedGroups.json` holds the user members of every group a Conditional Access policy excludes (`members`, or `membersError` with the status code). `unresolvedPrincipalIds.json` lists referenced ids that no longer exist (orphaned assignments) or belong to other tenants.
+Graph files: `groups.json` holds per group `transitiveMembers`, `eligibleMembers` (PIM for Groups, with `eligibleMembersError`), `owners`, `servicePrincipalMembers` and `servicePrincipalOwners` (with `servicePrincipalMembersError` and `servicePrincipalOwnersError`) and `properties` (role-assignable, dynamic membership, on-premises sync). `servicePrincipals.json` holds per service principal its `appRoleAssignments` (API permissions), `oauth2PermissionGrants`, `owners`, backing `application` with credentials, `applicationOwners` and `applicationFederatedIdentityCredentials`. `apiServicePrincipals.json` resolves app role ids to names. `conditionalAccessExcludedGroups.json` holds the user members of every group a Conditional Access policy excludes (`members`, or `membersError` with the status code). `directoryRolePrincipals.json` holds per user or group with an active or eligible directory role its `type`, the `user` properties (the principal expansion of role eligibilities has no userType or onPremisesSyncEnabled) or the transitive `members`, `servicePrincipalMembers` and `eligibleMembers` (PIM for Groups) of the group, and `error` with the status code. A user read by id carries `@odata.context` instead of `@odata.type`. Graph v1.0 leaves service principals out of group members and owners, so the ingestion reads those from the beta endpoint (`/groups/{id}/transitiveMembers/microsoft.graph.servicePrincipal`); these items carry no `@odata.type`. `unresolvedPrincipalIds.json` lists referenced ids that no longer exist (orphaned assignments) or belong to other tenants.
+
+`subscription/referencedResources.json` holds the resources in other subscriptions that this one relies on: the Log Analytics workspaces and storage accounts of the activity log diagnostic settings, the data collection rules of machines and the virtual networks that virtual networks are peered with. Each has `id`, `type`, `resource` (one GET, `null` when it could not be read) and the `children` in `$referencedChildMap` (the AzureActivity table of a workspace, the lifecycle policy of a storage account), with `failures` as in a resource file.
 
 ## Notes
 

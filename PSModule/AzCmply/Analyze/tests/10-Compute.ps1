@@ -125,13 +125,17 @@ Add-AzTest @{
     }
 }
 
+#Marketplace network appliances run the operating system of their vendor, which Azure Update Manager does not assess
+$applianceImagePublishers = @('fortinet', 'paloaltonetworks', 'checkpoint', 'cisco', 'barracudanetworks', 'f5-networks', 'citrix', 'sophos', 'juniper-networks', 'netgate')
+
 Add-AzTest @{
     Id            = 'AZ-VM-005'
+    Version       = 2
     Title         = 'Virtual machines periodically assess missing updates'
     Category      = 'Posture and vulnerability management'
     Service       = 'Azure Update Manager'
     Severity      = 'Medium'
-    Description   = 'Checks that the patch assessment mode of virtual machines is AutomaticByPlatform (periodic assessment by Azure Update Manager).'
+    Description   = 'Checks that the patch assessment mode of virtual machines is AutomaticByPlatform (periodic assessment by Azure Update Manager). Network appliances from the Marketplace (Fortinet, Palo Alto Networks, Check Point, Cisco and others) are patched by their vendor and left out.'
     Rationale     = 'Without periodic assessment, missing security updates are not reported and unpatched vulnerabilities go unnoticed.'
     Remediation   = "Enable periodic assessment (az vm update --set osProfile.windowsConfiguration.patchSettings.assessmentMode=AutomaticByPlatform ...) or assign the 'Configure periodic checking for missing system updates' policy."
     References    = @('https://learn.microsoft.com/azure/update-manager/assessment-options')
@@ -140,6 +144,8 @@ Add-AzTest @{
     ResourceTypes = @($vmType)
     Evaluate      = {
         param($Record)
+        $image = $Record.resource.properties.storageProfile.imageReference
+        if ([string]$image.publisher -in $applianceImagePublishers) { return New-NotApplicable "Network appliance image ($($image.publisher)/$($image.offer)): its vendor patches the operating system, which Azure Update Manager does not assess" ([ordered]@{ imagePublisher = $image.publisher; imageOffer = $image.offer }) }
         $osProfile = $Record.resource.properties.osProfile
         if (-not $osProfile) { return New-Unknown 'No OS profile (VM created from a specialized disk); check assessment in Azure Update Manager' }
         $settings = if ($osProfile.windowsConfiguration) { $osProfile.windowsConfiguration.patchSettings } else { $osProfile.linuxConfiguration.patchSettings }
@@ -326,6 +332,7 @@ $dataCollectionRuleAssociationsPath = 'providers/Microsoft.Insights/dataCollecti
 
 Add-AzTest @{
     Id            = 'AZ-VM-013'
+    Version       = 2
     Title         = 'Change Tracking and Inventory is enabled on machines'
     Category      = 'Asset management'
     Service       = 'Virtual machines'
@@ -351,7 +358,7 @@ Add-AzTest @{
         $evidence.dataCollectionRules = @($ruleIds | ForEach-Object { ($_ -split '/')[-1] })
         $unread = 0
         foreach ($ruleId in $ruleIds) {
-            $rule = Get-AzResourceRecord $ruleId
+            $rule = Get-ReferencedResourceRecord $ruleId
             if (-not $rule) { $unread++; continue }
             if (@($rule.resource.properties.dataSources.extensions | Where-Object { $_ -and [string]$_.extensionName -match '^ChangeTracking-(Windows|Linux)$' }).Count) { return New-Pass "Data collection rule '$($rule.resource.name)' collects change tracking data" $evidence }
         }
@@ -412,7 +419,8 @@ Add-AzTest @{
 #catalog and AD Web Services. LDAP is left out, AD LDS and other directories serve it too.
 $dcPorts = @(88, 464, 3268, 3269, 9389)
 $adDsPromotionPattern = '(?i)\b(Install-ADDS(Forest|DomainController|Domain)|ADDSDeployment|AD-Domain-Services|dcpromo|(Create|Configure|Prepare)AD[PB]DC|CreateADForest|xADDomain(Controller)?)\b'
-$dcNamePattern = '(?i)(^|[^a-z0-9])(ad)?dc([^a-z]|$)|dc\d{1,3}$|domaincontroller'
+#names: DC01, SRV-ADDC-01, SRV-ADDS-01, and role codes followed by an environment letter and a number (SVNMADCP011)
+$dcNamePattern = '(?i)(^|[^a-z0-9])(ad)?dc([^a-z]|$)|dc\d{1,3}$|adc[a-z]?\d{1,3}$|(^|[^a-z0-9])adds([^a-z]|$)|domaincontroller'
 
 function Test-AddressInPrefix {
     #true when an IPv4 address lies in an address or CIDR prefix
@@ -722,7 +730,7 @@ function Get-DomainControllerProtection {
             $workload.Add($label)
         } elseif ($a.principalType -eq 'Group') {
             if (Test-GroupMembersComplete $a.principalId) {
-                foreach ($member in @(Get-GroupMembers $a.principalId | Where-Object { $_.'@odata.type' -eq '#microsoft.graph.servicePrincipal' })) { $workload.Add("$label, through $($member.displayName)") }
+                foreach ($member in @(Get-GroupMembers $a.principalId | Where-Object { (Get-DirectoryObjectType $_) -eq '#microsoft.graph.servicePrincipal' })) { $workload.Add("$label, through $($member.displayName)") }
             } else {
                 $notRead.Add("members of $(Get-PrincipalLabel $a.principalId)")
             }
@@ -771,6 +779,7 @@ $dcReferences = @('https://learn.microsoft.com/azure/architecture/example-scenar
 
 Add-AzTest @{
     Id            = 'AZ-VM-015'
+    Version       = 2
     Title         = 'No virtual machine acts as a domain controller without Tier 0 protection'
     Category      = 'Privileged access'
     Service       = 'Virtual machines'
@@ -792,6 +801,7 @@ Add-AzTest @{
 
 Add-AzTest @{
     Id            = 'AZ-VM-016'
+    Version       = 2
     Title         = 'No virtual machine that may be a domain controller runs without Tier 0 protection'
     Category      = 'Privileged access'
     Service       = 'Virtual machines'
@@ -807,5 +817,58 @@ Add-AzTest @{
         param($Record)
         $signals = Get-DomainControllerSignals $Record
         if ($signals.Confidence -eq 'Possible') { return Get-DomainControllerProtection $Record $signals }
+    }
+}
+#extensions that Microsoft names as able to run arbitrary scripts on an Azure Arc-enabled server
+$arcScriptExtensions = @(
+    'Microsoft.Cplat.Core/RunCommandHandlerWindows', 'Microsoft.Cplat.Core/RunCommandHandlerLinux', 'Microsoft.Compute/CustomScriptExtension',
+    'Microsoft.Azure.Extensions/CustomScript', 'Microsoft.Azure.Automation.HybridWorker/HybridWorkerForWindows', 'Microsoft.Azure.Automation/HybridWorkerForLinux',
+    'Microsoft.EnterpriseCloud.Monitoring/MicrosoftMonitoringAgent', 'Microsoft.EnterpriseCloud.Monitoring/OMSAgentForLinux'
+)
+
+Add-AzTest @{
+    Id            = 'AZ-VM-017'
+    Title         = 'Arc-enabled domain controllers do not accept scripts or machine configuration from Azure'
+    Category      = 'Privileged access'
+    Service       = 'Azure Arc'
+    Severity      = 'High'
+    Description   = "For Windows servers connected with Azure Arc that report being a domain controller (serverType), checks the local security controls of the Connected Machine agent: monitor mode, the extension manager disabled, or an allow list without the extensions Microsoft names as able to run scripts ($($arcScriptExtensions -join ', ')), and machine configuration (guest configuration) disabled. A server whose agent does not report its server type is reported as unknown when its name is that of a domain controller."
+    Rationale     = 'Scripts that Azure sends through Run Command or the Custom Script Extension run as Local System, and a machine configuration assignment applies DSC as Local System too. Without the local controls, everyone who can install an extension or assign a configuration on the Arc resource (Contributor, Virtual Machine Contributor, Log Analytics Contributor, Azure Connected Machine Resource Administrator on any scope above it) controls the domain. Only the server itself can set these controls, not even a Global Administrator in Azure, which is why Microsoft intends them for domain controllers.'
+    Remediation   = "On the domain controller run 'azcmagent config set config.mode monitor', or set an allow list of the monitoring and security extensions it needs ('azcmagent config set extensions.allowlist ...') and 'azcmagent config set guestconfiguration.enabled false'. Remove extensions that are no longer allowed from Azure."
+    References    = @('https://learn.microsoft.com/azure/azure-arc/servers/security-extensions', 'https://learn.microsoft.com/azure/azure-arc/servers/security-overview')
+    ResourceTypes = @($arcType)
+    Filter        = { param($Record) (Get-MachineOsType $Record) -eq 'Windows' }
+    Evaluate      = {
+        param($Record)
+        $p = $Record.resource.properties
+        $serverType = [string]$p.detectedProperties.serverType
+        if (-not $serverType) {
+            if ([string]$Record.resource.name -match $dcNamePattern) { return New-Unknown 'The agent does not report its server type, and the name is that of a domain controller' }
+            return New-NotApplicable 'The agent does not report its server type, and the name is not that of a domain controller'
+        }
+        if (@($serverType -split ';' | Where-Object { $_.Trim() -eq 'Domain Controller' }).Count -eq 0) { return New-NotApplicable "Not a domain controller ($serverType)" }
+        $configuration = $p.agentConfiguration
+        if (-not $configuration) { return New-Unknown 'The domain controller does not report the configuration of its agent' }
+        $allowList = @($configuration.extensionsAllowList | Where-Object { $_ })
+        $evidence = [ordered]@{
+            serverType                = $serverType
+            agentStatus               = $p.status
+            agentVersion              = $p.agentVersion
+            configMode                = $configuration.configMode
+            extensionsEnabled         = $configuration.extensionsEnabled
+            extensionsAllowList       = $allowList
+            extensionsBlockList       = @($configuration.extensionsBlockList | Where-Object { $_ })
+            guestConfigurationEnabled = $configuration.guestConfigurationEnabled
+        }
+        if ([string]$configuration.configMode -eq 'monitor') { return New-Pass 'The agent runs in monitor mode: only monitoring and security extensions, no machine configuration' $evidence }
+        $issues = [System.Collections.Generic.List[string]]::new()
+        if ([string]$configuration.extensionsEnabled -ne 'false') {
+            $scripts = @($allowList | Where-Object { $_ -in $arcScriptExtensions })
+            if (-not $allowList.Count) { $issues.Add('extensions are allowed without an allow list') }
+            elseif ($scripts.Count) { $issues.Add("the allow list includes $($scripts -join ', ')") }
+        }
+        if ([string]$configuration.guestConfigurationEnabled -ne 'false') { $issues.Add('machine configuration is enabled') }
+        if ($issues.Count) { return New-Fail "The domain controller accepts code from Azure: $($issues -join '; ')" $evidence }
+        New-Pass 'The agent accepts no script extensions and no machine configuration' $evidence
     }
 }

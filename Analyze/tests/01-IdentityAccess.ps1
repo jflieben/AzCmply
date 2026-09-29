@@ -95,29 +95,65 @@ Add-AzTest @{
     }
 }
 
+function Get-AssignmentServicePrincipals {
+    #the service principals that hold a role assignment: the assigned service principal, or the service principal members of
+    #an assigned group (Group is set, Member the member object). Unread: the members of the group were not all read
+    param($Assignment)
+    $properties = $Assignment.properties
+    if ($properties.principalType -eq 'ServicePrincipal') { return [pscustomobject]@{ Id = [string]$properties.principalId; Group = $null; Member = $null; Unread = $false } }
+    if ($properties.principalType -ne 'Group' -or (Test-PrincipalDeleted $properties.principalId)) { return }
+    if (-not (Test-GroupMembersComplete $properties.principalId)) { return [pscustomobject]@{ Id = $null; Group = [string]$properties.principalId; Member = $null; Unread = $true } }
+    foreach ($member in @(Get-GroupMembers $properties.principalId | Where-Object { (Get-DirectoryObjectType $_) -eq '#microsoft.graph.servicePrincipal' })) {
+        [pscustomobject]@{ Id = [string]$member.id; Group = [string]$properties.principalId; Member = $member; Unread = $false }
+    }
+}
+
 Add-AzTest @{
     Id          = 'AZ-IAM-003'
+    Version     = 2
     Title       = 'Workload identities do not hold privileged roles at subscription scope or above'
     Category    = 'Privileged access'
     Service     = 'Azure RBAC'
     Severity    = 'High'
-    Description = 'Finds service principals and managed identities with Owner, Contributor, User Access Administrator, Role Based Access Control Administrator or equivalent custom roles at tenant root, management group or subscription scope.'
+    Description = 'Finds service principals and managed identities with Owner, Contributor, User Access Administrator, Role Based Access Control Administrator or equivalent custom roles at tenant root, management group or subscription scope, directly or as members of an assigned group.'
     Rationale   = 'Workload identities cannot use MFA or PIM. A leaked credential, a compromised pipeline or a compromised resource with such an identity gives an attacker control over every resource in the subscription.'
     Remediation = 'Scope workload identity assignments to the resource groups or resources they manage and use the least privileged built-in role. Replace Owner/User Access Administrator with Role Based Access Control Administrator with conditions where the identity must assign roles.'
     References  = @('https://learn.microsoft.com/azure/role-based-access-control/best-practices')
     Requires    = @('rbac/roleAssignments')
     Run         = {
-        $assignments = @(Get-ActiveRoleAssignments | Where-Object { $_.properties.principalType -eq 'ServicePrincipal' -and (Test-RolePrivileged $_.properties.roleDefinitionId) })
-        if (-not $assignments) { return New-SubscriptionFinding (New-Pass 'No privileged role assignments for workload identities') }
-        foreach ($assignment in $assignments) {
-            $evidence = Get-AssignmentEvidence $assignment
-            $evidence.scopeLevel = Get-ScopeLevel $assignment.properties.scope
-            $result = if ($evidence.scopeLevel -in 'root', 'managementGroup', 'subscription') { New-Fail "$($evidence.principal) has $($evidence.role) at $($evidence.scopeLevel) scope" $evidence } else { New-Pass "$($evidence.role) limited to $($evidence.scopeLevel) scope" $evidence }
-            New-Finding -ResourceId $assignment.id -ResourceType $assignment.type -ResourceName "$($evidence.role): $($evidence.principal)" -Result $result
-        }
+        $findings = @(foreach ($assignment in @(Get-ActiveRoleAssignments | Where-Object { $_.properties.principalType -in 'ServicePrincipal', 'Group' -and (Test-RolePrivileged $_.properties.roleDefinitionId) } | Sort-Object id)) {
+                $level = Get-ScopeLevel $assignment.properties.scope
+                $broad = $level -in 'root', 'managementGroup', 'subscription'
+                foreach ($holder in @(Get-AssignmentServicePrincipals $assignment)) {
+                    $evidence = Get-AssignmentEvidence $assignment
+                    $evidence.scopeLevel = $level
+                    if (-not $holder.Group) {
+                        $result = if ($broad) { New-Fail "$($evidence.principal) has $($evidence.role) at $level scope" $evidence } else { New-Pass "$($evidence.role) limited to $level scope" $evidence }
+                        New-Finding -ResourceId $assignment.id -ResourceType $assignment.type -ResourceName "$($evidence.role): $($evidence.principal)" -Result $result
+                        continue
+                    }
+                    #service principals in a group, where it matters: at subscription scope or above
+                    if (-not $broad) { continue }
+                    $evidence.group = Get-PrincipalLabel $holder.Group
+                    if ($holder.Unread) {
+                        New-Finding -ResourceId $assignment.id -ResourceType $assignment.type -ResourceName "$($evidence.role): $($evidence.group)" -Result (New-Unknown "The members of group $($evidence.group), which has $($evidence.role) at $level scope, could not all be read" $evidence)
+                        continue
+                    }
+                    $evidence.principal = Get-PrincipalLabel $holder.Id
+                    New-Finding -ResourceId "$($assignment.id)/servicePrincipals/$($holder.Id)" -ResourceType $assignment.type -ResourceName "$($evidence.role): $($evidence.principal)" -Result (New-Fail "$($evidence.principal) has $($evidence.role) at $level scope through group $($evidence.group)" $evidence)
+                }
+            })
+        if (-not $findings) { return New-SubscriptionFinding (New-Pass 'No privileged role assignments for workload identities') }
+        $findings
     }
 }
 
+function Get-UnresolvedAssignmentReason {
+    #why the users behind an assignment are not known (Test-AssignmentUsersResolved)
+    param($Assignment)
+    if ($Assignment.properties.principalType -eq 'Group') { return 'The members or eligible members (PIM for Groups) of the group behind this assignment could not be read' }
+    return "The $($Assignment.properties.principalType.ToLowerInvariant()) behind this assignment could not be resolved in the directory"
+}
 $guestTest = {
     param([bool]$WriteRoles)
     $findings = foreach ($assignment in (Get-ActiveRoleAssignments | Where-Object { $_.properties.principalType -in 'User', 'Group' })) {
@@ -125,7 +161,7 @@ $guestTest = {
         $evidence = Get-AssignmentEvidence $assignment
         #without the principals behind the assignment, "no guests" cannot be distinguished from "unknown"
         if (-not (Test-AssignmentUsersResolved $assignment)) {
-            New-Finding -ResourceId $assignment.id -ResourceType $assignment.type -ResourceName "$($evidence.role): $($evidence.principal)" -Result (New-Unknown "The $($assignment.properties.principalType.ToLowerInvariant()) behind this assignment could not be resolved in the directory" $evidence)
+            New-Finding -ResourceId $assignment.id -ResourceType $assignment.type -ResourceName "$($evidence.role): $($evidence.principal)" -Result (New-Unknown (Get-UnresolvedAssignmentReason $assignment) $evidence)
             continue
         }
         $guests = @(Get-AssignmentUsers $assignment | Where-Object { Test-GuestUser $_ })
@@ -139,7 +175,7 @@ $guestTest = {
 
 Add-AzTest @{
     Id          = 'AZ-IAM-004'
-    Version     = 2
+    Version     = 3
     Title       = 'Guest accounts do not have owner or write permissions'
     Category    = 'Privileged access'
     Service     = 'Azure RBAC'
@@ -156,7 +192,7 @@ Add-AzTest @{
 
 Add-AzTest @{
     Id          = 'AZ-IAM-005'
-    Version     = 2
+    Version     = 3
     Title       = 'Guest accounts do not have read permissions'
     Category    = 'Privileged access'
     Service     = 'Azure RBAC'
@@ -173,7 +209,7 @@ Add-AzTest @{
 
 Add-AzTest @{
     Id          = 'AZ-IAM-006'
-    Version     = 2
+    Version     = 3
     Title       = 'Disabled accounts do not hold role assignments'
     Category    = 'Privileged access'
     Service     = 'Azure RBAC'
@@ -188,7 +224,7 @@ Add-AzTest @{
         $findings = foreach ($assignment in (Get-ActiveRoleAssignments | Where-Object { $_.properties.principalType -in 'User', 'Group' })) {
             $evidence = Get-AssignmentEvidence $assignment
             if (-not (Test-AssignmentUsersResolved $assignment)) {
-                New-Finding -ResourceId $assignment.id -ResourceType $assignment.type -ResourceName "$($evidence.role): $($evidence.principal)" -Result (New-Unknown "The $($assignment.properties.principalType.ToLowerInvariant()) behind this assignment could not be resolved in the directory" $evidence)
+                New-Finding -ResourceId $assignment.id -ResourceType $assignment.type -ResourceName "$($evidence.role): $($evidence.principal)" -Result (New-Unknown (Get-UnresolvedAssignmentReason $assignment) $evidence)
                 continue
             }
             $disabled = @(Get-AssignmentUsers $assignment | Where-Object { $_.accountEnabled -eq $false })
@@ -513,53 +549,139 @@ function Get-EntraRoleAssignments {
     foreach ($assignment in @(Get-IngestData 'identity/directoryRoleEligibilitySchedules' | Where-Object { $_ })) { [pscustomobject]@{ Kind = 'eligible'; Assignment = $assignment } }
 }
 
+function Get-EntraRoleHolders {
+    #the users and service principals behind each directory role assignment: the principal, or the transitive, service
+    #principal and eligible (PIM for Groups, EligibleMember) members of a group (Group is set). Holder is $null for a group
+    #whose members were not all read
+    $records = @{}
+    foreach ($record in @(Get-IngestData 'identity/directoryRolePrincipals' | Where-Object { $_ })) { $records[([string]$record.id).ToLowerInvariant()] = $record }
+    foreach ($item in @(Get-EntraRoleAssignments)) {
+        $principal = $item.Assignment.principal
+        $record = $records[([string]$item.Assignment.principalId).ToLowerInvariant()]
+        if ($principal.'@odata.type' -ne '#microsoft.graph.group') {
+            #the principal expansion of an eligibility has no userType or onPremisesSyncEnabled; the record has
+            $holder = $principal
+            if ($record.user) { $holder = $record.user }
+            [pscustomobject]@{ Kind = $item.Kind; Assignment = $item.Assignment; Group = $null; Holder = $holder; HolderType = [string]$principal.'@odata.type'; EligibleMember = $false }
+            continue
+        }
+        #a deleted group has no members
+        if ([string]$record.error -eq '404') { continue }
+        if ($null -ne $record.members) {
+            foreach ($member in @($record.members | Where-Object { $_ })) { [pscustomobject]@{ Kind = $item.Kind; Assignment = $item.Assignment; Group = $principal; Holder = $member; HolderType = Get-DirectoryObjectType $member; EligibleMember = $false } }
+        } else {
+            [pscustomobject]@{ Kind = $item.Kind; Assignment = $item.Assignment; Group = $principal; Holder = $null; HolderType = $null; EligibleMember = $false }
+        }
+        #service principals, which Graph v1.0 leaves out of the members
+        if ($null -ne $record.servicePrincipalMembers -and $null -eq $record.servicePrincipalMembersError) {
+            foreach ($member in @($record.servicePrincipalMembers | Where-Object { $_ })) { [pscustomobject]@{ Kind = $item.Kind; Assignment = $item.Assignment; Group = $principal; Holder = $member; HolderType = '#microsoft.graph.servicePrincipal'; EligibleMember = $false } }
+        } else {
+            [pscustomobject]@{ Kind = $item.Kind; Assignment = $item.Assignment; Group = $principal; Holder = $null; HolderType = $null; EligibleMember = $false }
+        }
+        if ($null -ne $record.eligibleMembers -and $null -eq $record.eligibleMembersError) {
+            foreach ($member in @($record.eligibleMembers | Where-Object { $_ })) { [pscustomobject]@{ Kind = $item.Kind; Assignment = $item.Assignment; Group = $principal; Holder = $member; HolderType = Get-DirectoryObjectType $member; EligibleMember = $true } }
+        } else {
+            [pscustomobject]@{ Kind = $item.Kind; Assignment = $item.Assignment; Group = $principal; Holder = $null; HolderType = $null; EligibleMember = $true }
+        }
+    }
+}
+
+function Get-RoleHolderPath {
+    #how a holder has its role: '' directly, ', through <group>' or ', through eligible membership of <group>'
+    param($Item)
+    if (-not $Item.Group) { return '' }
+    if ($Item.EligibleMember) { return ", through eligible membership of $($Item.Group.displayName)" }
+    return ", through $($Item.Group.displayName)"
+}
+
+function Get-PrivilegedEntraRoleHolders {
+    #users or service principals (by @odata.type) with privileged directory roles, each with its roles as
+    #"<role> (<kind>[, through <group>])", and the groups with privileged roles whose members were not read
+    param([string]$Type)
+    $holders = [ordered]@{}
+    $unread = [System.Collections.Generic.List[string]]::new()
+    foreach ($item in @(Get-EntraRoleHolders)) {
+        $role = Get-EntraRoleName $item.Assignment.roleDefinitionId
+        if ($role -notin $privilegedEntraRoles) { continue }
+        if (-not $item.Holder) {
+            if ($item.Group -and -not $unread.Contains([string]$item.Group.displayName)) { $unread.Add([string]$item.Group.displayName) }
+            continue
+        }
+        if ($item.HolderType -ne $Type) { continue }
+        $key = ([string]$item.Holder.id).ToLowerInvariant()
+        if (-not $holders.Contains($key)) {
+            $label = if ($item.Holder.userPrincipalName) { "$($item.Holder.displayName) ($($item.Holder.userPrincipalName))" } else { [string]$item.Holder.displayName }
+            $holders[$key] = [pscustomobject]@{ Principal = $item.Holder; Label = $label; SortKey = "$label|$key"; Roles = [System.Collections.Generic.List[string]]::new() }
+        } elseif ($holders[$key].Principal.PSObject.Properties.Name -notcontains 'onPremisesSyncEnabled') {
+            $holders[$key].Principal = $item.Holder
+        }
+        $roleLabel = "$role ($($item.Kind)$(Get-RoleHolderPath $item))"
+        if (-not $holders[$key].Roles.Contains($roleLabel)) { $holders[$key].Roles.Add($roleLabel) }
+    }
+    return [pscustomobject]@{ Holders = @($holders.Values | Sort-Object SortKey); Unread = @($unread | Sort-Object) }
+}
+
+function Get-RoleSummary {
+    #the first three roles, and how many more
+    param([string[]]$Roles)
+    $summary = @($Roles | Select-Object -First 3) -join ', '
+    if ($Roles.Count -gt 3) { $summary += " and $($Roles.Count - 3) more" }
+    return $summary
+}
+
 Add-AzTest @{
     Id          = 'AZ-IAM-017'
+    Version     = 2
     Title       = 'The tenant has between 2 and 4 Global Administrators'
     Category    = 'Privileged access'
     Service     = 'Microsoft Entra ID'
     Severity    = 'Medium'
-    Description = 'Counts principals with an active or eligible Global Administrator assignment. Global Administrators can elevate themselves to User Access Administrator on every Azure subscription.'
+    Description = 'Counts the users and service principals with an active or eligible Global Administrator assignment, directly or as transitive or eligible (PIM for Groups) members of a group. Global Administrators can elevate themselves to User Access Administrator on every Azure subscription.'
     Rationale   = 'Microsoft recommends fewer than five Global Administrators, and at least two (including break-glass accounts) so the tenant cannot be locked out.'
     Remediation = 'Reduce Global Administrators to at most four by moving people to least privileged roles, and keep at least two cloud-only emergency access accounts.'
     References  = @('https://learn.microsoft.com/entra/identity/role-based-access-control/best-practices')
     Requires    = @('identity/directoryRoleAssignments')
     Run         = {
         $gaTemplate = '62e90394-69f5-4237-9190-012177145e10'
-        $assignments = @(Get-EntraRoleAssignments | Where-Object { $_.Assignment.roleDefinitionId -eq $gaTemplate })
-        $principals = @($assignments | ForEach-Object { "$($_.Assignment.principal.displayName) [$($_.Kind)]" } | Sort-Object -Unique)
-        $count = @($assignments | ForEach-Object { $_.Assignment.principalId } | Sort-Object -Unique).Count
-        $evidence = [ordered]@{ globalAdministratorCount = $count; globalAdministrators = $principals; eligibleDataCollected = (Test-IngestSection 'identity/directoryRoleEligibilitySchedules') }
-        $result = if ($count -lt 2) { New-Fail "$count Global Administrator(s), at least 2 are needed" $evidence } elseif ($count -gt 4) { New-Fail "$count Global Administrators, fewer than 5 are recommended" $evidence } else { New-Pass "$count Global Administrators" $evidence }
+        $holders = @(Get-EntraRoleHolders | Where-Object { $_.Assignment.roleDefinitionId -eq $gaTemplate })
+        $unread = @($holders | Where-Object { $_.Group -and -not $_.Holder } | ForEach-Object { [string]$_.Group.displayName } | Sort-Object -Unique)
+        $administrators = @($holders | Where-Object { $_.Holder -and $_.HolderType -in '#microsoft.graph.user', '#microsoft.graph.servicePrincipal' })
+        $principals = @($administrators | ForEach-Object { "$($_.Holder.displayName)$(if ($_.Holder.userPrincipalName) { " ($($_.Holder.userPrincipalName))" }) [$($_.Kind)$(Get-RoleHolderPath $_)]" } | Sort-Object -Unique)
+        $count = @($administrators | ForEach-Object { ([string]$_.Holder.id).ToLowerInvariant() } | Sort-Object -Unique).Count
+        $evidence = [ordered]@{ globalAdministratorCount = $count; globalAdministrators = $principals; groupsNotRead = $unread; eligibleDataCollected = (Test-IngestSection 'identity/directoryRoleEligibilitySchedules') }
+        $result = if ($count -gt 4) { New-Fail "$count Global Administrators, fewer than 5 are recommended" $evidence } elseif ($unread) { New-Unknown "$count Global Administrator(s) found; the members of group(s) $($unread -join ', ') could not be read" $evidence } elseif ($count -lt 2) { New-Fail "$count Global Administrator(s), at least 2 are needed" $evidence } else { New-Pass "$count Global Administrators" $evidence }
         New-TenantFinding -Result $result -Suffix '/roles/GlobalAdministrator'
     }
 }
 
 Add-AzTest @{
     Id          = 'AZ-IAM-018'
+    Version     = 2
     Title       = 'Privileged Entra roles are held by cloud-only member accounts'
     Category    = 'Privileged access'
     Service     = 'Microsoft Entra ID'
     Severity    = 'High'
-    Description = 'Finds users with active or eligible privileged Entra roles that are synchronized from on-premises Active Directory or are guests.'
+    Description = 'Finds users with active or eligible privileged Entra roles, directly or as transitive or eligible (PIM for Groups) members of a group, that are synchronized from on-premises Active Directory or are guests.'
     Rationale   = 'A synchronized administrator can be taken over from on-premises (a compromised domain means a compromised cloud), and a guest administrator is governed by another organization. Privileged accounts should be cloud-only members.'
     Remediation = 'Create dedicated cloud-only administrator accounts, move the privileged roles to them (PIM eligible) and remove the roles from synchronized and guest accounts.'
     References  = @('https://learn.microsoft.com/entra/identity/role-based-access-control/best-practices')
     Requires    = @('identity/directoryRoleAssignments', 'identity/directoryRoleDefinitions')
     Run         = {
-        $findings = foreach ($item in @(Get-EntraRoleAssignments)) {
-            $assignment = $item.Assignment
-            $principal = $assignment.principal
-            if ($principal.'@odata.type' -ne '#microsoft.graph.user') { continue }
-            $role = Get-EntraRoleName $assignment.roleDefinitionId
-            if ($role -notin $privilegedEntraRoles) { continue }
-            $issues = @()
-            if ($principal.onPremisesSyncEnabled) { $issues += 'synchronized from on-premises' }
-            if (Test-GuestUser $principal) { $issues += 'guest' }
-            $evidence = [ordered]@{ user = "$($principal.displayName) ($($principal.userPrincipalName))"; role = $role; kind = $item.Kind; onPremisesSyncEnabled = [bool]$principal.onPremisesSyncEnabled; userType = $principal.userType }
-            $result = if ($issues) { New-Fail "$($evidence.user) holds $role ($($item.Kind)) but is $($issues -join ' and ')" $evidence } else { New-Pass "$($evidence.user) is a cloud-only member" $evidence }
-            New-TenantFinding -Result $result -Suffix "/roleAssignments/$($item.Kind)/$($assignment.id)"
-        }
+        $privileged = Get-PrivilegedEntraRoleHolders '#microsoft.graph.user'
+        $findings = @(foreach ($entry in $privileged.Holders) {
+                $user = $entry.Principal
+                $roles = @($entry.Roles | Sort-Object)
+                $issues = @()
+                if ($user.onPremisesSyncEnabled) { $issues += 'synchronized from on-premises' }
+                if (Test-GuestUser $user) { $issues += 'a guest' }
+                $evidence = [ordered]@{ user = $entry.Label; roles = $roles; onPremisesSyncEnabled = [bool]$user.onPremisesSyncEnabled; userType = $user.userType }
+                if ($issues) { $result = New-Fail "$($entry.Label) holds $(Get-RoleSummary $roles) but is $($issues -join ' and ')" $evidence }
+                elseif ($user.PSObject.Properties.Name -notcontains 'onPremisesSyncEnabled') { $result = New-Unknown "Whether $($entry.Label) is synchronized from on-premises was not collected" $evidence }
+                else { $result = New-Pass "$($entry.Label) is a cloud-only member" $evidence }
+                $name = if ($user.userPrincipalName) { [string]$user.userPrincipalName } else { [string]$user.id }
+                New-Finding -ResourceId "/users/$($user.id)" -ResourceType 'Microsoft.Entra/users' -ResourceName $name -Result $result
+            })
+        if ($privileged.Unread) { $findings += New-TenantFinding -Result (New-Unknown "The members of group(s) $($privileged.Unread -join ', ') with privileged roles could not be read" ([ordered]@{ groups = $privileged.Unread })) -Suffix '/roles/privileged/groups' }
         if (-not $findings) { return New-TenantFinding -Result (New-Pass 'No users with privileged Entra roles found') -Suffix '/roles/privileged' }
         $findings
     }
@@ -567,24 +689,25 @@ Add-AzTest @{
 
 Add-AzTest @{
     Id          = 'AZ-IAM-019'
+    Version     = 2
     Title       = 'Service principals do not hold privileged Entra roles'
     Category    = 'Privileged access'
     Service     = 'Microsoft Entra ID'
     Severity    = 'High'
-    Description = 'Finds service principals and managed identities with active or eligible privileged Entra roles such as Global Administrator or Privileged Role Administrator.'
+    Description = 'Finds service principals and managed identities with active or eligible privileged Entra roles such as Global Administrator or Privileged Role Administrator, directly or as transitive or eligible (PIM for Groups) members of a group.'
     Rationale   = 'Workload identities cannot be protected with MFA or Conditional Access for users. Anyone who obtains their credential, or controls the Azure resource of a managed identity, holds the directory role.'
     Remediation = 'Replace directory roles on workload identities with the specific Graph permissions or scoped (administrative unit) roles they need, and restrict who can manage those identities.'
     References  = @('https://learn.microsoft.com/entra/identity/role-based-access-control/best-practices')
     Requires    = @('identity/directoryRoleAssignments', 'identity/directoryRoleDefinitions')
     Run         = {
-        $findings = foreach ($item in @(Get-EntraRoleAssignments)) {
-            $assignment = $item.Assignment
-            if ($assignment.principal.'@odata.type' -ne '#microsoft.graph.servicePrincipal') { continue }
-            $role = Get-EntraRoleName $assignment.roleDefinitionId
-            if ($role -notin $privilegedEntraRoles) { continue }
-            $evidence = [ordered]@{ servicePrincipal = $assignment.principal.displayName; appId = $assignment.principal.appId; servicePrincipalType = $assignment.principal.servicePrincipalType; role = $role; kind = $item.Kind }
-            New-TenantFinding -Result (New-Fail "$($assignment.principal.displayName) holds $role ($($item.Kind))" $evidence) -Suffix "/roleAssignments/$($item.Kind)/$($assignment.id)"
-        }
+        $privileged = Get-PrivilegedEntraRoleHolders '#microsoft.graph.servicePrincipal'
+        $findings = @(foreach ($entry in $privileged.Holders) {
+                $principal = $entry.Principal
+                $roles = @($entry.Roles | Sort-Object)
+                $evidence = [ordered]@{ servicePrincipal = $entry.Label; appId = $principal.appId; servicePrincipalType = $principal.servicePrincipalType; roles = $roles }
+                New-Finding -ResourceId "/servicePrincipals/$($principal.id)" -ResourceType 'Microsoft.Entra/servicePrincipals' -ResourceName $entry.Label -Result (New-Fail "$($entry.Label) holds $(Get-RoleSummary $roles)" $evidence)
+            })
+        if ($privileged.Unread) { $findings += New-TenantFinding -Result (New-Unknown "The members of group(s) $($privileged.Unread -join ', ') with privileged roles could not be read" ([ordered]@{ groups = $privileged.Unread })) -Suffix '/roles/servicePrincipals/groups' }
         if (-not $findings) { return New-TenantFinding -Result (New-Pass 'No service principals with privileged Entra roles') -Suffix '/roles/servicePrincipals' }
         $findings
     }
@@ -592,6 +715,7 @@ Add-AzTest @{
 
 Add-AzTest @{
     Id          = 'AZ-IAM-020'
+    Version     = 2
     Title       = 'Users with write access have signed in within 90 days'
     Category    = 'Privileged access'
     Service     = 'Microsoft Entra ID'
@@ -620,6 +744,7 @@ Add-AzTest @{
 
 Add-AzTest @{
     Id          = 'AZ-IAM-021'
+    Version     = 2
     Title       = 'Azure Lighthouse delegations do not grant standing write access'
     Category    = 'Privileged access'
     Service     = 'Azure Lighthouse'
@@ -630,8 +755,15 @@ Add-AzTest @{
     References  = @('https://learn.microsoft.com/azure/lighthouse/how-to/create-eligible-authorizations')
     Requires    = @('subscription/lighthouseRegistrationAssignments', 'rbac/roleDefinitions')
     Run         = {
-        $assignments = @(Get-IngestData 'subscription/lighthouseRegistrationAssignments' | Where-Object { $_ })
-        foreach ($group in (Get-ResourceGroupRecords)) { $assignments += @($group.lighthouseRegistrationAssignments | Where-Object { $_ }) }
+        #the resource group listing also returns the delegations of the subscription, so each delegation is counted once
+        $byId = [ordered]@{}
+        $listed = @(Get-IngestData 'subscription/lighthouseRegistrationAssignments' | Where-Object { $_ })
+        foreach ($group in (Get-ResourceGroupRecords)) { $listed += @($group.lighthouseRegistrationAssignments | Where-Object { $_ }) }
+        foreach ($assignment in $listed) {
+            $key = ([string]$assignment.id).ToLowerInvariant()
+            if (-not $byId.Contains($key)) { $byId[$key] = $assignment }
+        }
+        $assignments = @($byId.Values)
         if (-not $assignments) { return New-SubscriptionFinding (New-Pass 'No Azure Lighthouse delegations') }
         foreach ($assignment in $assignments) {
             $definition = $assignment.properties.registrationDefinition.properties
@@ -690,11 +822,12 @@ Add-AzTest @{
 
 Add-AzTest @{
     Id          = 'AZ-IAM-023'
+    Version     = 2
     Title       = 'Deny assignment exclusions are limited'
     Category    = 'Privileged access'
     Service     = 'Azure RBAC'
     Severity    = 'Medium'
-    Description = 'Checks the deny assignments that apply to this subscription for excluded principals. Deny assignments are created by Azure managed applications, Blueprints and deployment stacks; principals on their exclude list keep the access that the deny assignment takes away from everyone else.'
+    Description = 'Checks the deny assignments that apply to this subscription for excluded principals. Deny assignments are created by Azure managed applications, Blueprints and deployment stacks; principals on their exclude list keep the access that the deny assignment takes away from everyone else. The system deny assignments of resource groups that an Azure service manages (the managedBy resource is not a managed application, for example a Container Apps environment) exclude only that service and pass.'
     Rationale   = 'A deny assignment overrides role assignments, so access cannot be judged from role assignments alone. Every excluded principal is a standing exemption that no access review covers and that does not show up as a role assignment.'
     Remediation = 'Confirm that each excluded principal is the intended operator of the managed application, blueprint or deployment stack that owns the deny assignment, and remove the owning resource when it is no longer used.'
     References  = @('https://learn.microsoft.com/azure/role-based-access-control/deny-assignments')
@@ -702,9 +835,14 @@ Add-AzTest @{
     Run         = {
         $assignments = @(Get-IngestData 'rbac/denyAssignments' | Where-Object { $_ })
         if (-not $assignments) { return New-SubscriptionFinding (New-Pass 'No deny assignments apply to this subscription') }
+        #resource group (lowercase id) > the Azure resource, other than a managed application, that manages it
+        $serviceManaged = @{}
+        foreach ($group in @(Get-IngestData 'subscription/resourceGroups' | Where-Object { $_ -and $_.managedBy -and [string]$_.managedBy -notmatch '(?i)/providers/Microsoft\.Solutions/applications/' })) { $serviceManaged[([string]$group.id).ToLowerInvariant()] = [string]$group.managedBy }
         foreach ($assignment in $assignments) {
             $p = $assignment.properties
             $excluded = @($p.excludePrincipals | Where-Object { $_ } | ForEach-Object { Get-PrincipalLabel $_.id } | Sort-Object)
+            $group = ([string]$p.scope -replace '(?i)^(/subscriptions/[^/]+/resourceGroups/[^/]+).*$', '$1').ToLowerInvariant()
+            $manager = if ($p.isSystemProtected -and $serviceManaged.ContainsKey($group)) { $serviceManaged[$group] } else { $null }
             $evidence = [ordered]@{
                 displayName             = $p.denyAssignmentName
                 scope                   = $p.scope
@@ -712,12 +850,11 @@ Add-AzTest @{
                 doNotApplyToChildScopes = [bool]$p.doNotApplyToChildScopes
                 excludedPrincipals      = $excluded
                 deniedActions           = @($p.permissions | ForEach-Object { $_.actions } | Where-Object { $_ } | Sort-Object -Unique)
+                managedBy               = $manager
             }
-            $result = if ($excluded) {
-                New-Fail "Deny assignment '$($p.denyAssignmentName)' excludes $($excluded.Count) principal(s): $($excluded -join ', ')" $evidence
-            } else {
-                New-Pass "Deny assignment '$($p.denyAssignmentName)' applies to everyone in scope" $evidence
-            }
+            if ($excluded -and $manager) { $result = New-Pass "System deny assignment '$($p.denyAssignmentName)' of $(Get-ResourceName $manager), the Azure resource that manages resource group $(Get-ResourceName $group)" $evidence }
+            elseif ($excluded) { $result = New-Fail "Deny assignment '$($p.denyAssignmentName)' excludes $($excluded.Count) principal(s): $($excluded -join ', ')" $evidence }
+            else { $result = New-Pass "Deny assignment '$($p.denyAssignmentName)' applies to everyone in scope" $evidence }
             New-Finding -ResourceId $assignment.id -ResourceType 'Microsoft.Authorization/denyAssignments' -ResourceName $p.denyAssignmentName -Result $result
         }
     }
@@ -823,11 +960,12 @@ $microsoftTenantIds = @('f8cdef31-a31e-4b4a-93e4-5f571e91255a', '72f988bf-86f1-4
 
 Add-AzTest @{
     Id          = 'AZ-IAM-025'
+    Version     = 2
     Title       = 'Applications of other organizations hold no Azure role assignments'
     Category    = 'Privileged access'
     Service     = 'Azure RBAC'
     Severity    = 'Informational'
-    Description = 'Lists role assignments that apply to the subscription and belong to service principals of multi-tenant applications registered by another organization. Managed identities and Microsoft first-party applications are left out.'
+    Description = 'Lists role assignments that apply to the subscription and belong to service principals of multi-tenant applications registered by another organization, directly or as members of an assigned group. Managed identities and Microsoft first-party applications are left out.'
     Rationale   = 'Such an application is a third party with access to Azure resources: its publisher controls the code and the credentials. Every third party with access has to be known, assessed and recorded (for DORA in the register of information), and this list is where that inventory starts.'
     Remediation = 'Confirm that each application is expected and recorded as a third party, limit it to the roles and scopes it needs, and remove the assignments of applications that are no longer used.'
     References  = @('https://learn.microsoft.com/entra/identity-platform/single-and-multi-tenant-apps')
@@ -836,26 +974,40 @@ Add-AzTest @{
         $tenantId = [string]$script:Ingest.Manifest.subscription.tenantId
         $unresolved = @{}
         foreach ($id in @(Get-IngestData 'identity/unresolvedPrincipalIds')) { if ($id) { $unresolved[$id.ToLowerInvariant()] = $true } }
-        $findings = foreach ($assignment in @(Get-ActiveRoleAssignments | Where-Object { $_.properties.principalType -eq 'ServicePrincipal' } | Sort-Object id)) {
-            $principalId = [string]$assignment.properties.principalId
-            $evidence = Get-AssignmentEvidence $assignment
-            $principal = Get-Principal $principalId
-            if (-not $principal) {
-                #deleted principals are AZ-IAM-007
-                if ($unresolved.ContainsKey($principalId.ToLowerInvariant())) { continue }
-                New-Finding -ResourceId $assignment.id -ResourceType $assignment.type -ResourceName "$($evidence.role): $($evidence.principal)" -Result (New-Unknown 'The service principal behind this assignment could not be resolved in the directory' $evidence)
-                continue
+        $findings = foreach ($assignment in @(Get-ActiveRoleAssignments | Where-Object { $_.properties.principalType -in 'ServicePrincipal', 'Group' } | Sort-Object id)) {
+            foreach ($holder in @(Get-AssignmentServicePrincipals $assignment)) {
+                $evidence = Get-AssignmentEvidence $assignment
+                $resourceId = $assignment.id
+                $through = ''
+                if ($holder.Group) {
+                    $evidence.group = Get-PrincipalLabel $holder.Group
+                    if ($holder.Unread) {
+                        New-Finding -ResourceId $assignment.id -ResourceType $assignment.type -ResourceName "$($evidence.role): $($evidence.group)" -Result (New-Unknown "The members of group $($evidence.group) could not all be read" $evidence)
+                        continue
+                    }
+                    $evidence.principal = Get-PrincipalLabel $holder.Id
+                    $resourceId = "$($assignment.id)/servicePrincipals/$($holder.Id)"
+                    $through = " through group $($evidence.group)"
+                }
+                $principal = Get-Principal $holder.Id
+                if (-not $principal) { $principal = $holder.Member }
+                if (-not $principal) {
+                    #deleted principals are AZ-IAM-007
+                    if ($unresolved.ContainsKey($holder.Id.ToLowerInvariant())) { continue }
+                    New-Finding -ResourceId $resourceId -ResourceType $assignment.type -ResourceName "$($evidence.role): $($evidence.principal)" -Result (New-Unknown 'The service principal behind this assignment could not be resolved in the directory' $evidence)
+                    continue
+                }
+                if ($principal.servicePrincipalType -eq 'ManagedIdentity') { continue }
+                $owner = [string]$principal.appOwnerOrganizationId
+                if (-not $owner) {
+                    New-Finding -ResourceId $resourceId -ResourceType $assignment.type -ResourceName "$($evidence.role): $($evidence.principal)" -Result (New-Unknown 'The organization that registered this application was not recorded' $evidence)
+                    continue
+                }
+                if ($owner -eq $tenantId -or $owner -in $microsoftTenantIds) { continue }
+                $evidence.appId = $principal.appId
+                $evidence.ownerOrganization = $owner
+                New-Finding -ResourceId $resourceId -ResourceType $assignment.type -ResourceName "$($evidence.role): $($evidence.principal)" -Result (New-Fail "$($principal.displayName), an application of organization $owner, holds $($evidence.role) on $($evidence.scope)$through" $evidence)
             }
-            if ($principal.servicePrincipalType -eq 'ManagedIdentity') { continue }
-            $owner = [string]$principal.appOwnerOrganizationId
-            if (-not $owner) {
-                New-Finding -ResourceId $assignment.id -ResourceType $assignment.type -ResourceName "$($evidence.role): $($evidence.principal)" -Result (New-Unknown 'The organization that registered this application was not recorded' $evidence)
-                continue
-            }
-            if ($owner -eq $tenantId -or $owner -in $microsoftTenantIds) { continue }
-            $evidence.appId = $principal.appId
-            $evidence.ownerOrganization = $owner
-            New-Finding -ResourceId $assignment.id -ResourceType $assignment.type -ResourceName "$($evidence.role): $($evidence.principal)" -Result (New-Fail "$($principal.displayName), an application of organization $owner, holds $($evidence.role) on $($evidence.scope)" $evidence)
         }
         if (-not $findings) { return New-SubscriptionFinding (New-Pass 'No applications of other organizations hold Azure roles') }
         $findings
@@ -902,11 +1054,12 @@ $globalAdministratorTemplateId = '62e90394-69f5-4237-9190-012177145e10'
 
 Add-AzTest @{
     Id          = 'AZ-IAM-028'
+    Version     = 2
     Title       = 'An emergency access account is excluded from every Conditional Access policy'
     Category    = 'Privileged access'
     Service     = 'Microsoft Entra ID'
     Severity    = 'High'
-    Description = 'Looks for a user with an active Global Administrator assignment that every enabled Conditional Access policy for all users or for Global Administrators excludes, directly, through a group or through the Global Administrator role. Policies scoped to other users or groups are not evaluated.'
+    Description = 'Looks for a user with an active Global Administrator assignment that every enabled Conditional Access policy for all users or for Global Administrators excludes, directly, through a group or through the Global Administrator role. Policies scoped to other users or groups are not evaluated, and policies for no application (None) apply to no sign-in.'
     Rationale   = 'A Conditional Access policy that is misconfigured, or that depends on a service that is down (MFA, a federation provider, device compliance), can lock every administrator out of the tenant and its Azure subscriptions. An emergency access account outside those policies is the way back in.'
     Remediation = 'Keep two cloud-only emergency access accounts with a permanent Global Administrator assignment and phishing resistant credentials (passkeys or certificates), exclude them (or a group that holds them) from every Conditional Access policy, and alert on their sign-ins.'
     References  = @('https://learn.microsoft.com/entra/identity/role-based-access-control/security-emergency-access')
@@ -918,10 +1071,13 @@ Add-AzTest @{
         foreach ($principal in @(Get-IngestData 'identity/directoryRoleAssignments' | Where-Object { $_ -and $_.roleDefinitionId -eq $globalAdministratorTemplateId -and $_.principal.'@odata.type' -eq '#microsoft.graph.user' } | ForEach-Object principal | Sort-Object userPrincipalName, id)) {
             if (-not ($administrators | Where-Object { $_.id -eq $principal.id })) { $administrators.Add($principal) }
         }
-        #members of the excluded groups; $null for a group whose members could not be read
+        #members of the excluded groups; none for a deleted group (404), $null for a group whose members could not be read.
+        #Assigned per branch: 'if' as an expression turns an empty member list into $null
         $groupMembers = @{}
         foreach ($group in @(Get-IngestData 'identity/conditionalAccessExcludedGroups' | Where-Object { $_ })) {
-            $groupMembers[$group.id] = if ($null -ne $group.members) { @($group.members | ForEach-Object id) } else { $null }
+            if ($null -ne $group.members) { $groupMembers[$group.id] = @($group.members | ForEach-Object id) }
+            elseif ([string]$group.membersError -eq '404') { $groupMembers[$group.id] = @() }
+            else { $groupMembers[$group.id] = $null }
         }
         $excluded = [System.Collections.Generic.List[string]]::new()
         $undetermined = [System.Collections.Generic.List[string]]::new()
@@ -930,6 +1086,9 @@ Add-AzTest @{
             $blocking = 0
             $unknown = $false
             foreach ($policy in $policies) {
+                #a policy for no application, user action or authentication context applies to no sign-in
+                $applications = $policy.conditions.applications
+                if (@($applications.includeApplications) -contains 'None' -and -not @($applications.includeUserActions | Where-Object { $_ }).Count -and -not @($applications.includeAuthenticationContextClassReferences | Where-Object { $_ }).Count) { continue }
                 $users = $policy.conditions.users
                 $included = @($users.includeUsers) -contains 'All' -or @($users.includeUsers) -contains $administrator.id -or @($users.includeRoles) -contains $globalAdministratorTemplateId
                 if (-not $included) { continue }
@@ -1031,11 +1190,12 @@ Add-AzTest @{
 
 Add-AzTest @{
     Id          = 'AZ-IAM-031'
+    Version     = 3
     Title       = 'Managed identities have no write access outside the resource group of their resource'
     Category    = 'Privileged access'
     Service     = 'Azure RBAC'
     Severity    = 'High'
-    Description = 'For every resource with a system or user assigned managed identity, lists the write capable role assignments of that identity on other resource groups, or on resources in other resource groups. Assignments at subscription scope or above are AZ-IAM-003, and assignments on the managed application that owns the resource group are part of that application; assignments through group membership are not evaluated.'
+    Description = 'For every resource with a system or user assigned managed identity, lists the write capable role assignments of that identity on other resource groups, or on resources in other resource groups, held directly or through an assigned group. Assignments at subscription scope or above are AZ-IAM-003, and assignments on the managed application that owns the resource group are part of that application.'
     Rationale   = 'Whoever can change a resource can act as its managed identity: run a command on the virtual machine, change the code of the function or the steps of the runbook or Logic App. An identity with rights in another resource group hands those rights to every contributor of its own resource group, a privilege escalation path that no single role assignment shows.'
     Remediation = 'Limit the managed identity to what it needs in its own resource group, move the resource next to what it manages, or let a resource that only the owners of the target resource group can change do the work.'
     References  = @('https://learn.microsoft.com/entra/identity/managed-identities-azure-resources/managed-identity-best-practice-recommendations')
@@ -1062,23 +1222,33 @@ Add-AzTest @{
         #resource id (lowercase) > write capable assignments of its identities outside its resource group
         $outside = [ordered]@{}
         $records = @{}
-        foreach ($assignment in @(Get-ActiveRoleAssignments | Where-Object { $_.properties.principalType -eq 'ServicePrincipal' } | Sort-Object id)) {
-            $key = ([string]$assignment.properties.principalId).ToLowerInvariant()
-            if (-not $usedBy.ContainsKey($key)) { continue }
+        $unread = [System.Collections.Generic.List[object]]::new()
+        foreach ($assignment in @(Get-ActiveRoleAssignments | Where-Object { $_.properties.principalType -in 'ServicePrincipal', 'Group' } | Sort-Object id)) {
             $scope = [string]$assignment.properties.scope
             if ((Get-ScopeLevel $scope) -in 'root', 'managementGroup', 'subscription') { continue }
             if (-not (Test-RoleCanWrite $assignment.properties.roleDefinitionId)) { continue }
-            foreach ($record in $usedBy[$key]) {
-                $resourceGroup = (($record.id -split '/')[0..4] -join '/').ToLowerInvariant()
-                $target = $scope.ToLowerInvariant()
-                if ($target -eq $resourceGroup -or $target.StartsWith("$resourceGroup/")) { continue }
-                if ($managedBy.ContainsKey($resourceGroup) -and ($target -eq $managedBy[$resourceGroup] -or $target.StartsWith("$($managedBy[$resourceGroup])/"))) { continue }
-                $id = $record.id.ToLowerInvariant()
-                if (-not $outside.Contains($id)) { $outside[$id] = [System.Collections.Generic.List[string]]::new(); $records[$id] = $record }
-                $outside[$id].Add("$(Get-RoleName $assignment.properties.roleDefinitionId) @ $scope")
+            foreach ($holder in @(Get-AssignmentServicePrincipals $assignment)) {
+                if ($holder.Unread) { $unread.Add($assignment); continue }
+                $key = $holder.Id.ToLowerInvariant()
+                if (-not $usedBy.ContainsKey($key)) { continue }
+                $grant = "$(Get-RoleName $assignment.properties.roleDefinitionId) @ $scope"
+                if ($holder.Group) { $grant += " (through group $(Get-PrincipalLabel $holder.Group))" }
+                foreach ($record in $usedBy[$key]) {
+                    $resourceGroup = (($record.id -split '/')[0..4] -join '/').ToLowerInvariant()
+                    $target = $scope.ToLowerInvariant()
+                    if ($target -eq $resourceGroup -or $target.StartsWith("$resourceGroup/")) { continue }
+                    if ($managedBy.ContainsKey($resourceGroup) -and ($target -eq $managedBy[$resourceGroup] -or $target.StartsWith("$($managedBy[$resourceGroup])/"))) { continue }
+                    $id = $record.id.ToLowerInvariant()
+                    if (-not $outside.Contains($id)) { $outside[$id] = [System.Collections.Generic.List[string]]::new(); $records[$id] = $record }
+                    $outside[$id].Add($grant)
+                }
             }
         }
-        if (-not $outside.Count) { return New-SubscriptionFinding (New-Pass 'No managed identity has write access outside the resource group of its resource') }
+        foreach ($assignment in $unread) {
+            $evidence = Get-AssignmentEvidence $assignment
+            New-Finding -ResourceId $assignment.id -ResourceType $assignment.type -ResourceName "$($evidence.role): $($evidence.principal)" -Result (New-Unknown "The members of group $($evidence.principal) could not all be read, so managed identities in it are not known" $evidence)
+        }
+        if (-not $outside.Count -and -not $unread.Count) { return New-SubscriptionFinding (New-Pass 'No managed identity has write access outside the resource group of its resource') }
         foreach ($id in $outside.Keys) {
             $grants = @($outside[$id] | Sort-Object -Unique)
             New-Finding -Record $records[$id] -Result (New-Fail "Its managed identity has write access outside its resource group: $($grants -join '; ')" ([ordered]@{ outsideAssignments = $grants }))
@@ -1088,6 +1258,7 @@ Add-AzTest @{
 
 Add-AzTest @{
     Id          = 'AZ-IAM-032'
+    Version     = 2
     Title       = 'Groups with privileged Azure access can only be changed by privileged administrators'
     Category    = 'Privileged access'
     Service     = 'Microsoft Entra ID'
@@ -1109,12 +1280,12 @@ Add-AzTest @{
             $record = (Get-GroupMap)[$id]
             $label = Get-PrincipalLabel $id
             $evidence = [ordered]@{ roles = @($roles[$id] | Sort-Object -Unique) }
-            if (-not $record -or $null -eq $record.properties -or $null -eq $record.owners) {
+            if (-not $record -or $null -eq $record.properties -or $null -eq $record.owners -or @($record.PSObject.Properties.Name) -notcontains 'servicePrincipalOwners' -or $null -eq $record.servicePrincipalOwners) {
                 New-Finding -ResourceId "/groups/$id" -ResourceType 'Microsoft.Entra/groups' -ResourceName $label -Result (New-Unknown 'The properties or owners of the group could not be read' $evidence)
                 continue
             }
             $p = $record.properties
-            $owners = @($record.owners | Where-Object { $_ })
+            $owners = @(@($record.owners) + @($record.servicePrincipalOwners) | Where-Object { $_ })
             $evidence.isAssignableToRole = [bool]$p.isAssignableToRole
             $evidence.dynamicMembership = [bool]($p.membershipRule -or @($p.groupTypes) -contains 'DynamicMembership')
             $evidence.onPremisesSync = [bool]$p.onPremisesSyncEnabled
@@ -1156,6 +1327,51 @@ Add-AzTest @{
             New-Finding -ResourceId $assignment.id -ResourceType $assignment.type -ResourceName "$($evidence.role): $($evidence.principal)" -Result (New-Fail "$($evidence.principal) has data role $($evidence.role) at $($evidence.scope)" $evidence)
         }
         if (-not $findings) { return New-SubscriptionFinding (New-Pass 'No data role is assigned at subscription scope or above') }
+        $findings
+    }
+}
+
+#actions that run code on a machine as Local System or root: run command, extensions and machine configuration
+$machineCodeActions = @(
+    'Microsoft.Compute/virtualMachines/runCommand/action', 'Microsoft.Compute/virtualMachines/runCommands/write', 'Microsoft.Compute/virtualMachines/extensions/write',
+    'Microsoft.Compute/virtualMachineScaleSets/extensions/write', 'Microsoft.Compute/virtualMachineScaleSets/virtualMachines/runCommand/action',
+    'Microsoft.HybridCompute/machines/extensions/write', 'Microsoft.HybridCompute/machines/runCommands/write', 'Microsoft.GuestConfiguration/guestConfigurationAssignments/write'
+)
+
+Add-AzTest @{
+    Id          = 'AZ-IAM-034'
+    Title       = 'Roles that run code on machines are not assigned at subscription scope or above'
+    Category    = 'Privileged access'
+    Service     = 'Azure RBAC'
+    Severity    = 'High'
+    Description = 'Finds role assignments at subscription, management group or root scope of roles that can run code on virtual machines, scale sets or Arc-enabled servers (run command, extensions or machine configuration), for example Virtual Machine Contributor, Log Analytics Contributor and Azure Connected Machine Resource Administrator. The administrator roles of AZ-IAM-002 and AZ-IAM-003 are left out, and so are the identities of policy assignments, which only Azure Policy uses, and deleted principals (AZ-IAM-007).'
+    Rationale   = 'Code that Azure runs on a machine runs as Local System or root, with the identity of the machine and access to everything it can reach. A role that can do this at subscription scope or above takes over every machine there, including domain controllers and machines with privileged managed identities, and machines added later. Roles such as Log Analytics Contributor can do this without looking like administrator roles, so the breadth goes unnoticed.'
+    Remediation = 'Assign these roles on the resource groups or machines that need them, preferably through PIM, and use a role without extension rights (Monitoring Contributor, Virtual Machine Data Access Administrator) where the task allows.'
+    References  = @('https://learn.microsoft.com/azure/role-based-access-control/built-in-roles/monitor#log-analytics-contributor', 'https://learn.microsoft.com/azure/virtual-machines/run-command-overview', 'https://learn.microsoft.com/azure/role-based-access-control/best-practices')
+    Requires    = @('rbac/roleAssignments', 'rbac/roleDefinitions', 'policy/policyAssignments')
+    Run         = {
+        $policyIdentities = @{}
+        foreach ($policy in (Get-PolicyAssignments)) {
+            $principals = @($policy.identity.principalId) + @(foreach ($assigned in @($policy.identity.userAssignedIdentities.PSObject.Properties)) { $assigned.Value.principalId })
+            foreach ($principal in @($principals | Where-Object { $_ })) { $policyIdentities[([string]$principal).ToLowerInvariant()] = $true }
+        }
+        $findings = foreach ($assignment in @(Get-ActiveRoleAssignments | Where-Object { (Get-ScopeLevel $_.properties.scope) -in 'root', 'managementGroup', 'subscription' } | Sort-Object id)) {
+            if (Test-RolePrivileged $assignment.properties.roleDefinitionId) { continue }
+            if ($policyIdentities.ContainsKey(([string]$assignment.properties.principalId).ToLowerInvariant())) { continue }
+            #deleted principals are AZ-IAM-007
+            if (Test-PrincipalDeleted $assignment.properties.principalId) { continue }
+            $definition = (Get-RoleDefinitionMap)[(Get-RoleDefinitionGuid $assignment.properties.roleDefinitionId)]
+            $evidence = Get-AssignmentEvidence $assignment
+            if (-not $definition) {
+                New-Finding -ResourceId $assignment.id -ResourceType $assignment.type -ResourceName "$($evidence.role): $($evidence.principal)" -Result (New-Unknown 'The role definition could not be read' $evidence)
+                continue
+            }
+            $actions = @($machineCodeActions | Where-Object { Test-RoleGrantsAction $definition $_ })
+            if (-not $actions) { continue }
+            $evidence.codeActions = $actions
+            New-Finding -ResourceId $assignment.id -ResourceType $assignment.type -ResourceName "$($evidence.role): $($evidence.principal)" -Result (New-Fail "$($evidence.principal) has $($evidence.role) at $($evidence.scope), which runs code on every machine there" $evidence)
+        }
+        if (-not $findings) { return New-SubscriptionFinding (New-Pass 'No role that runs code on machines is assigned at subscription scope or above') }
         $findings
     }
 }

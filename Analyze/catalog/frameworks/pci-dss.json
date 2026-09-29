@@ -148,7 +148,7 @@
     "8.5.1": {"title":"Requirement 8: Identify Users and Authenticate Access to System Components","applicability":"manual"},
     "8.6.1": {"title":"Requirement 8: Identify Users and Authenticate Access to System Components","applicability":"manual"},
     "8.6.2": {"title":"Requirement 8: Identify Users and Authenticate Access to System Components","coverage":"partial","tests":["AZ-ADF-001","AZ-APIM-003","AZ-AUTO-001","AZ-SEC-001","AZ-SEC-002","AZ-SEC-003","AZ-SEC-004"]},
-    "8.6.3": {"title":"Requirement 8: Identify Users and Authenticate Access to System Components","coverage":"partial","tests":["AZ-AKS-008","AZ-APP-006","AZ-AUTO-002","AZ-FUNC-002","AZ-IAM-013","AZ-IAM-014","AZ-IAM-022","AZ-KV-006","AZ-KV-011","AZ-LOGIC-003","AZ-LOGIC-005","AZ-LOGIC-006","AZ-STG-012","AZ-STG-013","AZ-STG-024"]},
+    "8.6.3": {"title":"Requirement 8: Identify Users and Authenticate Access to System Components","coverage":"partial","tests":["AZ-AKS-008","AZ-APP-006","AZ-AUTO-002","AZ-FUNC-002","AZ-IAM-013","AZ-IAM-014","AZ-IAM-022","AZ-KV-006","AZ-KV-011","AZ-LOGIC-003","AZ-LOGIC-005","AZ-LOGIC-006","AZ-LOGIC-011","AZ-STG-012","AZ-STG-013","AZ-STG-024"]},
     "9.1.1": {"title":"Requirement 9: Restrict Physical Access to Cardholder Data","applicability":"notApplicable"},
     "9.1.2": {"title":"Requirement 9: Restrict Physical Access to Cardholder Data","applicability":"notApplicable"},
     "9.2.1": {"title":"Requirement 9: Restrict Physical Access to Cardholder Data","applicability":"notApplicable"},

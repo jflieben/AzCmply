@@ -1,5 +1,70 @@
 # Changelog
 
+## 1.0.5
+
+The Microsoft Graph permission **PrivilegedAccess.Read.AzureADGroup** is now required: it
+reads the eligible members of PIM for Groups.
+
+### Added
+- AZ-LOGIC-011: the connections of Logic App (Standard) apps (connections.json) sign in with the managed
+  identity of the app, not with a connection string, password, key or token, or with a connection key.
+- AZ-VM-017: Arc-enabled domain controllers accept no scripts or machine configuration from Azure.
+- AZ-AUTO-004: hybrid runbook workers are in the resource group of their Automation account.
+- AZ-IAM-034: roles that run code on machines are not assigned at subscription scope or above.
+- AzCmply Custom 2026.09.4: AZC-14 and AZC-15; AZC-10 also covers Arc-enabled servers.
+- Ingestion: Logic App (Standard) apps
+- Ingestion: the eligible members of PIM for Groups
+- Ingestion: the users and groups that hold directory roles
+
+### Changed
+- AZ-IAM-017, AZ-IAM-018 and AZ-IAM-019 (version 2) count and check the transitive members of groups that hold Entra
+  roles, not only direct assignments. AZ-IAM-018 and AZ-IAM-019 report one finding per user or service principal with
+  all of its privileged roles. Eligible members of PIM for Groups count as well, and the tests of Azure role
+  assignments to groups (AZ-IAM-004 to 006, AZ-IAM-020 and others) include them.
+- The Logic App tests cover the workflows of Logic App (Standard) apps: request triggers on the network access of the
+  app (AZ-LOGIC-001), the identity of the app (AZ-LOGIC-002), the built-in Key Vault operation and app settings as a
+  source of credentials (AZ-LOGIC-003, AZ-LOGIC-004; stateless workflows keep no run history), connections that no
+  workflow step uses (AZ-LOGIC-008, now including V2 connections), run metrics per workflow (AZ-LOGIC-009) and the age of
+  a workflow from its versions (AZ-LOGIC-010). New versions of AZ-LOGIC-001, 004 and 008 to 010.
+- AZ-FUNC-001 (version 2) also covers Logic App (Standard) apps: their workflows live in the content share, so write
+  access to its storage takes the app over. AZ-SEC-003 also scans their workflows and connections.json.
+- Ingestion leaves the noise out of the activity log
+- AZ-LOG-024 (version 2) and AZ-VM-013 (version 2) read the workspace and data collection rules in other subscriptions
+  instead of reporting Unknown.
+- AZ-NET-011 (version 2) passes when a directly peered network, also in another subscription, has a Bastion host, and
+  fails when none has one (Bastion does not reach networks through transitive peering).
+- AZ-VM-015 and AZ-VM-016 (version 2) also recognize domain controller names made of a role code, an environment
+  letter and a number (SVNMADCP011) and names with ADDS.
+- AZ-VM-005 (version 2) leaves out network appliances from the Marketplace (Fortinet, Palo Alto Networks, Check Point,
+  Cisco and others): their vendor patches the operating system, and Azure Update Manager does not assess it.
+- Support requests, Log Analytics queries and user delegation keys no longer count as write access (Monitoring Reader,
+  Billing Reader, Storage Blob Data Reader). This affects AZ-IAM-004, AZ-IAM-005, AZ-IAM-020, AZ-IAM-021, AZ-IAM-031,
+  AZ-IAM-032, AZ-LOGIC-002 and AZ-FUNC-003 (new versions).
+
+### Fixed
+- Service principals that are members or owners of groups were missed (Graph v1.0 omits them; now read from beta).
+  AZ-IAM-003, AZ-IAM-025 (version 2) and AZ-IAM-031 (version 3) evaluate roles held through a group.
+- AZ-IAM-018 (version 2) missed synchronized accounts with eligible roles: the principal expansion of role
+  eligibilities has no onPremisesSyncEnabled or userType.
+- AZ-IAM-021 (version 2) reported each Lighthouse delegation twice: the resource group listing also returns the
+  delegations of the subscription.
+- AZ-IAM-028 (version 2) reported Unknown when a Conditional Access policy excluded a deleted group, or a group without
+  members, and counted policies for no application as applying to the emergency access account.
+- AZ-IAM-004, AZ-IAM-005 and AZ-IAM-006 (version 3) reported Unknown for role assignments of deleted principals, which
+  AZ-IAM-007 reports.
+- AZ-IAM-023 (version 2) failed on the system deny assignments of resource groups that an Azure service manages (a
+  Container Apps environment, for example).
+- AZ-KV-007 (version 2) reported Unknown for the key of a certificate, which is renewed with the certificate.
+- AZ-STG-017 to AZ-STG-019 (version 2) reported Unknown for accounts that offer no Azure Files, such as premium page
+  blob accounts (general-purpose v2 with premium performance); they go by the answer the ingestion got
+  (FeatureNotSupportedForAccount). Premium file share (FileStorage) accounts are evaluated as before. AZ-STG-003 and
+  AZ-STG-010 (version 2) failed on FileStorage accounts, which have no blobs.
+- Ingestion: a deleted group that a Conditional Access policy still excludes is no longer listed as a failed request.
+- AZ-SEC-003 (version 4) reported a secret in a machine extension twice, on the machine and on the extension, and
+  flagged parameters named after a password group or policy, and placeholder values. AZ-SEC-001 (version 3) and
+  AZ-LOGIC-003 (version 2) share these checks.
+- Ingestion failed on a subscription with more than 2 GB of activity log
+
 ## 1.0.4
 
 ### Added

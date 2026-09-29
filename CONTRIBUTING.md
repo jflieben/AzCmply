@@ -28,7 +28,7 @@ The PowerShell is the only place where tests, analysis, comparison and report ar
 - Node.js 20 or later, for the web checks.
 - No Azure subscription for most work: the self-test runs every test against two synthetic ingestions.
 
-To collect a real subscription you need a service principal with **Reader** on the subscription and the Microsoft Graph application permission **Directory.Read.All** (see the [README](README.md)). The live comparison of the two ingestions reads it from `Ingest\creds.local`, which git ignores:
+To collect a real subscription you need a service principal with **Reader** on the subscription and the Microsoft Graph application permissions **Directory.Read.All** and **PrivilegedAccess.Read.AzureADGroup** (see the [README](README.md)). The live comparison of the two ingestions reads it from `Ingest\creds.local`, which git ignores:
 
 ```
 appid: <application id>

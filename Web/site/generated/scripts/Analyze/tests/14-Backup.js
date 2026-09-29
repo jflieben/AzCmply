@@ -420,7 +420,7 @@ export default R.script("/app/Analyze/tests/14-Backup.ps1", { params: [], adv: 0
     R.ln = F + 248;
     S["recoveryoperations"] = "(?i)^(Microsoft\\.RecoveryServices/vaults/backupFabrics/protectionContainers/protectedItems/recoveryPoints/(restore|provisionInstantItemRecovery)/action|Microsoft\\.DataProtection/backupVaults/backupInstances/restore/action|Microsoft\\.RecoveryServices/vaults/replicationFabrics/replicationProtectionContainers/replicationProtectedItems/(testFailover|plannedFailover|unplannedFailover)/action)$";
     R.ln = F + 250;
-    R.def(S, "Get-RecoveryEvents", { params: [], adv: 0, h: "36661b5f09b0ef67" }, (S, O) => {
+    R.def(S, "Get-RecoveryEvents", { params: [], adv: 0, h: "67fc5d55620d674a" }, (S, O) => {
         R.ln = F + 252;
         if (!R.t(R.im(R.m((R.ss(S)["script:ingest"] ?? null), "Cache"), "ContainsKey", ["#recoveryEvents"]))) {
             R.ln = F + 253;
@@ -429,7 +429,7 @@ export default R.script("/app/Analyze/tests/14-Backup.ps1", { params: [], adv: 0
             for (const it11 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
                 R.ln = F + 254;
                 R.e(O, (S["_"] ?? null));
-            })], R.cmd(S, "Get-IngestData", ["activityLog/activityLog"], null)))) {
+            })], R.cmd(S, "Get-IngestData", ["activityLog/recoveryOperations"], null)))) {
                 S["entry"] = it11;
                 R.ln = F + 255;
                 S["operation"] = R.c("string", R.m(R.m((S["entry"] ?? null), "operationName"), "value"));
@@ -463,9 +463,9 @@ export default R.script("/app/Analyze/tests/14-Backup.ps1", { params: [], adv: 0
         return;
     });
     R.ln = F + 270;
-    R.def(S, "Get-ActivityLogDays", { params: [], adv: 0, h: "8c0c3bc690e7ba7c" }, (S, O) => {
+    R.def(S, "Get-ActivityLogDays", { params: [], adv: 0, h: "5c915f89ead1aeb5" }, (S, O) => {
         R.ln = F + 271;
-        S["name"] = "activityLog/activityLog";
+        S["name"] = "activityLog/recoveryOperations";
         R.ln = F + 272;
         S["section"] = R.m(R.m(R.m((R.ss(S)["script:ingest"] ?? null), "Manifest"), "sections"), R.str((S["name"] ?? null)));
         R.ln = F + 273;
@@ -485,375 +485,375 @@ export default R.script("/app/Analyze/tests/14-Backup.ps1", { params: [], adv: 0
         return;
     });
     R.ln = F + 278;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-BCK-010", "Title", "Backup restores and disaster recovery failovers are tested", "Category", "Backup and recovery", "Service", "Azure Backup", "Severity", "Informational", "Description", "For every Recovery Services vault and Backup vault that protects something, looks for a restore or failover in the collected activity log, and for a Site Recovery test failover in the last year.", "Rationale", "A backup that has never been restored is an assumption, not a recovery capability. Regular restore tests and disaster recovery drills show that the data, the procedure and the recovery time hold up. The activity log reaches back 90 days at most, so a test done earlier in the year is not visible here.", "Remediation", "Restore a representative item from each vault to an isolated location on a schedule (at least yearly), run Site Recovery test failovers into an isolated network, and keep the results as evidence.", "References", R.a([R.v("https://learn.microsoft.com/azure/backup/backup-azure-arm-restore-vms"), R.v("https://learn.microsoft.com/azure/site-recovery/azure-to-azure-tutorial-dr-drill")]), "Requires", R.a("activityLog/activityLog"), "ResourceTypes", (S["backupvaulttypes"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $isRecoveryServices = $Record.type -eq $rsvType\n        $paths = if ($isRecoveryServices) { @('backupProtectedItems', 'replicationProtectedItems') } else { @('backupInstances') }\n        $missing = @($paths | Where-Object { -not (Test-ChildCollected $Record $_) })\n        if ($missing) { return New-Unknown \"The protected items could not be read ($($missing -join ', '))\" }\n        $protected = @(foreach ($path in $paths) { Get-Child $Record $path | Where-Object { $_ } })\n        if (-not $protected) { return New-NotApplicable 'The vault protects nothing' }\n        $days = Get-ActivityLogDays\n        $recovery = (Get-RecoveryEvents)[$Record.id.ToLowerInvariant()]\n        $drill = @(if ($isRecoveryServices) {\n                Get-Child $Record 'replicationProtectedItems' | Where-Object { $_ -and $_.properties.lastSuccessfulTestFailoverTime } | ForEach-Object {\n                    [pscustomobject]@{ Name = [string]$_.properties.friendlyName; Age = Get-AgeInDays $_.properties.lastSuccessfulTestFailoverTime; Time = Format-UtcDate $_.properties.lastSuccessfulTestFailoverTime }\n                }\n            }) | Where-Object { $_.Age -le 365 } | Sort-Object Age, Name | Select-Object -First 1\n        $evidence = [ordered]@{\n            protectedItems             = $protected.Count\n            activityLogDays            = $days\n            lastRestoreOrFailover      = $(if ($recovery) { \"$($recovery.Operation) $($recovery.Time)\" } else { $null })\n            lastSuccessfulTestFailover = $(if ($drill) { \"$($drill.Name) $($drill.Time)\" } else { $null })\n        }\n        if ($recovery) { return New-Pass \"$($recovery.Operation) started $($recovery.Time)\" $evidence }\n        if ($drill) { return New-Pass \"Test failover of $($drill.Name) on $($drill.Time)\" $evidence }\n        $window = if ($days) { \"the $days days of activity log collected\" } else { 'the activity log collected' }\n        New-Fail \"No restore or failover in $window, and no Site Recovery test failover in the last year\" $evidence\n    " }, (S, O) => {
-        R.ln = F + 292;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-BCK-010", "Version", 2, "Title", "Backup restores and disaster recovery failovers are tested", "Category", "Backup and recovery", "Service", "Azure Backup", "Severity", "Informational", "Description", "For every Recovery Services vault and Backup vault that protects something, looks for a restore or failover in the collected activity log, and for a Site Recovery test failover in the last year.", "Rationale", "A backup that has never been restored is an assumption, not a recovery capability. Regular restore tests and disaster recovery drills show that the data, the procedure and the recovery time hold up. The activity log reaches back 90 days at most, so a test done earlier in the year is not visible here.", "Remediation", "Restore a representative item from each vault to an isolated location on a schedule (at least yearly), run Site Recovery test failovers into an isolated network, and keep the results as evidence.", "References", R.a([R.v("https://learn.microsoft.com/azure/backup/backup-azure-arm-restore-vms"), R.v("https://learn.microsoft.com/azure/site-recovery/azure-to-azure-tutorial-dr-drill")]), "Requires", R.a("activityLog/recoveryOperations"), "ResourceTypes", (S["backupvaulttypes"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $isRecoveryServices = $Record.type -eq $rsvType\n        $paths = if ($isRecoveryServices) { @('backupProtectedItems', 'replicationProtectedItems') } else { @('backupInstances') }\n        $missing = @($paths | Where-Object { -not (Test-ChildCollected $Record $_) })\n        if ($missing) { return New-Unknown \"The protected items could not be read ($($missing -join ', '))\" }\n        $protected = @(foreach ($path in $paths) { Get-Child $Record $path | Where-Object { $_ } })\n        if (-not $protected) { return New-NotApplicable 'The vault protects nothing' }\n        $days = Get-ActivityLogDays\n        $recovery = (Get-RecoveryEvents)[$Record.id.ToLowerInvariant()]\n        $drill = @(if ($isRecoveryServices) {\n                Get-Child $Record 'replicationProtectedItems' | Where-Object { $_ -and $_.properties.lastSuccessfulTestFailoverTime } | ForEach-Object {\n                    [pscustomobject]@{ Name = [string]$_.properties.friendlyName; Age = Get-AgeInDays $_.properties.lastSuccessfulTestFailoverTime; Time = Format-UtcDate $_.properties.lastSuccessfulTestFailoverTime }\n                }\n            }) | Where-Object { $_.Age -le 365 } | Sort-Object Age, Name | Select-Object -First 1\n        $evidence = [ordered]@{\n            protectedItems             = $protected.Count\n            activityLogDays            = $days\n            lastRestoreOrFailover      = $(if ($recovery) { \"$($recovery.Operation) $($recovery.Time)\" } else { $null })\n            lastSuccessfulTestFailover = $(if ($drill) { \"$($drill.Name) $($drill.Time)\" } else { $null })\n        }\n        if ($recovery) { return New-Pass \"$($recovery.Operation) started $($recovery.Time)\" $evidence }\n        if ($drill) { return New-Pass \"Test failover of $($drill.Name) on $($drill.Time)\" $evidence }\n        $window = if ($days) { \"the $days days of activity log collected\" } else { 'the activity log collected' }\n        New-Fail \"No restore or failover in $window, and no Site Recovery test failover in the last year\" $evidence\n    " }, (S, O) => {
+        R.ln = F + 293;
         S["isrecoveryservices"] = R.eq(R.m((S["record"] ?? null), "type"), (S["rsvtype"] ?? null));
-        R.ln = F + 293;
+        R.ln = F + 294;
         const v12 = [];
-        R.ln = F + 293;
+        R.ln = F + 294;
         if (R.t((S["isrecoveryservices"] ?? null))) {
-            R.ln = F + 293;
+            R.ln = F + 294;
             R.e(v12, R.a([R.v("backupProtectedItems"), R.v("replicationProtectedItems")]));
         } else {
-            R.ln = F + 293;
+            R.ln = F + 294;
             R.e(v12, R.a("backupInstances"));
         }
         S["paths"] = R.u(v12);
-        R.ln = F + 294;
+        R.ln = F + 295;
         S["missing"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " -not (Test-ChildCollected $Record $_) " }, (S, O) => {
-            R.ln = F + 294;
+            R.ln = F + 295;
             R.e(O, !R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), (S["_"] ?? null)], null))));
         })], R.pi((S["paths"] ?? null)));
-        R.ln = F + 295;
+        R.ln = F + 296;
         if (R.t((S["missing"] ?? null))) {
-            R.ln = F + 295;
+            R.ln = F + 296;
             R.pa(O, R.cmd(S, "New-Unknown", [("The protected items could not be read (" + R.str(R.u(R.pi(R.join((S["missing"] ?? null), ", ")))) + ")")], null));
             return;
         }
-        R.ln = F + 296;
+        R.ln = F + 297;
         S["protected"] = (() => {
             const v13 = [];
-            R.ln = F + 296;
+            R.ln = F + 297;
             for (const it14 of R.fi((S["paths"] ?? null))) {
                 S["path"] = it14;
-                R.ln = F + 296;
+                R.ln = F + 297;
                 R.pa(v13, R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                    R.ln = F + 296;
+                    R.ln = F + 297;
                     R.e(O, (S["_"] ?? null));
                 })], R.cmd(S, "Get-Child", [(S["record"] ?? null), (S["path"] ?? null)], null)));
             }
             return v13;
         })();
-        R.ln = F + 297;
+        R.ln = F + 298;
         if (!R.t((S["protected"] ?? null))) {
-            R.ln = F + 297;
+            R.ln = F + 298;
             R.pa(O, R.cmd(S, "New-NotApplicable", ["The vault protects nothing"], null));
             return;
         }
-        R.ln = F + 298;
-        S["days"] = R.u(R.cmd(S, "Get-ActivityLogDays", [], null));
         R.ln = F + 299;
-        S["recovery"] = R.i(R.u(R.cmd(S, "Get-RecoveryEvents", [], null)), R.im(R.m((S["record"] ?? null), "id"), "ToLowerInvariant", []));
+        S["days"] = R.u(R.cmd(S, "Get-ActivityLogDays", [], null));
         R.ln = F + 300;
+        S["recovery"] = R.i(R.u(R.cmd(S, "Get-RecoveryEvents", [], null)), R.im(R.m((S["record"] ?? null), "id"), "ToLowerInvariant", []));
+        R.ln = F + 301;
         S["drill"] = R.u(R.cmd(S, "Select-Object", [R.np("First"), 1], R.cmd(S, "Sort-Object", [[R.v("Age"), R.v("Name")]], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.Age -le 365 " }, (S, O) => {
-            R.ln = F + 304;
+            R.ln = F + 305;
             R.e(O, R.le(R.m((S["_"] ?? null), "Age"), 365));
         })], R.pi((() => {
             const v15 = [];
-            R.ln = F + 300;
+            R.ln = F + 301;
             if (R.t((S["isrecoveryservices"] ?? null))) {
-                R.ln = F + 301;
+                R.ln = F + 302;
                 R.pa(v15, R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: "\n                    [pscustomobject]@{ Name = [string]$_.properties.friendlyName; Age = Get-AgeInDays $_.properties.lastSuccessfulTestFailoverTime; Time = Format-UtcDate $_.properties.lastSuccessfulTestFailoverTime }\n                " }, (S, O) => {
-                    R.ln = F + 302;
+                    R.ln = F + 303;
                     R.e(O, R.pso(["Name", R.c("string", R.m(R.m((S["_"] ?? null), "properties"), "friendlyName")), "Age", R.u(R.cmd(S, "Get-AgeInDays", [R.m(R.m((S["_"] ?? null), "properties"), "lastSuccessfulTestFailoverTime")], null)), "Time", R.u(R.cmd(S, "Format-UtcDate", [R.m(R.m((S["_"] ?? null), "properties"), "lastSuccessfulTestFailoverTime")], null))]));
                 })], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.properties.lastSuccessfulTestFailoverTime " }, (S, O) => {
-                    R.ln = F + 301;
+                    R.ln = F + 302;
                     R.e(O, (R.t((S["_"] ?? null)) && R.t(R.m(R.m((S["_"] ?? null), "properties"), "lastSuccessfulTestFailoverTime"))));
                 })], R.cmd(S, "Get-Child", [(S["record"] ?? null), "replicationProtectedItems"], null))));
             }
             return v15;
         })())))));
-        R.ln = F + 305;
+        R.ln = F + 306;
         S["evidence"] = R.ht(["protectedItems", R.m((S["protected"] ?? null), "Count"), "activityLogDays", (S["days"] ?? null), "lastRestoreOrFailover", (() => {
             const v16 = [];
-            R.ln = F + 308;
+            R.ln = F + 309;
             if (R.t((S["recovery"] ?? null))) {
-                R.ln = F + 308;
+                R.ln = F + 309;
                 R.e(v16, ("" + R.str(R.u(R.pi(R.m((S["recovery"] ?? null), "Operation")))) + " " + R.str(R.u(R.pi(R.m((S["recovery"] ?? null), "Time"))))));
             } else {
-                R.ln = F + 308;
+                R.ln = F + 309;
                 R.e(v16, null);
             }
             return R.u(v16);
         })(), "lastSuccessfulTestFailover", (() => {
             const v17 = [];
-            R.ln = F + 309;
+            R.ln = F + 310;
             if (R.t((S["drill"] ?? null))) {
-                R.ln = F + 309;
+                R.ln = F + 310;
                 R.e(v17, ("" + R.str(R.u(R.pi(R.m((S["drill"] ?? null), "Name")))) + " " + R.str(R.u(R.pi(R.m((S["drill"] ?? null), "Time"))))));
             } else {
-                R.ln = F + 309;
+                R.ln = F + 310;
                 R.e(v17, null);
             }
             return R.u(v17);
         })()], true);
-        R.ln = F + 311;
+        R.ln = F + 312;
         if (R.t((S["recovery"] ?? null))) {
-            R.ln = F + 311;
+            R.ln = F + 312;
             R.pa(O, R.cmd(S, "New-Pass", [("" + R.str(R.u(R.pi(R.m((S["recovery"] ?? null), "Operation")))) + " started " + R.str(R.u(R.pi(R.m((S["recovery"] ?? null), "Time"))))), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 312;
+        R.ln = F + 313;
         if (R.t((S["drill"] ?? null))) {
-            R.ln = F + 312;
+            R.ln = F + 313;
             R.pa(O, R.cmd(S, "New-Pass", [("Test failover of " + R.str(R.u(R.pi(R.m((S["drill"] ?? null), "Name")))) + " on " + R.str(R.u(R.pi(R.m((S["drill"] ?? null), "Time"))))), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 313;
+        R.ln = F + 314;
         const v18 = [];
-        R.ln = F + 313;
+        R.ln = F + 314;
         if (R.t((S["days"] ?? null))) {
-            R.ln = F + 313;
+            R.ln = F + 314;
             R.e(v18, ("the " + R.str((S["days"] ?? null)) + " days of activity log collected"));
         } else {
-            R.ln = F + 313;
+            R.ln = F + 314;
             R.e(v18, "the activity log collected");
         }
         S["window"] = R.u(v18);
-        R.ln = F + 314;
+        R.ln = F + 315;
         R.pa(O, R.cmd(S, "New-Fail", [("No restore or failover in " + R.str((S["window"] ?? null)) + ", and no Site Recovery test failover in the last year"), (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 318;
+    R.ln = F + 319;
     R.def(S, "Get-ReplicatedMachines", { params: [], adv: 0, h: "2d5851051e7bd49a" }, (S, O) => {
-        R.ln = F + 320;
+        R.ln = F + 321;
         if (!R.t(R.im(R.m((R.ss(S)["script:ingest"] ?? null), "Cache"), "ContainsKey", ["#replicated"]))) {
-            R.ln = F + 321;
-            S["machines"] = R.ht([], false);
             R.ln = F + 322;
-            S["complete"] = !R.t(R.m(R.cmd(S, "Get-FailedResourceIds", [R.np("Type"), (S["rsvtype"] ?? null)], null), "Count"));
+            S["machines"] = R.ht([], false);
             R.ln = F + 323;
+            S["complete"] = !R.t(R.m(R.cmd(S, "Get-FailedResourceIds", [R.np("Type"), (S["rsvtype"] ?? null)], null), "Count"));
+            R.ln = F + 324;
             for (const it19 of R.fi(R.u(R.cmd(S, "Get-AzResourceRecords", [R.np("Type"), (S["rsvtype"] ?? null)], null)))) {
                 S["vault"] = it19;
-                R.ln = F + 324;
+                R.ln = F + 325;
                 if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["vault"] ?? null), "replicationProtectedItems"], null)))) {
-                    R.ln = F + 324;
+                    R.ln = F + 325;
                     S["complete"] = false;
                     continue;
                 }
-                R.ln = F + 325;
+                R.ln = F + 326;
                 for (const it20 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                    R.ln = F + 325;
+                    R.ln = F + 326;
                     R.e(O, (S["_"] ?? null));
                 })], R.cmd(S, "Get-Child", [(S["vault"] ?? null), "replicationProtectedItems"], null)))) {
                     S["item"] = it20;
-                    R.ln = F + 326;
-                    S["source"] = R.c("string", R.m(R.m(R.m((S["item"] ?? null), "properties"), "providerSpecificDetails"), "fabricObjectId"));
                     R.ln = F + 327;
+                    S["source"] = R.c("string", R.m(R.m(R.m((S["item"] ?? null), "properties"), "providerSpecificDetails"), "fabricObjectId"));
+                    R.ln = F + 328;
                     if ((R.t(R.match(S, (S["source"] ?? null), "(?i)/providers/Microsoft\\.Compute/virtualMachines/[^/]+$")) && !R.t(R.im((S["machines"] ?? null), "ContainsKey", [R.im((S["source"] ?? null), "ToLowerInvariant", [])])))) {
-                        R.ln = F + 328;
+                        R.ln = F + 329;
                         R.si((S["machines"] ?? null), R.im((S["source"] ?? null), "ToLowerInvariant", []), R.pso(["Vault", R.c("string", R.m(R.m((S["vault"] ?? null), "resource"), "name")), "Item", (S["item"] ?? null)]));
                     }
                 }
             }
-            R.ln = F + 332;
+            R.ln = F + 333;
             R.si(R.m((R.ss(S)["script:ingest"] ?? null), "Cache"), "#replicated", R.pso(["Machines", (S["machines"] ?? null), "Complete", (S["complete"] ?? null)]));
         }
-        R.ln = F + 334;
+        R.ln = F + 335;
         R.e(O, R.i(R.m((R.ss(S)["script:ingest"] ?? null), "Cache"), "#replicated"));
         return;
     });
-    R.ln = F + 337;
+    R.ln = F + 338;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-BCK-011", "Title", "Virtual machines are replicated for disaster recovery", "Category", "Backup and recovery", "Service", "Azure Site Recovery", "Severity", "Informational", "Description", "Checks whether each virtual machine is replicated to another region with Azure Site Recovery by a Recovery Services vault in this subscription.", "Rationale", "Backups restore data, but bringing a critical workload back in another region within its recovery time objective needs a replica that is ready to fail over. Not every machine needs one; the ones behind critical or important functions do.", "Remediation", "Enable Site Recovery replication for the machines behind critical or important functions, choose a target region and network, and run test failovers regularly.", "References", R.a("https://learn.microsoft.com/azure/site-recovery/azure-to-azure-tutorial-enable-replication"), "Policy", R.ht(["0015ea4d-51ff-4ce3-8d8c-f3f8f0179a56", "Audit virtual machines without disaster recovery configured"], false), "ResourceTypes", R.a("Microsoft.Compute/virtualMachines"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $replicated = Get-ReplicatedMachines\n        $entry = $replicated.Machines[$Record.id.ToLowerInvariant()]\n        if ($entry) {\n            $p = $entry.Item.properties\n            $evidence = [ordered]@{ vault = $entry.Vault; protectionState = $p.protectionState; replicationHealth = $p.replicationHealth; lastSuccessfulTestFailover = Format-UtcDate $p.lastSuccessfulTestFailoverTime }\n            return New-Pass \"Replicated by vault $($entry.Vault) ($($p.protectionState), health $($p.replicationHealth))\" $evidence\n        }\n        if (-not $replicated.Complete) { return New-Unknown 'The replicated items of every Recovery Services vault could not be read' }\n        New-Fail 'Not replicated with Site Recovery in this subscription'\n    " }, (S, O) => {
-        R.ln = F + 351;
-        S["replicated"] = R.u(R.cmd(S, "Get-ReplicatedMachines", [], null));
         R.ln = F + 352;
-        S["entry"] = R.i(R.m((S["replicated"] ?? null), "Machines"), R.im(R.m((S["record"] ?? null), "id"), "ToLowerInvariant", []));
+        S["replicated"] = R.u(R.cmd(S, "Get-ReplicatedMachines", [], null));
         R.ln = F + 353;
+        S["entry"] = R.i(R.m((S["replicated"] ?? null), "Machines"), R.im(R.m((S["record"] ?? null), "id"), "ToLowerInvariant", []));
+        R.ln = F + 354;
         if (R.t((S["entry"] ?? null))) {
-            R.ln = F + 354;
-            S["p"] = R.m(R.m((S["entry"] ?? null), "Item"), "properties");
             R.ln = F + 355;
-            S["evidence"] = R.ht(["vault", R.m((S["entry"] ?? null), "Vault"), "protectionState", R.m((S["p"] ?? null), "protectionState"), "replicationHealth", R.m((S["p"] ?? null), "replicationHealth"), "lastSuccessfulTestFailover", R.u(R.cmd(S, "Format-UtcDate", [R.m((S["p"] ?? null), "lastSuccessfulTestFailoverTime")], null))], true);
+            S["p"] = R.m(R.m((S["entry"] ?? null), "Item"), "properties");
             R.ln = F + 356;
+            S["evidence"] = R.ht(["vault", R.m((S["entry"] ?? null), "Vault"), "protectionState", R.m((S["p"] ?? null), "protectionState"), "replicationHealth", R.m((S["p"] ?? null), "replicationHealth"), "lastSuccessfulTestFailover", R.u(R.cmd(S, "Format-UtcDate", [R.m((S["p"] ?? null), "lastSuccessfulTestFailoverTime")], null))], true);
+            R.ln = F + 357;
             R.pa(O, R.cmd(S, "New-Pass", [("Replicated by vault " + R.str(R.u(R.pi(R.m((S["entry"] ?? null), "Vault")))) + " (" + R.str(R.u(R.pi(R.m((S["p"] ?? null), "protectionState")))) + ", health " + R.str(R.u(R.pi(R.m((S["p"] ?? null), "replicationHealth")))) + ")"), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 358;
+        R.ln = F + 359;
         if (!R.t(R.m((S["replicated"] ?? null), "Complete"))) {
-            R.ln = F + 358;
+            R.ln = F + 359;
             R.pa(O, R.cmd(S, "New-Unknown", ["The replicated items of every Recovery Services vault could not be read"], null));
             return;
         }
-        R.ln = F + 359;
+        R.ln = F + 360;
         R.pa(O, R.cmd(S, "New-Fail", ["Not replicated with Site Recovery in this subscription"], null));
     })], false)], null));
-    R.ln = F + 363;
+    R.ln = F + 364;
     S["zonetypes"] = R.a([R.v("Microsoft.Storage/storageAccounts"), R.v("Microsoft.Sql/servers/databases"), R.v("Microsoft.Sql/managedInstances"), R.v("Microsoft.Web/serverfarms"), R.v("Microsoft.ContainerService/managedClusters"), R.v("Microsoft.DBforPostgreSQL/flexibleServers"), R.v("Microsoft.DBforMySQL/flexibleServers"), R.v("Microsoft.DocumentDB/databaseAccounts"), R.v("Microsoft.Network/applicationGateways"), R.v("Microsoft.Network/azureFirewalls"), R.v("Microsoft.Compute/virtualMachineScaleSets")]);
-    R.ln = F + 369;
+    R.ln = F + 370;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-BCK-012", "Title", "Zone capable resources are zone redundant", "Category", "Backup and recovery", "Service", "Multiple", "Severity", "Informational", "Description", "Checks zone redundancy of storage accounts, SQL databases and managed instances, App Service plans, AKS node pools, PostgreSQL and MySQL flexible servers, Cosmos DB regions, Application Gateways, Azure Firewalls and virtual machine scale sets.", "Rationale", "A resource in a single availability zone is a single point of failure: a datacenter outage takes it down even though the region keeps running. Zone redundancy keeps it available without a failover. It is only possible in regions with availability zones.", "Remediation", "Use zone-redundant storage (ZRS or GZRS), enable zone redundancy on databases, App Service plans (Premium v2, v3 or Isolated v2) and Cosmos DB regions, spread AKS node pools, scale sets, Application Gateways and firewalls over at least two zones, and use zone-redundant high availability for flexible servers.", "References", R.a("https://learn.microsoft.com/azure/reliability/availability-zones-overview"), "ResourceTypes", (S["zonetypes"] ?? null), "Filter", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) (Test-UserDatabase $Record) -and -not ($Record.type -eq 'Microsoft.Web/serverfarms' -and [string]$Record.resource.sku.tier -in 'Free', 'Shared', 'Dynamic', 'FlexConsumption') " }, (S, O) => {
-        R.ln = F + 380;
+        R.ln = F + 381;
         R.e(O, (R.t(R.u(R.cmd(S, "Test-UserDatabase", [(S["record"] ?? null)], null))) && !(R.t(R.eq(R.m((S["record"] ?? null), "type"), "Microsoft.Web/serverfarms")) && R.t(R.in(R.c("string", R.m(R.m(R.m((S["record"] ?? null), "resource"), "sku"), "tier")), [R.v("Free"), R.v("Shared"), R.v("Dynamic"), R.v("FlexConsumption")])))));
     }), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $r = $Record.resource\n        $p = $r.properties\n        $type = $Record.type\n        if ($type -eq 'Microsoft.Storage/storageAccounts') {\n            $evidence = [ordered]@{ sku = $r.sku.name }\n            if (-not $r.sku.name) { return New-Unknown 'The replication setting could not be read' $evidence }\n            if ([string]$r.sku.name -match 'ZRS$') { return New-Pass \"$($r.sku.name) replicates across availability zones\" $evidence }\n            return New-Fail \"$($r.sku.name) is not zone redundant\" $evidence\n        }\n        if ($type -eq 'Microsoft.ContainerService/managedClusters') {\n            $pools = @($p.agentPoolProfiles | Where-Object { $_ })\n            $evidence = [ordered]@{ nodePools = @($pools | ForEach-Object { \"$($_.name): zones $(@($_.availabilityZones | Where-Object { $_ }) -join ',')\" } | Sort-Object) }\n            if (-not $pools) { return New-Unknown 'The node pools could not be read' $evidence }\n            $single = @($pools | Where-Object { @($_.availabilityZones | Where-Object { $_ }).Count -lt 2 } | ForEach-Object { $_.name } | Sort-Object)\n            if ($single) { return New-Fail \"Node pool(s) $($single -join ', ') not spread over availability zones\" $evidence }\n            return New-Pass 'All node pools spread over availability zones' $evidence\n        }\n        if ($type -in 'Microsoft.DBforPostgreSQL/flexibleServers', 'Microsoft.DBforMySQL/flexibleServers') {\n            $evidence = [ordered]@{ highAvailability = $p.highAvailability.mode }\n            if (-not $p.highAvailability.mode) { return New-Unknown 'The high availability setting could not be read' $evidence }\n            if ($p.highAvailability.mode -eq 'ZoneRedundant') { return New-Pass 'Zone-redundant high availability' $evidence }\n            return New-Fail \"High availability $($p.highAvailability.mode)\" $evidence\n        }\n        if ($type -eq 'Microsoft.DocumentDB/databaseAccounts') {\n            $locations = @($p.locations | Where-Object { $_ })\n            $evidence = [ordered]@{ regions = @($locations | ForEach-Object { \"$($_.locationName): $(if ($_.isZoneRedundant) { 'zone redundant' } else { 'single zone' })\" }) }\n            if (-not $locations) { return New-Unknown 'The account regions could not be read' $evidence }\n            $single = @($locations | Where-Object { -not $_.isZoneRedundant } | ForEach-Object { $_.locationName })\n            if ($single) { return New-Fail \"Not zone redundant in $($single -join ', ')\" $evidence }\n            return New-Pass 'Zone redundant in every region' $evidence\n        }\n        if ($type -in 'Microsoft.Network/applicationGateways', 'Microsoft.Network/azureFirewalls', 'Microsoft.Compute/virtualMachineScaleSets') {\n            $zones = @($r.zones | Where-Object { $_ })\n            $evidence = [ordered]@{ zones = $zones }\n            if ($zones.Count -ge 2) { return New-Pass \"Spread over zones $($zones -join ', ')\" $evidence }\n            $detail = if ($zones) { \"Deployed in zone $($zones -join ', ') only\" } else { 'Not deployed across availability zones' }\n            return New-Fail $detail $evidence\n        }\n        #SQL databases, managed instances and App Service plans\n        $evidence = [ordered]@{ zoneRedundant = $p.zoneRedundant; sku = $r.sku.name }\n        if ($null -eq $p.zoneRedundant) { return New-Unknown 'The zone redundancy setting could not be read' $evidence }\n        if ($p.zoneRedundant) { return New-Pass 'Zone redundant' $evidence }\n        New-Fail 'Not zone redundant' $evidence\n    " }, (S, O) => {
-        R.ln = F + 383;
-        S["r"] = R.m((S["record"] ?? null), "resource");
         R.ln = F + 384;
-        S["p"] = R.m((S["r"] ?? null), "properties");
+        S["r"] = R.m((S["record"] ?? null), "resource");
         R.ln = F + 385;
-        S["type"] = R.m((S["record"] ?? null), "type");
+        S["p"] = R.m((S["r"] ?? null), "properties");
         R.ln = F + 386;
+        S["type"] = R.m((S["record"] ?? null), "type");
+        R.ln = F + 387;
         if (R.t(R.eq((S["type"] ?? null), "Microsoft.Storage/storageAccounts"))) {
-            R.ln = F + 387;
-            S["evidence"] = R.ht(["sku", R.m(R.m((S["r"] ?? null), "sku"), "name")], true);
             R.ln = F + 388;
+            S["evidence"] = R.ht(["sku", R.m(R.m((S["r"] ?? null), "sku"), "name")], true);
+            R.ln = F + 389;
             if (!R.t(R.m(R.m((S["r"] ?? null), "sku"), "name"))) {
-                R.ln = F + 388;
+                R.ln = F + 389;
                 R.pa(O, R.cmd(S, "New-Unknown", ["The replication setting could not be read", (S["evidence"] ?? null)], null));
                 return;
             }
-            R.ln = F + 389;
+            R.ln = F + 390;
             if (R.t(R.match(S, R.c("string", R.m(R.m((S["r"] ?? null), "sku"), "name")), "ZRS$"))) {
-                R.ln = F + 389;
+                R.ln = F + 390;
                 R.pa(O, R.cmd(S, "New-Pass", [("" + R.str(R.u(R.pi(R.m(R.m((S["r"] ?? null), "sku"), "name")))) + " replicates across availability zones"), (S["evidence"] ?? null)], null));
                 return;
             }
-            R.ln = F + 390;
+            R.ln = F + 391;
             R.pa(O, R.cmd(S, "New-Fail", [("" + R.str(R.u(R.pi(R.m(R.m((S["r"] ?? null), "sku"), "name")))) + " is not zone redundant"), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 392;
+        R.ln = F + 393;
         if (R.t(R.eq((S["type"] ?? null), "Microsoft.ContainerService/managedClusters"))) {
-            R.ln = F + 393;
+            R.ln = F + 394;
             S["pools"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                R.ln = F + 393;
+                R.ln = F + 394;
                 R.e(O, (S["_"] ?? null));
             })], R.pi(R.m((S["p"] ?? null), "agentPoolProfiles")));
-            R.ln = F + 394;
+            R.ln = F + 395;
             S["evidence"] = R.ht(["nodePools", R.cmd(S, "Sort-Object", [], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " \"$($_.name): zones $(@($_.availabilityZones | Where-Object { $_ }) -join ',')\" " }, (S, O) => {
-                R.ln = F + 394;
+                R.ln = F + 395;
                 R.e(O, ("" + R.str(R.u(R.pi(R.m((S["_"] ?? null), "name")))) + ": zones " + R.str(R.u(R.pi(R.join(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                    R.ln = F + 394;
+                    R.ln = F + 395;
                     R.e(O, (S["_"] ?? null));
                 })], R.pi(R.m((S["_"] ?? null), "availabilityZones"))), ","))))));
             })], R.pi((S["pools"] ?? null))))], true);
-            R.ln = F + 395;
+            R.ln = F + 396;
             if (!R.t((S["pools"] ?? null))) {
-                R.ln = F + 395;
+                R.ln = F + 396;
                 R.pa(O, R.cmd(S, "New-Unknown", ["The node pools could not be read", (S["evidence"] ?? null)], null));
                 return;
             }
-            R.ln = F + 396;
+            R.ln = F + 397;
             S["single"] = R.cmd(S, "Sort-Object", [], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " $_.name " }, (S, O) => {
-                R.ln = F + 396;
+                R.ln = F + 397;
                 R.e(O, R.m((S["_"] ?? null), "name"));
             })], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " @($_.availabilityZones | Where-Object { $_ }).Count -lt 2 " }, (S, O) => {
-                R.ln = F + 396;
+                R.ln = F + 397;
                 R.e(O, R.lt(R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                    R.ln = F + 396;
+                    R.ln = F + 397;
                     R.e(O, (S["_"] ?? null));
                 })], R.pi(R.m((S["_"] ?? null), "availabilityZones"))), "Count"), 2));
             })], R.pi((S["pools"] ?? null)))));
-            R.ln = F + 397;
+            R.ln = F + 398;
             if (R.t((S["single"] ?? null))) {
-                R.ln = F + 397;
+                R.ln = F + 398;
                 R.pa(O, R.cmd(S, "New-Fail", [("Node pool(s) " + R.str(R.u(R.pi(R.join((S["single"] ?? null), ", ")))) + " not spread over availability zones"), (S["evidence"] ?? null)], null));
                 return;
             }
-            R.ln = F + 398;
+            R.ln = F + 399;
             R.pa(O, R.cmd(S, "New-Pass", ["All node pools spread over availability zones", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 400;
+        R.ln = F + 401;
         if (R.t(R.in((S["type"] ?? null), [R.v("Microsoft.DBforPostgreSQL/flexibleServers"), R.v("Microsoft.DBforMySQL/flexibleServers")]))) {
-            R.ln = F + 401;
-            S["evidence"] = R.ht(["highAvailability", R.m(R.m((S["p"] ?? null), "highAvailability"), "mode")], true);
             R.ln = F + 402;
+            S["evidence"] = R.ht(["highAvailability", R.m(R.m((S["p"] ?? null), "highAvailability"), "mode")], true);
+            R.ln = F + 403;
             if (!R.t(R.m(R.m((S["p"] ?? null), "highAvailability"), "mode"))) {
-                R.ln = F + 402;
+                R.ln = F + 403;
                 R.pa(O, R.cmd(S, "New-Unknown", ["The high availability setting could not be read", (S["evidence"] ?? null)], null));
                 return;
             }
-            R.ln = F + 403;
+            R.ln = F + 404;
             if (R.t(R.eq(R.m(R.m((S["p"] ?? null), "highAvailability"), "mode"), "ZoneRedundant"))) {
-                R.ln = F + 403;
+                R.ln = F + 404;
                 R.pa(O, R.cmd(S, "New-Pass", ["Zone-redundant high availability", (S["evidence"] ?? null)], null));
                 return;
             }
-            R.ln = F + 404;
+            R.ln = F + 405;
             R.pa(O, R.cmd(S, "New-Fail", [("High availability " + R.str(R.u(R.pi(R.m(R.m((S["p"] ?? null), "highAvailability"), "mode"))))), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 406;
+        R.ln = F + 407;
         if (R.t(R.eq((S["type"] ?? null), "Microsoft.DocumentDB/databaseAccounts"))) {
-            R.ln = F + 407;
+            R.ln = F + 408;
             S["locations"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                R.ln = F + 407;
+                R.ln = F + 408;
                 R.e(O, (S["_"] ?? null));
             })], R.pi(R.m((S["p"] ?? null), "locations")));
-            R.ln = F + 408;
+            R.ln = F + 409;
             S["evidence"] = R.ht(["regions", R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " \"$($_.locationName): $(if ($_.isZoneRedundant) { 'zone redundant' } else { 'single zone' })\" " }, (S, O) => {
-                R.ln = F + 408;
+                R.ln = F + 409;
                 R.e(O, ("" + R.str(R.u(R.pi(R.m((S["_"] ?? null), "locationName")))) + ": " + R.str((() => {
                     const v21 = [];
-                    R.ln = F + 408;
+                    R.ln = F + 409;
                     if (R.t(R.m((S["_"] ?? null), "isZoneRedundant"))) {
-                        R.ln = F + 408;
+                        R.ln = F + 409;
                         R.e(v21, "zone redundant");
                     } else {
-                        R.ln = F + 408;
+                        R.ln = F + 409;
                         R.e(v21, "single zone");
                     }
                     return R.u(v21);
                 })())));
             })], R.pi((S["locations"] ?? null)))], true);
-            R.ln = F + 409;
+            R.ln = F + 410;
             if (!R.t((S["locations"] ?? null))) {
-                R.ln = F + 409;
+                R.ln = F + 410;
                 R.pa(O, R.cmd(S, "New-Unknown", ["The account regions could not be read", (S["evidence"] ?? null)], null));
                 return;
             }
-            R.ln = F + 410;
+            R.ln = F + 411;
             S["single"] = R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " $_.locationName " }, (S, O) => {
-                R.ln = F + 410;
+                R.ln = F + 411;
                 R.e(O, R.m((S["_"] ?? null), "locationName"));
             })], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " -not $_.isZoneRedundant " }, (S, O) => {
-                R.ln = F + 410;
+                R.ln = F + 411;
                 R.e(O, !R.t(R.m((S["_"] ?? null), "isZoneRedundant")));
             })], R.pi((S["locations"] ?? null))));
-            R.ln = F + 411;
+            R.ln = F + 412;
             if (R.t((S["single"] ?? null))) {
-                R.ln = F + 411;
+                R.ln = F + 412;
                 R.pa(O, R.cmd(S, "New-Fail", [("Not zone redundant in " + R.str(R.u(R.pi(R.join((S["single"] ?? null), ", "))))), (S["evidence"] ?? null)], null));
                 return;
             }
-            R.ln = F + 412;
+            R.ln = F + 413;
             R.pa(O, R.cmd(S, "New-Pass", ["Zone redundant in every region", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 414;
+        R.ln = F + 415;
         if (R.t(R.in((S["type"] ?? null), [R.v("Microsoft.Network/applicationGateways"), R.v("Microsoft.Network/azureFirewalls"), R.v("Microsoft.Compute/virtualMachineScaleSets")]))) {
-            R.ln = F + 415;
+            R.ln = F + 416;
             S["zones"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                R.ln = F + 415;
+                R.ln = F + 416;
                 R.e(O, (S["_"] ?? null));
             })], R.pi(R.m((S["r"] ?? null), "zones")));
-            R.ln = F + 416;
-            S["evidence"] = R.ht(["zones", (S["zones"] ?? null)], true);
             R.ln = F + 417;
+            S["evidence"] = R.ht(["zones", (S["zones"] ?? null)], true);
+            R.ln = F + 418;
             if (R.t(R.ge(R.m((S["zones"] ?? null), "Count"), 2))) {
-                R.ln = F + 417;
+                R.ln = F + 418;
                 R.pa(O, R.cmd(S, "New-Pass", [("Spread over zones " + R.str(R.u(R.pi(R.join((S["zones"] ?? null), ", "))))), (S["evidence"] ?? null)], null));
                 return;
             }
-            R.ln = F + 418;
+            R.ln = F + 419;
             const v22 = [];
-            R.ln = F + 418;
+            R.ln = F + 419;
             if (R.t((S["zones"] ?? null))) {
-                R.ln = F + 418;
+                R.ln = F + 419;
                 R.e(v22, ("Deployed in zone " + R.str(R.u(R.pi(R.join((S["zones"] ?? null), ", ")))) + " only"));
             } else {
-                R.ln = F + 418;
+                R.ln = F + 419;
                 R.e(v22, "Not deployed across availability zones");
             }
             S["detail"] = R.u(v22);
-            R.ln = F + 419;
+            R.ln = F + 420;
             R.pa(O, R.cmd(S, "New-Fail", [(S["detail"] ?? null), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 422;
-        S["evidence"] = R.ht(["zoneRedundant", R.m((S["p"] ?? null), "zoneRedundant"), "sku", R.m(R.m((S["r"] ?? null), "sku"), "name")], true);
         R.ln = F + 423;
+        S["evidence"] = R.ht(["zoneRedundant", R.m((S["p"] ?? null), "zoneRedundant"), "sku", R.m(R.m((S["r"] ?? null), "sku"), "name")], true);
+        R.ln = F + 424;
         if (R.t(R.eq(null, R.m((S["p"] ?? null), "zoneRedundant")))) {
-            R.ln = F + 423;
+            R.ln = F + 424;
             R.pa(O, R.cmd(S, "New-Unknown", ["The zone redundancy setting could not be read", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 424;
+        R.ln = F + 425;
         if (R.t(R.m((S["p"] ?? null), "zoneRedundant"))) {
-            R.ln = F + 424;
+            R.ln = F + 425;
             R.pa(O, R.cmd(S, "New-Pass", ["Zone redundant", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 425;
+        R.ln = F + 426;
         R.pa(O, R.cmd(S, "New-Fail", ["Not zone redundant", (S["evidence"] ?? null)], null));
     })], false)], null));
 });

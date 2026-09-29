@@ -1009,225 +1009,225 @@ export default R.script("/app/Analyze/tests/09-AppService.ps1", { params: [], ad
         R.pa(O, R.cmd(S, "New-Pass", ["Only accepts identities of its own tenant", (S["evidence"] ?? null)], null));
     })], false)], null));
     R.ln = F + 547;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-FUNC-001", "Title", "Only those who can change a function app can change the storage it runs from", "Category", "Privileged access", "Service", "Azure Functions", "Severity", "High", "Description", "Finds the storage account a function app runs from (the deployment container of a Flex Consumption app, or the content share named after the app) and lists the principals, other than the identities of the app itself, that can list its keys or write its blobs or files without being able to change the app. Role assignments are compared per assigned principal. The storage of apps on dedicated plans cannot be found without the app settings and is reported as unknown.", "Rationale", "The storage account holds the code package or content share and the function keys. Whoever can write there can replace the code and run it as the app, with its managed identity and keys, which turns storage rights into the rights of the function (Orca Security, 2023; NetSPI).", "Remediation", "Take storage write and key rights away from principals that should not control the function, give the app a storage account of its own in its own resource group with the same owners, and disable shared key access (AZ-STG-005).", "References", R.a([R.v("https://orca.security/resources/blog/azure-shared-key-authorization-exploitation/"), R.v("https://www.netspi.com/blog/technical-blog/cloud-pentesting/azure-function-apps/"), R.v("https://learn.microsoft.com/azure/azure-functions/storage-considerations")]), "Requires", R.a([R.v("rbac/roleAssignments"), R.v("rbac/roleDefinitions")]), "ResourceTypes", R.a("Microsoft.Web/sites"), "Filter", (S["functionsonlyfilter"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $hosts = @(Get-FunctionHostStorage $Record)\n        if (-not $hosts) { return New-Unknown 'The storage account the app runs from cannot be identified without its app settings' }\n        $own = @(Get-ResourceIdentityPrincipals $Record)\n        $roles = Get-RoleDefinitionMap\n        $assignments = @(Get-ActiveRoleAssignments)\n        $appWriters = @{}\n        foreach ($assignment in $assignments) {\n            if (-not (Test-ScopeCovers $assignment.properties.scope @($Record.id.ToLowerInvariant()))) { continue }\n            $definition = $roles[(Get-RoleDefinitionGuid $assignment.properties.roleDefinitionId)]\n            if (-not $definition -or (Test-RoleGrantsAction $definition 'Microsoft.Web/sites/write')) { $appWriters[([string]$assignment.properties.principalId).ToLowerInvariant()] = $true }\n        }\n        $takeover = [System.Collections.Generic.List[string]]::new()\n        foreach ($storage in $hosts) {\n            foreach ($assignment in $assignments) {\n                $principal = ([string]$assignment.properties.principalId).ToLowerInvariant()\n                if ($principal -in $own -or $appWriters.ContainsKey($principal)) { continue }\n                if (-not (Test-ScopeCovers $assignment.properties.scope @($storage.Record.id.ToLowerInvariant()))) { continue }\n                $definition = $roles[(Get-RoleDefinitionGuid $assignment.properties.roleDefinitionId)]\n                $grants = -not $definition -or (Test-RoleGrantsAction $definition 'Microsoft.Storage/storageAccounts/listKeys/action') -or (Test-RoleGrantsDataAction $definition 'Microsoft.Storage/storageAccounts/blobServices/containers/blobs/write') -or (Test-RoleGrantsDataAction $definition 'Microsoft.Storage/storageAccounts/fileServices/fileshares/files/write')\n                if ($grants) { $takeover.Add(\"$(Get-PrincipalLabel $assignment.properties.principalId): $(Get-RoleName $assignment.properties.roleDefinitionId) on $(Get-ScopeLabel $assignment.properties.scope) ($($storage.Record.resource.name))\") }\n            }\n        }\n        $evidence = [ordered]@{\n            hostStorage     = @($hosts | ForEach-Object { \"$($_.Record.resource.name) ($($_.Via))\" } | Sort-Object)\n            sharedKeyAccess = @($hosts | ForEach-Object { \"$($_.Record.resource.name): $(if ($_.Record.resource.properties.allowSharedKeyAccess -eq $false) { 'disabled' } else { 'allowed' })\" } | Sort-Object)\n            takeover        = @($takeover | Sort-Object -Unique)\n        }\n        if ($evidence.takeover) { return New-Fail \"Can take the app over through its storage: $($evidence.takeover -join '; ')\" $evidence }\n        New-Pass 'Only principals that can change the app can change its storage' $evidence\n    " }, (S, O) => {
-        R.ln = F + 562;
-        S["hosts"] = R.cmd(S, "Get-FunctionHostStorage", [(S["record"] ?? null)], null);
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-FUNC-001", "Version", 2, "Title", "Only those who can change a function app can change the storage it runs from", "Category", "Privileged access", "Service", "Azure Functions", "Severity", "High", "Description", "Finds the storage account a function app or Logic App (Standard) app runs from (the deployment container of a Flex Consumption app, or the content share named after the app) and lists the principals, other than the identities of the app itself, that can list its keys or write its blobs or files without being able to change the app. Role assignments are compared per assigned principal. The storage of apps on dedicated plans cannot be found without the app settings and is reported as unknown.", "Rationale", "The storage account holds the code package or content share (for a Logic App (Standard) app, the workflow definitions) and the function keys. Whoever can write there can replace the code or a workflow and run it as the app, with its managed identity and keys, which turns storage rights into the rights of the function (Orca Security, 2023; NetSPI).", "Remediation", "Take storage write and key rights away from principals that should not control the function, give the app a storage account of its own in its own resource group with the same owners, and disable shared key access (AZ-STG-005).", "References", R.a([R.v("https://orca.security/resources/blog/azure-shared-key-authorization-exploitation/"), R.v("https://www.netspi.com/blog/technical-blog/cloud-pentesting/azure-function-apps/"), R.v("https://learn.microsoft.com/azure/azure-functions/storage-considerations")]), "Requires", R.a([R.v("rbac/roleAssignments"), R.v("rbac/roleDefinitions")]), "ResourceTypes", R.a("Microsoft.Web/sites"), "Filter", (S["functionappfilter"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $hosts = @(Get-FunctionHostStorage $Record)\n        if (-not $hosts) { return New-Unknown 'The storage account the app runs from cannot be identified without its app settings' }\n        $own = @(Get-ResourceIdentityPrincipals $Record)\n        $roles = Get-RoleDefinitionMap\n        $assignments = @(Get-ActiveRoleAssignments)\n        $appWriters = @{}\n        foreach ($assignment in $assignments) {\n            if (-not (Test-ScopeCovers $assignment.properties.scope @($Record.id.ToLowerInvariant()))) { continue }\n            $definition = $roles[(Get-RoleDefinitionGuid $assignment.properties.roleDefinitionId)]\n            if (-not $definition -or (Test-RoleGrantsAction $definition 'Microsoft.Web/sites/write')) { $appWriters[([string]$assignment.properties.principalId).ToLowerInvariant()] = $true }\n        }\n        $takeover = [System.Collections.Generic.List[string]]::new()\n        foreach ($storage in $hosts) {\n            foreach ($assignment in $assignments) {\n                $principal = ([string]$assignment.properties.principalId).ToLowerInvariant()\n                if ($principal -in $own -or $appWriters.ContainsKey($principal)) { continue }\n                if (-not (Test-ScopeCovers $assignment.properties.scope @($storage.Record.id.ToLowerInvariant()))) { continue }\n                $definition = $roles[(Get-RoleDefinitionGuid $assignment.properties.roleDefinitionId)]\n                $grants = -not $definition -or (Test-RoleGrantsAction $definition 'Microsoft.Storage/storageAccounts/listKeys/action') -or (Test-RoleGrantsDataAction $definition 'Microsoft.Storage/storageAccounts/blobServices/containers/blobs/write') -or (Test-RoleGrantsDataAction $definition 'Microsoft.Storage/storageAccounts/fileServices/fileshares/files/write')\n                if ($grants) { $takeover.Add(\"$(Get-PrincipalLabel $assignment.properties.principalId): $(Get-RoleName $assignment.properties.roleDefinitionId) on $(Get-ScopeLabel $assignment.properties.scope) ($($storage.Record.resource.name))\") }\n            }\n        }\n        $evidence = [ordered]@{\n            hostStorage     = @($hosts | ForEach-Object { \"$($_.Record.resource.name) ($($_.Via))\" } | Sort-Object)\n            sharedKeyAccess = @($hosts | ForEach-Object { \"$($_.Record.resource.name): $(if ($_.Record.resource.properties.allowSharedKeyAccess -eq $false) { 'disabled' } else { 'allowed' })\" } | Sort-Object)\n            takeover        = @($takeover | Sort-Object -Unique)\n        }\n        if ($evidence.takeover) { return New-Fail \"Can take the app over through its storage: $($evidence.takeover -join '; ')\" $evidence }\n        New-Pass 'Only principals that can change the app can change its storage' $evidence\n    " }, (S, O) => {
         R.ln = F + 563;
+        S["hosts"] = R.cmd(S, "Get-FunctionHostStorage", [(S["record"] ?? null)], null);
+        R.ln = F + 564;
         if (!R.t((S["hosts"] ?? null))) {
-            R.ln = F + 563;
+            R.ln = F + 564;
             R.pa(O, R.cmd(S, "New-Unknown", ["The storage account the app runs from cannot be identified without its app settings"], null));
             return;
         }
-        R.ln = F + 564;
-        S["own"] = R.cmd(S, "Get-ResourceIdentityPrincipals", [(S["record"] ?? null)], null);
         R.ln = F + 565;
-        S["roles"] = R.u(R.cmd(S, "Get-RoleDefinitionMap", [], null));
+        S["own"] = R.cmd(S, "Get-ResourceIdentityPrincipals", [(S["record"] ?? null)], null);
         R.ln = F + 566;
-        S["assignments"] = R.cmd(S, "Get-ActiveRoleAssignments", [], null);
+        S["roles"] = R.u(R.cmd(S, "Get-RoleDefinitionMap", [], null));
         R.ln = F + 567;
-        S["appwriters"] = R.ht([], false);
+        S["assignments"] = R.cmd(S, "Get-ActiveRoleAssignments", [], null);
         R.ln = F + 568;
+        S["appwriters"] = R.ht([], false);
+        R.ln = F + 569;
         for (const it21 of R.fi((S["assignments"] ?? null))) {
             S["assignment"] = it21;
-            R.ln = F + 569;
+            R.ln = F + 570;
             if (!R.t(R.u(R.cmd(S, "Test-ScopeCovers", [R.m(R.m((S["assignment"] ?? null), "properties"), "scope"), R.a(R.im(R.m((S["record"] ?? null), "id"), "ToLowerInvariant", []))], null)))) {
                 continue;
             }
-            R.ln = F + 570;
-            S["definition"] = R.i((S["roles"] ?? null), R.u(R.cmd(S, "Get-RoleDefinitionGuid", [R.m(R.m((S["assignment"] ?? null), "properties"), "roleDefinitionId")], null)));
             R.ln = F + 571;
+            S["definition"] = R.i((S["roles"] ?? null), R.u(R.cmd(S, "Get-RoleDefinitionGuid", [R.m(R.m((S["assignment"] ?? null), "properties"), "roleDefinitionId")], null)));
+            R.ln = F + 572;
             if ((!R.t((S["definition"] ?? null)) || R.t(R.u(R.cmd(S, "Test-RoleGrantsAction", [(S["definition"] ?? null), "Microsoft.Web/sites/write"], null))))) {
-                R.ln = F + 571;
+                R.ln = F + 572;
                 R.si((S["appwriters"] ?? null), R.im((R.c("string", R.m(R.m((S["assignment"] ?? null), "properties"), "principalId"))), "ToLowerInvariant", []), true);
             }
         }
-        R.ln = F + 573;
-        S["takeover"] = R.sc("System.Collections.Generic.List[string]", "new", []);
         R.ln = F + 574;
+        S["takeover"] = R.sc("System.Collections.Generic.List[string]", "new", []);
+        R.ln = F + 575;
         for (const it22 of R.fi((S["hosts"] ?? null))) {
             S["storage"] = it22;
-            R.ln = F + 575;
+            R.ln = F + 576;
             for (const it23 of R.fi((S["assignments"] ?? null))) {
                 S["assignment"] = it23;
-                R.ln = F + 576;
-                S["principal"] = R.im((R.c("string", R.m(R.m((S["assignment"] ?? null), "properties"), "principalId"))), "ToLowerInvariant", []);
                 R.ln = F + 577;
+                S["principal"] = R.im((R.c("string", R.m(R.m((S["assignment"] ?? null), "properties"), "principalId"))), "ToLowerInvariant", []);
+                R.ln = F + 578;
                 if ((R.t(R.in((S["principal"] ?? null), (S["own"] ?? null))) || R.t(R.im((S["appwriters"] ?? null), "ContainsKey", [(S["principal"] ?? null)])))) {
                     continue;
                 }
-                R.ln = F + 578;
+                R.ln = F + 579;
                 if (!R.t(R.u(R.cmd(S, "Test-ScopeCovers", [R.m(R.m((S["assignment"] ?? null), "properties"), "scope"), R.a(R.im(R.m(R.m((S["storage"] ?? null), "Record"), "id"), "ToLowerInvariant", []))], null)))) {
                     continue;
                 }
-                R.ln = F + 579;
-                S["definition"] = R.i((S["roles"] ?? null), R.u(R.cmd(S, "Get-RoleDefinitionGuid", [R.m(R.m((S["assignment"] ?? null), "properties"), "roleDefinitionId")], null)));
                 R.ln = F + 580;
-                S["grants"] = (((!R.t((S["definition"] ?? null)) || R.t(R.u(R.cmd(S, "Test-RoleGrantsAction", [(S["definition"] ?? null), "Microsoft.Storage/storageAccounts/listKeys/action"], null)))) || R.t(R.u(R.cmd(S, "Test-RoleGrantsDataAction", [(S["definition"] ?? null), "Microsoft.Storage/storageAccounts/blobServices/containers/blobs/write"], null)))) || R.t(R.u(R.cmd(S, "Test-RoleGrantsDataAction", [(S["definition"] ?? null), "Microsoft.Storage/storageAccounts/fileServices/fileshares/files/write"], null))));
+                S["definition"] = R.i((S["roles"] ?? null), R.u(R.cmd(S, "Get-RoleDefinitionGuid", [R.m(R.m((S["assignment"] ?? null), "properties"), "roleDefinitionId")], null)));
                 R.ln = F + 581;
+                S["grants"] = (((!R.t((S["definition"] ?? null)) || R.t(R.u(R.cmd(S, "Test-RoleGrantsAction", [(S["definition"] ?? null), "Microsoft.Storage/storageAccounts/listKeys/action"], null)))) || R.t(R.u(R.cmd(S, "Test-RoleGrantsDataAction", [(S["definition"] ?? null), "Microsoft.Storage/storageAccounts/blobServices/containers/blobs/write"], null)))) || R.t(R.u(R.cmd(S, "Test-RoleGrantsDataAction", [(S["definition"] ?? null), "Microsoft.Storage/storageAccounts/fileServices/fileshares/files/write"], null))));
+                R.ln = F + 582;
                 if (R.t((S["grants"] ?? null))) {
-                    R.ln = F + 581;
+                    R.ln = F + 582;
                     R.e(O, R.im((S["takeover"] ?? null), "Add", [("" + R.str(R.u(R.cmd(S, "Get-PrincipalLabel", [R.m(R.m((S["assignment"] ?? null), "properties"), "principalId")], null))) + ": " + R.str(R.u(R.cmd(S, "Get-RoleName", [R.m(R.m((S["assignment"] ?? null), "properties"), "roleDefinitionId")], null))) + " on " + R.str(R.u(R.cmd(S, "Get-ScopeLabel", [R.m(R.m((S["assignment"] ?? null), "properties"), "scope")], null))) + " (" + R.str(R.u(R.pi(R.m(R.m(R.m((S["storage"] ?? null), "Record"), "resource"), "name")))) + ")")]));
                 }
             }
         }
-        R.ln = F + 584;
+        R.ln = F + 585;
         S["evidence"] = R.ht(["hostStorage", R.cmd(S, "Sort-Object", [], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " \"$($_.Record.resource.name) ($($_.Via))\" " }, (S, O) => {
-            R.ln = F + 585;
+            R.ln = F + 586;
             R.e(O, ("" + R.str(R.u(R.pi(R.m(R.m(R.m((S["_"] ?? null), "Record"), "resource"), "name")))) + " (" + R.str(R.u(R.pi(R.m((S["_"] ?? null), "Via")))) + ")"));
         })], R.pi((S["hosts"] ?? null)))), "sharedKeyAccess", R.cmd(S, "Sort-Object", [], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " \"$($_.Record.resource.name): $(if ($_.Record.resource.properties.allowSharedKeyAccess -eq $false) { 'disabled' } else { 'allowed' })\" " }, (S, O) => {
-            R.ln = F + 586;
+            R.ln = F + 587;
             R.e(O, ("" + R.str(R.u(R.pi(R.m(R.m(R.m((S["_"] ?? null), "Record"), "resource"), "name")))) + ": " + R.str((() => {
                 const v24 = [];
-                R.ln = F + 586;
+                R.ln = F + 587;
                 if (R.t(R.eq(R.m(R.m(R.m(R.m((S["_"] ?? null), "Record"), "resource"), "properties"), "allowSharedKeyAccess"), false))) {
-                    R.ln = F + 586;
+                    R.ln = F + 587;
                     R.e(v24, "disabled");
                 } else {
-                    R.ln = F + 586;
+                    R.ln = F + 587;
                     R.e(v24, "allowed");
                 }
                 return R.u(v24);
             })())));
         })], R.pi((S["hosts"] ?? null)))), "takeover", R.cmd(S, "Sort-Object", [R.np("Unique")], R.pi((S["takeover"] ?? null)))], true);
-        R.ln = F + 589;
+        R.ln = F + 590;
         if (R.t(R.m((S["evidence"] ?? null), "takeover"))) {
-            R.ln = F + 589;
+            R.ln = F + 590;
             R.pa(O, R.cmd(S, "New-Fail", [("Can take the app over through its storage: " + R.str(R.u(R.pi(R.join(R.m((S["evidence"] ?? null), "takeover"), "; "))))), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 590;
+        R.ln = F + 591;
         R.pa(O, R.cmd(S, "New-Pass", ["Only principals that can change the app can change its storage", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 594;
+    R.ln = F + 595;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-FUNC-002", "Title", "Flex Consumption apps read their deployment package with a managed identity", "Category", "Identity management", "Service", "Azure Functions", "Severity", "Medium", "Description", "Checks how Flex Consumption apps authenticate to the storage container that holds their deployment package: with a system or user assigned managed identity, or with a storage connection string in an app setting.", "Rationale", "The connection string holds a key of the storage account, which gives full access to it. Everyone who can read the app settings, or finds the key elsewhere, can replace the package and run code as the app, and the key keeps shared key access on the storage account necessary.", "Remediation", "Set the deployment storage authentication to the managed identity of the app, grant it Storage Blob Data Owner on the storage account (or Contributor on the container), remove the connection string app setting and disable shared key access on the storage account (AZ-STG-005).", "References", R.a([R.v("https://learn.microsoft.com/azure/azure-functions/flex-consumption-how-to"), R.v("https://learn.microsoft.com/azure/azure-functions/flex-consumption-plan")]), "ResourceTypes", R.a("Microsoft.Web/sites"), "Filter", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) $null -ne $Record.resource.properties.functionAppConfig.deployment.storage " }, (S, O) => {
-        R.ln = F + 605;
+        R.ln = F + 606;
         R.e(O, R.ne(null, R.m(R.m(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "functionAppConfig"), "deployment"), "storage")));
     }), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $storage = $Record.resource.properties.functionAppConfig.deployment.storage\n        $type = [string]$storage.authentication.type\n        $evidence = [ordered]@{ deploymentStorage = ([string]$storage.value -replace '\\?.*$', ''); authenticationType = $type }\n        if ($type -in 'SystemAssignedIdentity', 'UserAssignedIdentity') { return New-Pass \"Reads its deployment package with a managed identity ($type)\" $evidence }\n        if ($type -eq 'StorageAccountConnectionString') { return New-Fail 'Reads its deployment package with a storage account connection string (key)' $evidence }\n        New-Fail \"Reads its deployment package with authentication type '$type'\" $evidence\n    " }, (S, O) => {
-        R.ln = F + 608;
-        S["storage"] = R.m(R.m(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "functionAppConfig"), "deployment"), "storage");
         R.ln = F + 609;
-        S["type"] = R.c("string", R.m(R.m((S["storage"] ?? null), "authentication"), "type"));
+        S["storage"] = R.m(R.m(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "functionAppConfig"), "deployment"), "storage");
         R.ln = F + 610;
-        S["evidence"] = R.ht(["deploymentStorage", (R.rep(R.c("string", R.m((S["storage"] ?? null), "value")), [R.v("\\?.*$"), R.v("")])), "authenticationType", (S["type"] ?? null)], true);
+        S["type"] = R.c("string", R.m(R.m((S["storage"] ?? null), "authentication"), "type"));
         R.ln = F + 611;
+        S["evidence"] = R.ht(["deploymentStorage", (R.rep(R.c("string", R.m((S["storage"] ?? null), "value")), [R.v("\\?.*$"), R.v("")])), "authenticationType", (S["type"] ?? null)], true);
+        R.ln = F + 612;
         if (R.t(R.in((S["type"] ?? null), [R.v("SystemAssignedIdentity"), R.v("UserAssignedIdentity")]))) {
-            R.ln = F + 611;
+            R.ln = F + 612;
             R.pa(O, R.cmd(S, "New-Pass", [("Reads its deployment package with a managed identity (" + R.str((S["type"] ?? null)) + ")"), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 612;
+        R.ln = F + 613;
         if (R.t(R.eq((S["type"] ?? null), "StorageAccountConnectionString"))) {
-            R.ln = F + 612;
+            R.ln = F + 613;
             R.pa(O, R.cmd(S, "New-Fail", ["Reads its deployment package with a storage account connection string (key)", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 613;
+        R.ln = F + 614;
         R.pa(O, R.cmd(S, "New-Fail", [("Reads its deployment package with authentication type '" + R.str((S["type"] ?? null)) + "'"), (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 617;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-FUNC-003", "Title", "Functions that anyone can call have no write access in Azure", "Category", "Privileged access", "Service", "Azure Functions", "Severity", "High", "Description", "For function apps that accept connections from any network (AZ-APP-008) and have anonymous HTTP functions that App Service authentication does not protect (AZ-APP-009), lists the write capable role assignments of the system and user assigned managed identities of the app, including assignments through groups whose members were collected.", "Rationale", "The caller decides the input of the function, and the function acts on it with the rights of its managed identity. Unless the code authorizes every caller correctly, anyone on the Internet can use those rights, without an account, MFA or Conditional Access, and the activity log names the managed identity instead of the caller.", "Remediation", "Protect the functions (App Service authentication that turns unauthenticated requests away, keys or network restrictions), or take the write access away from the identity and leave the privileged work to a function that is not publicly callable.", "References", R.a([R.v("https://learn.microsoft.com/azure/azure-functions/security-concepts"), R.v("https://learn.microsoft.com/azure/app-service/overview-managed-identity")]), "Requires", R.a([R.v("rbac/roleAssignments"), R.v("rbac/roleDefinitions")]), "ResourceTypes", (S["sitetypes"] ?? null), "Filter", (S["functionsonlyfilter"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not (Test-ChildCollected $Record 'config/web') -or -not (Test-ChildCollected $Record 'functions') -or -not (Test-ChildCollected $Record 'config/authsettingsV2')) { return New-Unknown 'The site configuration, functions or authentication settings could not be read' }\n        $authentication = Get-SiteAuthentication $Record\n        $open = @(Get-SiteHttpFunctions $Record $authentication | Where-Object { $_.AuthLevel -eq 'anonymous' -and -not $_.Protected } | ForEach-Object { $_.Name } | Sort-Object)\n        if (-not $open -or -not (Test-SiteOpenToAnyNetwork $Record)) { return New-NotApplicable 'No anonymous function that anyone can reach (AZ-APP-008, AZ-APP-009)' }\n        if ($authentication.FromFile) { return New-Unknown 'App Service authentication is configured in a file inside the app, which the ingestion cannot read' }\n        $evidence = [ordered]@{ anonymousFunctions = $open; identityType = $Record.resource.identity.type; writeAssignments = @() }\n        $principals = @(Get-ResourceIdentityPrincipals $Record)\n        if (-not $principals) { return New-Pass 'Anyone can call it, but the app has no managed identity' $evidence }\n        $evidence.writeAssignments = @(Get-PrincipalWriteGrants $principals)\n        if ($evidence.writeAssignments) { return New-Fail \"Anyone can call $($open -join ', '), and the app acts with $($evidence.writeAssignments -join '; ')\" $evidence }\n        New-Pass 'Anyone can call it, but its managed identity has no write access' $evidence\n    " }, (S, O) => {
-        R.ln = F + 632;
+    R.ln = F + 618;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-FUNC-003", "Version", 2, "Title", "Functions that anyone can call have no write access in Azure", "Category", "Privileged access", "Service", "Azure Functions", "Severity", "High", "Description", "For function apps that accept connections from any network (AZ-APP-008) and have anonymous HTTP functions that App Service authentication does not protect (AZ-APP-009), lists the write capable role assignments of the system and user assigned managed identities of the app, including assignments through groups whose members were collected.", "Rationale", "The caller decides the input of the function, and the function acts on it with the rights of its managed identity. Unless the code authorizes every caller correctly, anyone on the Internet can use those rights, without an account, MFA or Conditional Access, and the activity log names the managed identity instead of the caller.", "Remediation", "Protect the functions (App Service authentication that turns unauthenticated requests away, keys or network restrictions), or take the write access away from the identity and leave the privileged work to a function that is not publicly callable.", "References", R.a([R.v("https://learn.microsoft.com/azure/azure-functions/security-concepts"), R.v("https://learn.microsoft.com/azure/app-service/overview-managed-identity")]), "Requires", R.a([R.v("rbac/roleAssignments"), R.v("rbac/roleDefinitions")]), "ResourceTypes", (S["sitetypes"] ?? null), "Filter", (S["functionsonlyfilter"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not (Test-ChildCollected $Record 'config/web') -or -not (Test-ChildCollected $Record 'functions') -or -not (Test-ChildCollected $Record 'config/authsettingsV2')) { return New-Unknown 'The site configuration, functions or authentication settings could not be read' }\n        $authentication = Get-SiteAuthentication $Record\n        $open = @(Get-SiteHttpFunctions $Record $authentication | Where-Object { $_.AuthLevel -eq 'anonymous' -and -not $_.Protected } | ForEach-Object { $_.Name } | Sort-Object)\n        if (-not $open -or -not (Test-SiteOpenToAnyNetwork $Record)) { return New-NotApplicable 'No anonymous function that anyone can reach (AZ-APP-008, AZ-APP-009)' }\n        if ($authentication.FromFile) { return New-Unknown 'App Service authentication is configured in a file inside the app, which the ingestion cannot read' }\n        $evidence = [ordered]@{ anonymousFunctions = $open; identityType = $Record.resource.identity.type; writeAssignments = @() }\n        $principals = @(Get-ResourceIdentityPrincipals $Record)\n        if (-not $principals) { return New-Pass 'Anyone can call it, but the app has no managed identity' $evidence }\n        $evidence.writeAssignments = @(Get-PrincipalWriteGrants $principals)\n        if ($evidence.writeAssignments) { return New-Fail \"Anyone can call $($open -join ', '), and the app acts with $($evidence.writeAssignments -join '; ')\" $evidence }\n        New-Pass 'Anyone can call it, but its managed identity has no write access' $evidence\n    " }, (S, O) => {
+        R.ln = F + 634;
         if (((!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "config/web"], null))) || !R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "functions"], null)))) || !R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "config/authsettingsV2"], null))))) {
-            R.ln = F + 632;
+            R.ln = F + 634;
             R.pa(O, R.cmd(S, "New-Unknown", ["The site configuration, functions or authentication settings could not be read"], null));
             return;
         }
-        R.ln = F + 633;
+        R.ln = F + 635;
         S["authentication"] = R.u(R.cmd(S, "Get-SiteAuthentication", [(S["record"] ?? null)], null));
-        R.ln = F + 634;
+        R.ln = F + 636;
         S["open"] = R.cmd(S, "Sort-Object", [], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " $_.Name " }, (S, O) => {
-            R.ln = F + 634;
+            R.ln = F + 636;
             R.e(O, R.m((S["_"] ?? null), "Name"));
         })], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.AuthLevel -eq 'anonymous' -and -not $_.Protected " }, (S, O) => {
-            R.ln = F + 634;
+            R.ln = F + 636;
             R.e(O, (R.t(R.eq(R.m((S["_"] ?? null), "AuthLevel"), "anonymous")) && !R.t(R.m((S["_"] ?? null), "Protected"))));
         })], R.cmd(S, "Get-SiteHttpFunctions", [(S["record"] ?? null), (S["authentication"] ?? null)], null))));
-        R.ln = F + 635;
+        R.ln = F + 637;
         if ((!R.t((S["open"] ?? null)) || !R.t(R.u(R.cmd(S, "Test-SiteOpenToAnyNetwork", [(S["record"] ?? null)], null))))) {
-            R.ln = F + 635;
+            R.ln = F + 637;
             R.pa(O, R.cmd(S, "New-NotApplicable", ["No anonymous function that anyone can reach (AZ-APP-008, AZ-APP-009)"], null));
             return;
         }
-        R.ln = F + 636;
+        R.ln = F + 638;
         if (R.t(R.m((S["authentication"] ?? null), "FromFile"))) {
-            R.ln = F + 636;
+            R.ln = F + 638;
             R.pa(O, R.cmd(S, "New-Unknown", ["App Service authentication is configured in a file inside the app, which the ingestion cannot read"], null));
             return;
         }
-        R.ln = F + 637;
-        S["evidence"] = R.ht(["anonymousFunctions", (S["open"] ?? null), "identityType", R.m(R.m(R.m((S["record"] ?? null), "resource"), "identity"), "type"), "writeAssignments", []], true);
-        R.ln = F + 638;
-        S["principals"] = R.cmd(S, "Get-ResourceIdentityPrincipals", [(S["record"] ?? null)], null);
         R.ln = F + 639;
+        S["evidence"] = R.ht(["anonymousFunctions", (S["open"] ?? null), "identityType", R.m(R.m(R.m((S["record"] ?? null), "resource"), "identity"), "type"), "writeAssignments", []], true);
+        R.ln = F + 640;
+        S["principals"] = R.cmd(S, "Get-ResourceIdentityPrincipals", [(S["record"] ?? null)], null);
+        R.ln = F + 641;
         if (!R.t((S["principals"] ?? null))) {
-            R.ln = F + 639;
+            R.ln = F + 641;
             R.pa(O, R.cmd(S, "New-Pass", ["Anyone can call it, but the app has no managed identity", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 640;
+        R.ln = F + 642;
         R.sm((S["evidence"] ?? null), "writeAssignments", R.cmd(S, "Get-PrincipalWriteGrants", [(S["principals"] ?? null)], null));
-        R.ln = F + 641;
+        R.ln = F + 643;
         if (R.t(R.m((S["evidence"] ?? null), "writeAssignments"))) {
-            R.ln = F + 641;
+            R.ln = F + 643;
             R.pa(O, R.cmd(S, "New-Fail", [("Anyone can call " + R.str(R.u(R.pi(R.join((S["open"] ?? null), ", ")))) + ", and the app acts with " + R.str(R.u(R.pi(R.join(R.m((S["evidence"] ?? null), "writeAssignments"), "; "))))), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 642;
+        R.ln = F + 644;
         R.pa(O, R.cmd(S, "New-Pass", ["Anyone can call it, but its managed identity has no write access", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 646;
+    R.ln = F + 648;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-FUNC-004", "Title", "HTTP functions do not rely on function keys alone", "Category", "Identity management", "Service", "Azure Functions", "Severity", "Medium", "Description", "For function apps that accept connections from any network (AZ-APP-008), finds HTTP triggered functions with a key auth level (function or admin; function when not set) that App Service authentication does not protect. Anonymous functions are AZ-APP-009.", "Rationale", "A function key is a static secret, sent in the URL or a header, that works from any address and is not tied to an identity. It ends up in callers, scripts and logs, is readable by everyone who can list the keys of the app or read its storage, and stays valid until it is rotated.", "Remediation", "Limit inbound access (access restrictions, a private endpoint, or a gateway in front that authenticates callers), or require App Service authentication with Microsoft Entra ID for these routes, and rotate the keys.", "References", R.a([R.v("https://learn.microsoft.com/azure/azure-functions/function-keys-how-to"), R.v("https://learn.microsoft.com/azure/azure-functions/security-concepts")]), "ResourceTypes", (S["sitetypes"] ?? null), "Filter", (S["functionsonlyfilter"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not (Test-ChildCollected $Record 'config/web') -or -not (Test-ChildCollected $Record 'functions') -or -not (Test-ChildCollected $Record 'config/authsettingsV2')) { return New-Unknown 'The site configuration, functions or authentication settings could not be read' }\n        $authentication = Get-SiteAuthentication $Record\n        $keyed = @(Get-SiteHttpFunctions $Record $authentication | Where-Object { $_.AuthLevel -in 'function', 'admin' })\n        $evidence = [ordered]@{ keyFunctions = @($keyed | ForEach-Object { $_.Name } | Sort-Object); keyOnly = @() }\n        if (-not $keyed) { return New-NotApplicable 'No key protected HTTP functions' $evidence }\n        if (-not (Test-SiteOpenToAnyNetwork $Record)) { return New-Pass 'Network access to the app is restricted' $evidence }\n        $evidence.keyOnly = @($keyed | Where-Object { -not $_.Protected } | ForEach-Object { $_.Name } | Sort-Object)\n        if ($evidence.keyOnly -and $authentication.FromFile) { return New-Unknown 'App Service authentication is configured in a file inside the app, which the ingestion cannot read' $evidence }\n        if ($evidence.keyOnly) { return New-Fail \"Reachable from any network with only a function key: $($evidence.keyOnly -join ', ')\" $evidence }\n        New-Pass 'App Service authentication protects the key protected functions' $evidence\n    " }, (S, O) => {
-        R.ln = F + 660;
+        R.ln = F + 662;
         if (((!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "config/web"], null))) || !R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "functions"], null)))) || !R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "config/authsettingsV2"], null))))) {
-            R.ln = F + 660;
+            R.ln = F + 662;
             R.pa(O, R.cmd(S, "New-Unknown", ["The site configuration, functions or authentication settings could not be read"], null));
             return;
         }
-        R.ln = F + 661;
+        R.ln = F + 663;
         S["authentication"] = R.u(R.cmd(S, "Get-SiteAuthentication", [(S["record"] ?? null)], null));
-        R.ln = F + 662;
+        R.ln = F + 664;
         S["keyed"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.AuthLevel -in 'function', 'admin' " }, (S, O) => {
-            R.ln = F + 662;
+            R.ln = F + 664;
             R.e(O, R.in(R.m((S["_"] ?? null), "AuthLevel"), [R.v("function"), R.v("admin")]));
         })], R.cmd(S, "Get-SiteHttpFunctions", [(S["record"] ?? null), (S["authentication"] ?? null)], null));
-        R.ln = F + 663;
+        R.ln = F + 665;
         S["evidence"] = R.ht(["keyFunctions", R.cmd(S, "Sort-Object", [], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " $_.Name " }, (S, O) => {
-            R.ln = F + 663;
+            R.ln = F + 665;
             R.e(O, R.m((S["_"] ?? null), "Name"));
         })], R.pi((S["keyed"] ?? null)))), "keyOnly", []], true);
-        R.ln = F + 664;
+        R.ln = F + 666;
         if (!R.t((S["keyed"] ?? null))) {
-            R.ln = F + 664;
+            R.ln = F + 666;
             R.pa(O, R.cmd(S, "New-NotApplicable", ["No key protected HTTP functions", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 665;
+        R.ln = F + 667;
         if (!R.t(R.u(R.cmd(S, "Test-SiteOpenToAnyNetwork", [(S["record"] ?? null)], null)))) {
-            R.ln = F + 665;
+            R.ln = F + 667;
             R.pa(O, R.cmd(S, "New-Pass", ["Network access to the app is restricted", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 666;
+        R.ln = F + 668;
         R.sm((S["evidence"] ?? null), "keyOnly", R.cmd(S, "Sort-Object", [], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " $_.Name " }, (S, O) => {
-            R.ln = F + 666;
+            R.ln = F + 668;
             R.e(O, R.m((S["_"] ?? null), "Name"));
         })], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " -not $_.Protected " }, (S, O) => {
-            R.ln = F + 666;
+            R.ln = F + 668;
             R.e(O, !R.t(R.m((S["_"] ?? null), "Protected")));
         })], R.pi((S["keyed"] ?? null))))));
-        R.ln = F + 667;
+        R.ln = F + 669;
         if ((R.t(R.m((S["evidence"] ?? null), "keyOnly")) && R.t(R.m((S["authentication"] ?? null), "FromFile")))) {
-            R.ln = F + 667;
+            R.ln = F + 669;
             R.pa(O, R.cmd(S, "New-Unknown", ["App Service authentication is configured in a file inside the app, which the ingestion cannot read", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 668;
+        R.ln = F + 670;
         if (R.t(R.m((S["evidence"] ?? null), "keyOnly"))) {
-            R.ln = F + 668;
+            R.ln = F + 670;
             R.pa(O, R.cmd(S, "New-Fail", [("Reachable from any network with only a function key: " + R.str(R.u(R.pi(R.join(R.m((S["evidence"] ?? null), "keyOnly"), ", "))))), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 669;
+        R.ln = F + 671;
         R.pa(O, R.cmd(S, "New-Pass", ["App Service authentication protects the key protected functions", (S["evidence"] ?? null)], null));
     })], false)], null));
 });

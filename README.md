@@ -4,7 +4,7 @@
 
 Free (non commercially) fully automated test suite for Azure subscriptions against multiple up to date industry security baselines.
 
-AzCmply reads an Azure subscription and its Entra ID context, runs 309 tests against it and writes a report: a posture score, the failures to address, results per security domain and per framework, and every test with its remediation and evidence per resource. Frameworks: the Microsoft cloud security benchmark v2, CIS Microsoft Azure Foundations Benchmark 6.0.0, the Well-Architected Framework security pillar, Azure landing zone policies, ISO 27001:2022, NIST CSF 2.0, CIS Controls v8.1, SOC 2, NIST SP 800-53 Rev. 5, PCI DSS v4.0.1, DORA with its ICT risk management standard (RTS 2024/1774) and CMMC 2.0 Levels 1 to 3, to which JSolve maps the tests. AzCmply Custom adds JSolve's own controls for Azure attack paths that none of these frameworks covers.
+AzCmply reads an Azure subscription and its Entra ID context, runs 313 tests against it and writes a report: a posture score, the failures to address, results per security domain and per framework, and every test with its remediation and evidence per resource. Frameworks: the Microsoft cloud security benchmark v2, CIS Microsoft Azure Foundations Benchmark 6.0.0, the Well-Architected Framework security pillar, Azure landing zone policies, ISO 27001:2022, NIST CSF 2.0, CIS Controls v8.1, SOC 2, NIST SP 800-53 Rev. 5, PCI DSS v4.0.1, DORA with its ICT risk management standard (RTS 2024/1774) and CMMC 2.0 Levels 1 to 3, to which JSolve maps the tests. AzCmply Custom adds JSolve's own controls for Azure attack paths that none of these frameworks covers.
 
 Everything is read only and can be run it again later to make the report show the trend and what changed.
 
@@ -28,6 +28,7 @@ Open [the page](https://azcmply.jsolve.nl/), sign in, pick a subscription and ru
 | Needed | For |
 |---|---|
 | Azure RBAC **Reader** on the subscription | everything in the subscription |
+| Azure RBAC **Reader** on shared resources in other subscriptions (optional) | a central Log Analytics workspace of the activity log, data collection rules and a hub network with Azure Bastion; without it those checks report Unknown |
 | Entra ID role **Global Reader** | the Entra ID checks: principals behind role assignments, privileged and eligible roles, app credentials, sign-in activity, Conditional Access, security defaults, emergency access accounts, the subscription transfer policy |
 
 Without the Entra role the assessment still runs; the Entra ID checks then report Unknown. Clear **Entra ID enrichment** on the page to skip them.
@@ -41,6 +42,7 @@ The page signs in through an Entra ID app registration of the single-page applic
 | Azure Service Management | `user_impersonation` | read the subscription with the user's own Azure RBAC |
 | Microsoft Graph | `User.Read` | sign-in |
 | Microsoft Graph | `Directory.Read.All` | principals, groups, service principals and their credentials |
+| Microsoft Graph | `PrivilegedAccess.Read.AzureADGroup` | eligible members of PIM for Groups, who hold Azure and Entra roles through a group |
 | Microsoft Graph | `RoleManagement.Read.Directory` | directory role assignments and eligible (PIM) assignments |
 | Microsoft Graph | `AuditLog.Read.All` | last sign-in of accounts with access |
 | Microsoft Graph | `Policy.Read.All` | Conditional Access policies and security defaults (MFA, emergency access accounts) |
@@ -81,7 +83,7 @@ Invoke-AzCmplyAssessment -SubscriptionId <id> -TenantId <id> -ClientId <appId> -
 Invoke-AzCmplyAssessment -SubscriptionId <id> -ManagedIdentity -Path D:\Assessments
 ```
 
-The service principal or managed identity needs **Reader** on the subscription and the Microsoft Graph application permission **Directory.Read.All**; **RoleManagement.Read.Directory**, **AuditLog.Read.All** and **Policy.Read.All** add eligible directory roles, sign-in activity and Conditional Access. Certificate authentication is supported too (`-CertificateThumbprint`, `-CertificatePath`). See [PSModule](PSModule/README.md) for the separate steps (`Invoke-AzCmplyIngest`, `Invoke-AzCmplyAnalysis`, `New-AzCmplyReport`, `Compare-AzCmplyAnalysis`).
+The service principal or managed identity needs **Reader** on the subscription and the Microsoft Graph application permissions **Directory.Read.All** and **PrivilegedAccess.Read.AzureADGroup** (eligible members of PIM for Groups; without it, role assignments to groups report Unknown); **RoleManagement.Read.Directory**, **AuditLog.Read.All** and **Policy.Read.All** add eligible directory roles, sign-in activity and Conditional Access. Certificate authentication is supported too (`-CertificateThumbprint`, `-CertificatePath`). See [PSModule](PSModule/README.md) for the separate steps (`Invoke-AzCmplyIngest`, `Invoke-AzCmplyAnalysis`, `New-AzCmplyReport`, `Compare-AzCmplyAnalysis`).
 
 ## How the web variant is built
 

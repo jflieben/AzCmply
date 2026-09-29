@@ -66,7 +66,7 @@
 
     Required permissions:
     - Azure: Reader on the subscription
-    - Graph (application): Directory.Read.All
+    - Graph (application): Directory.Read.All, PrivilegedAccess.Read.AzureADGroup (eligible members of PIM for Groups)
       Optional: RoleManagement.Read.Directory (eligible directory roles), AuditLog.Read.All (sign-in activity),
       Policy.Read.All (Conditional Access policies and security defaults)
     Missing permissions do not stop the run; every failed call is listed in failures.json.
@@ -334,6 +334,13 @@ $childResourceMap = @{
     'microsoft.desktopvirtualization/applicationgroups' = @('applications')
 }
 
+#Logic App (Standard) apps, sites of kind workflowapp: their workflows with the definition ('a/*' lists collection a and
+#reads every item of it), connections.json, the versions of each workflow (their dates tell when it was created and
+#changed, child 'workflowVersions' per workflow name) and run and trigger metrics per workflow and status
+$workflowAppChildren = @('workflows/*', 'workflowsconfiguration/connections')
+$workflowAppVersionsPath = 'hostruntime/runtime/webhooks/workflow/api/management/workflows/{name}/versions@2018-11-01'
+$workflowAppMetrics = @("WorkflowRunsStarted|workflowName eq '*'", "WorkflowRunsCompleted,WorkflowTriggersCompleted|workflowName eq '*' and status eq '*'")
+
 #non JSON content per resource type (source code), stored as text in the resource file
 $textContentMap = @{
     'microsoft.automation/automationaccounts/runbooks' = @('content')
@@ -358,6 +365,50 @@ $resourceMetricsMap = @{
 $diagnosticSettingsChildTypes = @(
     'microsoft.sql/servers/databases', 'microsoft.sql/managedinstances/databases', 'microsoft.web/sites/slots',
     'microsoft.synapse/workspaces/sqlpools', 'microsoft.synapse/workspaces/bigdatapools'
+)
+
+#resources in other subscriptions that the analysis follows (the workspaces and storage accounts of the activity log, the
+#data collection rules of machines, peered virtual networks): a full GET, and these children per type
+$referencedChildMap = @{
+    'microsoft.operationalinsights/workspaces' = @('tables/AzureActivity')
+    'microsoft.storage/storageaccounts'        = @('managementPolicies/default')
+}
+
+#activity log operations that restore from a backup or fail over a replicated item. They are read apart, by resource
+#provider over the whole window, into activityLog/recoveryOperations.json, whatever the size of the rest of the log
+$activityLogRecoveryOperations = @(
+    'Microsoft.RecoveryServices/vaults/backupFabrics/protectionContainers/protectedItems/recoveryPoints/restore/action'
+    'Microsoft.RecoveryServices/vaults/backupFabrics/protectionContainers/protectedItems/recoveryPoints/provisionInstantItemRecovery/action'
+    'Microsoft.DataProtection/backupVaults/backupInstances/restore/action'
+    'Microsoft.RecoveryServices/vaults/replicationFabrics/replicationProtectionContainers/replicationProtectedItems/testFailover/action'
+    'Microsoft.RecoveryServices/vaults/replicationFabrics/replicationProtectionContainers/replicationProtectedItems/plannedFailover/action'
+    'Microsoft.RecoveryServices/vaults/replicationFabrics/replicationProtectionContainers/replicationProtectedItems/unplannedFailover/action'
+)
+$activityLogRecoveryProviders = @('Microsoft.RecoveryServices', 'Microsoft.DataProtection')
+
+#what activityLog/activityLog.json keeps of an event, in this order: of the value fields only the value, of claims and
+#httpRequest only the keys listed, of properties all but copies of other fields and the request and response bodies.
+#Token claims, localized names and fields derived from the resource id are three quarters of an event
+$activityLogFields = @('eventDataId', 'correlationId', 'eventTimestamp', 'level', 'caller', 'resourceId', 'category', 'operationName', 'status', 'subStatus', 'claims', 'httpRequest', 'properties')
+$activityLogValueFields = @('category', 'operationName', 'status', 'subStatus')
+$activityLogClaims = @('appid', 'idtyp', 'ipaddr', 'http://schemas.microsoft.com/identity/claims/objectidentifier', 'xms_mirid')
+$activityLogHttpRequest = @('clientIpAddress', 'method')
+$activityLogDroppedProperties = @('entity', 'message', 'eventCategory', 'hierarchy', 'requestbody', 'responseBody', 'serviceRequestId')
+#the collection stops after the day (newest first) in which the kept events reach this number
+$activityLogMaxEvents = 100000
+
+#activity log events left out as noise, whatever their status: category ('*' for any), operation (wildcards), and
+#'any' caller or 'services' only (callers that are not users; a user doing the same is kept). Reads are polling, the
+#Policy events are evaluations (deny and modify are kept), the others are backups and key retrieval on a schedule
+$activityLogNoise = @(
+    ,@('*', '*/read', 'any')
+    ,@('Policy', 'Microsoft.Authorization/policies/audit/action', 'any')
+    ,@('Policy', 'Microsoft.Authorization/policies/auditIfNotExists/action', 'any')
+    ,@('Policy', 'Microsoft.Authorization/policies/deployIfNotExists/action', 'any')
+    ,@('Administrative', 'Microsoft.Compute/restorePointCollections/restorePoints/*', 'services')
+    ,@('Administrative', 'Microsoft.RecoveryServices/vaults/backupFabrics/protectionContainers/protectedItems/backup/action', 'services')
+    ,@('Administrative', 'Microsoft.Storage/storageAccounts/listKeys/action', 'services')
+    ,@('Administrative', 'Microsoft.Storage/storageAccounts/listAccountSas/action', 'services')
 )
 
 #Azure Resource Graph tables, unknown tables are skipped
@@ -600,7 +651,9 @@ function Invoke-AzPaged {
         [System.Text.Json.Utf8JsonWriter]$Writer,
         #skips items whose -IdProperty value is already in -SeenIds
         [System.Collections.Generic.HashSet[string]]$SeenIds,
-        [string]$IdProperty = 'id'
+        [string]$IdProperty = 'id',
+        #keeps only the items for which this returns true
+        [scriptblock]$Where
     )
     $result = [pscustomobject]@{
         StatusCode   = 0
@@ -635,9 +688,12 @@ function Invoke-AzPaged {
                     $itemId = Get-JsonProperty -Element $item -Name $IdProperty
                     if ($itemId -and -not $SeenIds.Add($itemId)) { $result.Duplicates++; continue }
                 }
+                if ($Where -and -not (& $Where $item)) { continue }
                 if ($Writer) { $item.WriteTo($Writer) } else { $result.Items.Add($item) }
                 $result.Count++
             }
+            #the writer holds everything written until it is flushed
+            if ($Writer) { $Writer.Flush() }
         } else {
             if ($page -eq 1) { $result.Single = $response.Json }
             break
@@ -692,6 +748,29 @@ function Get-ChildResource {
         [Parameter(Mandatory = $true)][AllowEmptyCollection()][hashtable]$Cache,
         [Parameter(Mandatory = $true)][AllowEmptyCollection()][System.Collections.Generic.List[object]]$Failures
     )
+    #'a/*': collection a with every item read in full; $null when the listing or one of the items failed
+    if ($Path.EndsWith('/*')) {
+        $collection = $Path.Substring(0, $Path.Length - 2)
+        if (-not $ApiVersion) {
+            $candidates = $apiVersions["$ParentType/$(Get-ChildTypeSegments -Path $collection)".ToLowerInvariant()]
+            if (-not $candidates) { $candidates = $apiVersions[$ParentType.ToLowerInvariant()] }
+            $ApiVersion = $candidates | Select-Object -First 1
+        }
+        $listed = Get-ChildResource -ParentId $ParentId -ParentType $ParentType -Path $collection -ApiVersion $ApiVersion -Cache $Cache -Failures $Failures
+        if ($null -eq $listed) { return , $null }
+        $full = [System.Collections.Generic.List[System.Text.Json.JsonElement]]::new()
+        foreach ($item in @($listed)) {
+            $itemId = Get-JsonProperty -Element $item -Name 'id'
+            if (-not $itemId) { continue }
+            $response = Invoke-AzRest -Uri "$itemId`?api-version=$ApiVersion" -Context $ParentId -ExpectedStatus 400, 404, 405, 409 -MaxTransientRetries 1
+            if (-not (Test-Success $response)) {
+                $Failures.Add([ordered]@{ path = $itemId; apiVersion = $ApiVersion; statusCode = $response.StatusCode; errorCode = $response.ErrorCode })
+                return , $null
+            }
+            $full.Add($response.Json)
+        }
+        return , $full
+    }
     $starIndex = $Path.IndexOf('/*/')
     if ($starIndex -gt 0) {
         $prefix = $Path.Substring(0, $starIndex)
@@ -778,6 +857,21 @@ function Export-ResourceDetail {
             if ($typeKey -eq 'microsoft.sql/servers/databases' -and $Item.Id -match '/databases/master$' -and $path -match '^(dataMaskingPolicies|currentSensitivityLabels)') { continue }
             $record.children[$path] = Get-ChildResource -ParentId $Item.Id -ParentType $Item.Type -Path $path -ApiVersion $pinnedVersion -Cache $cache -Failures $failures
         }
+        #Logic App (Standard): workflows, connections.json and the versions of each workflow
+        $workflowApp = $typeKey -eq 'microsoft.web/sites' -and [string](Get-JsonProperty -Element $record.resource -Name 'kind') -match 'workflowapp'
+        if ($workflowApp) {
+            foreach ($entry in $workflowAppChildren) {
+                $path, $pinnedVersion = $entry.Split('@', 2)
+                $record.children[$path] = Get-ChildResource -ParentId $Item.Id -ParentType $Item.Type -Path $path -ApiVersion $pinnedVersion -Cache $cache -Failures $failures
+            }
+            $versionsPath, $versionsApi = $workflowAppVersionsPath.Split('@', 2)
+            $versions = [ordered]@{}
+            foreach ($workflow in @($record.children['workflows/*'] | Where-Object { $_ -is [System.Text.Json.JsonElement] })) {
+                $name = ([string](Get-JsonProperty -Element $workflow -Name 'name')) -replace '^.*/', ''
+                if ($name) { $versions[$name] = Get-ChildResource -ParentId $Item.Id -ParentType $Item.Type -Path $versionsPath.Replace('{name}', [uri]::EscapeDataString($name)) -ApiVersion $versionsApi -Cache $cache -Failures $failures }
+            }
+            $record.children['workflowVersions'] = $versions
+        }
         foreach ($path in $textContentMap[$typeKey]) {
             $response = Invoke-AzRest -Uri "$($Item.Id)/$($path)?api-version=$($record.apiVersion)" -Context $Item.Id -ExpectedStatus 400, 404 -MaxTransientRetries 1
             if (Test-Success $response) {
@@ -786,19 +880,25 @@ function Export-ResourceDetail {
                 $failures.Add([ordered]@{ path = "$($Item.Id)/$path"; apiVersion = $record.apiVersion; statusCode = $response.StatusCode; errorCode = $response.ErrorCode })
             }
         }
-        $metricNames = $resourceMetricsMap[$typeKey]
-        if ($metricNames) {
+        #metric queries: 'names' or 'names|dimension filter'
+        $metricSpecs = @(@($resourceMetricsMap[$typeKey]) + @(if ($workflowApp) { $workflowAppMetrics }) | Where-Object { $_ })
+        if ($metricSpecs) {
             #all windows or nothing, so that totals are never computed from part of the period
             $path = 'providers/Microsoft.Insights/metrics'
             $windows = [System.Collections.Generic.List[System.Text.Json.JsonElement]]::new()
-            foreach ($timespan in $metricsTimespans) {
-                $response = Invoke-AzRest -Uri "$($Item.Id)/$($path)?metricnames=$metricNames&aggregation=Total&interval=P1D&timespan=$timespan&api-version=$($coreApiVersions.metrics)" -Context $Item.Id -ExpectedStatus 400, 404 -MaxTransientRetries 1
-                if (-not (Test-Success $response)) {
-                    $windows = $null
-                    $failures.Add([ordered]@{ path = "$($Item.Id)/$path"; apiVersion = $coreApiVersions.metrics; statusCode = $response.StatusCode; errorCode = $response.ErrorCode })
-                    break
+            foreach ($spec in $metricSpecs) {
+                $metricNames, $filter = $spec.Split('|', 2)
+                $filterQuery = if ($filter) { "&`$filter=$([uri]::EscapeDataString($filter))" } else { '' }
+                foreach ($timespan in $metricsTimespans) {
+                    $response = Invoke-AzRest -Uri "$($Item.Id)/$($path)?metricnames=$metricNames&aggregation=Total&interval=P1D&timespan=$timespan$filterQuery&api-version=$($coreApiVersions.metrics)" -Context $Item.Id -ExpectedStatus 400, 404 -MaxTransientRetries 1
+                    if (-not (Test-Success $response)) {
+                        $windows = $null
+                        $failures.Add([ordered]@{ path = "$($Item.Id)/$path"; apiVersion = $coreApiVersions.metrics; statusCode = $response.StatusCode; errorCode = $response.ErrorCode })
+                        break
+                    }
+                    $windows.Add($response.Json)
                 }
-                $windows.Add($response.Json)
+                if ($null -eq $windows) { break }
             }
             $record.children['metrics'] = $windows
         }
@@ -809,6 +909,17 @@ function Export-ResourceDetail {
     $principalIds = [System.Collections.Generic.HashSet[string]]::new()
     Find-PrincipalIds -Elements @($record.resource) -Target $principalIds
     foreach ($child in $record.children.get_Values()) { Find-PrincipalIds -Elements $child -Target $principalIds }
+    #resources the analysis follows, which may be in another subscription: the data collection rules of a machine and
+    #the networks a virtual network is peered with
+    $referencedIds = [System.Collections.Generic.List[string]]::new()
+    foreach ($association in @($record.children['providers/Microsoft.Insights/dataCollectionRuleAssociations'])) {
+        $ruleId = Get-JsonProp -Element $association -Path 'properties.dataCollectionRuleId'
+        if ($ruleId) { $referencedIds.Add($ruleId) }
+    }
+    foreach ($peering in (Get-JsonArrayItems -Element (Get-JsonProp -Element $record.resource -Path 'properties.virtualNetworkPeerings'))) {
+        $remoteId = Get-JsonProp -Element $peering -Path 'properties.remoteVirtualNetwork.id'
+        if ($remoteId) { $referencedIds.Add($remoteId) }
+    }
     return [pscustomobject]@{
         Id           = $Item.Id
         Type         = $Item.Type
@@ -819,6 +930,7 @@ function Export-ResourceDetail {
         PrincipalIds = [string[]]@($principalIds)
         #the connector of an API connection, whose metadata is collected after the resources
         ManagedApiId = if ($typeKey -eq 'microsoft.web/connections') { Get-JsonProp -Element $record.resource -Path 'properties.api.id' } else { $null }
+        ReferencedIds = [string[]]@($referencedIds)
     }
 }
 
@@ -1017,8 +1129,9 @@ function Export-ResourceGraphTable {
 }
 
 function Invoke-GraphBatch {
-    #runs relative Graph v1.0 GET requests through $batch (20 per call) including paging; returns key -> result
-    param([Parameter(Mandatory = $true)][System.Collections.IDictionary]$Requests, [int[]]$ExpectedStatus = @())
+    #runs relative Graph GET requests through $batch (20 per call) including paging; returns key -> result. -Version beta
+    #for what v1.0 does not return (service principals as members or owners of groups)
+    param([Parameter(Mandatory = $true)][System.Collections.IDictionary]$Requests, [int[]]$ExpectedStatus = @(), [ValidateSet('v1.0', 'beta')][string]$Version = 'v1.0')
     $results = @{}
     $attempts = @{}
     $pending = [System.Collections.Generic.Queue[string]]::new()
@@ -1028,7 +1141,7 @@ function Invoke-GraphBatch {
         while ($pending.Count -gt 0 -and $batchKeys.Count -lt 20) { $batchKeys.Add($pending.Dequeue()) }
         $batchRequests = for ($i = 0; $i -lt $batchKeys.Count; $i++) { [ordered]@{ id = [string]$i; method = 'GET'; url = $Requests[$batchKeys[$i]] } }
         $body = @{ requests = @($batchRequests) } | ConvertTo-Json -Depth 5 -Compress
-        $response = Invoke-AzRest -Uri '/v1.0/$batch' -Resource Graph -Method POST -Body $body -Context 'graph batch'
+        $response = Invoke-AzRest -Uri "/$Version/`$batch" -Resource Graph -Method POST -Body $body -Context 'graph batch'
         if (-not (Test-Success $response)) {
             foreach ($key in $batchKeys) { $results[$key] = [pscustomobject]@{ StatusCode = $response.StatusCode; ErrorCode = $response.ErrorCode; Items = $null; Single = $null } }
             continue
@@ -1061,7 +1174,7 @@ function Invoke-GraphBatch {
                 }
             } else {
                 $result.ErrorCode = Get-JsonProp -Element $itemBody -Path 'error.code'
-                if ($status -notin $ExpectedStatus) { Add-RequestFailure -Uri "$($cloudEndpoints.Graph)/v1.0$($Requests[$key])" -Method 'GET' -StatusCode $status -ErrorCode $result.ErrorCode -Message (Get-JsonProp -Element $itemBody -Path 'error.message') -Context 'graph batch item' }
+                if ($status -notin $ExpectedStatus) { Add-RequestFailure -Uri "$($cloudEndpoints.Graph)/$Version$($Requests[$key])" -Method 'GET' -StatusCode $status -ErrorCode $result.ErrorCode -Message (Get-JsonProp -Element $itemBody -Path 'error.message') -Context 'graph batch item' }
             }
             $results[$key] = $result
         }
@@ -1081,6 +1194,78 @@ function Get-DirectoryObjectsByIds {
         if (Test-Success $result) { $lookup.Objects.AddRange($result.Items) } else { $lookup.Failed = $true }
     }
     return $lookup
+}
+
+function Get-GroupServicePrincipals {
+    #service principals that are transitive members or owners of groups, per group id, added to -Cache: Members, MembersError,
+    #Owners, OwnersError. Graph v1.0 leaves service principals out of group members and owners; beta returns them
+    param([string[]]$GroupIds, [Parameter(Mandatory = $true)][AllowEmptyCollection()][hashtable]$Cache)
+    $missing = @($GroupIds | Where-Object { $_ -and -not $Cache.ContainsKey($_) })
+    if (-not $missing) { return }
+    $requests = [ordered]@{}
+    foreach ($id in $missing) {
+        $requests["members|$id"] = "/groups/$id/transitiveMembers/microsoft.graph.servicePrincipal?`$select=$($graphSelect.member)&`$top=999"
+        $requests["owners|$id"] = "/groups/$id/owners/microsoft.graph.servicePrincipal?`$select=$($graphSelect.member)"
+    }
+    $results = Invoke-GraphBatch -Requests $requests -Version beta -ExpectedStatus 404
+    foreach ($id in $missing) {
+        $members = $results["members|$id"]
+        $owners = $results["owners|$id"]
+        $Cache[$id] = [pscustomobject]@{
+            Members      = $members.Items
+            MembersError = if ($members.StatusCode -ge 300) { $members.StatusCode } else { $null }
+            Owners       = $owners.Items
+            OwnersError  = if ($owners.StatusCode -ge 300) { $owners.StatusCode } else { $null }
+        }
+    }
+}
+
+function Get-GroupEligibleMembers {
+    #eligible members of PIM for Groups per group id, added to -Cache: Members (users with the member properties, service
+    #principals, the transitive members of eligible groups) and Error (status code when they could not all be read)
+    param([string[]]$GroupIds, [Parameter(Mandatory = $true)][AllowEmptyCollection()][hashtable]$Cache)
+    $missing = @($GroupIds | Where-Object { $_ -and -not $Cache.ContainsKey($_) })
+    if (-not $missing) { return }
+    $requests = [ordered]@{}
+    foreach ($id in $missing) { $requests[$id] = "/identityGovernance/privilegedAccess/group/eligibilitySchedules?`$filter=$([uri]::EscapeDataString("groupId eq '$id' and accessId eq 'member'"))&`$expand=principal" }
+    #400 ResourceTypeNotSupported: a group PIM cannot manage (synchronized from on-premises), so without eligible members
+    $schedules = Invoke-GraphBatch -Requests $requests -ExpectedStatus 400
+    #the principal expansion has default properties only, so users and groups are read again
+    $principalRequests = [ordered]@{}
+    foreach ($id in $missing) {
+        foreach ($schedule in @($schedules[$id].Items | Where-Object { $_ -is [System.Text.Json.JsonElement] })) {
+            $principalId = Get-JsonProperty -Element $schedule -Name 'principalId'
+            switch (Get-JsonProperty -Element (Get-JsonProperty -Element $schedule -Name 'principal') -Name '@odata.type') {
+                '#microsoft.graph.user' { $principalRequests["user|$principalId"] = "/users/$principalId`?`$select=$($graphSelect.member)" }
+                '#microsoft.graph.group' { $principalRequests["group|$principalId"] = "/groups/$principalId/transitiveMembers?`$select=$($graphSelect.member)&`$top=999" }
+            }
+        }
+    }
+    $principalResults = if ($principalRequests.Count) { Invoke-GraphBatch -Requests $principalRequests -ExpectedStatus 404 } else { @{} }
+    foreach ($id in $missing) {
+        $result = $schedules[$id]
+        if ($result.StatusCode -eq 400 -and $result.ErrorCode -eq 'ResourceTypeNotSupported') { $Cache[$id] = [pscustomobject]@{ Members = [System.Collections.Generic.List[System.Text.Json.JsonElement]]::new(); Error = $null }; continue }
+        if ($result.StatusCode -ge 300) { $Cache[$id] = [pscustomobject]@{ Members = $null; Error = $result.StatusCode }; continue }
+        $members = [System.Collections.Generic.List[System.Text.Json.JsonElement]]::new()
+        $seen = [System.Collections.Generic.HashSet[string]]::new()
+        $failed = $null
+        foreach ($schedule in @($result.Items | Where-Object { $_ -is [System.Text.Json.JsonElement] })) {
+            $principalId = Get-JsonProperty -Element $schedule -Name 'principalId'
+            $type = Get-JsonProperty -Element (Get-JsonProperty -Element $schedule -Name 'principal') -Name '@odata.type'
+            $found = @()
+            if ($type -in '#microsoft.graph.user', '#microsoft.graph.group') {
+                $key = "$(if ($type -eq '#microsoft.graph.user') { 'user' } else { 'group' })|$principalId"
+                $detail = $principalResults[$key]
+                if ($detail.StatusCode -ge 300 -and $detail.StatusCode -ne 404) { $failed = $detail.StatusCode }
+                if ($null -ne $detail.Single) { $found = @($detail.Single) } elseif ($detail.Items) { $found = @($detail.Items) }
+            } else {
+                $principal = Get-JsonProperty -Element $schedule -Name 'principal'
+                if ($principal -is [System.Text.Json.JsonElement]) { $found = @($principal) }
+            }
+            foreach ($member in $found) { if ($seen.Add([string](Get-JsonProperty -Element $member -Name 'id'))) { $members.Add($member) } }
+        }
+        $Cache[$id] = [pscustomobject]@{ Members = $members; Error = $failed }
+    }
 }
 
 function Export-EntraData {
@@ -1117,8 +1302,8 @@ function Export-EntraData {
         . $addObjects $lookup.Objects
     }
 
-    #groups: transitive members, owners and the properties that decide who can change membership; service principal
-    #members and owners are enriched below as well
+    #groups: transitive members, eligible members (PIM for Groups), owners and the properties that decide who can change
+    #membership; service principal members and owners are enriched below as well
     Write-Log "Graph: $($groupIds.Count) groups"
     $memberSelect = "`$select=$($graphSelect.member)"
     $groupRequests = [ordered]@{}
@@ -1128,12 +1313,18 @@ function Export-EntraData {
         $groupRequests["properties|$id"] = "/groups/$id`?`$select=$($graphSelect.group)"
     }
     $groupResults = if ($groupRequests.Count) { Invoke-GraphBatch -Requests $groupRequests } else { @{} }
+    $eligibleMembers = @{}
+    Get-GroupEligibleMembers -GroupIds @($groupIds) -Cache $eligibleMembers
+    $groupServicePrincipals = @{}
+    Get-GroupServicePrincipals -GroupIds @($groupIds) -Cache $groupServicePrincipals
     $groupRecords = [System.Collections.Generic.List[object]]::new()
     $additionalIds = [System.Collections.Generic.HashSet[string]]::new()
     foreach ($id in @($groupIds)) {
         $members = $groupResults["members|$id"]
         $owners = $groupResults["owners|$id"]
-        foreach ($related in @($members.Items) + @($owners.Items)) {
+        $eligible = $eligibleMembers[$id]
+        $servicePrincipals = $groupServicePrincipals[$id]
+        foreach ($related in @($members.Items) + @($owners.Items) + @($eligible.Members) + @($servicePrincipals.Members) + @($servicePrincipals.Owners)) {
             if ($related -isnot [System.Text.Json.JsonElement]) { continue }
             $relatedId = Get-JsonProperty -Element $related -Name 'id'
             switch (Get-JsonProperty -Element $related -Name '@odata.type') {
@@ -1145,7 +1336,13 @@ function Export-EntraData {
                 id                     = $id
                 transitiveMembers      = $members.Items
                 transitiveMembersError = if ($members.StatusCode -ge 300) { $members.StatusCode } else { $null }
+                eligibleMembers        = $eligible.Members
+                eligibleMembersError   = $eligible.Error
+                servicePrincipalMembers      = $servicePrincipals.Members
+                servicePrincipalMembersError = $servicePrincipals.MembersError
                 owners                 = $owners.Items
+                servicePrincipalOwners       = $servicePrincipals.Owners
+                servicePrincipalOwnersError  = $servicePrincipals.OwnersError
                 properties             = $groupResults["properties|$id"].Single
             })
     }
@@ -1258,13 +1455,41 @@ function Export-EntraData {
         $sections[$name] = Export-Endpoint -Uri $uri -Resource Graph -Path (Join-Path $Folder "$name.json")
     }
 
+    #users and groups that hold directory roles: the user properties (the principal expansion of role eligibilities has
+    #no userType or onPremisesSyncEnabled), and the transitive and eligible members of the groups
+    $rolePrincipalTypes = [ordered]@{}
+    foreach ($name in 'directoryRoleAssignments', 'directoryRoleEligibilitySchedules') {
+        if ($sections[$name].status -notin 'ok', 'partial') { continue }
+        foreach ($item in @(Get-Content -LiteralPath (Join-Path $Folder "$name.json") -Raw | ConvertFrom-Json)) {
+            $type = [string]$item.principal.'@odata.type'
+            if ($item.principalId -and $type -in '#microsoft.graph.user', '#microsoft.graph.group') { $rolePrincipalTypes[[string]$item.principalId] = $type }
+        }
+    }
+    $roleRequests = [ordered]@{}
+    foreach ($id in $rolePrincipalTypes.Keys) {
+        $roleRequests[$id] = if ($rolePrincipalTypes[$id] -eq '#microsoft.graph.user') { "/users/$id`?`$select=$($graphSelect.member)" } else { "/groups/$id/transitiveMembers?`$select=$($graphSelect.member)&`$top=999" }
+    }
+    $roleResults = if ($roleRequests.Count) { Invoke-GraphBatch -Requests $roleRequests -ExpectedStatus 404 } else { @{} }
+    $roleGroupIds = @($rolePrincipalTypes.Keys | Where-Object { $rolePrincipalTypes[$_] -eq '#microsoft.graph.group' })
+    Get-GroupEligibleMembers -GroupIds $roleGroupIds -Cache $eligibleMembers
+    Get-GroupServicePrincipals -GroupIds $roleGroupIds -Cache $groupServicePrincipals
+    $rolePrincipals = @(foreach ($id in $rolePrincipalTypes.Keys) {
+            $result = $roleResults[$id]
+            $eligible = if ($rolePrincipalTypes[$id] -eq '#microsoft.graph.group') { $eligibleMembers[$id] } else { $null }
+            $servicePrincipals = if ($rolePrincipalTypes[$id] -eq '#microsoft.graph.group') { $groupServicePrincipals[$id] } else { $null }
+            [ordered]@{ id = $id; type = $rolePrincipalTypes[$id]; user = $result.Single; members = $result.Items; error = if ($result.StatusCode -ge 300) { $result.StatusCode } else { $null }; eligibleMembers = $eligible.Members; eligibleMembersError = $eligible.Error; servicePrincipalMembers = $servicePrincipals.Members; servicePrincipalMembersError = $servicePrincipals.MembersError }
+        })
+    Write-JsonFile -Path (Join-Path $Folder 'directoryRolePrincipals.json') -Value $rolePrincipals
+    $sections.directoryRolePrincipals = [ordered]@{ status = 'ok'; count = $rolePrincipals.Count }
+
     #user members of the groups Conditional Access policies exclude, which is how emergency access accounts are usually excluded
     if ($sections.conditionalAccessPolicies.status -in 'ok', 'partial') {
         $policies = Get-Content -LiteralPath (Join-Path $Folder 'conditionalAccessPolicies.json') -Raw | ConvertFrom-Json
         $excludedGroupIds = @($policies | ForEach-Object { $_.conditions.users.excludeGroups } | Where-Object { $_ } | Sort-Object -Unique)
         $excludedRequests = [ordered]@{}
         foreach ($id in $excludedGroupIds) { $excludedRequests[$id] = "/groups/$id/transitiveMembers/microsoft.graph.user?`$select=$($graphSelect.member)&`$top=999" }
-        $excludedResults = if ($excludedRequests.Count) { Invoke-GraphBatch -Requests $excludedRequests } else { @{} }
+        #404: a deleted group that a policy still excludes
+        $excludedResults = if ($excludedRequests.Count) { Invoke-GraphBatch -Requests $excludedRequests -ExpectedStatus 404 } else { @{} }
         $excludedGroups = @(foreach ($id in $excludedGroupIds) {
                 $members = $excludedResults[$id]
                 [ordered]@{ id = $id; members = $members.Items; membersError = if ($members.StatusCode -ge 300) { $members.StatusCode } else { $null } }
@@ -1276,6 +1501,44 @@ function Export-EntraData {
 }
 
 #endregion
+
+function Test-ActivityLogNoise {
+    #true for an activity log event that $activityLogNoise leaves out
+    param([Parameter(Mandatory = $true)]$Event)
+    $category = [string](Get-JsonProp -Element $Event -Path 'category.value')
+    $operation = [string](Get-JsonProp -Element $Event -Path 'operationName.value')
+    $isUser = ([string](Get-JsonProperty -Element $Event -Name 'caller')).Contains('@')
+    foreach ($rule in $activityLogNoise) {
+        $ruleCategory, $pattern, $callers = $rule
+        if ($ruleCategory -ne '*' -and $category -ne $ruleCategory) { continue }
+        if ($operation -notlike $pattern) { continue }
+        if ($callers -eq 'services' -and $isUser) { continue }
+        return $true
+    }
+    return $false
+}
+
+function Write-ActivityLogEvent {
+    #writes the part of an activity log event that $activityLogFields keeps
+    param([Parameter(Mandatory = $true)][System.Text.Json.JsonElement]$Event, [Parameter(Mandatory = $true)][System.Text.Json.Utf8JsonWriter]$Writer)
+    $Writer.WriteStartObject()
+    foreach ($name in $activityLogFields) {
+        $value = [System.Text.Json.JsonElement]::new()
+        if (-not $Event.TryGetProperty($name, [ref]$value)) { continue }
+        $Writer.WritePropertyName($name)
+        if ($value.ValueKind -ne 'Object') { $value.WriteTo($Writer); continue }
+        $Writer.WriteStartObject()
+        foreach ($property in $value.EnumerateObject()) {
+            $keep = if ($name -in $activityLogValueFields) { $property.Name -eq 'value' }
+            elseif ($name -eq 'claims') { $property.Name -in $activityLogClaims }
+            elseif ($name -eq 'httpRequest') { $property.Name -in $activityLogHttpRequest }
+            else { $property.Name -notin $activityLogDroppedProperties }
+            if ($keep) { $property.WriteTo($Writer) }
+        }
+        $Writer.WriteEndObject()
+    }
+    $Writer.WriteEndObject()
+}
 
 function Get-SafeFileName {
     #file system safe and unique: <sanitized name>_<first 8 hex chars of the id hash>
@@ -1402,6 +1665,9 @@ try {
             $resourceGroupEndpoints = $using:resourceGroupEndpoints
             $textContentMap = $using:textContentMap
             $resourceMetricsMap = $using:resourceMetricsMap
+            $workflowAppChildren = $using:workflowAppChildren
+            $workflowAppVersionsPath = $using:workflowAppVersionsPath
+            $workflowAppMetrics = $using:workflowAppMetrics
             $metricsTimespans = $using:metricsTimespans
             $item = $_
             try {
@@ -1435,6 +1701,46 @@ try {
     Write-JsonFile -Path (Join-Path $runFolder 'web/managedApis.json') -Value $managedApis
     $sections['web/managedApis'] = [ordered]@{ status = if (-not $managedApisFailed) { 'ok' } elseif ($managedApis.Count) { 'partial' } else { 'failed' }; count = $managedApis.Count; failed = $managedApisFailed }
 
+    #resources in other subscriptions that this one relies on, in id order: activity log destinations, data collection
+    #rules and peered virtual networks. Requested by lowercase id; id and type as the response has them
+    $referenced = [System.Collections.Generic.HashSet[string]]::new()
+    if ($sections['subscription/diagnosticSettings'].status -in 'ok', 'partial') {
+        foreach ($setting in @(Get-Content -LiteralPath (Join-Path $runFolder 'subscription/diagnosticSettings.json') -Raw | ConvertFrom-Json)) {
+            foreach ($id in @($setting.properties.workspaceId, $setting.properties.storageAccountId)) { if ($id) { $null = $referenced.Add(([string]$id).ToLowerInvariant()) } }
+        }
+    }
+    foreach ($itemResult in $itemResults) { foreach ($id in @($itemResult.ReferencedIds)) { if ($id) { $null = $referenced.Add($id.ToLowerInvariant()) } } }
+    [string[]]$referencedIds = @($referenced | Where-Object { -not $_.StartsWith("/subscriptions/$($SubscriptionId.ToLowerInvariant())/") -and $_ -match '/providers/[^/]+/[^/]+/[^/]+$' })
+    [Array]::Sort($referencedIds, [System.StringComparer]::Ordinal)
+    Write-Log "Resources in other subscriptions ($($referencedIds.Count))"
+    $referencedRecords = [System.Collections.Generic.List[object]]::new()
+    foreach ($id in $referencedIds) {
+        $type = $id -replace '^.*/providers/([^/]+)/([^/]+)/[^/]+$', '$1/$2'
+        $failures = [System.Collections.Generic.List[object]]::new()
+        $record = [ordered]@{ id = $id; type = $type; apiVersion = $null; resource = $null; children = [ordered]@{}; failures = $failures }
+        foreach ($apiVersion in @($apiVersions[$type])) {
+            if (-not $apiVersion) { continue }
+            $response = Invoke-AzRest -Uri "$id`?api-version=$apiVersion" -Context 'subscription/referencedResources.json' -ExpectedStatus 400, 403, 404
+            if (Test-Success $response) {
+                $record.resource = $response.Json
+                $record.apiVersion = $apiVersion
+                if (Get-JsonProperty -Element $response.Json -Name 'id') { $record.id = Get-JsonProperty -Element $response.Json -Name 'id' }
+                if (Get-JsonProperty -Element $response.Json -Name 'type') { $record.type = Get-JsonProperty -Element $response.Json -Name 'type' }
+                break
+            }
+            $failures.Add([ordered]@{ path = $id; apiVersion = $apiVersion; statusCode = $response.StatusCode; errorCode = $response.ErrorCode })
+            if ($response.StatusCode -ne 400) { break }
+        }
+        if ($null -ne $record.resource) {
+            $cache = @{}
+            foreach ($path in $referencedChildMap[$type]) { $record.children[$path] = Get-ChildResource -ParentId $record.id -ParentType $record.type -Path $path -Cache $cache -Failures $failures }
+        }
+        $referencedRecords.Add($record)
+    }
+    Write-JsonFile -Path (Join-Path $runFolder 'subscription/referencedResources.json') -Value $referencedRecords
+    $referencedRead = @($referencedRecords | Where-Object { $null -ne $_.resource }).Count
+    $sections['subscription/referencedResources'] = [ordered]@{ status = if ($referencedRead -eq $referencedRecords.Count) { 'ok' } elseif ($referencedRead) { 'partial' } else { 'failed' }; count = $referencedRead; failed = $referencedRecords.Count - $referencedRead }
+
     if (-not $SkipResourceGraph) {
         Write-Log 'Resource Graph tables'
         foreach ($table in $resourceGraphTables) {
@@ -1443,22 +1749,47 @@ try {
     }
 
     if ($ActivityLogDays -gt 0) {
-        #queried per day to keep responses small; windows do not overlap. The API returns some events twice, identical, so they are deduplicated
+        $activityLogUri = "/subscriptions/$SubscriptionId/providers/Microsoft.Insights/eventtypes/management/values?api-version=$($coreApiVersions.activityLog)&`$filter="
+        #restores and failovers over the whole window, by resource provider
         Write-Log "Activity log ($ActivityLogDays days)"
+        $recoveryOperations = [System.Collections.Generic.List[System.Text.Json.JsonElement]]::new()
+        $seenRecoveryIds = [System.Collections.Generic.HashSet[string]]::new()
+        $failedProviders = 0
+        foreach ($provider in $activityLogRecoveryProviders) {
+            $filter = "eventTimestamp ge '$($startTime.AddDays(-$ActivityLogDays).ToString('o'))' and eventTimestamp le '$($startTime.ToString('o'))' and resourceProvider eq '$provider'"
+            $result = Invoke-AzPaged -Uri "$activityLogUri$([uri]::EscapeDataString($filter))" -Context 'activityLog/recoveryOperations' -SeenIds $seenRecoveryIds -IdProperty 'eventDataId' -Where { param($item) (Get-JsonProp -Element $item -Path 'operationName.value') -in $activityLogRecoveryOperations }
+            if (-not (Test-Success $result) -or -not $result.Complete) { $failedProviders++ }
+            $recoveryOperations.AddRange($result.Items)
+        }
+        Write-JsonFile -Path (Join-Path $runFolder 'activityLog/recoveryOperations.json') -Value $recoveryOperations
+        $sections['activityLog/recoveryOperations'] = [ordered]@{ status = if ($failedProviders -eq 0) { 'ok' } elseif ($failedProviders -lt $activityLogRecoveryProviders.Count) { 'partial' } else { 'failed' }; count = $recoveryOperations.Count; days = $ActivityLogDays }
+
+        #the rest per day, newest first, until $activityLogMaxEvents; windows do not overlap. The API returns some events
+        #twice, identical, so they are deduplicated
         $eventCount = 0
         $duplicateCount = 0
+        $noiseCount = 0
         $failedDays = 0
+        $daysCollected = 0
         $seenEventIds = [System.Collections.Generic.HashSet[string]]::new()
         $handle = New-JsonWriter -Path (Join-Path $runFolder 'activityLog/activityLog.json')
         try {
             $handle.Writer.WriteStartArray()
             $windowEnd = $startTime
-            for ($day = 0; $day -lt $ActivityLogDays; $day++) {
+            while ($daysCollected -lt $ActivityLogDays -and $eventCount -lt $activityLogMaxEvents) {
                 $windowStart = $windowEnd.AddDays(-1)
                 $filter = "eventTimestamp ge '$($windowStart.ToString('o'))' and eventTimestamp le '$($windowEnd.ToString('o'))'"
-                $result = Invoke-AzPaged -Uri "/subscriptions/$SubscriptionId/providers/Microsoft.Insights/eventtypes/management/values?api-version=$($coreApiVersions.activityLog)&`$filter=$([uri]::EscapeDataString($filter))" -Context 'activityLog' -Writer $handle.Writer -SeenIds $seenEventIds -IdProperty 'eventDataId'
+                #one day in memory at a time: a busy subscription has gigabytes of activity log
+                $result = Invoke-AzPaged -Uri "$activityLogUri$([uri]::EscapeDataString($filter))" -Context 'activityLog' -SeenIds $seenEventIds -IdProperty 'eventDataId'
+                foreach ($item in $result.Items) {
+                    if (Test-ActivityLogNoise $item) { $noiseCount++; continue }
+                    Write-ActivityLogEvent -Event $item -Writer $handle.Writer
+                    $eventCount++
+                }
+                $handle.Writer.Flush()
+                $daysCollected++
+                if ($daysCollected % 10 -eq 0 -and $daysCollected -lt $ActivityLogDays) { Write-Log "  $daysCollected/$ActivityLogDays days" }
                 if (-not (Test-Success $result) -or -not $result.Complete) { $failedDays++ }
-                $eventCount += $result.Count
                 $duplicateCount += $result.Duplicates
                 $windowEnd = $windowStart.AddTicks(-1)
             }
@@ -1466,7 +1797,9 @@ try {
         } finally {
             Close-JsonWriter -Handle $handle
         }
-        $sections['activityLog/activityLog'] = [ordered]@{ status = if ($failedDays -eq 0) { 'ok' } elseif ($failedDays -lt $ActivityLogDays) { 'partial' } else { 'failed' }; count = $eventCount; duplicatesSkipped = $duplicateCount; days = $ActivityLogDays; failedDays = $failedDays }
+        $truncated = $daysCollected -lt $ActivityLogDays
+        if ($truncated) { Write-Log "  $eventCount events in the last $daysCollected days, the most kept; older days are left out" }
+        $sections['activityLog/activityLog'] = [ordered]@{ status = if ($failedDays -eq 0) { 'ok' } elseif ($failedDays -lt $daysCollected) { 'partial' } else { 'failed' }; count = $eventCount; noiseSkipped = $noiseCount; duplicatesSkipped = $duplicateCount; days = $ActivityLogDays; daysCollected = $daysCollected; truncated = $truncated; failedDays = $failedDays }
     }
 
     $counts.referencedPrincipals = $principalIds.Count

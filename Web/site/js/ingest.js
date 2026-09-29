@@ -252,6 +252,29 @@ export async function runIngest(options) {
 
     //Get-ChildResource
     async function childResource(parentId, parentType, path, apiVersion, cache, itemFailures) {
+        //'a/*': collection a with every item read in full; null when the listing or one of the items failed
+        if (path.endsWith('/*')) {
+            const collection = path.slice(0, -2);
+            if (!apiVersion) {
+                let candidates = apiVersions[`${parentType}/${childTypeSegments(collection)}`.toLowerCase()];
+                if (!candidates || !candidates.length) { candidates = apiVersions[parentType.toLowerCase()]; }
+                apiVersion = candidates?.[0] ?? '';
+            }
+            const listed = await childResource(parentId, parentType, collection, apiVersion, cache, itemFailures);
+            if (listed === null) { return null; }
+            const full = [];
+            for (const item of (Array.isArray(listed) ? listed : [listed])) {
+                const itemId = prop(item, 'id');
+                if (!itemId) { continue; }
+                const response = await rest(`${itemId}?api-version=${apiVersion}`, { context: parentId, expectedStatus: [400, 404, 405, 409], maxTransientRetries: 1 });
+                if (!ok(response)) {
+                    itemFailures.push({ path: itemId, apiVersion, statusCode: response.statusCode, errorCode: response.errorCode });
+                    return null;
+                }
+                full.push(response.json);
+            }
+            return full;
+        }
         const star = path.indexOf('/*/');
         if (star > 0) {
             const prefix = path.slice(0, star), rest2 = path.slice(star + 3);
@@ -313,24 +336,50 @@ export async function runIngest(options) {
                 if (typeKey === 'microsoft.sql/servers/databases' && /\/databases\/master$/i.test(item.id) && /^(dataMaskingPolicies|currentSensitivityLabels)/i.test(path)) { continue; }
                 record.children[path] = await childResource(item.id, item.type, path, pinned, cache, itemFailures);
             }
+            //Logic App (Standard): workflows, connections.json and the versions of each workflow
+            const workflowApp = typeKey === 'microsoft.web/sites' && /workflowapp/i.test(String(prop(record.resource, 'kind') ?? ''));
+            if (workflowApp) {
+                for (const entry of plan.workflowAppChildren) {
+                    const at = entry.indexOf('@');
+                    const path = at < 0 ? entry : entry.slice(0, at);
+                    const pinned = at < 0 ? null : entry.slice(at + 1);
+                    record.children[path] = await childResource(item.id, item.type, path, pinned, cache, itemFailures);
+                }
+                const at = plan.workflowAppVersionsPath.indexOf('@');
+                const versionsPath = plan.workflowAppVersionsPath.slice(0, at);
+                const versionsApi = plan.workflowAppVersionsPath.slice(at + 1);
+                const versions = {};
+                for (const workflow of (record.children['workflows/*'] ?? [])) {
+                    const name = String(prop(workflow, 'name') ?? '').replace(/^.*\//, '');
+                    if (name) { versions[name] = await childResource(item.id, item.type, versionsPath.replace('{name}', encodeURIComponent(name).replace(/[!'()*]/g, c => '%' + c.charCodeAt(0).toString(16).toUpperCase())), versionsApi, cache, itemFailures); }
+                }
+                record.children.workflowVersions = versions;
+            }
             for (const path of (plan.textContentMap[typeKey] ?? [])) {
                 const response = await rest(`${item.id}/${path}?api-version=${record.apiVersion}`, { context: item.id, expectedStatus: [400, 404], maxTransientRetries: 1 });
                 if (ok(response)) { record.textContent[path] = response.json !== null ? JSON.stringify(response.json) : response.text; }
                 else { itemFailures.push({ path: `${item.id}/${path}`, apiVersion: record.apiVersion, statusCode: response.statusCode, errorCode: response.errorCode }); }
             }
-            const metricNames = plan.resourceMetricsMap[typeKey];
-            if (metricNames) {
+            //metric queries: 'names' or 'names|dimension filter'
+            const metricSpecs = [...[plan.resourceMetricsMap[typeKey]].flat(), ...(workflowApp ? plan.workflowAppMetrics : [])].filter(Boolean);
+            if (metricSpecs.length) {
                 //all windows or nothing, so that totals are never computed from part of the period
                 const path = 'providers/Microsoft.Insights/metrics';
                 let windows = [];
-                for (const timespan of metricsTimespans) {
-                    const response = await rest(`${item.id}/${path}?metricnames=${metricNames}&aggregation=Total&interval=P1D&timespan=${timespan}&api-version=${core.metrics}`, { context: item.id, expectedStatus: [400, 404], maxTransientRetries: 1 });
-                    if (!ok(response)) {
-                        windows = null;
-                        itemFailures.push({ path: `${item.id}/${path}`, apiVersion: core.metrics, statusCode: response.statusCode, errorCode: response.errorCode });
-                        break;
+                for (const spec of metricSpecs) {
+                    const bar = spec.indexOf('|');
+                    const metricNames = bar < 0 ? spec : spec.slice(0, bar);
+                    const filterQuery = bar < 0 ? '' : `&$filter=${encodeURIComponent(spec.slice(bar + 1)).replace(/[!'()*]/g, c => '%' + c.charCodeAt(0).toString(16).toUpperCase())}`;
+                    for (const timespan of metricsTimespans) {
+                        const response = await rest(`${item.id}/${path}?metricnames=${metricNames}&aggregation=Total&interval=P1D&timespan=${timespan}${filterQuery}&api-version=${core.metrics}`, { context: item.id, expectedStatus: [400, 404], maxTransientRetries: 1 });
+                        if (!ok(response)) {
+                            windows = null;
+                            itemFailures.push({ path: `${item.id}/${path}`, apiVersion: core.metrics, statusCode: response.statusCode, errorCode: response.errorCode });
+                            break;
+                        }
+                        windows.push(response.json);
                     }
-                    windows.push(response.json);
+                    if (windows === null) { break; }
                 }
                 record.children.metrics = windows;
             }
@@ -341,7 +390,20 @@ export async function runIngest(options) {
         for (const child of Object.values(record.children)) { findPrincipalIds(Array.isArray(child) ? child : [child], ids); }
         //the connector of an API connection, whose metadata is collected after the resources
         const managedApiId = typeKey === 'microsoft.web/connections' ? prop(record.resource, 'properties.api.id') : null;
-        return { id: item.id, type: item.type, file: item.file, apiVersion: record.apiVersion, status: record.resource !== null ? 'ok' : 'failed', failureCount: itemFailures.length, principalIds: [...ids], managedApiId };
+        //resources the analysis follows, which may be in another subscription: the data collection rules of a machine and
+        //the networks a virtual network is peered with
+        const referencedIds = [];
+        const associations = record.children['providers/Microsoft.Insights/dataCollectionRuleAssociations'];
+        for (const association of (Array.isArray(associations) ? associations : [associations])) {
+            const ruleId = prop(association, 'properties.dataCollectionRuleId');
+            if (ruleId) { referencedIds.push(String(ruleId)); }
+        }
+        const peerings = prop(record.resource, 'properties.virtualNetworkPeerings');
+        for (const peering of (Array.isArray(peerings) ? peerings : [])) {
+            const remoteId = prop(peering, 'properties.remoteVirtualNetwork.id');
+            if (remoteId) { referencedIds.push(String(remoteId)); }
+        }
+        return { id: item.id, type: item.type, file: item.file, apiVersion: record.apiVersion, status: record.resource !== null ? 'ok' : 'failed', failureCount: itemFailures.length, principalIds: [...ids], managedApiId, referencedIds };
     }
 
     //Export-ResourceGroupDetail
@@ -402,14 +464,15 @@ export async function runIngest(options) {
     }
 
     //Invoke-GraphBatch: relative Graph v1.0 GET requests through $batch, 20 per call, including paging
-    async function graphBatch(requests, expectedStatus = []) {
+    //Invoke-GraphBatch; version 'beta' for what v1.0 does not return (service principals as members or owners of groups)
+    async function graphBatch(requests, expectedStatus = [], version = 'v1.0') {
         const results = new Map();
         const attempts = new Map();
         const pending = [...requests.keys()];
         while (pending.length) {
             const batchKeys = pending.splice(0, 20);
             const body = JSON.stringify({ requests: batchKeys.map((key, i) => ({ id: String(i), method: 'GET', url: requests.get(key) })) });
-            const response = await rest('/v1.0/$batch', { resource: 'Graph', method: 'POST', body, context: 'graph batch' });
+            const response = await rest(`/${version}/$batch`, { resource: 'Graph', method: 'POST', body, context: 'graph batch' });
             if (!ok(response)) {
                 for (const key of batchKeys) { results.set(key, { statusCode: response.statusCode, errorCode: response.errorCode, items: null, single: null }); }
                 continue;
@@ -442,7 +505,7 @@ export async function runIngest(options) {
                     }
                 } else {
                     result.errorCode = prop(itemBody, 'error.code');
-                    if (!expectedStatus.includes(status)) { addFailure(`${endpoints.Graph}/v1.0${requests.get(key)}`, 'GET', status, result.errorCode, prop(itemBody, 'error.message'), 'graph batch item'); }
+                    if (!expectedStatus.includes(status)) { addFailure(`${endpoints.Graph}/${version}${requests.get(key)}`, 'GET', status, result.errorCode, prop(itemBody, 'error.message'), 'graph batch item'); }
                 }
                 results.set(key, result);
             }
@@ -490,6 +553,73 @@ export async function runIngest(options) {
             addObjects(lookup.objects);
         }
 
+        //Get-GroupEligibleMembers: eligible members of PIM for Groups per group id, added to the cache: members (users with the
+        //member properties, service principals, the transitive members of eligible groups) and error (status code when
+        //they could not all be read)
+        const eligibleMembers = new Map();
+        const groupEligibleMembers = async ids => {
+            const missing = ids.filter(id => id && !eligibleMembers.has(id));
+            if (!missing.length) { return; }
+            const requests = new Map(missing.map(id => [id, `/identityGovernance/privilegedAccess/group/eligibilitySchedules?$filter=${encodeURIComponent(`groupId eq '${id}' and accessId eq 'member'`).replace(/[!'()*]/g, c => '%' + c.charCodeAt(0).toString(16).toUpperCase())}&$expand=principal`]));
+            //400 ResourceTypeNotSupported: a group PIM cannot manage (synchronized from on-premises), so without eligible members
+            const schedules = await graphBatch(requests, [400]);
+            //the principal expansion has default properties only, so users and groups are read again
+            const principalRequests = new Map();
+            for (const id of missing) {
+                for (const schedule of (schedules.get(id)?.items ?? [])) {
+                    const principalId = prop(schedule, 'principalId');
+                    const type = field(field(schedule, 'principal'), '@odata.type');
+                    if (type === '#microsoft.graph.user') { principalRequests.set(`user|${principalId}`, `/users/${principalId}?$select=${plan.graphSelect.member}`); }
+                    if (type === '#microsoft.graph.group') { principalRequests.set(`group|${principalId}`, `/groups/${principalId}/transitiveMembers?$select=${plan.graphSelect.member}&$top=999`); }
+                }
+            }
+            const principalResults = principalRequests.size ? await graphBatch(principalRequests, [404]) : new Map();
+            for (const id of missing) {
+                const result = schedules.get(id);
+                if (result.statusCode === 400 && result.errorCode === 'ResourceTypeNotSupported') { eligibleMembers.set(id, { members: [], error: null }); continue; }
+                if (result.statusCode >= 300) { eligibleMembers.set(id, { members: null, error: result.statusCode }); continue; }
+                const members = [];
+                const seen = new Set();
+                let failed = null;
+                for (const schedule of (result.items ?? [])) {
+                    const principalId = prop(schedule, 'principalId');
+                    const type = field(field(schedule, 'principal'), '@odata.type');
+                    let found = [];
+                    if (type === '#microsoft.graph.user' || type === '#microsoft.graph.group') {
+                        const detail = principalResults.get(`${type === '#microsoft.graph.user' ? 'user' : 'group'}|${principalId}`);
+                        if (detail && detail.statusCode >= 300 && detail.statusCode !== 404) { failed = detail.statusCode; }
+                        if (detail?.single != null) { found = [detail.single]; } else if (detail?.items) { found = detail.items; }
+                    } else if (field(schedule, 'principal')) {
+                        found = [field(schedule, 'principal')];
+                    }
+                    for (const member of found) { const memberId = String(prop(member, 'id')); if (!seen.has(memberId)) { seen.add(memberId); members.push(member); } }
+                }
+                eligibleMembers.set(id, { members, error: failed });
+            }
+        };
+
+        //Get-GroupServicePrincipals: service principals that are transitive members or owners of groups, per group id, added
+        //to the cache. Graph v1.0 leaves service principals out of group members and owners; beta returns them
+        const groupServicePrincipals = new Map();
+        const readGroupServicePrincipals = async ids => {
+            const missing = ids.filter(id => id && !groupServicePrincipals.has(id));
+            if (!missing.length) { return; }
+            const requests = new Map();
+            for (const id of missing) {
+                requests.set(`members|${id}`, `/groups/${id}/transitiveMembers/microsoft.graph.servicePrincipal?$select=${plan.graphSelect.member}&$top=999`);
+                requests.set(`owners|${id}`, `/groups/${id}/owners/microsoft.graph.servicePrincipal?$select=${plan.graphSelect.member}`);
+            }
+            const results = await graphBatch(requests, [404], 'beta');
+            for (const id of missing) {
+                const members = results.get(`members|${id}`);
+                const owners = results.get(`owners|${id}`);
+                groupServicePrincipals.set(id, {
+                    members: members?.items ?? null, membersError: members && members.statusCode >= 300 ? members.statusCode : null,
+                    owners: owners?.items ?? null, ownersError: owners && owners.statusCode >= 300 ? owners.statusCode : null
+                });
+            }
+        };
+
         log(`Graph: ${groupIds.size} groups`);
         const memberSelect = `$select=${plan.graphSelect.member}`;
         const groupRequests = new Map();
@@ -499,12 +629,16 @@ export async function runIngest(options) {
             groupRequests.set(`properties|${id}`, `/groups/${id}?$select=${plan.graphSelect.group}`);
         }
         const groupResults = groupRequests.size ? await graphBatch(groupRequests) : new Map();
+        await groupEligibleMembers([...groupIds]);
+        await readGroupServicePrincipals([...groupIds]);
         const groupRecords = [];
         const additionalIds = new Set();
         for (const id of [...groupIds]) {
             const members = groupResults.get(`members|${id}`);
             const owners = groupResults.get(`owners|${id}`);
-            for (const related of [...(members?.items ?? []), ...(owners?.items ?? [])]) {
+            const eligible = eligibleMembers.get(id);
+            const servicePrincipals = groupServicePrincipals.get(id);
+            for (const related of [...(members?.items ?? []), ...(owners?.items ?? []), ...(eligible?.members ?? []), ...(servicePrincipals?.members ?? []), ...(servicePrincipals?.owners ?? [])]) {
                 const relatedId = prop(related, 'id');
                 switch (field(related, '@odata.type')) {
                     case '#microsoft.graph.user': userIds.add(relatedId); break;
@@ -512,7 +646,7 @@ export async function runIngest(options) {
                     default: break;
                 }
             }
-            groupRecords.push({ id, transitiveMembers: members?.items ?? null, transitiveMembersError: members && members.statusCode >= 300 ? members.statusCode : null, owners: owners?.items ?? null, properties: groupResults.get(`properties|${id}`)?.single ?? null });
+            groupRecords.push({ id, transitiveMembers: members?.items ?? null, transitiveMembersError: members && members.statusCode >= 300 ? members.statusCode : null, eligibleMembers: eligible?.members ?? null, eligibleMembersError: eligible?.error ?? null, servicePrincipalMembers: servicePrincipals?.members ?? null, servicePrincipalMembersError: servicePrincipals?.membersError ?? null, owners: owners?.items ?? null, servicePrincipalOwners: servicePrincipals?.owners ?? null, servicePrincipalOwnersError: servicePrincipals?.ownersError ?? null, properties: groupResults.get(`properties|${id}`)?.single ?? null });
         }
         write('identity/groups.json', groupRecords);
         out.groups = { status: 'ok', count: groupRecords.length };
@@ -608,12 +742,38 @@ export async function runIngest(options) {
             out[name] = await exportEndpoint(uri, `identity/${name}.json`, { resource: 'Graph' });
         }
 
+        //users and groups that hold directory roles: the user properties (the principal expansion of role eligibilities has
+        //no userType or onPremisesSyncEnabled) and the transitive members of the groups
+        const rolePrincipalTypes = new Map();
+        for (const name of ['directoryRoleAssignments', 'directoryRoleEligibilitySchedules']) {
+            if (!['ok', 'partial'].includes(out[name]?.status)) { continue; }
+            for (const item of vfs.entry(`${root}/identity/${name}.json`)?.value ?? []) {
+                const type = field(field(item, 'principal'), '@odata.type');
+                const principalId = field(item, 'principalId');
+                if (principalId && ['#microsoft.graph.user', '#microsoft.graph.group'].includes(type)) { rolePrincipalTypes.set(String(principalId), type); }
+            }
+        }
+        const roleRequests = new Map([...rolePrincipalTypes].map(([id, type]) => [id, type === '#microsoft.graph.user' ? `/users/${id}?$select=${plan.graphSelect.member}` : `/groups/${id}/transitiveMembers?$select=${plan.graphSelect.member}&$top=999`]));
+        const roleResults = roleRequests.size ? await graphBatch(roleRequests, [404]) : new Map();
+        const roleGroupIds = [...rolePrincipalTypes].filter(([, type]) => type === '#microsoft.graph.group').map(([id]) => id);
+        await groupEligibleMembers(roleGroupIds);
+        await readGroupServicePrincipals(roleGroupIds);
+        const rolePrincipals = [...rolePrincipalTypes].map(([id, type]) => {
+            const result = roleResults.get(id);
+            const eligible = type === '#microsoft.graph.group' ? eligibleMembers.get(id) : null;
+            const servicePrincipals = type === '#microsoft.graph.group' ? groupServicePrincipals.get(id) : null;
+            return { id, type, user: result?.single ?? null, members: result?.items ?? null, error: result && result.statusCode >= 300 ? result.statusCode : null, eligibleMembers: eligible?.members ?? null, eligibleMembersError: eligible?.error ?? null, servicePrincipalMembers: servicePrincipals?.members ?? null, servicePrincipalMembersError: servicePrincipals?.membersError ?? null };
+        });
+        write('identity/directoryRolePrincipals.json', rolePrincipals);
+        out.directoryRolePrincipals = { status: 'ok', count: rolePrincipals.length };
+
         //user members of the groups Conditional Access policies exclude, which is how emergency access accounts are usually excluded
         if (['ok', 'partial'].includes(out.conditionalAccessPolicies?.status)) {
             const policies = vfs.entry(`${root}/identity/conditionalAccessPolicies.json`)?.value ?? [];
             const excludedGroupIds = [...new Set(policies.flatMap(policy => prop(policy, 'conditions.users.excludeGroups') ?? []).filter(Boolean))].sort();
             const excludedRequests = new Map(excludedGroupIds.map(id => [id, `/groups/${id}/transitiveMembers/microsoft.graph.user?$select=${plan.graphSelect.member}&$top=999`]));
-            const excludedResults = excludedRequests.size ? await graphBatch(excludedRequests) : new Map();
+            //404: a deleted group that a policy still excludes
+            const excludedResults = excludedRequests.size ? await graphBatch(excludedRequests, [404]) : new Map();
             const excludedGroups = excludedGroupIds.map(id => {
                 const members = excludedResults.get(id);
                 return { id, members: members?.items ?? null, membersError: members && members.statusCode >= 300 ? members.statusCode : null };
@@ -719,6 +879,46 @@ export async function runIngest(options) {
         write('web/managedApis.json', managedApis);
         sections['web/managedApis'] = { status: !managedApisFailed ? 'ok' : managedApis.length ? 'partial' : 'failed', count: managedApis.length, failed: managedApisFailed };
 
+        //resources in other subscriptions that this one relies on, in id order: activity log destinations, data collection
+        //rules and peered virtual networks. Requested by lowercase id; id and type as the response has them
+        const referenced = new Set();
+        if (['ok', 'partial'].includes(sections['subscription/diagnosticSettings']?.status)) {
+            for (const setting of vfs.entry(`${root}/subscription/diagnosticSettings.json`)?.value ?? []) {
+                for (const id of [prop(setting, 'properties.workspaceId'), prop(setting, 'properties.storageAccountId')]) { if (id) { referenced.add(String(id).toLowerCase()); } }
+            }
+        }
+        for (const itemResult of itemResults) { for (const id of (itemResult.referencedIds ?? [])) { if (id) { referenced.add(id.toLowerCase()); } } }
+        const ownPrefix = `/subscriptions/${subscriptionId.toLowerCase()}/`;
+        const referencedIds = [...referenced].filter(id => !id.startsWith(ownPrefix) && /\/providers\/[^/]+\/[^/]+\/[^/]+$/.test(id)).sort();
+        log(`Resources in other subscriptions (${referencedIds.length})`);
+        const referencedRecords = [];
+        for (const id of referencedIds) {
+            const type = id.replace(/^.*\/providers\/([^/]+)\/([^/]+)\/[^/]+$/, '$1/$2');
+            const itemFailures = [];
+            const record = { id, type, apiVersion: null, resource: null, children: {}, failures: itemFailures };
+            for (const apiVersion of (apiVersions[type] ?? [])) {
+                if (!apiVersion) { continue; }
+                const response = await rest(`${id}?api-version=${apiVersion}`, { context: 'subscription/referencedResources.json', expectedStatus: [400, 403, 404] });
+                if (ok(response)) {
+                    record.resource = response.json;
+                    record.apiVersion = apiVersion;
+                    if (prop(response.json, 'id')) { record.id = prop(response.json, 'id'); }
+                    if (prop(response.json, 'type')) { record.type = prop(response.json, 'type'); }
+                    break;
+                }
+                itemFailures.push({ path: id, apiVersion, statusCode: response.statusCode, errorCode: response.errorCode });
+                if (response.statusCode !== 400) { break; }
+            }
+            if (record.resource !== null) {
+                const cache = {};
+                for (const path of (plan.referencedChildMap[type] ?? [])) { record.children[path] = await childResource(record.id, record.type, path, null, cache, itemFailures); }
+            }
+            referencedRecords.push(record);
+        }
+        write('subscription/referencedResources.json', referencedRecords);
+        const referencedRead = referencedRecords.filter(r => r.resource !== null).length;
+        sections['subscription/referencedResources'] = { status: referencedRead === referencedRecords.length ? 'ok' : referencedRead ? 'partial' : 'failed', count: referencedRead, failed: referencedRecords.length - referencedRead };
+
         if (!skipResourceGraph) {
             log('Resource Graph tables');
             let tablesDone = 0;
@@ -729,25 +929,82 @@ export async function runIngest(options) {
         }
 
         if (activityLogDays > 0) {
-            //queried per day; windows do not overlap. The API returns some events twice, identical, so they are deduplicated
+            const activityLogUri = `/subscriptions/${subscriptionId}/providers/Microsoft.Insights/eventtypes/management/values?api-version=${core.activityLog}&$filter=`;
+            const encodeFilter = filter => encodeURIComponent(filter).replace(/[!'()*]/g, c => '%' + c.charCodeAt(0).toString(16).toUpperCase());
+            //restores and failovers over the whole window, by resource provider
             log(`Activity log (${activityLogDays} days)`);
-            let eventCount = 0, duplicateCount = 0, failedDays = 0;
+            const recoveryOperations = [];
+            const recoveryNames = new Set(plan.activityLogRecoveryOperations.map(name => name.toLowerCase()));
+            const seenRecovery = new Set();
+            let failedProviders = 0;
+            for (const provider of plan.activityLogRecoveryProviders) {
+                const filter = `eventTimestamp ge '${formatDate(startDate.addMs(-activityLogDays * 86400000), 'o')}' and eventTimestamp le '${formatDate(startDate, 'o')}' and resourceProvider eq '${provider}'`;
+                const result = await paged(activityLogUri + encodeFilter(filter), {
+                    context: 'activityLog/recoveryOperations', seenIds: seenRecovery, idProperty: 'eventDataId', onItem: e => {
+                        if (recoveryNames.has(String(prop(e, 'operationName.value') ?? '').toLowerCase())) { recoveryOperations.push(e); }
+                    }
+                });
+                if (!ok(result) || !result.complete) { failedProviders++; }
+            }
+            write('activityLog/recoveryOperations.json', recoveryOperations);
+            sections['activityLog/recoveryOperations'] = { status: failedProviders === 0 ? 'ok' : failedProviders < plan.activityLogRecoveryProviders.length ? 'partial' : 'failed', count: recoveryOperations.length, days: activityLogDays };
+
+            //the rest per day, newest first, until activityLogMaxEvents; windows do not overlap. The API returns some
+            //events twice, identical, so they are deduplicated
+            let duplicateCount = 0, failedDays = 0, daysCollected = 0;
             const seen = new Set();
             const events = [];
+            //Write-ActivityLogEvent: the fields of activityLogFields, in that order
+            const valueFields = new Set(plan.activityLogValueFields);
+            const keepKey = {
+                claims: key => plan.activityLogClaims.includes(key),
+                httpRequest: key => plan.activityLogHttpRequest.includes(key),
+                properties: key => !plan.activityLogDroppedProperties.includes(key)
+            };
+            const slim = event => {
+                const out = {};
+                for (const name of plan.activityLogFields) {
+                    if (!Object.prototype.hasOwnProperty.call(event, name)) { continue; }
+                    const value = event[name];
+                    if (value === null || typeof value !== 'object' || Array.isArray(value)) { out[name] = value; continue; }
+                    const keep = valueFields.has(name) ? key => key === 'value' : keepKey[name] ?? keepKey.properties;
+                    out[name] = Object.fromEntries(Object.entries(value).filter(([key]) => keep(key)));
+                }
+                return out;
+            };
+            //Test-ActivityLogNoise: wildcard patterns as case-insensitive regular expressions
+            const noiseRules = plan.activityLogNoise.map(([category, pattern, callers]) => ({
+                category: category.toLowerCase(),
+                pattern: new RegExp('^' + pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*').replace(/\?/g, '.') + '$', 'i'),
+                callers
+            }));
+            const isNoise = event => {
+                const category = String(prop(event, 'category.value') ?? '').toLowerCase();
+                const operation = String(prop(event, 'operationName.value') ?? '');
+                const isUser = String(field(event, 'caller') ?? '').includes('@');
+                return noiseRules.some(rule => (rule.category === '*' || category === rule.category) && rule.pattern.test(operation) && !(rule.callers === 'services' && isUser));
+            };
+            let noiseCount = 0;
             let windowEnd = startDate;
-            for (let day = 0; day < activityLogDays; day++) {
+            while (daysCollected < activityLogDays && events.length < plan.activityLogMaxEvents) {
                 const windowStart = windowEnd.addMs(-86400000);
                 const filter = `eventTimestamp ge '${formatDate(windowStart, 'o')}' and eventTimestamp le '${formatDate(windowEnd, 'o')}'`;
-                const result = await paged(`/subscriptions/${subscriptionId}/providers/Microsoft.Insights/eventtypes/management/values?api-version=${core.activityLog}&$filter=${encodeURIComponent(filter).replace(/[!'()*]/g, c => '%' + c.charCodeAt(0).toString(16).toUpperCase())}`,
-                    { context: 'activityLog', seenIds: seen, idProperty: 'eventDataId', onItem: e => events.push(e) });
+                const result = await paged(activityLogUri + encodeFilter(filter), {
+                    context: 'activityLog', seenIds: seen, idProperty: 'eventDataId', onItem: e => {
+                        if (isNoise(e)) { noiseCount++; return; }
+                        events.push(slim(e));
+                    }
+                });
+                daysCollected++;
                 if (!ok(result) || !result.complete) { failedDays++; }
-                eventCount += result.count;
                 duplicateCount += result.duplicates;
                 windowEnd = windowStart.addTicks(-1);
-                progress({ phase: 'activityLog', done: day + 1, total: activityLogDays });
+                progress({ phase: 'activityLog', done: daysCollected, total: activityLogDays });
             }
+            const truncated = daysCollected < activityLogDays;
+            if (truncated) { log(`  ${events.length} events in the last ${daysCollected} days, the most kept; older days are left out`); }
             write('activityLog/activityLog.json', events);
-            sections['activityLog/activityLog'] = { status: failedDays === 0 ? 'ok' : failedDays < activityLogDays ? 'partial' : 'failed', count: eventCount, duplicatesSkipped: duplicateCount, days: activityLogDays, failedDays };
+            sections['activityLog/activityLog'] = { status: failedDays === 0 ? 'ok' : failedDays < daysCollected ? 'partial' : 'failed', count: events.length, noiseSkipped: noiseCount, duplicatesSkipped: duplicateCount, days: activityLogDays, daysCollected, truncated, failedDays };
         }
 
         counts.referencedPrincipals = principalIds.size;

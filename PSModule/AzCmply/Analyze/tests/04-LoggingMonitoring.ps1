@@ -405,14 +405,15 @@ function Get-ActivityLogRetention {
     $outcome = { param([string]$Status, [string]$Detail) [pscustomobject]@{ Setting = $Setting.name; Status = $Status; Detail = $Detail } }
     $results = @()
     if ($p.workspaceId) {
-        $workspace = Get-AzResourceRecord -Id $p.workspaceId
+        $workspace = Get-ReferencedResourceRecord -Id $p.workspaceId
         $name = Get-ResourceName $p.workspaceId
-        if (-not $workspace) { $results += & $outcome 'Unknown' "workspace $name is not in this subscription or could not be read" }
+        if (-not $workspace) { $results += & $outcome 'Unknown' "workspace $name could not be read" }
         else {
             $days = [int]$workspace.resource.properties.retentionInDays
+            #a workspace in another subscription has only its AzureActivity table collected
             if ($days -ge 365) { $results += & $outcome 'Pass' "workspace $name keeps $days days" }
-            elseif (Test-ChildCollected $workspace 'tables') {
-                $table = @(Get-Child $workspace 'tables' | Where-Object { $_ -and $_.name -eq 'AzureActivity' }) | Select-Object -First 1
+            elseif ((Test-ChildCollected $workspace 'tables') -or (Test-ChildCollected $workspace 'tables/AzureActivity')) {
+                $table = @(@(Get-Child $workspace 'tables') + @(Get-Child $workspace 'tables/AzureActivity') | Where-Object { $_ -and $_.name -eq 'AzureActivity' }) | Select-Object -First 1
                 $total = if ($table.properties.totalRetentionInDays) { [int]$table.properties.totalRetentionInDays } else { $days }
                 $status = if ($total -ge 365) { 'Pass' } else { 'Fail' }
                 $results += & $outcome $status "the AzureActivity table in workspace $name keeps $total days"
@@ -420,9 +421,9 @@ function Get-ActivityLogRetention {
         }
     }
     if ($p.storageAccountId) {
-        $account = Get-AzResourceRecord -Id $p.storageAccountId
+        $account = Get-ReferencedResourceRecord -Id $p.storageAccountId
         $name = Get-ResourceName $p.storageAccountId
-        if (-not $account) { $results += & $outcome 'Unknown' "storage account $name is not in this subscription or could not be read" }
+        if (-not $account) { $results += & $outcome 'Unknown' "storage account $name could not be read" }
         elseif (Test-ChildCollected $account 'managementPolicies/default') {
             #lifecycle rules that delete append blobs in the insights-activity-logs container
             $deleteAfter = @(foreach ($rule in @((Get-Child $account 'managementPolicies/default').properties.policy.rules | Where-Object { $_ -and $_.enabled -ne $false })) {
@@ -445,11 +446,12 @@ function Get-ActivityLogRetention {
 
 Add-AzTest @{
     Id          = 'AZ-LOG-024'
+    Version     = 2
     Title       = 'The activity log is kept for at least a year'
     Category    = 'Logging and threat detection'
     Service     = 'Azure Monitor'
     Severity    = 'Low'
-    Description = 'Follows the activity log diagnostic settings to their destinations and checks that at least one keeps the log for 365 days or more: the Log Analytics workspace (or its AzureActivity table), or the storage account and its lifecycle rules.'
+    Description = 'Follows the activity log diagnostic settings to their destinations, also in other subscriptions, and checks that at least one keeps the log for 365 days or more: the Log Analytics workspace (or its AzureActivity table), or the storage account and its lifecycle rules.'
     Rationale   = 'Azure keeps the activity log for 90 days. Investigating an incident found months later, and showing who changed what over a year, needs the control plane history kept longer.'
     Remediation = 'Keep the AzureActivity table for at least a year (workspace retention or table level total retention), or archive the activity log to a storage account without a lifecycle rule that deletes it earlier, ideally with an immutability policy.'
     References  = @('https://learn.microsoft.com/azure/azure-monitor/logs/data-retention-configure', 'https://learn.microsoft.com/azure/azure-monitor/essentials/activity-log')

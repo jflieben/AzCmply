@@ -32,7 +32,7 @@ $ids = @{
     Disabled = '10000000-0000-0000-0000-000000000004'; Synced = '10000000-0000-0000-0000-000000000005'
     G1 = '20000000-0000-0000-0000-000000000001'; G2 = '20000000-0000-0000-0000-000000000002'; G3 = '20000000-0000-0000-0000-000000000003'
     SpApp = '30000000-0000-0000-0000-000000000001'; SpMi = '30000000-0000-0000-0000-000000000002'; SpFunc = '30000000-0000-0000-0000-000000000003'; Graph = '40000000-0000-0000-0000-000000000001'
-    Deleted = '50000000-0000-0000-0000-000000000001'; BreakGlass = '20000000-0000-0000-0000-000000000004'
+    Deleted = '50000000-0000-0000-0000-000000000001'; BreakGlass = '20000000-0000-0000-0000-000000000004'; DeletedGroup = '20000000-0000-0000-0000-000000000005'
 }
 
 $root = $Path
@@ -52,7 +52,7 @@ $diag = @(@{ name = 'to-la'; properties = @{ workspaceId = "$rgId/providers/Micr
 
 function Add-Record {
     #writes a resource file; -Id defaults to a resource group level id
-    param([string]$Type, [string]$Name, [hashtable]$Resource, [hashtable]$Children = @{}, $Diagnostics = 'default', [hashtable]$Text = @{}, [string]$Id)
+    param([string]$Type, [string]$Name, [hashtable]$Resource, [hashtable]$Children = @{}, $Diagnostics = 'default', [hashtable]$Text = @{}, [string]$Id, [array]$Failures = @())
     if (-not $Id) { $Id = ResId $Type $Name }
     $Resource.id = $Id
     $Resource.name = ($Name -split '/')[-1]
@@ -60,7 +60,7 @@ function Add-Record {
     if (-not $Resource.location) { $Resource.location = $location }
     if ($Diagnostics -eq 'default') { $Diagnostics = Pick $diag @() }
     $file = "resources/$($Type -replace '/', '.')/$($Name -replace '/', '_').json"
-    Save ($file -replace '\.json$', '') ([ordered]@{ id = $Id; type = $Type; apiVersion = 'fixture'; resource = $Resource; diagnosticSettings = $Diagnostics; children = $Children; textContent = $Text; failures = @() })
+    Save ($file -replace '\.json$', '') ([ordered]@{ id = $Id; type = $Type; apiVersion = 'fixture'; resource = $Resource; diagnosticSettings = $Diagnostics; children = $Children; textContent = $Text; failures = @($Failures) })
     $index.Add([ordered]@{ id = $Id; type = $Type; file = $file; status = 'ok' })
     $listed = [ordered]@{ id = $Id; type = $Type; name = $Resource.name; location = $Resource.location }
     if ($Resource.kind) { $listed.kind = $Resource.kind }
@@ -81,8 +81,8 @@ $assignments = @(
     & $assignment 'ra-g2-owner' $roles.Owner $ids.G2 'Group' $subScope
     & $assignment 'ra-g3-reader' $roles.Reader $ids.G3 'Group' $subScope
     & $assignment 'ra-mi-root-reader' $roles.Reader $ids.SpMi 'ServicePrincipal' '/'
-    #the identity of logicfixture writes in its own resource group when Good, in another when Bad (AZ-IAM-031)
-    & $assignment 'ra-mi-contributor' $roles.Contributor $ids.SpMi 'ServicePrincipal' (Pick $rgId "$subScope/resourceGroups/rg-other")
+    #the identity of logicfixture writes in its own resource group, and in another through group readers when Bad (AZ-IAM-031)
+    & $assignment 'ra-mi-contributor' $roles.Contributor $ids.SpMi 'ServicePrincipal' $rgId
     #...and may operate the managed application that owns its resource group
     & $assignment 'ra-mi-app-operator' $roles.Contributor $ids.SpMi 'ServicePrincipal' "$subScope/resourceGroups/rg-apps/providers/Microsoft.Solutions/applications/mafixture"
     #the Flex Consumption app reads its package with its own identity (AZ-FUNC-001 does not count the app itself)
@@ -103,6 +103,7 @@ if ($G) {
     $assignments += & $assignment 'ra-deleted-reader' $roles.Reader $ids.Deleted 'ServicePrincipal' $subScope
     #a delegated role that can take over the domain controllers, on a subscription shared with other workloads (AZ-VM-015)
     $assignments += & $assignment 'ra-g3-vmcontributor' $roles.VmContributor $ids.G3 'Group' $subScope
+    $assignments += & $assignment 'ra-g3-othercontributor' $roles.Contributor $ids.G3 'Group' "$subScope/resourceGroups/rg-other"
 }
 Save 'rbac/roleAssignments' $assignments
 
@@ -110,14 +111,27 @@ $instances = foreach ($a in ($assignments | Where-Object { $_.properties.princip
     @{ id = "$($a.id)-instance"; type = 'Microsoft.Authorization/roleAssignmentScheduleInstances'; properties = @{ originRoleAssignmentId = $a.id; assignmentType = (Pick 'Activated' 'Assigned'); endDateTime = (Pick (Iso 1) $null); principalId = $a.properties.principalId; principalType = $a.properties.principalType; roleDefinitionId = $a.properties.roleDefinitionId; scope = $a.properties.scope } }
 }
 Save 'rbac/roleAssignmentScheduleInstances' @($instances)
-Save 'rbac/denyAssignments' @(@{
+#da2 is the system deny assignment of a Container Apps environment on the resource group it manages, which excludes the
+#Container Apps service (AZ-IAM-023)
+$caeInfraRgId = "$subScope/resourceGroups/rg-cae-infra"
+Save 'rbac/denyAssignments' @(
+    @{
         id = "$subScope/providers/Microsoft.Authorization/denyAssignments/da1"; type = 'Microsoft.Authorization/denyAssignments'
         properties = @{
             denyAssignmentName = 'Managed application deny'; scope = $rgId; isSystemProtected = $true; doNotApplyToChildScopes = $false
             permissions = @(@{ actions = @('*'); notActions = @('*/read') })
             excludePrincipals = (Pick @() @(@{ id = $ids.U1; type = 'User' }))
         }
-    })
+    }
+    @{
+        id = "$caeInfraRgId/providers/Microsoft.Authorization/denyAssignments/da2"; type = 'Microsoft.Authorization/denyAssignments'
+        properties = @{
+            denyAssignmentName = 'Container Apps Managed Resource Group Deny Assignment'; scope = $caeInfraRgId; isSystemProtected = $true; doNotApplyToChildScopes = $false
+            permissions = @(@{ actions = @('*/locks/write', 'Microsoft.Resources/subscriptions/resourceGroups/delete') })
+            excludePrincipals = @(@{ id = '40000000-0000-0000-0000-0000000000ca'; type = 'ServicePrincipal' })
+        }
+    }
+)
 Save 'rbac/roleEligibilitySchedules' @()
 
 $definition = { param([string]$Guid, [string]$Name, [string]$Type, [string[]]$Actions) @{ id = (Role $Guid); name = $Guid; type = 'Microsoft.Authorization/roleDefinitions'; properties = @{ roleName = $Name; type = $Type; permissions = @(@{ actions = $Actions }); assignableScopes = @($subScope) } } }
@@ -174,12 +188,20 @@ $servicePrincipals = @(
 )
 Save 'identity/directoryObjects' (@($users) + $groups + $servicePrincipals)
 $member = { param($Id) $u = $users | Where-Object { $_.id -eq $Id }; @{ '@odata.type' = '#microsoft.graph.user'; id = $Id; displayName = $u.displayName; userPrincipalName = $u.userPrincipalName } }
+#a user read by id (/users/{id}), as for role principals and eligible members: Graph returns its @odata.context, not its @odata.type
+$roleUser = { param($Id) $u = $users | Where-Object { $_.id -eq $Id }; @{ '@odata.context' = 'https://graph.microsoft.com/v1.0/$metadata#users(id,displayName,userPrincipalName,userType,accountEnabled,onPremisesSyncEnabled)/$entity'; id = $Id; displayName = $u.displayName; userPrincipalName = $u.userPrincipalName; userType = $u.userType; accountEnabled = $u.accountEnabled; onPremisesSyncEnabled = $u.onPremisesSyncEnabled } }
 #owners-1 is a dynamic, not role-assignable group when Bad (AZ-IAM-032)
 $groupProperties = { param($Group, [bool]$Assignable = $true, [string]$Rule) @{ id = $Group.id; displayName = $Group.displayName; isAssignableToRole = $Assignable; groupTypes = @(if ($Rule) { 'DynamicMembership' }); membershipRule = $(if ($Rule) { $Rule } else { $null }); onPremisesSyncEnabled = $null; securityEnabled = $true } }
+#a service principal read through the beta cast (members/microsoft.graph.servicePrincipal) has no @odata.type
+$groupSp = { param($Sp) @{ id = $Sp.id; displayName = $Sp.displayName; appId = $Sp.appId; servicePrincipalType = $Sp.servicePrincipalType; appOwnerOrganizationId = $Sp.appOwnerOrganizationId } }
+$groupRecord = { param([string]$Id, $Members, $Eligible, $Properties, $SpMembers = @(), $SpOwners = @()) @{ id = $Id; transitiveMembers = @($Members); eligibleMembers = @($Eligible); eligibleMembersError = $null; servicePrincipalMembers = @($SpMembers); servicePrincipalMembersError = $null; owners = @(); servicePrincipalOwners = @($SpOwners); servicePrincipalOwnersError = $null; properties = $Properties } }
 Save 'identity/groups' @(
-    @{ id = $ids.G1; transitiveMembers = (Pick @(& $member $ids.U1) @((& $member $ids.U1), (& $member $ids.Guest), (& $member $ids.Disabled))); owners = @(); properties = (Pick (& $groupProperties $groups[0]) (& $groupProperties $groups[0] $false 'user.department -eq "IT"')) }
-    @{ id = $ids.G2; transitiveMembers = @(& $member $ids.U2); owners = @(); properties = (& $groupProperties $groups[1]) }
-    @{ id = $ids.G3; transitiveMembers = @(& $member $ids.U1); owners = @(); properties = (& $groupProperties $groups[2] $false) }
+    #the guest is an eligible member of owners-1 (PIM for Groups) when Bad
+    & $groupRecord $ids.G1 (Pick @(& $member $ids.U1) @((& $member $ids.U1), (& $member $ids.Disabled))) (Pick @() @(& $roleUser $ids.Guest)) (Pick (& $groupProperties $groups[0]) (& $groupProperties $groups[0] $false 'user.department -eq "IT"'))
+    #fixture-app is a member and an owner of owners-2 when Bad (AZ-IAM-003, AZ-IAM-032)
+    & $groupRecord $ids.G2 @(& $member $ids.U2) @() (& $groupProperties $groups[1]) (Pick @() @(& $groupSp $servicePrincipals[0])) (Pick @() @(& $groupSp $servicePrincipals[0]))
+    #the identity of logicfixture is a member of readers (AZ-IAM-003, AZ-IAM-031)
+    & $groupRecord $ids.G3 @(& $member $ids.U1) @() (& $groupProperties $groups[2] $false) @(& $groupSp $servicePrincipals[1])
 )
 $graphRoles = @(@{ id = '70000000-0000-0000-0000-000000000001'; value = 'User.Read.All' }, @{ id = '70000000-0000-0000-0000-000000000002'; value = 'RoleManagement.ReadWrite.Directory' })
 Save 'identity/apiServicePrincipals' @(@{ id = $ids.Graph; appId = '00000003-0000-0000-c000-000000000000'; displayName = 'Microsoft Graph'; appRoles = $graphRoles })
@@ -206,7 +228,24 @@ Save 'identity/directoryRoleAssignments' $(if ($G) {
     } else {
         @(@{ id = 'dra1'; principalId = $ids.Synced; roleDefinitionId = $ga; principal = (& $principalOf $ids.Synced) }, @{ id = 'dra2'; principalId = $ids.SpApp; roleDefinitionId = $pra; principal = $servicePrincipals[0] })
     })
-Save 'identity/directoryRoleEligibilitySchedules' @()
+#eligible Global Administrator through a group (owners-2 when Good, owners-1 with a guest when Bad) and an eligible user;
+#the principal expansion of an eligibility has no userType or onPremisesSyncEnabled, directoryRolePrincipals has them
+$bareUser = { param($Id) $u = $users | Where-Object { $_.id -eq $Id }; @{ '@odata.type' = '#microsoft.graph.user'; id = $Id; displayName = $u.displayName; userPrincipalName = $u.userPrincipalName } }
+$roleMember = { param($Id) $u = $users | Where-Object { $_.id -eq $Id }; @{ '@odata.type' = '#microsoft.graph.user'; id = $Id; displayName = $u.displayName; userPrincipalName = $u.userPrincipalName; userType = $u.userType; accountEnabled = $u.accountEnabled; onPremisesSyncEnabled = $u.onPremisesSyncEnabled } }
+Save 'identity/directoryRoleEligibilitySchedules' $(if ($G) {
+        @(@{ id = 'drs1'; principalId = $ids.G2; roleDefinitionId = $ga; principal = $groups[1] }, @{ id = 'drs2'; principalId = $ids.U1; roleDefinitionId = $pra; principal = (& $bareUser $ids.U1) })
+    } else {
+        @(@{ id = 'drs1'; principalId = $ids.G1; roleDefinitionId = $ga; principal = $groups[0] }, @{ id = 'drs2'; principalId = $ids.U2; roleDefinitionId = $ga; principal = (& $bareUser $ids.U2) })
+    })
+Save 'identity/directoryRolePrincipals' $(if ($G) {
+        @(@{ id = $ids.U1; type = '#microsoft.graph.user'; user = (& $roleUser $ids.U1); members = $null; error = $null }
+            @{ id = $ids.U2; type = '#microsoft.graph.user'; user = (& $roleUser $ids.U2); members = $null; error = $null }
+            @{ id = $ids.G2; type = '#microsoft.graph.group'; user = $null; members = @(& $roleMember $ids.U2); error = $null; eligibleMembers = @(); eligibleMembersError = $null; servicePrincipalMembers = @(); servicePrincipalMembersError = $null })
+    } else {
+        @(@{ id = $ids.Synced; type = '#microsoft.graph.user'; user = (& $roleUser $ids.Synced); members = $null; error = $null }
+            @{ id = $ids.G1; type = '#microsoft.graph.group'; user = $null; members = @((& $roleMember $ids.U1), (& $roleMember $ids.Disabled)); error = $null; eligibleMembers = @(& $roleUser $ids.Guest); eligibleMembersError = $null; servicePrincipalMembers = @(& $groupSp $servicePrincipals[0]); servicePrincipalMembersError = $null }
+            @{ id = $ids.U2; type = '#microsoft.graph.user'; user = (& $roleUser $ids.U2); members = $null; error = $null })
+    })
 #Conditional Access: MFA for Azure management and for all resources for all users when Good, with the emergency access
 #account admin2 excluded directly and through a group; only report-only, for one group or unrelated when Bad
 $caPolicy = { param([string]$Name, [string]$State, [hashtable]$Users, [string]$Application = '797f4846-ba00-4fd7-ba43-dac1f8f63013', [string]$Control = 'mfa') @{ id = "ca-$Name"; displayName = $Name; state = $State; conditions = @{ users = $Users; applications = @{ includeApplications = @($Application); excludeApplications = @() }; clientAppTypes = @('all') }; grantControls = @{ operator = 'OR'; builtInControls = @($Control) } } }
@@ -214,15 +253,19 @@ $caPolicy = { param([string]$Name, [string]$State, [hashtable]$Users, [string]$A
 Save 'identity/conditionalAccessPolicies' $(if ($G) {
         $allUsers = & $caPolicy 'Require MFA for all users' 'enabled' @{ includeUsers = @('All'); excludeGroups = @($ids.BreakGlass) } 'All'
         $allUsers.sessionControls = @{ signInFrequency = @{ isEnabled = $true; value = 8; type = 'hours'; frequencyInterval = 'timeBased'; authenticationType = 'primaryAndSecondaryAuthentication' } }
-        @((& $caPolicy 'Require MFA for Azure management' 'enabled' @{ includeUsers = @('All'); excludeUsers = @($ids.U2) }), $allUsers, (& $caPolicy 'Require compliant device for Azure management' 'enabled' @{ includeUsers = @('All'); excludeGroups = @($ids.BreakGlass) } '797f4846-ba00-4fd7-ba43-dac1f8f63013' 'compliantDevice'))
+        #the placeholder policy for no application does not apply to the emergency access account (AZ-IAM-028)
+        @((& $caPolicy 'Require MFA for Azure management' 'enabled' @{ includeUsers = @('All'); excludeUsers = @($ids.U2) }), $allUsers, (& $caPolicy 'Require compliant device for Azure management' 'enabled' @{ includeUsers = @('All'); excludeGroups = @($ids.BreakGlass) } '797f4846-ba00-4fd7-ba43-dac1f8f63013' 'compliantDevice'), (& $caPolicy 'Placeholder' 'enabled' @{ includeUsers = @('All') } 'None' 'block'))
     } else {
-        @((& $caPolicy 'Require MFA for Azure management' 'enabledForReportingButNotEnforced' @{ includeUsers = @('All') }), (& $caPolicy 'MFA for admins' 'enabled' @{ includeUsers = @(); includeGroups = @($ids.G1) }), (& $caPolicy 'Block untrusted access' 'enabled' @{ includeUsers = @('All') } 'All' 'block'))
+        #the block policy excludes a group that no longer exists, which excludes nobody (AZ-IAM-028)
+        @((& $caPolicy 'Require MFA for Azure management' 'enabledForReportingButNotEnforced' @{ includeUsers = @('All') }), (& $caPolicy 'MFA for admins' 'enabled' @{ includeUsers = @(); includeGroups = @($ids.G1) }), (& $caPolicy 'Block untrusted access' 'enabled' @{ includeUsers = @('All'); excludeGroups = @($ids.DeletedGroup) } 'All' 'block'))
     })
-Save 'identity/conditionalAccessExcludedGroups' (Pick @(@{ id = $ids.BreakGlass; members = @(& $member $ids.U2); membersError = $null }) @())
+Save 'identity/conditionalAccessExcludedGroups' (Pick @(@{ id = $ids.BreakGlass; members = @(& $member $ids.U2); membersError = $null }) @(@{ id = $ids.DeletedGroup; members = $null; membersError = 404 }))
 #security defaults cannot be on next to Conditional Access; the Good fixture has both so that AZ-IAM-026 passes
 Save 'identity/securityDefaults' @{ id = '00000000-0000-0000-0000-000000000005'; isEnabled = $G }
 Save 'subscription/subscriptionPolicies' @{ id = '/providers/Microsoft.Subscription/policies/default'; name = 'default'; properties = @{ blockSubscriptionsLeavingTenant = $G; blockSubscriptionsIntoTenant = $G; exemptedPrincipals = @() } }
-Save 'subscription/lighthouseRegistrationAssignments' @(@{ id = "$subScope/providers/Microsoft.ManagedServices/registrationAssignments/la1"; properties = @{ registrationDefinition = @{ properties = @{ managedByTenantName = 'Partner'; managedByTenantId = '80000000-0000-0000-0000-000000000001'; registrationDefinitionName = 'Managed services'; authorizations = @(@{ principalId = 'p'; principalIdDisplayName = 'Partner admins'; roleDefinitionId = (Pick $roles.Reader $roles.Contributor) }); eligibleAuthorizations = @(@{ principalId = 'p'; principalIdDisplayName = 'Partner admins'; roleDefinitionId = $roles.Contributor }) } } } })
+#the resource group listing returns this delegation of the subscription as well (AZ-IAM-021 counts it once)
+$lighthouseAssignments = @(@{ id = "$subScope/providers/Microsoft.ManagedServices/registrationAssignments/la1"; properties = @{ registrationDefinition = @{ properties = @{ managedByTenantName = 'Partner'; managedByTenantId = '80000000-0000-0000-0000-000000000001'; registrationDefinitionName = 'Managed services'; authorizations = @(@{ principalId = 'p'; principalIdDisplayName = 'Partner admins'; roleDefinitionId = (Pick $roles.Reader $roles.Contributor) }); eligibleAuthorizations = @(@{ principalId = 'p'; principalIdDisplayName = 'Partner admins'; roleDefinitionId = $roles.Contributor }) } } } })
+Save 'subscription/lighthouseRegistrationAssignments' $lighthouseAssignments
 
 #endregion
 
@@ -236,6 +279,7 @@ Save 'subscription/locks' (Pick @(
         @{ id = "$subScope/resourceGroups/rg-identity/providers/Microsoft.Authorization/locks/protect"; properties = @{ level = 'CanNotDelete' } }
         @{ id = "$(ResId 'Microsoft.Storage/storageAccounts' 'stfixture')/providers/Microsoft.Authorization/locks/readonly"; properties = @{ level = 'ReadOnly' } }
         @{ id = "$(ResId 'Microsoft.Storage/storageAccounts' 'stfuncfixture')/providers/Microsoft.Authorization/locks/readonly"; properties = @{ level = 'ReadOnly' } }
+        @{ id = "$(ResId 'Microsoft.Storage/storageAccounts' 'stpagefixture')/providers/Microsoft.Authorization/locks/readonly"; properties = @{ level = 'ReadOnly' } }
     ) @())
 Save 'subscription/blueprintAssignments' (Pick @() @(@{ id = "$subScope/providers/Microsoft.Blueprint/blueprintAssignments/bp1"; name = 'bp1'; properties = @{ blueprintId = '/providers/Microsoft.Blueprint/blueprints/legacy' } }))
 Save 'subscription/deployments' @(@{ id = "$subScope/providers/Microsoft.Resources/deployments/dep1"; name = 'dep1'; properties = @{ timestamp = (Iso -1); parameters = (Pick @{ vmName = @{ type = 'String'; value = 'vm1' } } @{ adminPassword = @{ type = 'String'; value = 'Sup3rS3cretValue!' } }); outputs = @{} } })
@@ -243,7 +287,24 @@ Save 'subscription/deployments' @(@{ id = "$subScope/providers/Microsoft.Resourc
 Save 'subscription/serialConsole' @{ id = "$subScope/providers/Microsoft.SerialConsole/consoleServices/default"; name = 'default'; properties = @{ disabled = $G } }
 Save 'subscription/budgets' (Pick @(@{ id = "$subScope/providers/Microsoft.Consumption/budgets/monthly"; name = 'monthly'; properties = @{ category = 'Cost'; amount = 1000; timeGrain = 'Monthly'; notifications = @{ actual80 = @{ enabled = $true; threshold = 80; operator = 'GreaterThan'; contactEmails = @('finance@fixture.example'); contactRoles = @(); contactGroups = @() } } } }) @())
 $categories = Pick @('Administrative', 'Alert', 'Policy', 'Security') @('Administrative')
-Save 'subscription/diagnosticSettings' @(@{ name = 'activity'; properties = @{ workspaceId = (ResId 'Microsoft.OperationalInsights/workspaces' 'lafixture'); logs = @($categories | ForEach-Object { @{ category = $_; enabled = $true } }) } })
+#resources in another subscription (subscription/referencedResources): a central workspace that Bad also sends the
+#activity log to (AZ-LOG-024), the data collection rule of the domain controllers (AZ-VM-013) and the hub network that
+#vnetfixture is peered with, with a Bastion only when Good (AZ-NET-011)
+$centralScope = '/subscriptions/90000000-0000-0000-0000-0000000000cc/resourceGroups/rg-central/providers'
+$centralWorkspaceId = "$centralScope/Microsoft.OperationalInsights/workspaces/la-central"
+$centralDcrId = "$centralScope/Microsoft.Insights/dataCollectionRules/dcr-central"
+$hubVnetId = "$centralScope/Microsoft.Network/virtualNetworks/vnet-hub"
+$activitySetting = { param([string]$Name, [string]$WorkspaceId) @{ name = $Name; properties = @{ workspaceId = $WorkspaceId; logs = @($categories | ForEach-Object { @{ category = $_; enabled = $true } }) } } }
+Save 'subscription/diagnosticSettings' @(
+    (& $activitySetting 'activity' (ResId 'Microsoft.OperationalInsights/workspaces' 'lafixture'))
+    if (-not $G) { & $activitySetting 'central' $centralWorkspaceId }
+)
+$hubBastionSubnet = @{ id = "$hubVnetId/subnets/AzureBastionSubnet"; name = 'AzureBastionSubnet'; properties = @{ ipConfigurations = @(if ($G) { @{ id = "$centralScope/Microsoft.Network/bastionHosts/bastion-hub/bastionHostIpConfigurations/IpConf" } }) } }
+Save 'subscription/referencedResources' @(
+    @{ id = $centralDcrId; type = 'Microsoft.Insights/dataCollectionRules'; resource = @{ id = $centralDcrId; name = 'dcr-central'; properties = @{ dataSources = @{ extensions = @(@{ name = 'CTDataSource-Windows'; extensionName = 'ChangeTracking-Windows' }) } } }; children = @{}; failures = @() }
+    @{ id = $centralWorkspaceId; type = 'Microsoft.OperationalInsights/workspaces'; resource = @{ id = $centralWorkspaceId; name = 'la-central'; properties = @{ retentionInDays = 30 } }; children = @{ 'tables/AzureActivity' = @{ name = 'AzureActivity'; properties = @{ retentionInDays = 30; totalRetentionInDays = 90 } } }; failures = @() }
+    @{ id = $hubVnetId; type = 'Microsoft.Network/virtualNetworks'; resource = @{ id = $hubVnetId; name = 'vnet-hub'; properties = @{ subnets = @($hubBastionSubnet) } }; children = @{}; failures = @() }
+)
 
 $planNames = 'CloudPosture', 'VirtualMachines', 'Containers', 'StorageAccounts', 'AppServices', 'CosmosDbs', 'OpenSourceRelationalDatabases', 'SqlServers', 'SqlServerVirtualMachines', 'KeyVaults', 'Arm', 'Api', 'AI'
 Save 'defender/pricings' @(foreach ($plan in $planNames) {
@@ -266,8 +327,10 @@ Save 'defender/jitNetworkAccessPolicies' (Pick @(@{ id = "$subScope/providers/Mi
 
 #storage
 function New-Storage {
-    param([string]$Name, [string]$Bypass, [string[]]$Shares = @(), [string]$Kind = 'StorageV2')
+    param([string]$Name, [string]$Bypass, [string[]]$Shares = @(), [string]$Kind = 'StorageV2', [switch]$NoFileService)
     $blobDiag = Pick $diag @()
+    $failures = @()
+    if ($NoFileService) { $failures = @(foreach ($path in 'fileServices/default', 'fileServices/default/shares') { @{ path = "$(ResId 'Microsoft.Storage/storageAccounts' $Name)/$path"; apiVersion = 'fixture'; statusCode = 400; errorCode = 'FeatureNotSupportedForAccount' } }) }
     Add-Record 'Microsoft.Storage/storageAccounts' $Name @{
         kind = $Kind; sku = @{ name = (Pick 'Standard_GZRS' 'Standard_LRS') }
         properties = @{
@@ -282,19 +345,21 @@ function New-Storage {
     } -Children @{
         'blobServices/default'                                                 = @{ properties = @{ deleteRetentionPolicy = @{ enabled = $G; days = 14 }; containerDeleteRetentionPolicy = @{ enabled = $G; days = 14 }; isVersioningEnabled = $G } }
         'blobServices/default/containers'                                      = @(@{ name = 'data'; properties = @{ publicAccess = (Pick 'None' 'Blob') } })
-        'fileServices/default'                                                 = @{ properties = @{ shareDeleteRetentionPolicy = @{ enabled = $G; days = 14 }; protocolSettings = (Pick @{ smb = @{ versions = 'SMB3.1.1'; channelEncryption = 'AES-256-GCM' } } @{ smb = @{} }) } }
-        'fileServices/default/shares'                                          = @(@{ name = 'share1'; properties = @{ enabledProtocols = 'SMB' } }) + @($Shares | ForEach-Object { @{ name = $_; properties = @{ enabledProtocols = 'SMB' } } })
+        'fileServices/default'                                                 = $(if (-not $NoFileService) { @{ properties = @{ shareDeleteRetentionPolicy = @{ enabled = $G; days = 14 }; protocolSettings = (Pick @{ smb = @{ versions = 'SMB3.1.1'; channelEncryption = 'AES-256-GCM' } } @{ smb = @{} }) } } })
+        'fileServices/default/shares'                                          = $(if (-not $NoFileService) { @(@{ name = 'share1'; properties = @{ enabledProtocols = 'SMB' } }) + @($Shares | ForEach-Object { @{ name = $_; properties = @{ enabledProtocols = 'SMB' } } }) })
         'localUsers'                                                           = @(@{ name = 'sftpuser'; properties = @{ hasSshPassword = (-not $G); hasSshKey = $true } })
         'providers/Microsoft.Security/defenderForStorageSettings/current'      = @{ properties = @{ isEnabled = $G; overrideSubscriptionLevelSettings = (-not $G); malwareScanning = @{ onUpload = @{ isEnabled = $G } } } }
         'blobServices/default/providers/Microsoft.Insights/diagnosticSettings' = $blobDiag
         'fileServices/default/providers/Microsoft.Insights/diagnosticSettings' = $blobDiag
         'queueServices/default/providers/Microsoft.Insights/diagnosticSettings' = $blobDiag
         'tableServices/default/providers/Microsoft.Insights/diagnosticSettings' = $blobDiag
-    } -Diagnostics @() | Out-Null
+    } -Diagnostics @() -Failures $failures | Out-Null
 }
 #stfixture holds the content share of funcfixture, stfuncfixture the deployment package of funcflexfixture (AZ-FUNC-001)
-New-Storage 'stfixture' -Shares @('funcfixture4f2a')
+New-Storage 'stfixture' -Shares @('funcfixture4f2a', 'lastdfixture7c1d')
 New-Storage 'stfuncfixture'
+#the ingestion recorded that stpagefixture offers no Azure Files, as for premium page blob accounts (AZ-STG-017 to 019)
+New-Storage 'stpagefixture' -NoFileService
 #a general-purpose v1 account, which retires (AZ-GOV-008)
 if (-not $G) { New-Storage 'stfixturefw' -Bypass 'None' -Kind 'Storage' }
 
@@ -305,7 +370,11 @@ Add-Record 'Microsoft.KeyVault/vaults' 'kvfixture' @{ properties = @{
         privateEndpointConnections = (Pick $approvedPe @()); accessPolicies = (Pick @() @(@{ objectId = $ids.U1; permissions = @{ secrets = @('all'); keys = @('get') } }))
     }
 } -Children @{
-    keys    = @(@{ id = "$kvId/keys/k1"; name = 'k1'; properties = @{ attributes = @{ enabled = $true; exp = (Pick (Unix 100) $null) }; rotationPolicy = @{ lifetimeActions = @(@{ action = @{ type = (Pick 'Rotate' 'Notify') } }) } } })
+    #cert1 is the key of certificate cert1, without a rotation policy of its own (AZ-KV-007)
+    keys    = @(
+        @{ id = "$kvId/keys/k1"; name = 'k1'; properties = @{ attributes = @{ enabled = $true; exp = (Pick (Unix 100) $null) }; rotationPolicy = @{ lifetimeActions = @(@{ action = @{ type = (Pick 'Rotate' 'Notify') } }) } } }
+        @{ id = "$kvId/keys/cert1"; name = 'cert1'; properties = @{ attributes = @{ enabled = $true; nbf = (Unix -10); exp = (Unix (Pick 355 720)) } } }
+    )
     secrets = @(
         @{ id = "$kvId/secrets/s1"; name = 's1'; properties = @{ attributes = @{ enabled = $true; exp = (Pick (Unix 100) $null) } } }
         @{ id = "$kvId/secrets/cert1"; name = 'cert1'; properties = @{ contentType = 'application/x-pkcs12'; attributes = @{ enabled = $true; nbf = (Unix -10); exp = (Unix (Pick 355 720)) } } }
@@ -367,17 +436,17 @@ Add-Record 'Microsoft.Cache/Redis' 'redisfixture' @{ properties = @{ enableNonSs
 
 #App Service
 function New-Site {
-    param([string]$Name, [string]$Kind, [array]$Functions = @(), [string]$PublicAccess = (Pick 'Disabled' 'Enabled'), [hashtable]$Config = @{}, [hashtable]$Properties = @{}, $Identity = (Pick @{ type = 'SystemAssigned' } $null), [hashtable]$Auth = @{ platform = @{ enabled = $false } })
+    param([string]$Name, [string]$Kind, [array]$Functions = @(), [string]$PublicAccess = (Pick 'Disabled' 'Enabled'), [hashtable]$Config = @{}, [hashtable]$Properties = @{}, $Identity = (Pick @{ type = 'SystemAssigned' } $null), [hashtable]$Auth = @{ platform = @{ enabled = $false } }, [hashtable]$Children = @{})
     $web = @{ minTlsVersion = (Pick '1.2' '1.0'); scmMinTlsVersion = (Pick '1.2' '1.0'); ftpsState = (Pick 'Disabled' 'AllAllowed'); remoteDebuggingEnabled = (-not $G); cors = @{ allowedOrigins = (Pick @('https://contoso.com') @('*')) }; ipSecurityRestrictions = @() }
     foreach ($key in $Config.Keys) { $web[$key] = $Config[$key] }
     $siteProperties = @{ httpsOnly = $G; publicNetworkAccess = $PublicAccess; defaultHostName = "$Name.azurewebsites.net"; hostNames = @("$Name.azurewebsites.net") }
     foreach ($key in $Properties.Keys) { $siteProperties[$key] = $Properties[$key] }
-    Add-Record 'Microsoft.Web/sites' $Name @{ kind = $Kind; identity = $Identity; properties = $siteProperties } -Children @{
+    Add-Record 'Microsoft.Web/sites' $Name @{ kind = $Kind; identity = $Identity; properties = $siteProperties } -Children (@{
         'config/web'                       = @{ properties = $web }
         'config/authsettingsV2'            = @{ properties = $Auth }
         basicPublishingCredentialsPolicies = @(@{ name = 'ftp'; properties = @{ allow = (-not $G) } }, @{ name = 'scm'; properties = @{ allow = (-not $G) } })
         functions                          = $Functions
-    } | Out-Null
+    } + $Children) | Out-Null
 }
 $planId = Add-Record 'Microsoft.Web/serverfarms' 'planfixture' @{ sku = @{ name = 'P1v3'; tier = 'PremiumV3'; capacity = 2 }; properties = @{ numberOfSites = 2; elasticScaleEnabled = $false; zoneRedundant = $G } }
 Add-Record 'Microsoft.Insights/autoscalesettings' 'planfixture-autoscale' @{ properties = @{ enabled = $G; targetResourceUri = $planId; profiles = @(@{ name = 'default'; capacity = @{ minimum = 2; maximum = 10; default = 2 } }) } } | Out-Null
@@ -460,7 +529,7 @@ $winExtensions = @((& $extension 'Microsoft.Azure.AzureDefenderForServers' 'MDE.
 $dsc = & $extension 'Microsoft.Powershell' 'DSC' @{ configuration = @{ url = 'https://fixture.example/CreateADPDC.zip'; script = 'CreateADPDC.ps1'; function = 'CreateADPDC' } }
 foreach ($dc in @(
         @{ Name = 'vmwinfixture'; Id = $winVmId; Computer = 'DC01'; Address = $dcAddress; Extensions = @($winExtensions) + @($dsc); UserData = (& $b64 "Install-WindowsFeature AD-Domain-Services`nInstall-ADDSForest -DomainName corp.fixture.example`n") }
-        @{ Name = 'vmdc2fixture'; Id = $dc2VmId; Computer = 'DC02'; Address = '10.0.1.11'; Extensions = $winExtensions; UserData = $null }
+        @{ Name = 'vmdc2fixture'; Id = $dc2VmId; Computer = 'FXADCP02'; Address = '10.0.1.11'; Extensions = $winExtensions; UserData = $null }
     )) {
     $dcNicId = "$identityRgId/providers/Microsoft.Network/networkInterfaces/nic$($dc.Name)"
     Add-Record 'Microsoft.Compute/virtualMachines' $dc.Name @{ identity = (Pick @{ type = 'SystemAssigned' } $null); properties = @{
@@ -468,7 +537,7 @@ foreach ($dc in @(
             securityProfile = $security; osProfile = @{ computerName = $dc.Computer; windowsConfiguration = @{ patchSettings = @{ assessmentMode = (Pick 'AutomaticByPlatform' 'ImageDefault') } } }
             networkProfile = @{ networkInterfaces = @(@{ id = $dcNicId }) }; userData = $dc.UserData
         }
-    } -Children @{ extensions = $dc.Extensions; instanceView = @{}; 'providers/Microsoft.Insights/dataCollectionRuleAssociations' = $dcrAssociations } -Id $dc.Id | Out-Null
+    } -Children @{ extensions = $dc.Extensions; instanceView = @{}; 'providers/Microsoft.Insights/dataCollectionRuleAssociations' = (Pick @(@{ name = 'ct-central'; properties = @{ dataCollectionRuleId = $centralDcrId } }) @()) } -Id $dc.Id | Out-Null
     Add-Record 'Microsoft.Network/networkInterfaces' "nic$($dc.Name)" @{ properties = @{
             enableIPForwarding = $false; networkSecurityGroup = @{ id = (ResId 'Microsoft.Network/networkSecurityGroups' 'nsgfixture') }; virtualMachine = @{ id = $dc.Id }
             ipConfigurations = @(@{ name = 'ipconfig1'; properties = @{ privateIPAddress = $dc.Address; privateIPAllocationMethod = 'Static'; subnet = @{ id = "$(ResId 'Microsoft.Network/virtualNetworks' 'vnetfixture')/subnets/app" } } })
@@ -477,6 +546,11 @@ foreach ($dc in @(
 }
 Add-Record 'Microsoft.Compute/virtualMachineScaleSets' 'vmssfixture' @{ zones = $fixtureZones; properties = @{ virtualMachineProfile = @{ storageProfile = @{ osDisk = @{ osType = 'Linux' } }; securityProfile = $security; osProfile = @{ linuxConfiguration = $linux }; userData = $userData; extensionProfile = @{ extensions = (Pick $goodExtensions $badExtensions) } } }; sku = @{ name = 'Standard_D2s_v5'; capacity = 2 } } -Children @{ extensions = @(); 'providers/Microsoft.Insights/dataCollectionRuleAssociations' = $dcrAssociations } | Out-Null
 Add-Record 'Microsoft.HybridCompute/machines' 'arcfixture' @{ properties = @{ osType = 'linux' } } -Children @{ extensions = (Pick $goodExtensions $badExtensions); 'providers/Microsoft.Insights/dataCollectionRuleAssociations' = $dcrAssociations } | Out-Null
+#an on-premises domain controller connected with Azure Arc: its agent runs in monitor mode when Good, and accepts every
+#extension and machine configuration when Bad (AZ-VM-017)
+$windowsExtensions = @((& $extension 'Microsoft.Azure.AzureDefenderForServers' 'MDE.Windows'), (& $extension 'Microsoft.Azure.Monitor' 'AzureMonitorWindowsAgent'), (& $extension 'Microsoft.Azure.ChangeTrackingAndInventory' 'ChangeTracking-Windows'))
+$arcAgent = @{ configMode = (Pick 'monitor' 'full'); extensionsEnabled = 'true'; guestConfigurationEnabled = (Pick 'false' 'true'); extensionsAllowList = @(); extensionsBlockList = @() }
+Add-Record 'Microsoft.HybridCompute/machines' 'arcdcfixture' @{ properties = @{ osType = 'windows'; status = 'Connected'; agentVersion = '1.50.0'; detectedProperties = @{ serverType = 'Domain Controller;Server;Workstation' }; agentConfiguration = $arcAgent } } -Children @{ extensions = (Pick $windowsExtensions $badExtensions); 'providers/Microsoft.Insights/dataCollectionRuleAssociations' = $dcrAssociations } | Out-Null
 Add-Record 'Microsoft.Compute/disks' 'diskfixture' @{ properties = @{ diskState = (Pick 'Attached' 'Unattached'); networkAccessPolicy = (Pick 'DenyAll' 'AllowAll'); publicNetworkAccess = (Pick 'Disabled' 'Enabled') } } | Out-Null
 Add-Record 'Microsoft.Compute/snapshots' 'snapfixture' @{ properties = @{ diskState = (Pick 'Reserved' 'ActiveSAS'); networkAccessPolicy = (Pick 'DenyAll' 'AllowAll'); publicNetworkAccess = (Pick 'Disabled' 'Enabled') } } | Out-Null
 Add-Record 'Microsoft.SqlVirtualMachine/sqlVirtualMachines' 'sqlvmfixture' @{ properties = @{} } | Out-Null
@@ -495,8 +569,12 @@ $getSecret = @{ type = 'ApiConnection'; inputs = @{ host = @{ connection = @{ na
 if ($G) { $getSecret.runtimeConfiguration = @{ secureData = @{ properties = @('outputs') } } }
 $logicProperties = @{
     state = 'Enabled'; createdTime = (Iso -400); changedTime = (Iso -10)
-    definition = @{ triggers = @{ manual = @{ type = 'Request'; kind = 'Http'; inputs = @{ schema = @{} } } }; actions = @{ Get_secret = $getSecret; Process = @{ type = 'Scope'; runAfter = @{ Get_secret = @('Succeeded') }; actions = @{ Call_api = $callApi } } } }
-    parameters = @{ '$connections' = @{ value = @{ keyvault = (& $connectionEntry 'keyvault' 'keyvault'); mail = (& $connectionEntry 'conn2fixture' (Pick 'azureblob' 'office365')) } } }
+    #a parameter named like a password that holds a group id, with a placeholder default, is no secret (AZ-SEC-003)
+    definition = @{
+        parameters = @{ 'Exclusion group - Reset Password' = @{ type = 'String'; defaultValue = 'placeholder' } }
+        triggers = @{ manual = @{ type = 'Request'; kind = 'Http'; inputs = @{ schema = @{} } } }; actions = @{ Get_secret = $getSecret; Process = @{ type = 'Scope'; runAfter = @{ Get_secret = @('Succeeded') }; actions = @{ Call_api = $callApi } } }
+    }
+    parameters = @{ '$connections' = @{ value = @{ keyvault = (& $connectionEntry 'keyvault' 'keyvault'); mail = (& $connectionEntry 'conn2fixture' (Pick 'azureblob' 'office365')) } }; 'Exclusion group - Reset Password' = @{ value = '20000000-0000-0000-0000-0000000000aa' } }
 }
 if ($G) { $logicProperties.accessControl = @{ triggers = @{ allowedCallerIpAddresses = @(@{ addressRange = '203.0.113.0/24' }) } } }
 #daily run metrics as the ingestion collects them: a few failures when Good, most runs failing when Bad
@@ -515,7 +593,7 @@ if (-not $G) {
 #API connections: a managed identity connection to Key Vault; a managed identity connection to Blob storage when Good, an
 #Office 365 connection of a user whose token no longer refreshes when Bad; and, when Bad, an unused key based connection
 $connectedStatus = @(@{ status = 'Connected' })
-$connection = { param([string]$Name, [string]$Api, [hashtable]$Properties) $Properties.api = @{ name = $Api; displayName = $Api; id = (& $managedApiId $Api) }; $Properties.createdTime = (Iso -400); Add-Record 'Microsoft.Web/connections' $Name @{ kind = 'V1'; properties = $Properties } | Out-Null }
+$connection = { param([string]$Name, [string]$Api, [hashtable]$Properties, [string]$Kind = 'V1') $Properties.api = @{ name = $Api; displayName = $Api; id = (& $managedApiId $Api) }; $Properties.createdTime = (Iso -400); Add-Record 'Microsoft.Web/connections' $Name @{ kind = $Kind; properties = $Properties } | Out-Null }
 & $connection 'keyvault' 'keyvault' @{ parameterValueSet = @{ name = 'oauthMI'; values = @{ vaultName = @{ value = 'kvfixture' } } }; statuses = $connectedStatus; overallStatus = 'Connected'; authenticatedUser = @{} }
 if ($G) {
     & $connection 'conn2fixture' 'azureblob' @{ parameterValueSet = @{ name = 'managedIdentityAuth'; values = @{} }; statuses = $connectedStatus; overallStatus = 'Connected'; authenticatedUser = @{} }
@@ -536,6 +614,41 @@ Save 'web/managedApis' @(
     @{ id = (& $managedApiId 'office365'); name = 'office365'; type = 'Microsoft.Web/locations/managedApis'; properties = @{ name = 'office365'; connectionParameters = (& $parameterTypes @{ token = 'oauthSetting' }) } }
     @{ id = (& $managedApiId 'outlook'); name = 'outlook'; type = 'Microsoft.Web/locations/managedApis'; properties = @{ name = 'outlook'; connectionParameters = (& $parameterTypes @{ token = 'oauthSetting' }) } }
 )
+#Logic App (Standard) (AZ-LOGIC-001 to 011, AZ-FUNC-001): lastdfixture runs from a content share in stfixture and has one
+#stateful workflow. Good: no public network access, a Key Vault read with the built-in operation and secure outputs, an HTTP
+#call and connections with the managed identity, runs that succeed. Bad: public, the secret without secure outputs, Basic
+#authentication with a password from an app setting, a Service Bus connection string, a connection key, failing runs
+$standardId = ResId 'Microsoft.Web/sites' 'lastdfixture'
+$standardSecret = @{ type = 'ServiceProvider'; inputs = @{ parameters = @{ secretName = 'api-key' }; serviceProviderConfiguration = @{ connectionName = 'keyVault'; operationId = 'getSecret'; serviceProviderId = '/serviceProviders/keyVault' } } }
+if ($G) { $standardSecret.runtimeConfiguration = @{ secureData = @{ properties = @('outputs') } } }
+$standardCall = Pick @{ type = 'Http'; inputs = @{ method = 'POST'; uri = 'https://api.fixture.example/orders'; authentication = @{ type = 'ManagedServiceIdentity'; audience = 'api://fixture' } } } @{ type = 'Http'; inputs = @{ method = 'POST'; uri = 'https://api.fixture.example/orders'; authentication = @{ type = 'Basic'; username = 'svc'; password = "@appsetting('orders_password')" } } }
+$standardMail = @{ type = 'ApiConnection'; inputs = @{ host = @{ connection = @{ referenceName = 'office365' } }; method = 'post'; path = '/v2/Mail' } }
+$standardWorkflow = @{
+    id = "$standardId/workflows/orders"; name = 'lastdfixture/orders'; type = 'Microsoft.Web/sites/workflows'; kind = 'Stateful'
+    properties = @{ flowState = 'Enabled'; health = @{ state = 'Healthy' }; files = @{ 'workflow.json' = @{ definition = @{ triggers = @{ manual = @{ type = 'Request'; kind = 'Http'; inputs = @{ schema = @{} } } }; actions = @{ Get_secret = $standardSecret; Call_api = $standardCall; Send_mail = $standardMail } } } } }
+}
+$standardConnections = @{
+    serviceProviderConnections = @{ keyVault = @{ parameterValues = @{ VaultUri = "@appsetting('keyVault_VaultUri')"; authProvider = @{ Type = 'ManagedServiceIdentity' } }; parameterSetName = 'ManagedServiceIdentity'; serviceProvider = @{ id = '/serviceProviders/keyVault' }; displayName = 'kv' } }
+    managedApiConnections      = @{ office365 = @{ api = @{ id = (& $managedApiId 'office365') }; connection = @{ id = (ResId 'Microsoft.Web/connections' 'connv2fixture') }; authentication = @{ type = (Pick 'ManagedServiceIdentity' 'Raw') } } }
+}
+if (-not $G) { $standardConnections.serviceProviderConnections.serviceBus = @{ parameterValues = @{ connectionString = "@appsetting('serviceBus_connectionString')" }; serviceProvider = @{ id = '/serviceProviders/serviceBus' }; displayName = 'sb' } }
+#the run metrics of the app per workflowname (and status), as the ingestion collects them
+$standardSeries = { param([string]$Status, [int[]]$Totals) $dimensions = @(@{ name = @{ value = 'workflowname' }; value = 'orders' }); if ($Status) { $dimensions += @{ name = @{ value = 'status' }; value = $Status } }; @{ metadatavalues = $dimensions; data = @(for ($i = 0; $i -lt $Totals.Count; $i++) { @{ timeStamp = (Iso (-1 - $i)); total = $Totals[$i] } }) } }
+$standardMetrics = @(
+    @{ timespan = "$(Iso -75)/$(Iso 0)"; interval = 'P1D'; value = @(@{ name = @{ value = 'WorkflowRunsStarted' }; timeseries = @(& $standardSeries '' (Pick @(20, 20) @(10, 10))) }) }
+    @{ timespan = "$(Iso -75)/$(Iso 0)"; interval = 'P1D'; value = @(
+            @{ name = @{ value = 'WorkflowRunsCompleted' }; timeseries = @((& $standardSeries 'Succeeded' (Pick @(20, 20) @(2, 2))), (& $standardSeries 'Failed' (Pick @(0, 0) @(8, 8)))) }
+            @{ name = @{ value = 'WorkflowTriggersCompleted' }; timeseries = @(& $standardSeries 'Succeeded' (Pick @(20, 20) @(10, 10))) }
+        ) }
+)
+New-Site 'lastdfixture' 'functionapp,workflowapp' -Children @{
+    'workflows/*'                         = @($standardWorkflow)
+    'workflowsconfiguration/connections' = @{ properties = @{ files = @{ 'connections.json' = $standardConnections } } }
+    workflowVersions                      = @{ orders = @(@{ id = '/workflows/orders/versions/2'; properties = @{ createdTime = (Iso -10); changedTime = (Iso -10) } }, @{ id = '/workflows/orders/versions/1'; properties = @{ createdTime = (Iso -200); changedTime = (Iso -200) } }) }
+    metrics                               = $standardMetrics
+}
+#the API connection of lastdfixture, with the managed identity (AZ-LOGIC-005 to 008)
+& $connection 'connv2fixture' 'office365' @{ parameterValueType = 'Alternative'; statuses = $connectedStatus; overallStatus = 'Connected'; authenticatedUser = @{} } 'V2'
 Add-Record 'Microsoft.ManagedIdentity/userAssignedIdentities' 'uamifixture' @{ properties = @{ clientId = '31000000-0000-0000-0000-000000000003' } } -Children @{ federatedIdentityCredentials = @(@{ name = 'gh'; properties = @{ issuer = 'https://token.actions.githubusercontent.com'; subject = (Pick 'repo:contoso/app:environment:production' 'repo:contoso/app:*'); audiences = @('api://AzureADTokenExchange') } }) } | Out-Null
 
 #network
@@ -554,6 +667,7 @@ $adRule = @{ name = 'allow-ad'; properties = @{ priority = 120; direction = 'Inb
 Add-Record 'Microsoft.Network/networkSecurityGroups' 'nsgfixture' @{ properties = @{ securityRules = (Pick @($rule, $adRule) @($rule, $azureCloudRule, $adRule)); defaultSecurityRules = $defaultRules; subnets = @(@{ id = "$vnetId/subnets/app" }) } } | Out-Null
 Add-Record 'Microsoft.Network/virtualNetworks' 'vnetfixture' @{ properties = @{
         enableDdosProtection = $G; ddosProtectionPlan = (Pick @{ id = '/ddos' } $null); dhcpOptions = @{ dnsServers = (Pick @('10.0.1.4') @()) }
+        virtualNetworkPeerings = @(@{ name = 'to-hub'; properties = @{ peeringState = 'Connected'; remoteVirtualNetwork = @{ id = $hubVnetId } } })
         subnets = @(
             @{ id = "$vnetId/subnets/app"; name = 'app'; properties = @{ networkSecurityGroup = (Pick @{ id = $nsgId } $null); defaultOutboundAccess = (-not $G) } }
             @{ id = "$vnetId/subnets/GatewaySubnet"; name = 'GatewaySubnet'; properties = @{ defaultOutboundAccess = $true } }
@@ -639,8 +753,12 @@ Add-Record 'Microsoft.ApiManagement/service' 'apimfixture' @{ properties = @{ pu
     subscriptions   = @(@{ name = 'master'; properties = @{ scope = "$apimId/apis"; state = 'active'; displayName = 'Built-in all-access' } }, @{ name = 's1'; properties = @{ scope = (Pick "$apimId/products/starter" "$apimId/apis"); state = 'active'; displayName = 'Partner' } })
     backends        = @(@{ name = 'be1'; properties = @{ tls = @{ validateCertificateChain = $G; validateCertificateName = $G } } })
 } | Out-Null
+#the hybrid worker is a machine in the resource group of the account when Good, the domain controller in rg-identity when Bad (AZ-AUTO-004)
+$workerGroupId = "$(ResId 'Microsoft.Automation/automationAccounts' 'aafixture')/hybridRunbookWorkerGroups/workers"
 $aaId = Add-Record 'Microsoft.Automation/automationAccounts' 'aafixture' @{ identity = (Pick @{ type = 'SystemAssigned' } $null); properties = @{ disableLocalAuth = $G; publicNetworkAccess = (-not $G) } } -Children @{
     variables = @(@{ name = 'v1'; properties = @{ isEncrypted = $G } }); certificates = @()
+    hybridRunbookWorkerGroups = @(@{ id = $workerGroupId; name = 'workers'; properties = @{ groupType = 'User'; credential = @{ name = $null } } })
+    'hybridRunbookWorkerGroups/*/hybridRunbookWorkers' = @(@{ id = "$workerGroupId/hybridRunbookWorkers/w1"; name = 'w1'; properties = @{ workerName = (Pick 'vmfixture' 'vmwinfixture'); workerType = 'HybridV2'; vmResourceId = (Pick $vmId $winVmId) } })
     connections = (Pick @() @(@{ name = 'AzureRunAsConnection'; properties = @{ connectionType = @{ name = 'AzureServicePrincipal' } } }))
     runtimeEnvironments = @(@{ name = 'ps76'; properties = @{ runtime = @{ language = 'PowerShell'; version = '7.6' } } }, @{ name = 'PowerShell-7.2'; properties = @{ runtime = @{ language = 'PowerShell'; version = '7.2' } } })
 }
@@ -726,17 +844,18 @@ Save 'resourceGraph/advisorresources' (Pick @() @(
 #activity log: a restore from the backup vault when Good, only unrelated operations when Bad (AZ-BCK-010)
 $activity = { param([string]$Operation, [string]$ResourceId, [int]$Days) @{ eventDataId = "ev-$Days"; operationName = @{ value = $Operation }; resourceId = $ResourceId; eventTimestamp = (Iso $Days); status = @{ value = 'Succeeded' }; category = @{ value = 'Administrative' } } }
 $rsvId = ResId 'Microsoft.RecoveryServices/vaults' 'rsvfixture'
-Save 'activityLog/activityLog' @(
-    (& $activity 'Microsoft.Storage/storageAccounts/write' (ResId 'Microsoft.Storage/storageAccounts' 'stfixture') -5)
+#The restores are only in recoveryOperations, the file the analysis reads instead of the whole activity log
+Save 'activityLog/activityLog' @(& $activity 'Microsoft.Storage/storageAccounts/write' (ResId 'Microsoft.Storage/storageAccounts' 'stfixture') -5)
+Save 'activityLog/recoveryOperations' @(
     $(if ($G) { & $activity 'Microsoft.RecoveryServices/vaults/backupFabrics/protectionContainers/protectedItems/recoveryPoints/restore/action' "$rsvId/backupFabrics/Azure/protectionContainers/iaasvmcontainerv2;rg-fixture;vmfixture/protectedItems/vm;iaasvmcontainerv2;rg-fixture;vmfixture/recoveryPoints/1" -20 })
     $(if ($G) { & $activity 'Microsoft.RecoveryServices/vaults/backupFabrics/protectionContainers/protectedItems/recoveryPoints/restore/action' "$identityVaultId/backupFabrics/Azure/protectionContainers/iaasvmcontainerv2;rg-identity;vmdc2fixture/protectedItems/vm;iaasvmcontainerv2;rg-identity;vmdc2fixture/recoveryPoints/1" -21 })
 )
 Save 'subscription/resources' $resourceList
-Save 'subscription/resourceGroups' @(@{ id = $rgId; name = 'rg-fixture'; location = $location }, @{ id = $identityRgId; name = 'rg-identity'; location = $location })
+Save 'subscription/resourceGroups' @(@{ id = $rgId; name = 'rg-fixture'; location = $location }, @{ id = $identityRgId; name = 'rg-identity'; location = $location }, @{ id = $caeInfraRgId; name = 'rg-cae-infra'; location = $location; managedBy = "$rgId/providers/Microsoft.App/managedEnvironments/caefixture" })
 foreach ($group in $rgId, $identityRgId) {
     $groupName = ($group -split '/')[-1]
     $index.Add([ordered]@{ id = $group; type = 'resourceGroup'; file = "resourceGroups/$groupName.json"; status = 'ok' })
-    Save "resourceGroups/$groupName" @{ id = $group; deployments = @(); deploymentStacks = @(); lighthouseRegistrationAssignments = @() }
+    Save "resourceGroups/$groupName" @{ id = $group; deployments = @(); deploymentStacks = @(); lighthouseRegistrationAssignments = $lighthouseAssignments }
 }
 Save 'index' $index
 Save 'manifest' ([ordered]@{

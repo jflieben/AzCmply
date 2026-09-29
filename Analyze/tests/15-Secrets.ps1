@@ -5,6 +5,8 @@ function Test-SecretName {
     param([string]$Name)
     $name = $Name.ToLowerInvariant()
     if ($name -match '(name|names|uri|url|id|ids|enabled|type|version|expiry|expiration|expiresin|length|publickey|keysource|keyvault|keyvaultname|vault)$' -or $name -match '^(is|enable|use|allow)') { return $false }
+    #a group or policy about passwords, such as 'Password reset group' or 'passwordPolicy'
+    if ($name -match 'group|policy') { return $false }
     return ($name -match 'password|passwd|pwd|secret|apikey|api_key|accesskey|accountkey|primarykey|secondarykey|masterkey|connectionstring|connstr|sastoken|sas_token|privatekey|credential|authtoken|accesstoken')
 }
 
@@ -14,6 +16,7 @@ function Test-PlainSecretValue {
     if ($Value -isnot [string]) { return $false }
     if ($Value.Length -lt 8) { return $false }
     if ($Value -match '^@Microsoft\.KeyVault\(|^\[|^\$\(|^\*+$|^<.*>$|^/subscriptions/|^https?://[^@]*$|^\{\{.*\}\}$') { return $false }
+    if ($Value -match '(?i)^(placeholder|dummy|sample|example|notset|not set|undefined|x+)$') { return $false }
     return $true
 }
 
@@ -33,7 +36,7 @@ function Get-NamedSecretFindings {
 
 Add-AzTest @{
     Id          = 'AZ-SEC-001'
-    Version     = 2
+    Version     = 3
     Title       = 'Deployment history does not contain plaintext secrets'
     Category    = 'Identity management'
     Service     = 'Azure Resource Manager'
@@ -136,7 +139,7 @@ function Get-WorkflowLiteralSecrets {
     #credentials written into a Logic App definition as plain values: defaults of parameters named like a secret, and
     #the passwords, certificates, credential headers and URL keys of HTTP and API Management steps. Names only.
     param($Record)
-    $definition = $Record.resource.properties.definition
+    $definition = Get-WorkflowDefinition $Record
     if ($null -eq $definition) { return }
     if ($null -ne $definition.parameters) {
         foreach ($parameter in @($definition.parameters.PSObject.Properties)) {
@@ -152,12 +155,12 @@ function Get-WorkflowLiteralSecrets {
 
 Add-AzTest @{
     Id          = 'AZ-SEC-003'
-    Version     = 3
+    Version     = 4
     Title       = 'Resource configuration does not contain plaintext secrets'
     Category    = 'Identity management'
     Service     = 'Multiple'
     Severity    = 'High'
-    Description = 'Scans VM and scale set extension settings, container instance and Container Apps environment variables, Logic App definitions and parameters (including the passwords, certificates, credential headers and URL keys of HTTP steps and parameter defaults), and resource tags for credentials stored in plain text.'
+    Description = 'Scans VM and scale set extension settings, container instance and Container Apps environment variables, Logic App definitions and parameters (including the passwords, certificates, credential headers and URL keys of HTTP steps and parameter defaults), the workflows and connections.json of Logic App (Standard) apps, and resource tags for credentials stored in plain text.'
     Rationale   = 'These settings are returned by the management API to every reader of the resource and are logged in deployment history; secrets belong in protected settings, secret references or Key Vault.'
     Remediation = 'Move secrets to protectedSettings, secureValue / secretRef or Key Vault references, and rotate the exposed credentials.'
     References  = @('https://learn.microsoft.com/azure/virtual-machines/extensions/overview')
@@ -180,8 +183,12 @@ Add-AzTest @{
                     }
                 }
                 { $_ -in 'Microsoft.Compute/virtualMachines/extensions', 'Microsoft.HybridCompute/machines/extensions' } {
-                    $hits = @(Find-Secrets ($p.settings | ConvertTo-Json -Depth 20 -Compress)) + @(Get-NamedSecretFindings -Object $p.settings)
-                    if ($hits) { $locations.Add("settings ($(($hits | Sort-Object -Unique) -join ', '))") }
+                    #reported with its machine when the machine and its extensions were collected
+                    $machine = Get-AzResourceRecord ($record.id -replace '(?i)/extensions/[^/]+$', '')
+                    if (-not ($machine -and (Test-MachineExtensionsCollected $machine))) {
+                        $hits = @(Find-Secrets ($p.settings | ConvertTo-Json -Depth 20 -Compress)) + @(Get-NamedSecretFindings -Object $p.settings)
+                        if ($hits) { $locations.Add("settings ($(($hits | Sort-Object -Unique) -join ', '))") }
+                    }
                 }
                 'Microsoft.ContainerInstance/containerGroups' {
                     foreach ($container in @($p.containers | Where-Object { $_ })) {
@@ -200,6 +207,20 @@ Add-AzTest @{
                 'Microsoft.Logic/workflows' {
                     $hits = @(Find-Secrets ($p.definition | ConvertTo-Json -Depth 50 -Compress)) + @(Get-NamedSecretFindings -Object $p.parameters -Prefix 'parameter ') + @(Get-WorkflowLiteralSecrets $record)
                     if ($hits) { $locations.Add("workflow ($(($hits | Sort-Object -Unique) -join ', '))") }
+                }
+                'Microsoft.Web/sites' {
+                    #Logic App (Standard): the workflow definitions and connections.json
+                    if (Test-WorkflowApp $record) {
+                        foreach ($workflow in @(Get-AzResourceRecords -Type 'Microsoft.Web/sites/workflows' | Where-Object { $_.Site.id -eq $record.id })) {
+                            $hits = @(Find-Secrets ((Get-WorkflowDefinition $workflow) | ConvertTo-Json -Depth 50 -Compress)) + @(Get-WorkflowLiteralSecrets $workflow)
+                            if ($hits) { $locations.Add("workflow $(Get-ResourceName $workflow.id) ($(($hits | Sort-Object -Unique) -join ', '))") }
+                        }
+                        $connections = Get-WorkflowAppConnections $record
+                        if ($null -ne $connections) {
+                            $hits = @(Find-Secrets ($connections | ConvertTo-Json -Depth 20 -Compress))
+                            if ($hits) { $locations.Add("connections.json ($(($hits | Sort-Object -Unique) -join ', '))") }
+                        }
+                    }
                 }
             }
             if ($locations.Count) { New-Finding -Record $record -Result (New-Fail "Possible secret(s) in $($locations -join '; ')" ([ordered]@{ locations = @($locations) })) }

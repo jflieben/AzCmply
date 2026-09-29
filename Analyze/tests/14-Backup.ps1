@@ -251,7 +251,7 @@ function Get-RecoveryEvents {
     #vault id (lowercase) -> the most recent restore or failover the activity log records for it
     if (-not $script:Ingest.Cache.ContainsKey('#recoveryEvents')) {
         $map = @{}
-        foreach ($entry in @(Get-IngestData 'activityLog/activityLog' | Where-Object { $_ })) {
+        foreach ($entry in @(Get-IngestData 'activityLog/recoveryOperations' | Where-Object { $_ })) {
             $operation = [string]$entry.operationName.value
             if ($operation -notmatch $recoveryOperations -or [string]$entry.status.value -eq 'Failed') { continue }
             if ([string]$entry.resourceId -notmatch '(?i)^(/subscriptions/[^/]+/resourceGroups/[^/]+/providers/Microsoft\.(RecoveryServices/vaults|DataProtection/backupVaults)/[^/]+)/') { continue }
@@ -268,7 +268,7 @@ function Get-RecoveryEvents {
 }
 
 function Get-ActivityLogDays {
-    $name = 'activityLog/activityLog'
+    $name = 'activityLog/recoveryOperations'
     $section = $script:Ingest.Manifest.sections.$name
     if ($section.days) { return [int]$section.days }
     if ($script:Ingest.Manifest.parameters.activityLogDays) { return [int]$script:Ingest.Manifest.parameters.activityLogDays }
@@ -277,6 +277,7 @@ function Get-ActivityLogDays {
 
 Add-AzTest @{
     Id            = 'AZ-BCK-010'
+    Version       = 2
     Title         = 'Backup restores and disaster recovery failovers are tested'
     Category      = 'Backup and recovery'
     Service       = 'Azure Backup'
@@ -285,7 +286,7 @@ Add-AzTest @{
     Rationale     = 'A backup that has never been restored is an assumption, not a recovery capability. Regular restore tests and disaster recovery drills show that the data, the procedure and the recovery time hold up. The activity log reaches back 90 days at most, so a test done earlier in the year is not visible here.'
     Remediation   = 'Restore a representative item from each vault to an isolated location on a schedule (at least yearly), run Site Recovery test failovers into an isolated network, and keep the results as evidence.'
     References    = @('https://learn.microsoft.com/azure/backup/backup-azure-arm-restore-vms', 'https://learn.microsoft.com/azure/site-recovery/azure-to-azure-tutorial-dr-drill')
-    Requires      = @('activityLog/activityLog')
+    Requires      = @('activityLog/recoveryOperations')
     ResourceTypes = $backupVaultTypes
     Evaluate      = {
         param($Record)

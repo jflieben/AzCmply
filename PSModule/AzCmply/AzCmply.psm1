@@ -71,7 +71,7 @@ function Invoke-AzCmplyIngest {
 
         Required permissions:
         - Azure: Reader on the subscription
-        - Graph (application): Directory.Read.All
+        - Graph (application): Directory.Read.All, PrivilegedAccess.Read.AzureADGroup (eligible members of PIM for Groups)
           Optional: RoleManagement.Read.Directory (eligible directory roles), AuditLog.Read.All (sign-in activity),
           Policy.Read.All (Conditional Access policies and security defaults)
         Missing permissions do not stop the run; every failed call is listed in failures.json.
@@ -370,7 +370,7 @@ Set-Alias -Name 'New-AzureSecurityReport' -Value 'New-AzCmplyReport'
 
 Export-ModuleMember -Function 'Invoke-AzCmplyIngest', 'Invoke-AzCmplyAnalysis', 'Compare-AzCmplyAnalysis', 'New-AzCmplyReport', 'Invoke-AzCmplySelfTest', 'Invoke-AzCmplyAssessment' -Alias 'Invoke-AzureIngest', 'Invoke-AzureAnalyze', 'Compare-AzureAnalysis', 'New-AzureSecurityReport'
 
-$script:ModuleVersion = '1.0.4'
+$script:ModuleVersion = '1.0.5'
 Write-Host ''
 Write-Host "  AzCmply $script:ModuleVersion" -ForegroundColor Cyan -NoNewline
 Write-Host '  security posture assessment of an Azure subscription (read only)'
@@ -382,5 +382,7 @@ Write-Host ''
 Write-Host '  Or a step at a time:' -ForegroundColor White
 Write-Host '    Invoke-AzCmplyIngest   ->  Invoke-AzCmplyAnalysis  ->  New-AzCmplyReport' -ForegroundColor DarkGray
 Write-Host ''
-Write-Host '  Needs Reader on the subscription and Directory.Read.All in Graph. Get-Help <command> -Full for the rest.' -ForegroundColor DarkGray
+Write-Host '  Needs Reader on the subscription, and Directory.Read.All and PrivilegedAccess.Read.AzureADGroup in Graph. Get-Help <command> -Full for the rest.' -ForegroundColor DarkGray
 Write-Host ''
+Write-Host '  Commercial use not allowed without written permission from JSolve B.V.'
+Write-Host '  Check https://azcmply.jsolve.nl for a quick web based version of the assessment.'

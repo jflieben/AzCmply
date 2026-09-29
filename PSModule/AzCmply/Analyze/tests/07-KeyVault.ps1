@@ -162,11 +162,12 @@ foreach ($expiry in $vaultExpiryTests) {
 }
 Add-AzTest @{
     Id          = 'AZ-KV-007'
+    Version     = 2
     Title       = 'Key Vault keys have an automatic rotation policy'
     Category    = 'Data protection'
     Service     = 'Key Vault'
     Severity    = 'Low'
-    Description = 'Checks every enabled key for a rotation policy with a Rotate lifetime action.'
+    Description = 'Checks every enabled key for a rotation policy with a Rotate lifetime action. The key of a certificate (a secret of the same name holds the certificate) is renewed with the certificate and has no rotation policy of its own.'
     Rationale   = 'Automatic rotation limits the amount of data protected by a single key version and removes the dependency on manual processes.'
     Remediation = 'Configure a key rotation policy (az keyvault key rotation-policy update ...) and let dependent services use versionless key URIs.'
     References  = @('https://learn.microsoft.com/azure/key-vault/keys/how-to-configure-key-rotation')
@@ -174,11 +175,15 @@ Add-AzTest @{
     Run         = {
         foreach ($vault in (Get-AzResourceRecords -Type 'Microsoft.KeyVault/vaults')) {
             if (-not (Test-ChildCollected $vault 'keys')) { New-Finding -Record $vault -Result (New-Unknown 'Keys could not be listed'); continue }
+            $certificates = @(Get-Child $vault 'secrets' | Where-Object { $_ -and (Test-CertificateSecret $_) } | ForEach-Object { ([string]$_.name).ToLowerInvariant() })
             foreach ($key in (Get-VaultItems $vault 'keys')) {
                 $policy = $key.properties.rotationPolicy
                 $rotate = @($policy.lifetimeActions | Where-Object { $_ -and $_.action.type -eq 'Rotate' })
                 $evidence = [ordered]@{ vault = $vault.resource.name; rotationPolicyReturned = ($key.properties.PSObject.Properties.Name -contains 'rotationPolicy'); rotateAction = [bool]$rotate }
-                $result = if ($rotate) { New-Pass 'Automatic rotation configured' $evidence } elseif (-not $evidence.rotationPolicyReturned) { New-Unknown 'The key listing does not include the rotation policy' $evidence } else { New-Fail 'No automatic rotation' $evidence }
+                if ($rotate) { $result = New-Pass 'Automatic rotation configured' $evidence }
+                elseif (([string]$key.name).ToLowerInvariant() -in $certificates) { $result = New-NotApplicable 'The key of a certificate, renewed with the certificate' $evidence }
+                elseif (-not $evidence.rotationPolicyReturned) { $result = New-Unknown 'The key listing does not include the rotation policy' $evidence }
+                else { $result = New-Fail 'No automatic rotation' $evidence }
                 New-Finding -ResourceId $key.id -ResourceType 'Microsoft.KeyVault/vaults/keys' -ResourceName "$($vault.resource.name)/$($key.name)" -Result $result
             }
         }

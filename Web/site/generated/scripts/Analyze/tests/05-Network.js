@@ -245,809 +245,876 @@ export default R.script("/app/Analyze/tests/05-Network.ps1", { params: [], adv: 
         R.pa(O, R.cmd(S, "New-Fail", ["No DDoS Network Protection plan", (S["evidence"] ?? null)], null));
     })], false)], null));
     R.ln = F + 220;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-NET-011", "Title", "Azure Bastion is available for virtual machine administration", "Category", "Network security", "Service", "Azure Bastion", "Severity", "Low", "Description", "Checks that the subscription has an Azure Bastion host when it contains virtual machines.", "Rationale", "Bastion provides RDP and SSH over TLS through the Azure control plane with Entra authentication, removing the need to expose management ports or public IP addresses.", "Remediation", "Deploy Azure Bastion (Standard or Premium, or a shared Bastion in a hub network peered with this subscription) and remove direct management access.", "References", R.a("https://learn.microsoft.com/azure/bastion/bastion-overview"), "Requires", R.a("subscription/resources"), "Run", R.sb({ params: [], adv: 0, text: "\n        $resources = @(Get-IngestData 'subscription/resources' | Where-Object { $_ })\n        $vms = @($resources | Where-Object { $_.type -in 'Microsoft.Compute/virtualMachines', 'Microsoft.Compute/virtualMachineScaleSets' })\n        $bastions = @($resources | Where-Object { $_.type -eq 'Microsoft.Network/bastionHosts' })\n        $evidence = [ordered]@{ virtualMachines = $vms.Count; bastionHosts = @($bastions | ForEach-Object name | Sort-Object) }\n        if (-not $vms) { return New-SubscriptionFinding (New-NotApplicable 'No virtual machines' $evidence) }\n        if ($bastions) { return New-SubscriptionFinding (New-Pass \"Bastion host(s): $($evidence.bastionHosts -join ', ')\" $evidence) }\n        New-SubscriptionFinding (New-Fail 'Virtual machines exist but no Bastion host in this subscription (a hub Bastion may be used)' $evidence)\n    " }, (S, O) => {
-        R.ln = F + 232;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-NET-011", "Version", 2, "Title", "Azure Bastion is available for virtual machine administration", "Category", "Network security", "Service", "Azure Bastion", "Severity", "Low", "Description", "Checks that the subscription has an Azure Bastion host when it contains virtual machines, or that one of its virtual networks is peered with a network that has one (a shared Bastion in a hub, also in another subscription).", "Rationale", "Bastion provides RDP and SSH over TLS through the Azure control plane with Entra authentication, removing the need to expose management ports or public IP addresses.", "Remediation", "Deploy Azure Bastion (Standard or Premium, or a shared Bastion in a hub network peered with this subscription) and remove direct management access.", "References", R.a([R.v("https://learn.microsoft.com/azure/bastion/bastion-overview"), R.v("https://learn.microsoft.com/azure/bastion/vnet-peering")]), "Requires", R.a("subscription/resources"), "Run", R.sb({ params: [], adv: 0, text: "\n        $resources = @(Get-IngestData 'subscription/resources' | Where-Object { $_ })\n        $vms = @($resources | Where-Object { $_.type -in 'Microsoft.Compute/virtualMachines', 'Microsoft.Compute/virtualMachineScaleSets' })\n        $bastions = @($resources | Where-Object { $_.type -eq 'Microsoft.Network/bastionHosts' })\n        $evidence = [ordered]@{ virtualMachines = $vms.Count; bastionHosts = @($bastions | ForEach-Object name | Sort-Object) }\n        if (-not $vms) { return New-SubscriptionFinding (New-NotApplicable 'No virtual machines' $evidence) }\n        if ($bastions) { return New-SubscriptionFinding (New-Pass \"Bastion host(s): $($evidence.bastionHosts -join ', ')\" $evidence) }\n        #a Bastion reaches directly peered networks, not networks peered with those (no transitive peering)\n        $peered = @(@(foreach ($vnet in (Get-AzResourceRecords -Type 'Microsoft.Network/virtualNetworks')) {\n                    foreach ($peering in @($vnet.resource.properties.virtualNetworkPeerings | Where-Object { $_ -and $_.properties.peeringState -eq 'Connected' -and $_.properties.remoteVirtualNetwork.id })) { ([string]$peering.properties.remoteVirtualNetwork.id).ToLowerInvariant() }\n                }) | Sort-Object -Unique)\n        $hubBastions = [System.Collections.Generic.List[string]]::new()\n        $unread = [System.Collections.Generic.List[string]]::new()\n        foreach ($remoteId in $peered) {\n            $remote = Get-ReferencedResourceRecord $remoteId\n            if (-not $remote) { $unread.Add((Get-ResourceName $remoteId)); continue }\n            $subnet = @($remote.resource.properties.subnets | Where-Object { $_ -and $_.name -eq 'AzureBastionSubnet' }) | Select-Object -First 1\n            foreach ($configuration in @($subnet.properties.ipConfigurations | Where-Object { $_ -and [string]$_.id -match '(?i)/bastionHosts/' })) { $hubBastions.Add(\"$([string]$configuration.id -replace '(?i)^.*/bastionHosts/([^/]+)/.*$', '$1') in $($remote.resource.name)\") }\n        }\n        $evidence.peeredNetworks = @($peered | ForEach-Object { Get-ResourceName $_ })\n        $evidence.peeredBastionHosts = @($hubBastions | Sort-Object -Unique)\n        if ($hubBastions.Count) { return New-SubscriptionFinding (New-Pass \"Bastion host(s) in a peered network: $($evidence.peeredBastionHosts -join ', ')\" $evidence) }\n        if ($unread.Count) { return New-SubscriptionFinding (New-Unknown \"Virtual machines exist but no Bastion host in this subscription; peered network(s) $($unread -join ', ') could not be read\" $evidence) }\n        New-SubscriptionFinding (New-Fail 'Virtual machines exist but no Bastion host in this subscription or in a directly peered network' $evidence)\n    " }, (S, O) => {
+        R.ln = F + 233;
         S["resources"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 232;
+            R.ln = F + 233;
             R.e(O, (S["_"] ?? null));
         })], R.cmd(S, "Get-IngestData", ["subscription/resources"], null));
-        R.ln = F + 233;
+        R.ln = F + 234;
         S["vms"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.type -in 'Microsoft.Compute/virtualMachines', 'Microsoft.Compute/virtualMachineScaleSets' " }, (S, O) => {
-            R.ln = F + 233;
+            R.ln = F + 234;
             R.e(O, R.in(R.m((S["_"] ?? null), "type"), [R.v("Microsoft.Compute/virtualMachines"), R.v("Microsoft.Compute/virtualMachineScaleSets")]));
         })], R.pi((S["resources"] ?? null)));
-        R.ln = F + 234;
+        R.ln = F + 235;
         S["bastions"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.type -eq 'Microsoft.Network/bastionHosts' " }, (S, O) => {
-            R.ln = F + 234;
+            R.ln = F + 235;
             R.e(O, R.eq(R.m((S["_"] ?? null), "type"), "Microsoft.Network/bastionHosts"));
         })], R.pi((S["resources"] ?? null)));
-        R.ln = F + 235;
-        S["evidence"] = R.ht(["virtualMachines", R.m((S["vms"] ?? null), "Count"), "bastionHosts", R.cmd(S, "Sort-Object", [], R.cmd(S, "ForEach-Object", ["name"], R.pi((S["bastions"] ?? null))))], true);
         R.ln = F + 236;
+        S["evidence"] = R.ht(["virtualMachines", R.m((S["vms"] ?? null), "Count"), "bastionHosts", R.cmd(S, "Sort-Object", [], R.cmd(S, "ForEach-Object", ["name"], R.pi((S["bastions"] ?? null))))], true);
+        R.ln = F + 237;
         if (!R.t((S["vms"] ?? null))) {
-            R.ln = F + 236;
+            R.ln = F + 237;
             R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-NotApplicable", ["No virtual machines", (S["evidence"] ?? null)], null))], null));
             return;
         }
-        R.ln = F + 237;
+        R.ln = F + 238;
         if (R.t((S["bastions"] ?? null))) {
-            R.ln = F + 237;
+            R.ln = F + 238;
             R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Pass", [("Bastion host(s): " + R.str(R.u(R.pi(R.join(R.m((S["evidence"] ?? null), "bastionHosts"), ", "))))), (S["evidence"] ?? null)], null))], null));
             return;
         }
-        R.ln = F + 238;
-        R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Fail", ["Virtual machines exist but no Bastion host in this subscription (a hub Bastion may be used)", (S["evidence"] ?? null)], null))], null));
+        R.ln = F + 240;
+        S["peered"] = R.cmd(S, "Sort-Object", [R.np("Unique")], R.pi((() => {
+            const v9 = [];
+            R.ln = F + 240;
+            for (const it10 of R.fi(R.u(R.cmd(S, "Get-AzResourceRecords", [R.np("Type"), "Microsoft.Network/virtualNetworks"], null)))) {
+                S["vnet"] = it10;
+                R.ln = F + 241;
+                for (const it11 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.properties.peeringState -eq 'Connected' -and $_.properties.remoteVirtualNetwork.id " }, (S, O) => {
+                    R.ln = F + 241;
+                    R.e(O, ((R.t((S["_"] ?? null)) && R.t(R.eq(R.m(R.m((S["_"] ?? null), "properties"), "peeringState"), "Connected"))) && R.t(R.m(R.m(R.m((S["_"] ?? null), "properties"), "remoteVirtualNetwork"), "id"))));
+                })], R.pi(R.m(R.m(R.m((S["vnet"] ?? null), "resource"), "properties"), "virtualNetworkPeerings"))))) {
+                    S["peering"] = it11;
+                    R.ln = F + 241;
+                    R.e(v9, R.im((R.c("string", R.m(R.m(R.m((S["peering"] ?? null), "properties"), "remoteVirtualNetwork"), "id"))), "ToLowerInvariant", []));
+                }
+            }
+            return v9;
+        })()));
+        R.ln = F + 243;
+        S["hubbastions"] = R.sc("System.Collections.Generic.List[string]", "new", []);
+        R.ln = F + 244;
+        S["unread"] = R.sc("System.Collections.Generic.List[string]", "new", []);
+        R.ln = F + 245;
+        for (const it12 of R.fi((S["peered"] ?? null))) {
+            S["remoteid"] = it12;
+            R.ln = F + 246;
+            S["remote"] = R.u(R.cmd(S, "Get-ReferencedResourceRecord", [(S["remoteid"] ?? null)], null));
+            R.ln = F + 247;
+            if (!R.t((S["remote"] ?? null))) {
+                R.ln = F + 247;
+                R.e(O, R.im((S["unread"] ?? null), "Add", [R.u(R.cmd(S, "Get-ResourceName", [(S["remoteid"] ?? null)], null))]));
+                continue;
+            }
+            R.ln = F + 248;
+            S["subnet"] = R.u(R.cmd(S, "Select-Object", [R.np("First"), 1], R.pi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.name -eq 'AzureBastionSubnet' " }, (S, O) => {
+                R.ln = F + 248;
+                R.e(O, (R.t((S["_"] ?? null)) && R.t(R.eq(R.m((S["_"] ?? null), "name"), "AzureBastionSubnet"))));
+            })], R.pi(R.m(R.m(R.m((S["remote"] ?? null), "resource"), "properties"), "subnets"))))));
+            R.ln = F + 249;
+            for (const it13 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and [string]$_.id -match '(?i)/bastionHosts/' " }, (S, O) => {
+                R.ln = F + 249;
+                R.e(O, (R.t((S["_"] ?? null)) && R.t(R.match(S, R.c("string", R.m((S["_"] ?? null), "id")), "(?i)/bastionHosts/"))));
+            })], R.pi(R.m(R.m((S["subnet"] ?? null), "properties"), "ipConfigurations"))))) {
+                S["configuration"] = it13;
+                R.ln = F + 249;
+                R.e(O, R.im((S["hubbastions"] ?? null), "Add", [("" + R.str(R.u(R.pi(R.rep(R.c("string", R.m((S["configuration"] ?? null), "id")), [R.v("(?i)^.*/bastionHosts/([^/]+)/.*$"), R.v("$1")])))) + " in " + R.str(R.u(R.pi(R.m(R.m((S["remote"] ?? null), "resource"), "name")))))]));
+            }
+        }
+        R.ln = F + 251;
+        R.sm((S["evidence"] ?? null), "peeredNetworks", R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " Get-ResourceName $_ " }, (S, O) => {
+            R.ln = F + 251;
+            R.pa(O, R.cmd(S, "Get-ResourceName", [(S["_"] ?? null)], null));
+        })], R.pi((S["peered"] ?? null))));
+        R.ln = F + 252;
+        R.sm((S["evidence"] ?? null), "peeredBastionHosts", R.cmd(S, "Sort-Object", [R.np("Unique")], R.pi((S["hubbastions"] ?? null))));
+        R.ln = F + 253;
+        if (R.t(R.m((S["hubbastions"] ?? null), "Count"))) {
+            R.ln = F + 253;
+            R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Pass", [("Bastion host(s) in a peered network: " + R.str(R.u(R.pi(R.join(R.m((S["evidence"] ?? null), "peeredBastionHosts"), ", "))))), (S["evidence"] ?? null)], null))], null));
+            return;
+        }
+        R.ln = F + 254;
+        if (R.t(R.m((S["unread"] ?? null), "Count"))) {
+            R.ln = F + 254;
+            R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Unknown", [("Virtual machines exist but no Bastion host in this subscription; peered network(s) " + R.str(R.u(R.pi(R.join((S["unread"] ?? null), ", ")))) + " could not be read"), (S["evidence"] ?? null)], null))], null));
+            return;
+        }
+        R.ln = F + 255;
+        R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Fail", ["Virtual machines exist but no Bastion host in this subscription or in a directly peered network", (S["evidence"] ?? null)], null))], null));
     })], false)], null));
-    R.ln = F + 242;
+    R.ln = F + 259;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-NET-012", "Title", "Application Gateways use a Web Application Firewall", "Category", "Network security", "Service", "Application Gateway", "Severity", "High", "Description", "Checks Application Gateways for the WAF_v2 tier with an associated WAF policy (or an enabled legacy WAF configuration).", "Rationale", "A WAF blocks common web attacks (OWASP top 10, bots, known CVE exploits) before they reach the application.", "Remediation", "Upgrade to the WAF_v2 SKU and associate a WAF policy in Prevention mode; migrate legacy WAF configurations to WAF policies.", "References", R.a("https://learn.microsoft.com/azure/web-application-firewall/ag/ag-overview"), "Policy", R.ht(["564feb30-bf6a-4854-b4bb-0d2d2d1e6c66", "Web Application Firewall (WAF) should be enabled for Application Gateway"], false), "ResourceTypes", R.a("Microsoft.Network/applicationGateways"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $p = $Record.resource.properties\n        $evidence = [ordered]@{ skuTier = $p.sku.tier; firewallPolicy = $p.firewallPolicy.id; legacyWafEnabled = [bool]$p.webApplicationFirewallConfiguration.enabled }\n        if ($p.sku.tier -like 'WAF*' -and ($p.firewallPolicy -or $p.webApplicationFirewallConfiguration.enabled)) { return New-Pass 'WAF enabled' $evidence }\n        New-Fail 'No Web Application Firewall' $evidence\n    " }, (S, O) => {
-        R.ln = F + 256;
+        R.ln = F + 273;
         S["p"] = R.m(R.m((S["record"] ?? null), "resource"), "properties");
-        R.ln = F + 257;
+        R.ln = F + 274;
         S["evidence"] = R.ht(["skuTier", R.m(R.m((S["p"] ?? null), "sku"), "tier"), "firewallPolicy", R.m(R.m((S["p"] ?? null), "firewallPolicy"), "id"), "legacyWafEnabled", R.c("bool", R.m(R.m((S["p"] ?? null), "webApplicationFirewallConfiguration"), "enabled"))], true);
-        R.ln = F + 258;
+        R.ln = F + 275;
         if ((R.t(R.like(R.m(R.m((S["p"] ?? null), "sku"), "tier"), "WAF*")) && (R.t(R.m((S["p"] ?? null), "firewallPolicy")) || R.t(R.m(R.m((S["p"] ?? null), "webApplicationFirewallConfiguration"), "enabled"))))) {
-            R.ln = F + 258;
+            R.ln = F + 275;
             R.pa(O, R.cmd(S, "New-Pass", ["WAF enabled", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 259;
+        R.ln = F + 276;
         R.pa(O, R.cmd(S, "New-Fail", ["No Web Application Firewall", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 263;
+    R.ln = F + 280;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-NET-013", "Title", "Application Gateways require TLS 1.2 or higher", "Category", "Data protection", "Service", "Application Gateway", "Severity", "Medium", "Description", "Checks the SSL policy of Application Gateways for a minimum protocol version of TLS 1.2.", "Rationale", "TLS 1.0 and 1.1 have known weaknesses and are retired across Azure; the listener policy should not negotiate them.", "Remediation", "Set the SSL policy to AppGwSslPolicy20220101 or AppGwSslPolicy20220101S (or CustomV2 with minimum TLSv1_2).", "References", R.a("https://learn.microsoft.com/azure/application-gateway/application-gateway-ssl-policy-overview"), "Policy", R.ht(["6313cbe8-6fb7-451b-a9e3-3f23b59843ca", "Azure Application Gateway should be running TLS version 1.2 or newer"], false), "ResourceTypes", R.a("Microsoft.Network/applicationGateways"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $policy = $Record.resource.properties.sslPolicy\n        $evidence = [ordered]@{ policyType = $policy.policyType; policyName = $policy.policyName; minProtocolVersion = $policy.minProtocolVersion }\n        $strong = @('AppGwSslPolicy20170401S', 'AppGwSslPolicy20220101', 'AppGwSslPolicy20220101S')\n        if ($policy.minProtocolVersion) {\n            if (Test-VersionAtLeast $policy.minProtocolVersion '1.2') { return New-Pass \"Minimum $($policy.minProtocolVersion)\" $evidence }\n            return New-Fail \"Minimum $($policy.minProtocolVersion)\" $evidence\n        }\n        if ($policy.policyName -in $strong) { return New-Pass \"Predefined policy $($policy.policyName)\" $evidence }\n        if (-not $policy) { return New-Fail 'No SSL policy set; older gateways default to a policy that allows TLS 1.0' $evidence }\n        New-Fail \"Policy $($policy.policyName) allows TLS versions below 1.2\" $evidence\n    " }, (S, O) => {
-        R.ln = F + 277;
+        R.ln = F + 294;
         S["policy"] = R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "sslPolicy");
-        R.ln = F + 278;
+        R.ln = F + 295;
         S["evidence"] = R.ht(["policyType", R.m((S["policy"] ?? null), "policyType"), "policyName", R.m((S["policy"] ?? null), "policyName"), "minProtocolVersion", R.m((S["policy"] ?? null), "minProtocolVersion")], true);
-        R.ln = F + 279;
+        R.ln = F + 296;
         S["strong"] = R.a([R.v("AppGwSslPolicy20170401S"), R.v("AppGwSslPolicy20220101"), R.v("AppGwSslPolicy20220101S")]);
-        R.ln = F + 280;
+        R.ln = F + 297;
         if (R.t(R.m((S["policy"] ?? null), "minProtocolVersion"))) {
-            R.ln = F + 281;
+            R.ln = F + 298;
             if (R.t(R.u(R.cmd(S, "Test-VersionAtLeast", [R.m((S["policy"] ?? null), "minProtocolVersion"), "1.2"], null)))) {
-                R.ln = F + 281;
+                R.ln = F + 298;
                 R.pa(O, R.cmd(S, "New-Pass", [("Minimum " + R.str(R.u(R.pi(R.m((S["policy"] ?? null), "minProtocolVersion"))))), (S["evidence"] ?? null)], null));
                 return;
             }
-            R.ln = F + 282;
+            R.ln = F + 299;
             R.pa(O, R.cmd(S, "New-Fail", [("Minimum " + R.str(R.u(R.pi(R.m((S["policy"] ?? null), "minProtocolVersion"))))), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 284;
+        R.ln = F + 301;
         if (R.t(R.in(R.m((S["policy"] ?? null), "policyName"), (S["strong"] ?? null)))) {
-            R.ln = F + 284;
+            R.ln = F + 301;
             R.pa(O, R.cmd(S, "New-Pass", [("Predefined policy " + R.str(R.u(R.pi(R.m((S["policy"] ?? null), "policyName"))))), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 285;
+        R.ln = F + 302;
         if (!R.t((S["policy"] ?? null))) {
-            R.ln = F + 285;
+            R.ln = F + 302;
             R.pa(O, R.cmd(S, "New-Fail", ["No SSL policy set; older gateways default to a policy that allows TLS 1.0", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 286;
+        R.ln = F + 303;
         R.pa(O, R.cmd(S, "New-Fail", [("Policy " + R.str(R.u(R.pi(R.m((S["policy"] ?? null), "policyName")))) + " allows TLS versions below 1.2"), (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 290;
+    R.ln = F + 307;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-NET-014", "Title", "Application Gateways have HTTP/2 enabled", "Category", "Network security", "Service", "Application Gateway", "Severity", "Informational", "Description", "Checks the enableHttp2 setting of Application Gateways.", "Rationale", "CIS recommends HTTP/2 on Application Gateway for its protocol efficiencies and header handling improvements over HTTP/1.1.", "Remediation", "Enable HTTP/2 on the gateway (az network application-gateway update --http2 Enabled ...).", "ResourceTypes", R.a("Microsoft.Network/applicationGateways"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $evidence = [ordered]@{ enableHttp2 = [bool]$Record.resource.properties.enableHttp2 }\n        if ($Record.resource.properties.enableHttp2) { return New-Pass 'HTTP/2 enabled' $evidence }\n        New-Fail 'HTTP/2 disabled' $evidence\n    " }, (S, O) => {
-        R.ln = F + 302;
+        R.ln = F + 319;
         S["evidence"] = R.ht(["enableHttp2", R.c("bool", R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "enableHttp2"))], true);
-        R.ln = F + 303;
+        R.ln = F + 320;
         if (R.t(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "enableHttp2"))) {
-            R.ln = F + 303;
+            R.ln = F + 320;
             R.pa(O, R.cmd(S, "New-Pass", ["HTTP/2 enabled", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 304;
+        R.ln = F + 321;
         R.pa(O, R.cmd(S, "New-Fail", ["HTTP/2 disabled", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 308;
+    R.ln = F + 325;
     S["wafpolicytypes"] = R.a([R.v("Microsoft.Network/ApplicationGatewayWebApplicationFirewallPolicies"), R.v("Microsoft.Network/frontdoorWebApplicationFirewallPolicies"), R.v("Microsoft.Cdn/cdnWebApplicationFirewallPolicies")]);
-    R.ln = F + 310;
+    R.ln = F + 327;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-NET-015", "Title", "WAF policies are enabled in Prevention mode", "Category", "Network security", "Service", "Web Application Firewall", "Severity", "High", "Description", "Checks Application Gateway, Front Door and CDN WAF policies for the enabled state and Prevention mode.", "Rationale", "A WAF in Detection mode or disabled only logs attacks; it does not stop them.", "Remediation", "After tuning exclusions in Detection mode, switch the policy to Prevention mode and keep it enabled.", "References", R.a("https://learn.microsoft.com/azure/web-application-firewall/ag/policy-overview"), "Policy", R.ht(["12430be1-6cc8-4527-a9a8-e3d38f250096", "Web Application Firewall (WAF) should use the specified mode for Application Gateway", "425bea59-a659-4cbb-8d31-34499bd030b8", "Web Application Firewall (WAF) should use the specified mode for Azure Front Door Service"], false), "ResourceTypes", (S["wafpolicytypes"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $settings = $Record.resource.properties.policySettings\n        $enabled = if ($settings.PSObject.Properties.Name -contains 'state') { $settings.state -eq 'Enabled' } else { $settings.enabledState -eq 'Enabled' }\n        $evidence = [ordered]@{ mode = $settings.mode; enabled = $enabled }\n        if ($enabled -and $settings.mode -eq 'Prevention') { return New-Pass 'Enabled in Prevention mode' $evidence }\n        New-Fail \"WAF policy is $(if ($enabled) { 'enabled' } else { 'disabled' }) in $($settings.mode) mode\" $evidence\n    " }, (S, O) => {
-        R.ln = F + 324;
+        R.ln = F + 341;
         S["settings"] = R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "policySettings");
-        R.ln = F + 325;
-        const v9 = [];
-        R.ln = F + 325;
+        R.ln = F + 342;
+        const v14 = [];
+        R.ln = F + 342;
         if (R.t(R.cont(R.m(R.m(R.m((S["settings"] ?? null), "PSObject"), "Properties"), "Name"), "state"))) {
-            R.ln = F + 325;
-            R.e(v9, R.eq(R.m((S["settings"] ?? null), "state"), "Enabled"));
+            R.ln = F + 342;
+            R.e(v14, R.eq(R.m((S["settings"] ?? null), "state"), "Enabled"));
         } else {
-            R.ln = F + 325;
-            R.e(v9, R.eq(R.m((S["settings"] ?? null), "enabledState"), "Enabled"));
+            R.ln = F + 342;
+            R.e(v14, R.eq(R.m((S["settings"] ?? null), "enabledState"), "Enabled"));
         }
-        S["enabled"] = R.u(v9);
-        R.ln = F + 326;
+        S["enabled"] = R.u(v14);
+        R.ln = F + 343;
         S["evidence"] = R.ht(["mode", R.m((S["settings"] ?? null), "mode"), "enabled", (S["enabled"] ?? null)], true);
-        R.ln = F + 327;
+        R.ln = F + 344;
         if ((R.t((S["enabled"] ?? null)) && R.t(R.eq(R.m((S["settings"] ?? null), "mode"), "Prevention")))) {
-            R.ln = F + 327;
+            R.ln = F + 344;
             R.pa(O, R.cmd(S, "New-Pass", ["Enabled in Prevention mode", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 328;
+        R.ln = F + 345;
         R.pa(O, R.cmd(S, "New-Fail", [("WAF policy is " + R.str((() => {
-            const v10 = [];
-            R.ln = F + 328;
+            const v15 = [];
+            R.ln = F + 345;
             if (R.t((S["enabled"] ?? null))) {
-                R.ln = F + 328;
-                R.e(v10, "enabled");
+                R.ln = F + 345;
+                R.e(v15, "enabled");
             } else {
-                R.ln = F + 328;
-                R.e(v10, "disabled");
+                R.ln = F + 345;
+                R.e(v15, "disabled");
             }
-            return R.u(v10);
+            return R.u(v15);
         })()) + " in " + R.str(R.u(R.pi(R.m((S["settings"] ?? null), "mode")))) + " mode"), (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 332;
+    R.ln = F + 349;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-NET-016", "Title", "WAF policies inspect request bodies", "Category", "Network security", "Service", "Web Application Firewall", "Severity", "Medium", "Description", "Checks Application Gateway and Front Door WAF policies for request body inspection.", "Rationale", "Without request body inspection, attacks carried in POST bodies (SQL injection, XSS, deserialization payloads) are not evaluated by the WAF.", "Remediation", "Enable request body inspection in the WAF policy settings.", "Policy", R.ht(["ca85ef9a-741d-461d-8b7a-18c2da82c666", "Azure Web Application Firewall on Azure Application Gateway should have request body inspection enabled", "4598f028-de1f-4694-8751-84dceb5f86b9", "Azure Web Application Firewall on Azure Front Door should have request body inspection enabled"], false), "ResourceTypes", (S["wafpolicytypes"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $check = $Record.resource.properties.policySettings.requestBodyCheck\n        $evidence = [ordered]@{ requestBodyCheck = $check }\n        if ($check -eq $true -or $check -eq 'Enabled') { return New-Pass 'Request body inspection enabled' $evidence }\n        New-Fail 'Request body inspection disabled' $evidence\n    " }, (S, O) => {
-        R.ln = F + 345;
+        R.ln = F + 362;
         S["check"] = R.m(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "policySettings"), "requestBodyCheck");
-        R.ln = F + 346;
+        R.ln = F + 363;
         S["evidence"] = R.ht(["requestBodyCheck", (S["check"] ?? null)], true);
-        R.ln = F + 347;
+        R.ln = F + 364;
         if ((R.t(R.eq((S["check"] ?? null), true)) || R.t(R.eq((S["check"] ?? null), "Enabled")))) {
-            R.ln = F + 347;
+            R.ln = F + 364;
             R.pa(O, R.cmd(S, "New-Pass", ["Request body inspection enabled", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 348;
+        R.ln = F + 365;
         R.pa(O, R.cmd(S, "New-Fail", ["Request body inspection disabled", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 352;
+    R.ln = F + 369;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-NET-017", "Title", "WAF policies have bot protection enabled", "Category", "Network security", "Service", "Web Application Firewall", "Severity", "Low", "Description", "Checks Application Gateway and Front Door WAF policies for the Microsoft bot manager managed rule set.", "Rationale", "The bot manager rule set blocks known malicious bots and scanners based on Microsoft threat intelligence.", "Remediation", "Add the Microsoft_BotManagerRuleSet managed rule set to the WAF policy.", "ResourceTypes", (S["wafpolicytypes"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $sets = @($Record.resource.properties.managedRules.managedRuleSets | Where-Object { $_ } | ForEach-Object { $_.ruleSetType })\n        $evidence = [ordered]@{ managedRuleSets = $sets }\n        if ($sets | Where-Object { $_ -match 'BotManager|BotProtection' }) { return New-Pass 'Bot protection enabled' $evidence }\n        New-Fail 'No bot protection rule set' $evidence\n    " }, (S, O) => {
-        R.ln = F + 364;
+        R.ln = F + 381;
         S["sets"] = R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " $_.ruleSetType " }, (S, O) => {
-            R.ln = F + 364;
+            R.ln = F + 381;
             R.e(O, R.m((S["_"] ?? null), "ruleSetType"));
         })], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 364;
+            R.ln = F + 381;
             R.e(O, (S["_"] ?? null));
         })], R.pi(R.m(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "managedRules"), "managedRuleSets"))));
-        R.ln = F + 365;
+        R.ln = F + 382;
         S["evidence"] = R.ht(["managedRuleSets", (S["sets"] ?? null)], true);
-        R.ln = F + 366;
+        R.ln = F + 383;
         if (R.t(R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -match 'BotManager|BotProtection' " }, (S, O) => {
-            R.ln = F + 366;
+            R.ln = F + 383;
             R.e(O, R.match(S, (S["_"] ?? null), "BotManager|BotProtection"));
         })], R.pi((S["sets"] ?? null)))))) {
-            R.ln = F + 366;
+            R.ln = F + 383;
             R.pa(O, R.cmd(S, "New-Pass", ["Bot protection enabled", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 367;
+        R.ln = F + 384;
         R.pa(O, R.cmd(S, "New-Fail", ["No bot protection rule set", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 371;
+    R.ln = F + 388;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-NET-018", "Title", "Front Door endpoints are protected by a WAF policy", "Category", "Network security", "Service", "Azure Front Door", "Severity", "High", "Description", "Checks Front Door Standard/Premium profiles for a security policy (WAF) and classic Front Door frontend endpoints for a WAF policy link.", "Rationale", "Front Door publishes applications to the Internet; without a WAF policy, web attacks pass straight to the origin.", "Remediation", "Create a WAF policy in Prevention mode and associate it with all Front Door domains through a security policy.", "References", R.a("https://learn.microsoft.com/azure/web-application-firewall/afds/afds-overview"), "Policy", R.ht(["055aa869-bc98-4af8-bafc-23f1ab6ffe2c", "Azure Web Application Firewall should be enabled for Azure Front Door entry-points"], false), "ResourceTypes", R.a([R.v("Microsoft.Cdn/profiles"), R.v("Microsoft.Network/frontDoors")]), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if ($Record.type -eq 'Microsoft.Network/frontDoors') {\n            $unprotected = @($Record.resource.properties.frontendEndpoints | Where-Object { $_ -and -not $_.properties.webApplicationFirewallPolicyLink } | ForEach-Object name)\n            $evidence = [ordered]@{ frontendEndpointsWithoutWaf = $unprotected }\n            if ($unprotected) { return New-Fail \"Frontend endpoint(s) without WAF: $($unprotected -join ', ')\" $evidence }\n            return New-Pass 'All frontend endpoints have a WAF policy' $evidence\n        }\n        if ($Record.resource.sku.name -notmatch 'AzureFrontDoor') { return $null }\n        if (-not (Test-ChildCollected $Record 'securityPolicies')) { return New-Unknown 'Security policies could not be read' }\n        $policies = @(Get-Child $Record 'securityPolicies' | Where-Object { $_ -and $_.properties.parameters.type -eq 'WebApplicationFirewall' })\n        $evidence = [ordered]@{ wafSecurityPolicies = @($policies | ForEach-Object name) }\n        if ($policies) { return New-Pass 'WAF security policy associated' $evidence }\n        New-Fail 'No WAF security policy on the Front Door profile' $evidence\n    " }, (S, O) => {
-        R.ln = F + 385;
+        R.ln = F + 402;
         if (R.t(R.eq(R.m((S["record"] ?? null), "type"), "Microsoft.Network/frontDoors"))) {
-            R.ln = F + 386;
+            R.ln = F + 403;
             S["unprotected"] = R.cmd(S, "ForEach-Object", ["name"], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and -not $_.properties.webApplicationFirewallPolicyLink " }, (S, O) => {
-                R.ln = F + 386;
+                R.ln = F + 403;
                 R.e(O, (R.t((S["_"] ?? null)) && !R.t(R.m(R.m((S["_"] ?? null), "properties"), "webApplicationFirewallPolicyLink"))));
             })], R.pi(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "frontendEndpoints"))));
-            R.ln = F + 387;
+            R.ln = F + 404;
             S["evidence"] = R.ht(["frontendEndpointsWithoutWaf", (S["unprotected"] ?? null)], true);
-            R.ln = F + 388;
+            R.ln = F + 405;
             if (R.t((S["unprotected"] ?? null))) {
-                R.ln = F + 388;
+                R.ln = F + 405;
                 R.pa(O, R.cmd(S, "New-Fail", [("Frontend endpoint(s) without WAF: " + R.str(R.u(R.pi(R.join((S["unprotected"] ?? null), ", "))))), (S["evidence"] ?? null)], null));
                 return;
             }
-            R.ln = F + 389;
+            R.ln = F + 406;
             R.pa(O, R.cmd(S, "New-Pass", ["All frontend endpoints have a WAF policy", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 391;
+        R.ln = F + 408;
         if (R.t(R.nmatch(S, R.m(R.m(R.m((S["record"] ?? null), "resource"), "sku"), "name"), "AzureFrontDoor"))) {
-            R.ln = F + 391;
+            R.ln = F + 408;
             R.e(O, null);
             return;
         }
-        R.ln = F + 392;
+        R.ln = F + 409;
         if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "securityPolicies"], null)))) {
-            R.ln = F + 392;
+            R.ln = F + 409;
             R.pa(O, R.cmd(S, "New-Unknown", ["Security policies could not be read"], null));
             return;
         }
-        R.ln = F + 393;
+        R.ln = F + 410;
         S["policies"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.properties.parameters.type -eq 'WebApplicationFirewall' " }, (S, O) => {
-            R.ln = F + 393;
+            R.ln = F + 410;
             R.e(O, (R.t((S["_"] ?? null)) && R.t(R.eq(R.m(R.m(R.m((S["_"] ?? null), "properties"), "parameters"), "type"), "WebApplicationFirewall"))));
         })], R.cmd(S, "Get-Child", [(S["record"] ?? null), "securityPolicies"], null));
-        R.ln = F + 394;
+        R.ln = F + 411;
         S["evidence"] = R.ht(["wafSecurityPolicies", R.cmd(S, "ForEach-Object", ["name"], R.pi((S["policies"] ?? null)))], true);
-        R.ln = F + 395;
+        R.ln = F + 412;
         if (R.t((S["policies"] ?? null))) {
-            R.ln = F + 395;
+            R.ln = F + 412;
             R.pa(O, R.cmd(S, "New-Pass", ["WAF security policy associated", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 396;
+        R.ln = F + 413;
         R.pa(O, R.cmd(S, "New-Fail", ["No WAF security policy on the Front Door profile", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 400;
+    R.ln = F + 417;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-NET-019", "Title", "Azure Firewall threat intelligence is set to alert and deny", "Category", "Network security", "Service", "Azure Firewall", "Severity", "Medium", "Description", "Checks firewall policies (and firewalls with classic rules) for threat intelligence mode Deny.", "Rationale", "Threat intelligence based filtering blocks traffic to and from known malicious IP addresses and domains, such as command and control servers.", "Remediation", "Set the threat intelligence mode to 'Alert and deny' in the firewall policy (az network firewall policy update --threat-intel-mode Deny ...).", "References", R.a("https://learn.microsoft.com/azure/firewall/threat-intel"), "Policy", R.ht(["da79a7e2-8aa1-45ed-af81-ba050c153564", "Azure Firewall Policy should enable Threat Intelligence", "7c591a93-c34c-464c-94ac-8f9f9a46e3d6", "Azure Firewall Standard - Classic Rules should enable Threat Intelligence"], false), "ResourceTypes", R.a([R.v("Microsoft.Network/firewallPolicies"), R.v("Microsoft.Network/azureFirewalls")]), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if ($Record.type -eq 'Microsoft.Network/azureFirewalls' -and $Record.resource.properties.firewallPolicy) { return $null }\n        $mode = $Record.resource.properties.threatIntelMode\n        $evidence = [ordered]@{ threatIntelMode = $mode }\n        if ($mode -eq 'Deny') { return New-Pass 'Threat intelligence alerts and denies' $evidence }\n        New-Fail \"Threat intelligence mode is $mode\" $evidence\n    " }, (S, O) => {
-        R.ln = F + 414;
+        R.ln = F + 431;
         if ((R.t(R.eq(R.m((S["record"] ?? null), "type"), "Microsoft.Network/azureFirewalls")) && R.t(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "firewallPolicy")))) {
-            R.ln = F + 414;
+            R.ln = F + 431;
             R.e(O, null);
             return;
         }
-        R.ln = F + 415;
+        R.ln = F + 432;
         S["mode"] = R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "threatIntelMode");
-        R.ln = F + 416;
+        R.ln = F + 433;
         S["evidence"] = R.ht(["threatIntelMode", (S["mode"] ?? null)], true);
-        R.ln = F + 417;
+        R.ln = F + 434;
         if (R.t(R.eq((S["mode"] ?? null), "Deny"))) {
-            R.ln = F + 417;
+            R.ln = F + 434;
             R.pa(O, R.cmd(S, "New-Pass", ["Threat intelligence alerts and denies", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 418;
+        R.ln = F + 435;
         R.pa(O, R.cmd(S, "New-Fail", [("Threat intelligence mode is " + R.str((S["mode"] ?? null))), (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 422;
+    R.ln = F + 439;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-NET-020", "Title", "Azure Firewall intrusion detection and prevention (IDPS) is enabled", "Category", "Network security", "Service", "Azure Firewall", "Severity", "Medium", "Description", "Checks firewall policies for the Premium tier with IDPS in Alert or Deny mode.", "Rationale", "Signature based IDPS detects and blocks exploits, malware and command and control traffic, including in TLS inspected flows.", "Remediation", "Upgrade to Azure Firewall Premium and set IDPS to Alert and deny in the firewall policy.", "References", R.a("https://learn.microsoft.com/azure/firewall/premium-features"), "Policy", R.ht(["8c19196d-7fd7-45b2-a9b4-7288f47c769a", "Azure Firewall Standard should be upgraded to Premium for next generation protection"], false), "ResourceTypes", R.a("Microsoft.Network/firewallPolicies"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $p = $Record.resource.properties\n        $mode = $p.intrusionDetection.mode\n        $evidence = [ordered]@{ tier = $p.sku.tier; idpsMode = $mode }\n        if ($p.sku.tier -eq 'Premium' -and $mode -in 'Alert', 'Deny') { return New-Pass \"IDPS in $mode mode\" $evidence }\n        New-Fail $(if ($p.sku.tier -ne 'Premium') { \"Firewall policy tier $($p.sku.tier) has no IDPS\" } else { 'IDPS is off' }) $evidence\n    " }, (S, O) => {
-        R.ln = F + 436;
+        R.ln = F + 453;
         S["p"] = R.m(R.m((S["record"] ?? null), "resource"), "properties");
-        R.ln = F + 437;
+        R.ln = F + 454;
         S["mode"] = R.m(R.m((S["p"] ?? null), "intrusionDetection"), "mode");
-        R.ln = F + 438;
+        R.ln = F + 455;
         S["evidence"] = R.ht(["tier", R.m(R.m((S["p"] ?? null), "sku"), "tier"), "idpsMode", (S["mode"] ?? null)], true);
-        R.ln = F + 439;
+        R.ln = F + 456;
         if ((R.t(R.eq(R.m(R.m((S["p"] ?? null), "sku"), "tier"), "Premium")) && R.t(R.in((S["mode"] ?? null), [R.v("Alert"), R.v("Deny")])))) {
-            R.ln = F + 439;
+            R.ln = F + 456;
             R.pa(O, R.cmd(S, "New-Pass", [("IDPS in " + R.str((S["mode"] ?? null)) + " mode"), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 440;
+        R.ln = F + 457;
         R.pa(O, R.cmd(S, "New-Fail", [(() => {
-            const v11 = [];
-            R.ln = F + 440;
+            const v16 = [];
+            R.ln = F + 457;
             if (R.t(R.ne(R.m(R.m((S["p"] ?? null), "sku"), "tier"), "Premium"))) {
-                R.ln = F + 440;
-                R.e(v11, ("Firewall policy tier " + R.str(R.u(R.pi(R.m(R.m((S["p"] ?? null), "sku"), "tier")))) + " has no IDPS"));
+                R.ln = F + 457;
+                R.e(v16, ("Firewall policy tier " + R.str(R.u(R.pi(R.m(R.m((S["p"] ?? null), "sku"), "tier")))) + " has no IDPS"));
             } else {
-                R.ln = F + 440;
-                R.e(v11, "IDPS is off");
+                R.ln = F + 457;
+                R.e(v16, "IDPS is off");
             }
-            return R.u(v11);
+            return R.u(v16);
         })(), (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 444;
+    R.ln = F + 461;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-NET-021", "Title", "Point-to-site VPN uses Microsoft Entra authentication only", "Category", "Identity management", "Service", "VPN Gateway", "Severity", "Medium", "Description", "Checks VPN gateways with point-to-site configuration for Microsoft Entra ID as the only authentication type.", "Rationale", "Entra authentication applies MFA, Conditional Access and central account lifecycle to VPN users; certificate and RADIUS authentication do not.", "Remediation", "Configure point-to-site with Azure Active Directory (Entra ID) authentication only and remove certificate and RADIUS authentication.", "References", R.a("https://learn.microsoft.com/azure/vpn-gateway/openvpn-azure-ad-tenant"), "Policy", R.ht(["21a6bc25-125e-4d13-b82d-2e19b7208ab7", "VPN gateways should use only Azure Active Directory (Azure AD) authentication for point-to-site users"], false), "ResourceTypes", R.a("Microsoft.Network/virtualNetworkGateways"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $config = $Record.resource.properties.vpnClientConfiguration\n        if (-not $config -or -not $config.vpnClientAddressPool) { return $null }\n        $types = @($config.vpnAuthenticationTypes)\n        $evidence = [ordered]@{ vpnAuthenticationTypes = $types }\n        if ($types.Count -eq 1 -and $types[0] -eq 'AAD') { return New-Pass 'Entra ID authentication only' $evidence }\n        New-Fail \"Authentication types: $($types -join ', ')\" $evidence\n    " }, (S, O) => {
-        R.ln = F + 458;
+        R.ln = F + 475;
         S["config"] = R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "vpnClientConfiguration");
-        R.ln = F + 459;
+        R.ln = F + 476;
         if ((!R.t((S["config"] ?? null)) || !R.t(R.m((S["config"] ?? null), "vpnClientAddressPool")))) {
-            R.ln = F + 459;
+            R.ln = F + 476;
             R.e(O, null);
             return;
         }
-        R.ln = F + 460;
+        R.ln = F + 477;
         S["types"] = R.a(R.m((S["config"] ?? null), "vpnAuthenticationTypes"));
-        R.ln = F + 461;
+        R.ln = F + 478;
         S["evidence"] = R.ht(["vpnAuthenticationTypes", (S["types"] ?? null)], true);
-        R.ln = F + 462;
+        R.ln = F + 479;
         if ((R.t(R.eq(R.m((S["types"] ?? null), "Count"), 1)) && R.t(R.eq(R.i((S["types"] ?? null), 0), "AAD")))) {
-            R.ln = F + 462;
+            R.ln = F + 479;
             R.pa(O, R.cmd(S, "New-Pass", ["Entra ID authentication only", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 463;
+        R.ln = F + 480;
         R.pa(O, R.cmd(S, "New-Fail", [("Authentication types: " + R.str(R.u(R.pi(R.join((S["types"] ?? null), ", "))))), (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 468;
+    R.ln = F + 485;
     S["claimablesuffixes"] = R.a([R.v("azurewebsites.net"), R.v("cloudapp.net"), R.v("cloudapp.azure.com"), R.v("trafficmanager.net"), R.v("blob.core.windows.net"), R.v("web.core.windows.net"), R.v("azureedge.net"), R.v("azurefd.net"), R.v("azure-api.net"), R.v("azurecontainer.io"), R.v("azurestaticapps.net"), R.v("azurecontainerapps.io"), R.v("search.windows.net"), R.v("redis.cache.windows.net"), R.v("azurehdinsight.net"), R.v("servicebus.windows.net"), R.v("azureml.ms")]);
-    R.ln = F + 470;
+    R.ln = F + 487;
     R.def(S, "Get-SubscriptionHostNames", { params: [], adv: 0, h: "07a0da6e9cc14386" }, (S, O) => {
-        R.ln = F + 472;
+        R.ln = F + 489;
         S["hosts"] = R.sc("System.Collections.Generic.HashSet[string]", "new", [R.st("System.StringComparer", "OrdinalIgnoreCase")]);
-        R.ln = F + 473;
+        R.ln = F + 490;
         S["add"] = R.sb({ params: [{ n: "value", t: null, pos: null }], adv: 0, text: " param($value) if ($value) { $null = $hosts.Add((([string]$value) -replace '^https?://', '' -replace '[/:].*$', '').TrimEnd('.')) } " }, (S, O) => {
-            R.ln = F + 473;
+            R.ln = F + 490;
             if (R.t((S["value"] ?? null))) {
-                R.ln = F + 473;
+                R.ln = F + 490;
                 R.im((S["hosts"] ?? null), "Add", [R.im((R.rep(R.rep((R.c("string", (S["value"] ?? null))), [R.v("^https?://"), R.v("")]), [R.v("[/:].*$"), R.v("")])), "TrimEnd", ["."])]);
             }
         });
-        R.ln = F + 474;
-        for (const it12 of R.fi(R.u(R.cmd(S, "Get-AzResourceRecords", [], null)))) {
-            S["record"] = it12;
-            R.ln = F + 475;
+        R.ln = F + 491;
+        for (const it17 of R.fi(R.u(R.cmd(S, "Get-AzResourceRecords", [], null)))) {
+            S["record"] = it17;
+            R.ln = F + 492;
             S["p"] = R.m(R.m((S["record"] ?? null), "resource"), "properties");
-            R.ln = F + 476;
-            for (const it13 of R.fi(R.add(R.add(R.a([R.v(R.m((S["p"] ?? null), "defaultHostName")), R.v(R.m((S["p"] ?? null), "defaultHostname")), R.v(R.m(R.m((S["p"] ?? null), "dnsSettings"), "fqdn")), R.v(R.m(R.m((S["p"] ?? null), "dnsConfig"), "fqdn")), R.v(R.m((S["p"] ?? null), "fqdn")), R.v(R.m((S["p"] ?? null), "hostName")), R.v(R.m((S["p"] ?? null), "gatewayUrl")), R.v(R.m(R.m(R.m((S["p"] ?? null), "configuration"), "ingress"), "fqdn"))]), R.a(R.m((S["p"] ?? null), "hostNames"))), R.a(R.m((S["p"] ?? null), "enabledHostNames"))))) {
-                S["value"] = it13;
-                R.ln = F + 476;
+            R.ln = F + 493;
+            for (const it18 of R.fi(R.add(R.add(R.a([R.v(R.m((S["p"] ?? null), "defaultHostName")), R.v(R.m((S["p"] ?? null), "defaultHostname")), R.v(R.m(R.m((S["p"] ?? null), "dnsSettings"), "fqdn")), R.v(R.m(R.m((S["p"] ?? null), "dnsConfig"), "fqdn")), R.v(R.m((S["p"] ?? null), "fqdn")), R.v(R.m((S["p"] ?? null), "hostName")), R.v(R.m((S["p"] ?? null), "gatewayUrl")), R.v(R.m(R.m(R.m((S["p"] ?? null), "configuration"), "ingress"), "fqdn"))]), R.a(R.m((S["p"] ?? null), "hostNames"))), R.a(R.m((S["p"] ?? null), "enabledHostNames"))))) {
+                S["value"] = it18;
+                R.ln = F + 493;
                 R.pa(O, R.inv(S, (S["add"] ?? null), [(S["value"] ?? null)], null, false));
             }
-            R.ln = F + 477;
-            for (const it14 of R.fi(R.add(R.a(R.m(R.m(R.m(R.m((S["p"] ?? null), "primaryEndpoints"), "PSObject"), "Properties"), "Value")), R.a(R.m(R.m(R.m(R.m((S["p"] ?? null), "secondaryEndpoints"), "PSObject"), "Properties"), "Value"))))) {
-                S["endpoint"] = it14;
-                R.ln = F + 477;
+            R.ln = F + 494;
+            for (const it19 of R.fi(R.add(R.a(R.m(R.m(R.m(R.m((S["p"] ?? null), "primaryEndpoints"), "PSObject"), "Properties"), "Value")), R.a(R.m(R.m(R.m(R.m((S["p"] ?? null), "secondaryEndpoints"), "PSObject"), "Properties"), "Value"))))) {
+                S["endpoint"] = it19;
+                R.ln = F + 494;
                 if (R.t(R.is((S["endpoint"] ?? null), R.ty("string")))) {
-                    R.ln = F + 477;
+                    R.ln = F + 494;
                     R.pa(O, R.inv(S, (S["add"] ?? null), [(S["endpoint"] ?? null)], null, false));
                 }
             }
-            R.ln = F + 478;
-            for (const it15 of R.fi([R.v("endpoints"), R.v("afdEndpoints")])) {
-                S["child"] = it15;
-                R.ln = F + 478;
-                for (const it16 of R.fi(R.cmd(S, "Get-Child", [(S["record"] ?? null), (S["child"] ?? null)], null))) {
-                    S["item"] = it16;
-                    R.ln = F + 478;
+            R.ln = F + 495;
+            for (const it20 of R.fi([R.v("endpoints"), R.v("afdEndpoints")])) {
+                S["child"] = it20;
+                R.ln = F + 495;
+                for (const it21 of R.fi(R.cmd(S, "Get-Child", [(S["record"] ?? null), (S["child"] ?? null)], null))) {
+                    S["item"] = it21;
+                    R.ln = F + 495;
                     if (R.t((S["item"] ?? null))) {
-                        R.ln = F + 478;
+                        R.ln = F + 495;
                         R.pa(O, R.inv(S, (S["add"] ?? null), [R.m(R.m((S["item"] ?? null), "properties"), "hostName")], null, false));
                     }
                 }
             }
         }
-        R.ln = F + 480;
+        R.ln = F + 497;
         R.e(O, [R.v((S["hosts"] ?? null))]);
         return;
     });
-    R.ln = F + 483;
+    R.ln = F + 500;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-NET-022", "Version", 2, "Title", "DNS records do not point to missing Azure resources (dangling DNS)", "Category", "Network security", "Service", "Azure DNS", "Severity", "High", "Description", "Checks alias records and CNAME records in Azure DNS zones that target Azure service host names (for example *.azurewebsites.net, *.cloudapp.azure.com, *.blob.core.windows.net). An alias record pointing at a deleted resource in this subscription fails. A CNAME whose target is not in this subscription is reported Unknown: the target may well exist in another subscription or tenant, which this ingestion cannot see.", "Rationale", "When an Azure resource is deleted but DNS still points to its name, an attacker can create a resource with the same name and take over the subdomain (phishing, cookie theft, bypassing allow lists).", "Remediation", "Delete DNS records that point to removed resources, and remove DNS records before (not after) deprovisioning resources. For each Unknown target, confirm that the name is still owned by your organization. Use alias records where possible, because those can be verified automatically.", "References", R.a("https://learn.microsoft.com/azure/security/fundamentals/subdomain-takeover"), "Run", R.sb({ params: [], adv: 0, text: "\n        $zones = @(Get-AzResourceRecords -Type 'Microsoft.Network/dnszones')\n        if (-not $zones) { return New-SubscriptionFinding (New-NotApplicable 'No public DNS zones') }\n        $hosts = Get-SubscriptionHostNames\n        foreach ($zone in $zones) {\n            if (-not (Test-ChildCollected $zone 'recordsets')) { New-Finding -Record $zone -Result (New-Unknown 'Record sets could not be read'); continue }\n            foreach ($recordSet in @(Get-Child $zone 'recordsets' | Where-Object { $_ })) {\n                $p = $recordSet.properties\n                $target = $p.CNAMERecord.cname\n                if ($p.targetResource.id) {\n                    $exists = [bool](Get-AzResourceRecord $p.targetResource.id) -or -not ($p.targetResource.id -match \"^/subscriptions/$($script:Ingest.SubscriptionId)/\")\n                    $evidence = [ordered]@{ fqdn = $p.fqdn; aliasTarget = $p.targetResource.id }\n                    $result = if ($exists) { New-Pass 'Alias target exists' $evidence } else { New-Fail \"Alias record points to missing resource $($p.targetResource.id)\" $evidence }\n                    New-Finding -ResourceId $recordSet.id -ResourceType $recordSet.type -ResourceName $p.fqdn -Result $result\n                    continue\n                }\n                if (-not $target) { continue }\n                $cname = $target.TrimEnd('.')\n                $suffix = $claimableSuffixes | Where-Object { $cname -like \"*.$_\" } | Select-Object -First 1\n                if (-not $suffix) { continue }\n                $evidence = [ordered]@{ fqdn = $p.fqdn; cname = $cname }\n                #a name outside this subscription is not evidence of a dangling record: the resource may exist elsewhere\n                $result = if ($hosts.Contains($cname)) { New-Pass 'Target exists in this subscription' $evidence } else { New-Unknown \"CNAME points to $cname, which is not a resource in this subscription; verify that the name is still owned by your organization\" $evidence }\n                New-Finding -ResourceId $recordSet.id -ResourceType $recordSet.type -ResourceName $p.fqdn -Result $result\n            }\n        }\n    " }, (S, O) => {
-        R.ln = F + 495;
+        R.ln = F + 512;
         S["zones"] = R.cmd(S, "Get-AzResourceRecords", [R.np("Type"), "Microsoft.Network/dnszones"], null);
-        R.ln = F + 496;
+        R.ln = F + 513;
         if (!R.t((S["zones"] ?? null))) {
-            R.ln = F + 496;
+            R.ln = F + 513;
             R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-NotApplicable", ["No public DNS zones"], null))], null));
             return;
         }
-        R.ln = F + 497;
+        R.ln = F + 514;
         S["hosts"] = R.u(R.cmd(S, "Get-SubscriptionHostNames", [], null));
-        R.ln = F + 498;
-        for (const it17 of R.fi((S["zones"] ?? null))) {
-            S["zone"] = it17;
-            R.ln = F + 499;
+        R.ln = F + 515;
+        for (const it22 of R.fi((S["zones"] ?? null))) {
+            S["zone"] = it22;
+            R.ln = F + 516;
             if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["zone"] ?? null), "recordsets"], null)))) {
-                R.ln = F + 499;
+                R.ln = F + 516;
                 R.pa(O, R.cmd(S, "New-Finding", [R.np("Record"), (S["zone"] ?? null), R.np("Result"), R.u(R.cmd(S, "New-Unknown", ["Record sets could not be read"], null))], null));
                 continue;
             }
-            R.ln = F + 500;
-            for (const it18 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                R.ln = F + 500;
+            R.ln = F + 517;
+            for (const it23 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+                R.ln = F + 517;
                 R.e(O, (S["_"] ?? null));
             })], R.cmd(S, "Get-Child", [(S["zone"] ?? null), "recordsets"], null)))) {
-                S["recordset"] = it18;
-                R.ln = F + 501;
+                S["recordset"] = it23;
+                R.ln = F + 518;
                 S["p"] = R.m((S["recordset"] ?? null), "properties");
-                R.ln = F + 502;
+                R.ln = F + 519;
                 S["target"] = R.m(R.m((S["p"] ?? null), "CNAMERecord"), "cname");
-                R.ln = F + 503;
+                R.ln = F + 520;
                 if (R.t(R.m(R.m((S["p"] ?? null), "targetResource"), "id"))) {
-                    R.ln = F + 504;
+                    R.ln = F + 521;
                     S["exists"] = (R.t(R.c("bool", R.u(R.cmd(S, "Get-AzResourceRecord", [R.m(R.m((S["p"] ?? null), "targetResource"), "id")], null)))) || !R.t(R.match(S, R.m(R.m((S["p"] ?? null), "targetResource"), "id"), ("^/subscriptions/" + R.str(R.u(R.pi(R.m((R.ss(S)["script:ingest"] ?? null), "SubscriptionId")))) + "/"))));
-                    R.ln = F + 505;
+                    R.ln = F + 522;
                     S["evidence"] = R.ht(["fqdn", R.m((S["p"] ?? null), "fqdn"), "aliasTarget", R.m(R.m((S["p"] ?? null), "targetResource"), "id")], true);
-                    R.ln = F + 506;
-                    const v19 = [];
-                    R.ln = F + 506;
+                    R.ln = F + 523;
+                    const v24 = [];
+                    R.ln = F + 523;
                     if (R.t((S["exists"] ?? null))) {
-                        R.ln = F + 506;
-                        R.pa(v19, R.cmd(S, "New-Pass", ["Alias target exists", (S["evidence"] ?? null)], null));
+                        R.ln = F + 523;
+                        R.pa(v24, R.cmd(S, "New-Pass", ["Alias target exists", (S["evidence"] ?? null)], null));
                     } else {
-                        R.ln = F + 506;
-                        R.pa(v19, R.cmd(S, "New-Fail", [("Alias record points to missing resource " + R.str(R.u(R.pi(R.m(R.m((S["p"] ?? null), "targetResource"), "id"))))), (S["evidence"] ?? null)], null));
+                        R.ln = F + 523;
+                        R.pa(v24, R.cmd(S, "New-Fail", [("Alias record points to missing resource " + R.str(R.u(R.pi(R.m(R.m((S["p"] ?? null), "targetResource"), "id"))))), (S["evidence"] ?? null)], null));
                     }
-                    S["result"] = R.u(v19);
-                    R.ln = F + 507;
+                    S["result"] = R.u(v24);
+                    R.ln = F + 524;
                     R.pa(O, R.cmd(S, "New-Finding", [R.np("ResourceId"), R.m((S["recordset"] ?? null), "id"), R.np("ResourceType"), R.m((S["recordset"] ?? null), "type"), R.np("ResourceName"), R.m((S["p"] ?? null), "fqdn"), R.np("Result"), (S["result"] ?? null)], null));
                     continue;
                 }
-                R.ln = F + 510;
+                R.ln = F + 527;
                 if (!R.t((S["target"] ?? null))) {
                     continue;
                 }
-                R.ln = F + 511;
+                R.ln = F + 528;
                 S["cname"] = R.im((S["target"] ?? null), "TrimEnd", ["."]);
-                R.ln = F + 512;
+                R.ln = F + 529;
                 S["suffix"] = R.u(R.cmd(S, "Select-Object", [R.np("First"), 1], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $cname -like \"*.$_\" " }, (S, O) => {
-                    R.ln = F + 512;
+                    R.ln = F + 529;
                     R.e(O, R.like((S["cname"] ?? null), ("*." + R.str((S["_"] ?? null)))));
                 })], R.pi((S["claimablesuffixes"] ?? null)))));
-                R.ln = F + 513;
+                R.ln = F + 530;
                 if (!R.t((S["suffix"] ?? null))) {
                     continue;
                 }
-                R.ln = F + 514;
+                R.ln = F + 531;
                 S["evidence"] = R.ht(["fqdn", R.m((S["p"] ?? null), "fqdn"), "cname", (S["cname"] ?? null)], true);
-                R.ln = F + 516;
-                const v20 = [];
-                R.ln = F + 516;
+                R.ln = F + 533;
+                const v25 = [];
+                R.ln = F + 533;
                 if (R.t(R.im((S["hosts"] ?? null), "Contains", [(S["cname"] ?? null)]))) {
-                    R.ln = F + 516;
-                    R.pa(v20, R.cmd(S, "New-Pass", ["Target exists in this subscription", (S["evidence"] ?? null)], null));
+                    R.ln = F + 533;
+                    R.pa(v25, R.cmd(S, "New-Pass", ["Target exists in this subscription", (S["evidence"] ?? null)], null));
                 } else {
-                    R.ln = F + 516;
-                    R.pa(v20, R.cmd(S, "New-Unknown", [("CNAME points to " + R.str((S["cname"] ?? null)) + ", which is not a resource in this subscription; verify that the name is still owned by your organization"), (S["evidence"] ?? null)], null));
+                    R.ln = F + 533;
+                    R.pa(v25, R.cmd(S, "New-Unknown", [("CNAME points to " + R.str((S["cname"] ?? null)) + ", which is not a resource in this subscription; verify that the name is still owned by your organization"), (S["evidence"] ?? null)], null));
                 }
-                S["result"] = R.u(v20);
-                R.ln = F + 517;
+                S["result"] = R.u(v25);
+                R.ln = F + 534;
                 R.pa(O, R.cmd(S, "New-Finding", [R.np("ResourceId"), R.m((S["recordset"] ?? null), "id"), R.np("ResourceType"), R.m((S["recordset"] ?? null), "type"), R.np("ResourceName"), R.m((S["p"] ?? null), "fqdn"), R.np("Result"), (S["result"] ?? null)], null));
             }
         }
     })], false)], null));
-    R.ln = F + 523;
+    R.ln = F + 540;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-NET-023", "Title", "Virtual machines with management ports open are covered by just-in-time access", "Category", "Network security", "Service", "Microsoft Defender for Cloud", "Severity", "Medium", "Description", "For each virtual machine whose network security groups allow RDP (3389), SSH (22), WinRM (5985, 5986) or the SQL port (1433) from the Internet, checks for a Defender for Cloud just-in-time network access policy covering that machine. Machines without such exposure are not applicable.", "Rationale", "Just-in-time access keeps management ports closed and opens them to a requesting address for a limited time after an authorized, audited request, which removes the permanent exposure that scanners and brute force rely on.", "Remediation", "Enable just-in-time VM access in Defender for Cloud (Workload protections > Just-in-time VM access) for these machines, or remove the Internet facing management rule from the network security group.", "References", R.a("https://learn.microsoft.com/azure/defender-for-cloud/just-in-time-access-usage"), "Policy", R.ht(["b0f33259-77d7-4c9e-aac6-3aabcfae693c", "Management ports of virtual machines should be protected with just-in-time network access control"], false), "Requires", R.a("defender/jitNetworkAccessPolicies"), "ResourceTypes", R.a("Microsoft.Compute/virtualMachines"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        #network interfaces carry the NSG, or the subnet they sit in does\n        $nsgIds = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)\n        foreach ($reference in @($Record.resource.properties.networkProfile.networkInterfaces | Where-Object { $_.id })) {\n            $nic = Get-AzResourceRecord $reference.id\n            if (-not $nic) { continue }\n            if ($nic.resource.properties.networkSecurityGroup.id) { $null = $nsgIds.Add([string]$nic.resource.properties.networkSecurityGroup.id) }\n            foreach ($configuration in @($nic.resource.properties.ipConfigurations | Where-Object { $_.properties.subnet.id })) {\n                $subnetId = [string]$configuration.properties.subnet.id\n                $vnet = Get-AzResourceRecord ($subnetId -replace '(?i)/subnets/[^/]+$', '')\n                $subnet = @($vnet.resource.properties.subnets | Where-Object { $_.id -and $_.id -eq $subnetId }) | Select-Object -First 1\n                if ($subnet.properties.networkSecurityGroup.id) { $null = $nsgIds.Add([string]$subnet.properties.networkSecurityGroup.id) }\n            }\n        }\n        $exposed = [ordered]@{}\n        foreach ($nsgId in $nsgIds) {\n            $nsg = Get-AzResourceRecord $nsgId\n            if (-not $nsg) { continue }\n            foreach ($port in 22, 1433, 3389, 5985, 5986) {\n                $rule = Get-NsgInternetExposure -Nsg $nsg.resource -Port $port -Protocol Tcp\n                if ($rule) { $exposed[\"$port\"] = \"$($nsg.resource.name)/$($rule.name)\" }\n            }\n        }\n        if (-not $exposed.Count) { return New-NotApplicable 'No management port is open to the Internet on this machine' ([ordered]@{ networkSecurityGroups = @($nsgIds) }) }\n        $covered = @(Get-IngestData 'defender/jitNetworkAccessPolicies' | Where-Object { $_ } | ForEach-Object { $_.properties.virtualMachines } | Where-Object { $_.id -and $_.id -eq $Record.id })\n        $evidence = [ordered]@{ exposedPorts = @($exposed.Keys); allowingRules = @($exposed.Values | Sort-Object -Unique); jitPolicy = [bool]$covered }\n        if ($covered) { return New-Pass 'Just-in-time access policy covers this machine' $evidence }\n        New-Fail \"Management port(s) $($exposed.Keys -join ', ') open to the Internet without a just-in-time policy\" $evidence\n    " }, (S, O) => {
-        R.ln = F + 539;
+        R.ln = F + 556;
         S["nsgids"] = R.sc("System.Collections.Generic.HashSet[string]", "new", [R.st("System.StringComparer", "OrdinalIgnoreCase")]);
-        R.ln = F + 540;
-        for (const it21 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.id " }, (S, O) => {
-            R.ln = F + 540;
+        R.ln = F + 557;
+        for (const it26 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.id " }, (S, O) => {
+            R.ln = F + 557;
             R.e(O, R.m((S["_"] ?? null), "id"));
         })], R.pi(R.m(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "networkProfile"), "networkInterfaces"))))) {
-            S["reference"] = it21;
-            R.ln = F + 541;
+            S["reference"] = it26;
+            R.ln = F + 558;
             S["nic"] = R.u(R.cmd(S, "Get-AzResourceRecord", [R.m((S["reference"] ?? null), "id")], null));
-            R.ln = F + 542;
+            R.ln = F + 559;
             if (!R.t((S["nic"] ?? null))) {
                 continue;
             }
-            R.ln = F + 543;
+            R.ln = F + 560;
             if (R.t(R.m(R.m(R.m(R.m((S["nic"] ?? null), "resource"), "properties"), "networkSecurityGroup"), "id"))) {
-                R.ln = F + 543;
+                R.ln = F + 560;
                 R.im((S["nsgids"] ?? null), "Add", [R.c("string", R.m(R.m(R.m(R.m((S["nic"] ?? null), "resource"), "properties"), "networkSecurityGroup"), "id"))]);
             }
-            R.ln = F + 544;
-            for (const it22 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.properties.subnet.id " }, (S, O) => {
-                R.ln = F + 544;
+            R.ln = F + 561;
+            for (const it27 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.properties.subnet.id " }, (S, O) => {
+                R.ln = F + 561;
                 R.e(O, R.m(R.m(R.m((S["_"] ?? null), "properties"), "subnet"), "id"));
             })], R.pi(R.m(R.m(R.m((S["nic"] ?? null), "resource"), "properties"), "ipConfigurations"))))) {
-                S["configuration"] = it22;
-                R.ln = F + 545;
+                S["configuration"] = it27;
+                R.ln = F + 562;
                 S["subnetid"] = R.c("string", R.m(R.m(R.m((S["configuration"] ?? null), "properties"), "subnet"), "id"));
-                R.ln = F + 546;
+                R.ln = F + 563;
                 S["vnet"] = R.u(R.cmd(S, "Get-AzResourceRecord", [(R.rep((S["subnetid"] ?? null), [R.v("(?i)/subnets/[^/]+$"), R.v("")]))], null));
-                R.ln = F + 547;
+                R.ln = F + 564;
                 S["subnet"] = R.u(R.cmd(S, "Select-Object", [R.np("First"), 1], R.pi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.id -and $_.id -eq $subnetId " }, (S, O) => {
-                    R.ln = F + 547;
+                    R.ln = F + 564;
                     R.e(O, (R.t(R.m((S["_"] ?? null), "id")) && R.t(R.eq(R.m((S["_"] ?? null), "id"), (S["subnetid"] ?? null)))));
                 })], R.pi(R.m(R.m(R.m((S["vnet"] ?? null), "resource"), "properties"), "subnets"))))));
-                R.ln = F + 548;
+                R.ln = F + 565;
                 if (R.t(R.m(R.m(R.m((S["subnet"] ?? null), "properties"), "networkSecurityGroup"), "id"))) {
-                    R.ln = F + 548;
+                    R.ln = F + 565;
                     R.im((S["nsgids"] ?? null), "Add", [R.c("string", R.m(R.m(R.m((S["subnet"] ?? null), "properties"), "networkSecurityGroup"), "id"))]);
                 }
             }
         }
-        R.ln = F + 551;
+        R.ln = F + 568;
         S["exposed"] = R.ht([], true);
-        R.ln = F + 552;
-        for (const it23 of R.fi((S["nsgids"] ?? null))) {
-            S["nsgid"] = it23;
-            R.ln = F + 553;
+        R.ln = F + 569;
+        for (const it28 of R.fi((S["nsgids"] ?? null))) {
+            S["nsgid"] = it28;
+            R.ln = F + 570;
             S["nsg"] = R.u(R.cmd(S, "Get-AzResourceRecord", [(S["nsgid"] ?? null)], null));
-            R.ln = F + 554;
+            R.ln = F + 571;
             if (!R.t((S["nsg"] ?? null))) {
                 continue;
             }
-            R.ln = F + 555;
-            for (const it24 of R.fi([R.v(22), R.v(1433), R.v(3389), R.v(5985), R.v(5986)])) {
-                S["port"] = it24;
-                R.ln = F + 556;
+            R.ln = F + 572;
+            for (const it29 of R.fi([R.v(22), R.v(1433), R.v(3389), R.v(5985), R.v(5986)])) {
+                S["port"] = it29;
+                R.ln = F + 573;
                 S["rule"] = R.u(R.cmd(S, "Get-NsgInternetExposure", [R.np("Nsg"), R.m((S["nsg"] ?? null), "resource"), R.np("Port"), (S["port"] ?? null), R.np("Protocol"), "Tcp"], null));
-                R.ln = F + 557;
+                R.ln = F + 574;
                 if (R.t((S["rule"] ?? null))) {
-                    R.ln = F + 557;
+                    R.ln = F + 574;
                     R.si((S["exposed"] ?? null), ("" + R.str((S["port"] ?? null))), ("" + R.str(R.u(R.pi(R.m(R.m((S["nsg"] ?? null), "resource"), "name")))) + "/" + R.str(R.u(R.pi(R.m((S["rule"] ?? null), "name"))))));
                 }
             }
         }
-        R.ln = F + 560;
+        R.ln = F + 577;
         if (!R.t(R.m((S["exposed"] ?? null), "Count"))) {
-            R.ln = F + 560;
+            R.ln = F + 577;
             R.pa(O, R.cmd(S, "New-NotApplicable", ["No management port is open to the Internet on this machine", (R.ht(["networkSecurityGroups", R.a((S["nsgids"] ?? null))], true))], null));
             return;
         }
-        R.ln = F + 561;
+        R.ln = F + 578;
         S["covered"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.id -and $_.id -eq $Record.id " }, (S, O) => {
-            R.ln = F + 561;
+            R.ln = F + 578;
             R.e(O, (R.t(R.m((S["_"] ?? null), "id")) && R.t(R.eq(R.m((S["_"] ?? null), "id"), R.m((S["record"] ?? null), "id")))));
         })], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " $_.properties.virtualMachines " }, (S, O) => {
-            R.ln = F + 561;
+            R.ln = F + 578;
             R.e(O, R.m(R.m((S["_"] ?? null), "properties"), "virtualMachines"));
         })], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 561;
+            R.ln = F + 578;
             R.e(O, (S["_"] ?? null));
         })], R.cmd(S, "Get-IngestData", ["defender/jitNetworkAccessPolicies"], null))));
-        R.ln = F + 562;
+        R.ln = F + 579;
         S["evidence"] = R.ht(["exposedPorts", R.a(R.m((S["exposed"] ?? null), "Keys")), "allowingRules", R.cmd(S, "Sort-Object", [R.np("Unique")], R.pi(R.m((S["exposed"] ?? null), "Values"))), "jitPolicy", R.c("bool", (S["covered"] ?? null))], true);
-        R.ln = F + 563;
+        R.ln = F + 580;
         if (R.t((S["covered"] ?? null))) {
-            R.ln = F + 563;
+            R.ln = F + 580;
             R.pa(O, R.cmd(S, "New-Pass", ["Just-in-time access policy covers this machine", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 564;
+        R.ln = F + 581;
         R.pa(O, R.cmd(S, "New-Fail", [("Management port(s) " + R.str(R.u(R.pi(R.join(R.m((S["exposed"] ?? null), "Keys"), ", ")))) + " open to the Internet without a just-in-time policy"), (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 568;
+    R.ln = F + 585;
     R.def(S, "Test-FirewallLogged", { params: [{ n: "Record", t: null, pos: null }, { n: "Categories", t: "string[]", pos: null }], adv: 0, h: "d602164b4ee07fc9" }, (S, O) => {
-        R.ln = F + 571;
-        for (const it25 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 571;
+        R.ln = F + 588;
+        for (const it30 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+            R.ln = F + 588;
             R.e(O, (S["_"] ?? null));
         })], R.pi(R.m((S["record"] ?? null), "diagnosticSettings"))))) {
-            S["setting"] = it25;
-            R.ln = F + 572;
+            S["setting"] = it30;
+            R.ln = F + 589;
             S["p"] = R.m((S["setting"] ?? null), "properties");
-            R.ln = F + 573;
+            R.ln = F + 590;
             if (!(((R.t(R.m((S["p"] ?? null), "workspaceId")) || R.t(R.m((S["p"] ?? null), "storageAccountId"))) || R.t(R.m((S["p"] ?? null), "eventHubAuthorizationRuleId"))) || R.t(R.m((S["p"] ?? null), "marketplacePartnerId")))) {
                 continue;
             }
-            R.ln = F + 574;
+            R.ln = F + 591;
             if (R.t(R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.enabled -and ($_.categoryGroup -eq 'allLogs' -or $_.category -in $Categories) " }, (S, O) => {
-                R.ln = F + 574;
+                R.ln = F + 591;
                 R.e(O, ((R.t((S["_"] ?? null)) && R.t(R.m((S["_"] ?? null), "enabled"))) && (R.t(R.eq(R.m((S["_"] ?? null), "categoryGroup"), "allLogs")) || R.t(R.in(R.m((S["_"] ?? null), "category"), (S["categories"] ?? null))))));
             })], R.pi(R.m((S["p"] ?? null), "logs"))), "Count"))) {
-                R.ln = F + 574;
+                R.ln = F + 591;
                 R.e(O, true);
                 return;
             }
         }
-        R.ln = F + 576;
+        R.ln = F + 593;
         R.e(O, false);
         return;
     });
-    R.ln = F + 579;
+    R.ln = F + 596;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-NET-024", "Title", "Azure Firewall logs application and network rule traffic", "Category", "Logging and threat detection", "Service", "Azure Firewall", "Severity", "Medium", "Description", "Checks that Azure Firewalls send application rule logs (the requested FQDNs and URLs) and network rule logs, in the legacy or the resource specific categories, through a diagnostic setting.", "Rationale", "The firewall is where outbound web requests and network flows of the workloads behind it are visible. Without these logs, command and control traffic, data exfiltration and the scope of a compromise cannot be traced.", "Remediation", "Create a diagnostic setting on the firewall that sends the allLogs category group, or at least the application and network rule categories (preferably the resource specific AZFWApplicationRule and AZFWNetworkRule), to a Log Analytics workspace.", "References", R.a("https://learn.microsoft.com/azure/firewall/monitor-firewall"), "ResourceTypes", R.a("Microsoft.Network/azureFirewalls"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if ($null -eq $Record.diagnosticSettings) { return New-Unknown 'Diagnostic settings could not be read' }\n        $evidence = [ordered]@{\n            diagnosticSettings = @($Record.diagnosticSettings | Where-Object { $_ } | ForEach-Object name | Sort-Object)\n            applicationRules   = Test-FirewallLogged $Record @('AzureFirewallApplicationRule', 'AZFWApplicationRule')\n            networkRules       = Test-FirewallLogged $Record @('AzureFirewallNetworkRule', 'AZFWNetworkRule')\n        }\n        $missing = @()\n        if (-not $evidence.applicationRules) { $missing += 'application rule' }\n        if (-not $evidence.networkRules) { $missing += 'network rule' }\n        if ($missing) { return New-Fail \"No $($missing -join ' or ') logs\" $evidence }\n        New-Pass 'Application and network rule traffic is logged' $evidence\n    " }, (S, O) => {
-        R.ln = F + 592;
+        R.ln = F + 609;
         if (R.t(R.eq(null, R.m((S["record"] ?? null), "diagnosticSettings")))) {
-            R.ln = F + 592;
+            R.ln = F + 609;
             R.pa(O, R.cmd(S, "New-Unknown", ["Diagnostic settings could not be read"], null));
             return;
         }
-        R.ln = F + 593;
+        R.ln = F + 610;
         S["evidence"] = R.ht(["diagnosticSettings", R.cmd(S, "Sort-Object", [], R.cmd(S, "ForEach-Object", ["name"], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 594;
+            R.ln = F + 611;
             R.e(O, (S["_"] ?? null));
         })], R.pi(R.m((S["record"] ?? null), "diagnosticSettings"))))), "applicationRules", R.u(R.cmd(S, "Test-FirewallLogged", [(S["record"] ?? null), R.a([R.v("AzureFirewallApplicationRule"), R.v("AZFWApplicationRule")])], null)), "networkRules", R.u(R.cmd(S, "Test-FirewallLogged", [(S["record"] ?? null), R.a([R.v("AzureFirewallNetworkRule"), R.v("AZFWNetworkRule")])], null))], true);
-        R.ln = F + 598;
+        R.ln = F + 615;
         S["missing"] = [];
-        R.ln = F + 599;
+        R.ln = F + 616;
         if (!R.t(R.m((S["evidence"] ?? null), "applicationRules"))) {
-            R.ln = F + 599;
+            R.ln = F + 616;
             S["missing"] = R.add(S["missing"] ?? null, "application rule");
         }
-        R.ln = F + 600;
+        R.ln = F + 617;
         if (!R.t(R.m((S["evidence"] ?? null), "networkRules"))) {
-            R.ln = F + 600;
+            R.ln = F + 617;
             S["missing"] = R.add(S["missing"] ?? null, "network rule");
         }
-        R.ln = F + 601;
+        R.ln = F + 618;
         if (R.t((S["missing"] ?? null))) {
-            R.ln = F + 601;
+            R.ln = F + 618;
             R.pa(O, R.cmd(S, "New-Fail", [("No " + R.str(R.u(R.pi(R.join((S["missing"] ?? null), " or ")))) + " logs"), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 602;
+        R.ln = F + 619;
         R.pa(O, R.cmd(S, "New-Pass", ["Application and network rule traffic is logged", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 606;
+    R.ln = F + 623;
     R.def(S, "Get-FirewallDnsProxy", { params: [{ n: "Record", t: null, pos: null }], adv: 0, h: "3812f5293fdac073" }, (S, O) => {
-        R.ln = F + 609;
+        R.ln = F + 626;
         S["p"] = R.m(R.m((S["record"] ?? null), "resource"), "properties");
-        R.ln = F + 610;
+        R.ln = F + 627;
         if (R.t(R.m(R.m((S["p"] ?? null), "firewallPolicy"), "id"))) {
-            R.ln = F + 611;
+            R.ln = F + 628;
             S["policy"] = R.u(R.cmd(S, "Get-AzResourceRecord", [R.m(R.m((S["p"] ?? null), "firewallPolicy"), "id")], null));
-            R.ln = F + 612;
+            R.ln = F + 629;
             if (!R.t((S["policy"] ?? null))) {
-                R.ln = F + 612;
+                R.ln = F + 629;
                 R.e(O, null);
                 return;
             }
-            R.ln = F + 613;
+            R.ln = F + 630;
             R.e(O, R.c("bool", R.m(R.m(R.m(R.m((S["policy"] ?? null), "resource"), "properties"), "dnsSettings"), "enableProxy")));
             return;
         }
-        R.ln = F + 615;
+        R.ln = F + 632;
         R.e(O, (R.eq(R.c("string", R.m(R.m((S["p"] ?? null), "additionalProperties"), "Network.DNS.EnableProxy")), "true")));
         return;
     });
-    R.ln = F + 618;
+    R.ln = F + 635;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-NET-025", "Title", "DNS queries from virtual networks are logged", "Category", "Logging and threat detection", "Service", "Azure DNS", "Severity", "Low", "Description", "Checks for every virtual network that its DNS queries are logged: by a DNS security policy with a diagnostic setting linked to the network, or by an Azure Firewall in this subscription that the network uses as DNS proxy and that logs DNS queries. Custom DNS servers are reported as unknown.", "Rationale", "DNS queries show which domains workloads resolve, including command and control domains, DNS tunneling and lookups of exfiltration targets. Azure-provided DNS keeps no query log unless a DNS security policy or a logging DNS proxy is in the path.", "Remediation", "Link a DNS security policy to the virtual networks and send its logs to a Log Analytics workspace, or point the networks to an Azure Firewall with DNS proxy enabled and DNS query logs (AZFWDnsQuery) turned on.", "References", R.a([R.v("https://learn.microsoft.com/azure/dns/dns-security-policy"), R.v("https://learn.microsoft.com/azure/firewall/dns-settings")]), "ResourceTypes", R.a("Microsoft.Network/virtualNetworks"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $vnetId = $Record.id.ToLowerInvariant()\n        $policyLinks = @(foreach ($policy in (Get-AzResourceRecords -Type 'Microsoft.Network/dnsResolverPolicies')) {\n                if (-not (Test-ChildCollected $policy 'virtualNetworkLinks')) { [pscustomobject]@{ Policy = $policy; Linked = $null }; continue }\n                if (@(Get-Child $policy 'virtualNetworkLinks' | Where-Object { $_ -and ([string]$_.properties.virtualNetwork.id).ToLowerInvariant() -eq $vnetId }).Count) { [pscustomobject]@{ Policy = $policy; Linked = $true } }\n            })\n        $linked = @($policyLinks | Where-Object { $_.Linked } | ForEach-Object Policy)\n        $servers = @($Record.resource.properties.dhcpOptions.dnsServers | Where-Object { $_ })\n        $evidence = [ordered]@{ dnsServers = $(if ($servers) { $servers } else { 'Azure-provided' }); dnsSecurityPolicies = @($linked | ForEach-Object { $_.resource.name } | Sort-Object) }\n        $logging = @($linked | Where-Object { $null -ne $_.diagnosticSettings -and (Test-DiagnosticLogsEnabled -Settings $_.diagnosticSettings) })\n        if ($logging) { return New-Pass \"DNS security policy '$($logging[0].resource.name)' logs the DNS queries\" $evidence }\n        if ($servers) {\n            foreach ($firewall in (Get-AzResourceRecords -Type 'Microsoft.Network/azureFirewalls')) {\n                $addresses = @($firewall.resource.properties.ipConfigurations | ForEach-Object { $_.properties.privateIPAddress }) + @($firewall.resource.properties.hubIPAddresses.privateIPAddress)\n                if (-not @($servers | Where-Object { $_ -in $addresses }).Count) { continue }\n                $proxy = Get-FirewallDnsProxy $firewall\n                $evidence.firewall = $firewall.resource.name\n                if ($null -eq $proxy -or $null -eq $firewall.diagnosticSettings) { return New-Unknown \"The DNS proxy or logging settings of Azure Firewall '$($firewall.resource.name)' could not be read\" $evidence }\n                if (-not $proxy) { return New-Fail \"Uses Azure Firewall '$($firewall.resource.name)' as DNS server, but its DNS proxy is off\" $evidence }\n                if (Test-FirewallLogged $firewall @('AzureFirewallDnsProxy', 'AZFWDnsQuery')) { return New-Pass \"Azure Firewall '$($firewall.resource.name)' proxies and logs the DNS queries\" $evidence }\n                return New-Fail \"Azure Firewall '$($firewall.resource.name)' proxies the DNS queries without logging them\" $evidence\n            }\n            return New-Unknown \"Custom DNS servers $($servers -join ', '); whether they log queries cannot be read from Azure\" $evidence\n        }\n        if ($linked | Where-Object { $null -eq $_.diagnosticSettings }) { return New-Unknown 'The diagnostic settings of the linked DNS security policy could not be read' $evidence }\n        if ($linked) { return New-Fail \"DNS security policy '$($linked[0].resource.name)' sends no logs\" $evidence }\n        if ($policyLinks | Where-Object { $null -eq $_.Linked }) { return New-Unknown 'No DNS security policy logs the queries of this network; the links of some policies could not be read' $evidence }\n        New-Fail 'Azure-provided DNS without a DNS security policy that logs the queries' $evidence\n    " }, (S, O) => {
-        R.ln = F + 631;
+        R.ln = F + 648;
         S["vnetid"] = R.im(R.m((S["record"] ?? null), "id"), "ToLowerInvariant", []);
-        R.ln = F + 632;
+        R.ln = F + 649;
         S["policylinks"] = (() => {
-            const v26 = [];
-            R.ln = F + 632;
-            for (const it27 of R.fi(R.u(R.cmd(S, "Get-AzResourceRecords", [R.np("Type"), "Microsoft.Network/dnsResolverPolicies"], null)))) {
-                S["policy"] = it27;
-                R.ln = F + 633;
+            const v31 = [];
+            R.ln = F + 649;
+            for (const it32 of R.fi(R.u(R.cmd(S, "Get-AzResourceRecords", [R.np("Type"), "Microsoft.Network/dnsResolverPolicies"], null)))) {
+                S["policy"] = it32;
+                R.ln = F + 650;
                 if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["policy"] ?? null), "virtualNetworkLinks"], null)))) {
-                    R.ln = F + 633;
-                    R.e(v26, R.pso(["Policy", (S["policy"] ?? null), "Linked", null]));
+                    R.ln = F + 650;
+                    R.e(v31, R.pso(["Policy", (S["policy"] ?? null), "Linked", null]));
                     continue;
                 }
-                R.ln = F + 634;
+                R.ln = F + 651;
                 if (R.t(R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and ([string]$_.properties.virtualNetwork.id).ToLowerInvariant() -eq $vnetId " }, (S, O) => {
-                    R.ln = F + 634;
+                    R.ln = F + 651;
                     R.e(O, (R.t((S["_"] ?? null)) && R.t(R.eq(R.im((R.c("string", R.m(R.m(R.m((S["_"] ?? null), "properties"), "virtualNetwork"), "id"))), "ToLowerInvariant", []), (S["vnetid"] ?? null)))));
                 })], R.cmd(S, "Get-Child", [(S["policy"] ?? null), "virtualNetworkLinks"], null)), "Count"))) {
-                    R.ln = F + 634;
-                    R.e(v26, R.pso(["Policy", (S["policy"] ?? null), "Linked", true]));
+                    R.ln = F + 651;
+                    R.e(v31, R.pso(["Policy", (S["policy"] ?? null), "Linked", true]));
                 }
             }
-            return v26;
+            return v31;
         })();
-        R.ln = F + 636;
+        R.ln = F + 653;
         S["linked"] = R.cmd(S, "ForEach-Object", ["Policy"], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.Linked " }, (S, O) => {
-            R.ln = F + 636;
+            R.ln = F + 653;
             R.e(O, R.m((S["_"] ?? null), "Linked"));
         })], R.pi((S["policylinks"] ?? null))));
-        R.ln = F + 637;
+        R.ln = F + 654;
         S["servers"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 637;
+            R.ln = F + 654;
             R.e(O, (S["_"] ?? null));
         })], R.pi(R.m(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "dhcpOptions"), "dnsServers")));
-        R.ln = F + 638;
+        R.ln = F + 655;
         S["evidence"] = R.ht(["dnsServers", (() => {
-            const v28 = [];
-            R.ln = F + 638;
+            const v33 = [];
+            R.ln = F + 655;
             if (R.t((S["servers"] ?? null))) {
-                R.ln = F + 638;
-                R.e(v28, (S["servers"] ?? null));
+                R.ln = F + 655;
+                R.e(v33, (S["servers"] ?? null));
             } else {
-                R.ln = F + 638;
-                R.e(v28, "Azure-provided");
+                R.ln = F + 655;
+                R.e(v33, "Azure-provided");
             }
-            return R.u(v28);
+            return R.u(v33);
         })(), "dnsSecurityPolicies", R.cmd(S, "Sort-Object", [], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " $_.resource.name " }, (S, O) => {
-            R.ln = F + 638;
+            R.ln = F + 655;
             R.e(O, R.m(R.m((S["_"] ?? null), "resource"), "name"));
         })], R.pi((S["linked"] ?? null))))], true);
-        R.ln = F + 639;
+        R.ln = F + 656;
         S["logging"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $null -ne $_.diagnosticSettings -and (Test-DiagnosticLogsEnabled -Settings $_.diagnosticSettings) " }, (S, O) => {
-            R.ln = F + 639;
+            R.ln = F + 656;
             R.e(O, (R.t(R.ne(null, R.m((S["_"] ?? null), "diagnosticSettings"))) && R.t(R.u(R.cmd(S, "Test-DiagnosticLogsEnabled", [R.np("Settings"), R.m((S["_"] ?? null), "diagnosticSettings")], null)))));
         })], R.pi((S["linked"] ?? null)));
-        R.ln = F + 640;
+        R.ln = F + 657;
         if (R.t((S["logging"] ?? null))) {
-            R.ln = F + 640;
+            R.ln = F + 657;
             R.pa(O, R.cmd(S, "New-Pass", [("DNS security policy '" + R.str(R.u(R.pi(R.m(R.m(R.i((S["logging"] ?? null), 0), "resource"), "name")))) + "' logs the DNS queries"), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 641;
+        R.ln = F + 658;
         if (R.t((S["servers"] ?? null))) {
-            R.ln = F + 642;
-            for (const it29 of R.fi(R.u(R.cmd(S, "Get-AzResourceRecords", [R.np("Type"), "Microsoft.Network/azureFirewalls"], null)))) {
-                S["firewall"] = it29;
-                R.ln = F + 643;
+            R.ln = F + 659;
+            for (const it34 of R.fi(R.u(R.cmd(S, "Get-AzResourceRecords", [R.np("Type"), "Microsoft.Network/azureFirewalls"], null)))) {
+                S["firewall"] = it34;
+                R.ln = F + 660;
                 S["addresses"] = R.add(R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " $_.properties.privateIPAddress " }, (S, O) => {
-                    R.ln = F + 643;
+                    R.ln = F + 660;
                     R.e(O, R.m(R.m((S["_"] ?? null), "properties"), "privateIPAddress"));
                 })], R.pi(R.m(R.m(R.m((S["firewall"] ?? null), "resource"), "properties"), "ipConfigurations"))), R.a(R.m(R.m(R.m(R.m((S["firewall"] ?? null), "resource"), "properties"), "hubIPAddresses"), "privateIPAddress")));
-                R.ln = F + 644;
+                R.ln = F + 661;
                 if (!R.t(R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -in $addresses " }, (S, O) => {
-                    R.ln = F + 644;
+                    R.ln = F + 661;
                     R.e(O, R.in((S["_"] ?? null), (S["addresses"] ?? null)));
                 })], R.pi((S["servers"] ?? null))), "Count"))) {
                     continue;
                 }
-                R.ln = F + 645;
+                R.ln = F + 662;
                 S["proxy"] = R.u(R.cmd(S, "Get-FirewallDnsProxy", [(S["firewall"] ?? null)], null));
-                R.ln = F + 646;
+                R.ln = F + 663;
                 R.sm((S["evidence"] ?? null), "firewall", R.m(R.m((S["firewall"] ?? null), "resource"), "name"));
-                R.ln = F + 647;
+                R.ln = F + 664;
                 if ((R.t(R.eq(null, (S["proxy"] ?? null))) || R.t(R.eq(null, R.m((S["firewall"] ?? null), "diagnosticSettings"))))) {
-                    R.ln = F + 647;
+                    R.ln = F + 664;
                     R.pa(O, R.cmd(S, "New-Unknown", [("The DNS proxy or logging settings of Azure Firewall '" + R.str(R.u(R.pi(R.m(R.m((S["firewall"] ?? null), "resource"), "name")))) + "' could not be read"), (S["evidence"] ?? null)], null));
                     return;
                 }
-                R.ln = F + 648;
+                R.ln = F + 665;
                 if (!R.t((S["proxy"] ?? null))) {
-                    R.ln = F + 648;
+                    R.ln = F + 665;
                     R.pa(O, R.cmd(S, "New-Fail", [("Uses Azure Firewall '" + R.str(R.u(R.pi(R.m(R.m((S["firewall"] ?? null), "resource"), "name")))) + "' as DNS server, but its DNS proxy is off"), (S["evidence"] ?? null)], null));
                     return;
                 }
-                R.ln = F + 649;
+                R.ln = F + 666;
                 if (R.t(R.u(R.cmd(S, "Test-FirewallLogged", [(S["firewall"] ?? null), R.a([R.v("AzureFirewallDnsProxy"), R.v("AZFWDnsQuery")])], null)))) {
-                    R.ln = F + 649;
+                    R.ln = F + 666;
                     R.pa(O, R.cmd(S, "New-Pass", [("Azure Firewall '" + R.str(R.u(R.pi(R.m(R.m((S["firewall"] ?? null), "resource"), "name")))) + "' proxies and logs the DNS queries"), (S["evidence"] ?? null)], null));
                     return;
                 }
-                R.ln = F + 650;
+                R.ln = F + 667;
                 R.pa(O, R.cmd(S, "New-Fail", [("Azure Firewall '" + R.str(R.u(R.pi(R.m(R.m((S["firewall"] ?? null), "resource"), "name")))) + "' proxies the DNS queries without logging them"), (S["evidence"] ?? null)], null));
                 return;
             }
-            R.ln = F + 652;
+            R.ln = F + 669;
             R.pa(O, R.cmd(S, "New-Unknown", [("Custom DNS servers " + R.str(R.u(R.pi(R.join((S["servers"] ?? null), ", ")))) + "; whether they log queries cannot be read from Azure"), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 654;
+        R.ln = F + 671;
         if (R.t(R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $null -eq $_.diagnosticSettings " }, (S, O) => {
-            R.ln = F + 654;
+            R.ln = F + 671;
             R.e(O, R.eq(null, R.m((S["_"] ?? null), "diagnosticSettings")));
         })], R.pi((S["linked"] ?? null)))))) {
-            R.ln = F + 654;
+            R.ln = F + 671;
             R.pa(O, R.cmd(S, "New-Unknown", ["The diagnostic settings of the linked DNS security policy could not be read", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 655;
+        R.ln = F + 672;
         if (R.t((S["linked"] ?? null))) {
-            R.ln = F + 655;
+            R.ln = F + 672;
             R.pa(O, R.cmd(S, "New-Fail", [("DNS security policy '" + R.str(R.u(R.pi(R.m(R.m(R.i((S["linked"] ?? null), 0), "resource"), "name")))) + "' sends no logs"), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 656;
+        R.ln = F + 673;
         if (R.t(R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $null -eq $_.Linked " }, (S, O) => {
-            R.ln = F + 656;
+            R.ln = F + 673;
             R.e(O, R.eq(null, R.m((S["_"] ?? null), "Linked")));
         })], R.pi((S["policylinks"] ?? null)))))) {
-            R.ln = F + 656;
+            R.ln = F + 673;
             R.pa(O, R.cmd(S, "New-Unknown", ["No DNS security policy logs the queries of this network; the links of some policies could not be read", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 657;
+        R.ln = F + 674;
         R.pa(O, R.cmd(S, "New-Fail", ["Azure-provided DNS without a DNS security policy that logs the queries", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 663;
+    R.ln = F + 680;
     S["sharedservicetags"] = R.a([R.v("AzureCloud"), R.v("AppService"), R.v("ActionGroup"), R.v("ApiManagement"), R.v("ApplicationInsightsAvailability"), R.v("AzureContainerRegistry"), R.v("AzureDevOps"), R.v("AzureLoadTestingInstanceProvisioning"), R.v("AzureMachineLearning"), R.v("ChaosStudio"), R.v("DataFactory"), R.v("LogicApps"), R.v("VideoIndexer")]);
-    R.ln = F + 666;
+    R.ln = F + 683;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-NET-026", "Title", "Network security groups do not trust shared Azure service tags", "Category", "Network security", "Service", "Network security groups", "Severity", "Medium", "Description", "Finds inbound allow rules whose source is AzureCloud, AppService, or the service tag of a service that any Azure customer can make send requests (ActionGroup, ApiManagement, ApplicationInsightsAvailability, AzureContainerRegistry, AzureDevOps, AzureLoadTestingInstanceProvisioning, AzureMachineLearning, ChaosStudio, DataFactory, LogicApps, VideoIndexer), including their regional variants.", "Rationale", "These tags hold the addresses of platforms shared by all Azure customers. Anyone can create a Logic App, an availability test or a pipeline that sends requests from those addresses, so a rule that allows the tag admits every Azure tenant, not only your own services. Tenable demonstrated this for ten service tags in 2024; Microsoft documented it as expected behavior.", "Remediation", "Allow the private addresses, private endpoints or managed identities of your own resources instead, or keep the tag only where the service also authenticates the caller (for example with a key, a token or a header that identifies your instance).", "References", R.a([R.v("https://www.tenable.com/security/research/tra-2024-19"), R.v("https://learn.microsoft.com/azure/virtual-network/service-tags-overview"), R.v("https://learn.microsoft.com/azure/virtual-network/ip-based-access-control-list-overview")]), "ResourceTypes", R.a("Microsoft.Network/networkSecurityGroups"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $trusting = @(foreach ($rule in @($Record.resource.properties.securityRules | Where-Object { $_ -and $_.properties.direction -eq 'Inbound' -and $_.properties.access -eq 'Allow' })) {\n                $sources = @(@($rule.properties.sourceAddressPrefix) + @($rule.properties.sourceAddressPrefixes) | Where-Object { $_ })\n                $tags = @($sources | Where-Object { ([string]$_ -split '\\.')[0] -in $sharedServiceTags })\n                if ($tags) { \"$($rule.name): $($tags -join ', ')\" }\n            })\n        $evidence = [ordered]@{ rules = @($trusting | Sort-Object) }\n        if ($trusting) { return New-Fail \"Inbound traffic allowed from shared service tags ($($evidence.rules -join '; '))\" $evidence }\n        New-Pass 'No inbound rule trusts a shared service tag' $evidence\n    " }, (S, O) => {
-        R.ln = F + 679;
+        R.ln = F + 696;
         S["trusting"] = (() => {
-            const v30 = [];
-            R.ln = F + 679;
-            for (const it31 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.properties.direction -eq 'Inbound' -and $_.properties.access -eq 'Allow' " }, (S, O) => {
-                R.ln = F + 679;
+            const v35 = [];
+            R.ln = F + 696;
+            for (const it36 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.properties.direction -eq 'Inbound' -and $_.properties.access -eq 'Allow' " }, (S, O) => {
+                R.ln = F + 696;
                 R.e(O, ((R.t((S["_"] ?? null)) && R.t(R.eq(R.m(R.m((S["_"] ?? null), "properties"), "direction"), "Inbound"))) && R.t(R.eq(R.m(R.m((S["_"] ?? null), "properties"), "access"), "Allow"))));
             })], R.pi(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "securityRules"))))) {
-                S["rule"] = it31;
-                R.ln = F + 680;
+                S["rule"] = it36;
+                R.ln = F + 697;
                 S["sources"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                    R.ln = F + 680;
+                    R.ln = F + 697;
                     R.e(O, (S["_"] ?? null));
                 })], R.pi(R.add(R.a(R.m(R.m((S["rule"] ?? null), "properties"), "sourceAddressPrefix")), R.a(R.m(R.m((S["rule"] ?? null), "properties"), "sourceAddressPrefixes")))));
-                R.ln = F + 681;
+                R.ln = F + 698;
                 S["tags"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " ([string]$_ -split '\\.')[0] -in $sharedServiceTags " }, (S, O) => {
-                    R.ln = F + 681;
+                    R.ln = F + 698;
                     R.e(O, R.in(R.i((R.split(R.c("string", (S["_"] ?? null)), "\\.")), 0), (S["sharedservicetags"] ?? null)));
                 })], R.pi((S["sources"] ?? null)));
-                R.ln = F + 682;
+                R.ln = F + 699;
                 if (R.t((S["tags"] ?? null))) {
-                    R.ln = F + 682;
-                    R.e(v30, ("" + R.str(R.u(R.pi(R.m((S["rule"] ?? null), "name")))) + ": " + R.str(R.u(R.pi(R.join((S["tags"] ?? null), ", "))))));
+                    R.ln = F + 699;
+                    R.e(v35, ("" + R.str(R.u(R.pi(R.m((S["rule"] ?? null), "name")))) + ": " + R.str(R.u(R.pi(R.join((S["tags"] ?? null), ", "))))));
                 }
             }
-            return v30;
+            return v35;
         })();
-        R.ln = F + 684;
+        R.ln = F + 701;
         S["evidence"] = R.ht(["rules", R.cmd(S, "Sort-Object", [], R.pi((S["trusting"] ?? null)))], true);
-        R.ln = F + 685;
+        R.ln = F + 702;
         if (R.t((S["trusting"] ?? null))) {
-            R.ln = F + 685;
+            R.ln = F + 702;
             R.pa(O, R.cmd(S, "New-Fail", [("Inbound traffic allowed from shared service tags (" + R.str(R.u(R.pi(R.join(R.m((S["evidence"] ?? null), "rules"), "; ")))) + ")"), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 686;
+        R.ln = F + 703;
         R.pa(O, R.cmd(S, "New-Pass", ["No inbound rule trusts a shared service tag", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 690;
+    R.ln = F + 707;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-NET-027", "Title", "Azure Bastion shareable links are disabled", "Category", "Privileged access", "Service", "Azure Bastion", "Severity", "Medium", "Description", "Checks Azure Bastion hosts for the shareable link feature.", "Rationale", "A shareable link opens the RDP or SSH sign-in of a virtual machine to anyone who has the link, without signing in to Azure. Conditional Access, MFA, PIM and Azure roles do not apply to that path; only the local credentials of the machine stand between the link and the machine, and links are easily forwarded or leaked.", "Remediation", "Delete the existing shareable links and turn off Shareable Link in the Bastion configuration. Give administrators access through the Azure portal or the native client, with an Azure role and Conditional Access.", "References", R.a("https://learn.microsoft.com/azure/bastion/shareable-link"), "ResourceTypes", R.a("Microsoft.Network/bastionHosts"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $p = $Record.resource.properties\n        $evidence = [ordered]@{ sku = $Record.resource.sku.name; enableShareableLink = [bool]$p.enableShareableLink }\n        if ($p.enableShareableLink) { return New-Fail 'Shareable links are enabled' $evidence }\n        New-Pass 'Shareable links are disabled' $evidence\n    " }, (S, O) => {
-        R.ln = F + 703;
+        R.ln = F + 720;
         S["p"] = R.m(R.m((S["record"] ?? null), "resource"), "properties");
-        R.ln = F + 704;
+        R.ln = F + 721;
         S["evidence"] = R.ht(["sku", R.m(R.m(R.m((S["record"] ?? null), "resource"), "sku"), "name"), "enableShareableLink", R.c("bool", R.m((S["p"] ?? null), "enableShareableLink"))], true);
-        R.ln = F + 705;
+        R.ln = F + 722;
         if (R.t(R.m((S["p"] ?? null), "enableShareableLink"))) {
-            R.ln = F + 705;
+            R.ln = F + 722;
             R.pa(O, R.cmd(S, "New-Fail", ["Shareable links are enabled", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 706;
+        R.ln = F + 723;
         R.pa(O, R.cmd(S, "New-Pass", ["Shareable links are disabled", (S["evidence"] ?? null)], null));
     })], false)], null));
 });
