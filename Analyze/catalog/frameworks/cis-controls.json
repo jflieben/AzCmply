@@ -32,7 +32,7 @@
     "3.7": {"title":"Control 3: Data Protection","applicability":"notApplicable"},
     "3.8": {"title":"Control 3: Data Protection","applicability":"manual"},
     "3.9": {"title":"Control 3: Data Protection","applicability":"notApplicable"},
-    "3.10": {"title":"Control 3: Data Protection","coverage":"partial","tests":["AZ-APIM-002","AZ-APIM-005","AZ-APIM-006","AZ-APP-001","AZ-APP-002","AZ-APP-003","AZ-BOT-003","AZ-CAPP-001","AZ-MY-001","AZ-NET-013","AZ-PAAS-003","AZ-PG-001","AZ-RED-001","AZ-SQL-006","AZ-STG-001","AZ-STG-002","AZ-STG-018","AZ-STG-019"]},
+    "3.10": {"title":"Control 3: Data Protection","coverage":"partial","tests":["AZ-APIM-002","AZ-APIM-005","AZ-APIM-006","AZ-APP-001","AZ-APP-002","AZ-APP-003","AZ-BOT-003","AZ-CAPP-001","AZ-DFA-005","AZ-MY-001","AZ-NET-013","AZ-NET-028","AZ-PAAS-003","AZ-PG-001","AZ-RED-001","AZ-SQL-006","AZ-STG-001","AZ-STG-002","AZ-STG-018","AZ-STG-019"]},
     "3.11": {"title":"Control 3: Data Protection","coverage":"partial","tests":["AZ-ADX-002","AZ-ADX-003","AZ-AKS-009","AZ-AUTO-001","AZ-SQL-007","AZ-SQL-008","AZ-STG-020","AZ-STG-021","AZ-VM-001","AZ-VM-002"]},
     "3.12": {"title":"Control 3: Data Protection","applicability":"manual"},
     "3.13": {"title":"Control 3: Data Protection","applicability":"manual"},

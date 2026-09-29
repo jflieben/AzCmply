@@ -390,9 +390,16 @@ export async function runIngest(options) {
         for (const child of Object.values(record.children)) { findPrincipalIds(Array.isArray(child) ? child : [child], ids); }
         //the connector of an API connection, whose metadata is collected after the resources
         const managedApiId = typeKey === 'microsoft.web/connections' ? prop(record.resource, 'properties.api.id') : null;
-        //resources the analysis follows, which may be in another subscription: the data collection rules of a machine and
-        //the networks a virtual network is peered with
+        //resources the analysis follows, which may be in another subscription: the data collection rules of a machine, the
+        //networks a virtual network is peered with and the action groups of an activity log alert
         const referencedIds = [];
+        if (typeKey === 'microsoft.insights/activitylogalerts') {
+            const groups = prop(record.resource, 'properties.actions.actionGroups');
+            for (const group of (Array.isArray(groups) ? groups : [])) {
+                const groupId = field(group, 'actionGroupId');
+                if (groupId) { referencedIds.push(String(groupId)); }
+            }
+        }
         const associations = record.children['providers/Microsoft.Insights/dataCollectionRuleAssociations'];
         for (const association of (Array.isArray(associations) ? associations : [associations])) {
             const ruleId = prop(association, 'properties.dataCollectionRuleId');

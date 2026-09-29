@@ -723,3 +723,46 @@ Add-AzTest @{
         New-Pass 'Shareable links are disabled' $evidence
     }
 }
+
+#IPsec and IKE algorithms that NIST SP 800-77 Rev. 1 and RFC 8247 accept; anything else in a policy is weak
+$vpnStrongAlgorithms = [ordered]@{
+    ikeEncryption   = @('AES128', 'AES192', 'AES256', 'GCMAES128', 'GCMAES256')
+    ikeIntegrity    = @('SHA256', 'SHA384', 'GCMAES128', 'GCMAES256')
+    dhGroup         = @('DHGroup14', 'DHGroup2048', 'ECP256', 'ECP384')
+    ipsecEncryption = @('AES128', 'AES192', 'AES256', 'GCMAES128', 'GCMAES192', 'GCMAES256')
+    ipsecIntegrity  = @('SHA256', 'GCMAES128', 'GCMAES192', 'GCMAES256')
+    pfsGroup        = @('PFS2048', 'PFS14', 'ECP256', 'ECP384', 'PFSMM')
+}
+$vpnAlgorithmText = @($vpnStrongAlgorithms.Keys | ForEach-Object { "$_ $($vpnStrongAlgorithms[$_] -join '/')" }) -join '; '
+
+Add-AzTest @{
+    Id            = 'AZ-NET-028'
+    Title         = 'Site-to-site VPN connections use strong IPsec and IKE cryptography'
+    Category      = 'Data protection'
+    Service       = 'VPN Gateway'
+    Severity      = 'Medium'
+    Description   = "Checks that site-to-site (IPsec) connections use IKEv2 and a custom IPsec/IKE policy with only strong algorithms, including perfect forward secrecy: $vpnAlgorithmText."
+    Rationale     = 'Without a custom policy the gateway also accepts 3DES, SHA1 and Diffie-Hellman group 2, and uses no perfect forward secrecy, so one compromised key decrypts all recorded traffic of the tunnel. IKEv1 has known weaknesses and is deprecated.'
+    Remediation   = 'Set a custom IPsec/IKE policy on each connection with IKEv2, AES256 or GCMAES256, SHA256 or better, DH group 14 or ECP384 and a PFS group, and configure the same on the on-premises device.'
+    References    = @('https://learn.microsoft.com/azure/vpn-gateway/vpn-gateway-about-compliance-crypto', 'https://learn.microsoft.com/azure/vpn-gateway/ipsec-ike-policy-howto', 'https://csrc.nist.gov/pubs/sp/800/77/r1/final')
+    ResourceTypes = @('Microsoft.Network/connections')
+    Evaluate      = {
+        param($Record)
+        $p = $Record.resource.properties
+        if ($p.connectionType -ne 'IPsec') { return New-NotApplicable "Not a site-to-site connection ($($p.connectionType))" }
+        $policies = @($p.ipsecPolicies | Where-Object { $_ })
+        $evidence = [ordered]@{ connectionProtocol = $p.connectionProtocol; ipsecPolicies = $policies }
+        $issues = [System.Collections.Generic.List[string]]::new()
+        if ($p.connectionProtocol -eq 'IKEv1') { $issues.Add('IKEv1') }
+        if (-not $policies) { $issues.Add('the Azure default policy, which also accepts 3DES, SHA1 and DH group 2 and has no perfect forward secrecy') }
+        foreach ($policy in $policies) {
+            foreach ($name in $vpnStrongAlgorithms.Keys) {
+                $value = [string](Get-Prop $policy $name)
+                if ($value -in $vpnStrongAlgorithms[$name]) { continue }
+                if ($name -eq 'pfsGroup' -and $value -eq 'None') { $issues.Add('no perfect forward secrecy (pfsGroup None)') } else { $issues.Add("$name $value") }
+            }
+        }
+        if ($issues.Count) { return New-Fail "Weak cryptography: $(@($issues | Sort-Object -Unique) -join ', ')" $evidence }
+        New-Pass 'IKEv2 with a custom policy of strong algorithms and perfect forward secrecy' $evidence
+    }
+}

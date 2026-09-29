@@ -87,8 +87,12 @@ $activityAlerts = @(
     @{ Id = 'AZ-LOG-029'; Operation = 'Microsoft.Compute/virtualMachines/runCommand/action'; Label = 'Run command on a virtual machine'; Category = 'Administrative' }
 )
 
+#an action group notifies someone when it is enabled and has one of these receivers
+$actionGroupReceivers = @('emailReceivers', 'smsReceivers', 'webhookReceivers', 'itsmReceivers', 'azureAppPushReceivers', 'automationRunbookReceivers', 'voiceReceivers', 'logicAppReceivers', 'azureFunctionReceivers', 'armRoleReceivers', 'eventHubReceivers', 'incidentReceivers')
+
 function Test-ActivityAlert {
-    #matching enabled activity log alerts scoped to the subscription; -Operation $null matches on category only
+    #matching enabled activity log alerts scoped to the subscription, with their action groups that notify someone and
+    #those that could not be read (also in other subscriptions); -Operation $null matches on category only
     param([string]$Category, [string]$Operation)
     $scope = (Get-SubscriptionScope).ToLowerInvariant()
     foreach ($record in (Get-AzResourceRecords -Type 'Microsoft.Insights/activityLogAlerts')) {
@@ -98,18 +102,40 @@ function Test-ActivityAlert {
         $values = Get-ConditionValues $p.condition
         if ($values['category'] -notcontains $Category.ToLowerInvariant()) { continue }
         if ($Operation -and $values['operationname'] -notcontains $Operation.ToLowerInvariant()) { continue }
-        [pscustomobject]@{ Record = $record; ActionGroups = @($p.actions.actionGroups | Where-Object { $_ }).Count }
+        $notifying = [System.Collections.Generic.List[string]]::new()
+        $unread = [System.Collections.Generic.List[string]]::new()
+        foreach ($group in @($p.actions.actionGroups | Where-Object { $_ -and $_.actionGroupId })) {
+            $groupRecord = Get-ReferencedResourceRecord ([string]$group.actionGroupId)
+            if (-not $groupRecord) { $unread.Add((Get-ResourceName ([string]$group.actionGroupId))); continue }
+            $g = $groupRecord.resource.properties
+            if ($g.enabled -and @($actionGroupReceivers | Where-Object { @(Get-Prop $g $_ | Where-Object { $_ }).Count }).Count) { $notifying.Add([string]$groupRecord.resource.name) }
+        }
+        [pscustomobject]@{ Record = $record; Notifying = @($notifying); Unread = @($unread) }
     }
+}
+
+function Get-ActivityAlertResult {
+    #the finding for a set of matching alert rules: pass when one notifies someone, unknown when an action group could
+    #not be read, fail otherwise
+    param([object[]]$AlertRules, [string]$Missing)
+    $notifying = @($AlertRules | Where-Object { $_.Notifying.Count })
+    $unread = @($AlertRules | ForEach-Object { $_.Unread } | Sort-Object -Unique)
+    $evidence = [ordered]@{ alertRules = @($AlertRules | ForEach-Object { $_.Record.resource.name } | Sort-Object); notifyingActionGroups = @($notifying | ForEach-Object { $_.Notifying } | Sort-Object -Unique) }
+    if ($notifying) { return New-SubscriptionFinding (New-Pass "Alert rule(s): $(@($notifying | ForEach-Object { $_.Record.resource.name } | Sort-Object) -join ', ')" $evidence) }
+    if ($unread) { $evidence.unreadActionGroups = $unread; return New-SubscriptionFinding (New-Unknown "The action group(s) of the alert rule could not be read: $($unread -join ', ')" $evidence) }
+    if ($AlertRules) { return New-SubscriptionFinding (New-Fail 'An alert rule exists, but none of its action groups is enabled with a receiver' $evidence) }
+    New-SubscriptionFinding (New-Fail $Missing $evidence)
 }
 
 foreach ($alert in $activityAlerts) {
     Add-AzTest @{
         Id          = $alert.Id
+        Version     = 2
         Title       = "An activity log alert exists for '$($alert.Label)'"
         Category    = 'Logging and threat detection'
         Service     = 'Azure Monitor'
         Severity    = 'Low'
-        Description = "Checks for an enabled activity log alert on the subscription for operation $($alert.Operation) that notifies an action group."
+        Description = "Checks for an enabled activity log alert on the subscription for operation $($alert.Operation) that notifies an enabled action group with at least one receiver."
         Rationale   = 'Alerting on security relevant control plane changes shortens the time to detect unauthorized or accidental changes that weaken the security posture.'
         Remediation = "Create an activity log alert on the subscription with category $($alert.Category) and operation name $($alert.Operation), and attach an action group that reaches the security team."
         References  = @('https://learn.microsoft.com/azure/azure-monitor/alerts/alerts-create-activity-log-alert-rule')
@@ -117,33 +143,24 @@ foreach ($alert in $activityAlerts) {
         Config      = $alert
         Run         = {
             param($Test)
-            $alertRules = @(Test-ActivityAlert -Category $Test.Config.Category -Operation $Test.Config.Operation)
-            $notifying = @($alertRules | Where-Object { $_.ActionGroups -gt 0 })
-            $evidence = [ordered]@{ alertRules = @($alertRules | ForEach-Object { $_.Record.resource.name } | Sort-Object); withActionGroup = @($notifying | ForEach-Object { $_.Record.resource.name } | Sort-Object) }
-            if ($notifying) { return New-SubscriptionFinding (New-Pass "Alert rule(s): $($evidence.withActionGroup -join ', ')" $evidence) }
-            if ($alertRules) { return New-SubscriptionFinding (New-Fail 'An alert rule exists but has no action group' $evidence) }
-            New-SubscriptionFinding (New-Fail "No enabled activity log alert for $($Test.Config.Operation)" $evidence)
+            Get-ActivityAlertResult -AlertRules @(Test-ActivityAlert -Category $Test.Config.Category -Operation $Test.Config.Operation) -Missing "No enabled activity log alert for $($Test.Config.Operation)"
         }
     }
 }
 
 Add-AzTest @{
     Id          = 'AZ-LOG-013'
+    Version     = 2
     Title       = 'An activity log alert exists for Service Health'
     Category    = 'Incident response'
     Service     = 'Azure Monitor'
     Severity    = 'Low'
-    Description = 'Checks for an enabled activity log alert on the subscription for the ServiceHealth category that notifies an action group.'
+    Description = 'Checks for an enabled activity log alert on the subscription for the ServiceHealth category that notifies an enabled action group with at least one receiver.'
     Rationale   = 'Service Health notifies about platform incidents, planned maintenance and security advisories (for example about compromised or deprecated components) affecting your resources.'
     Remediation = 'Create a Service Health alert for the subscription (Service Health > Health alerts) with an action group that reaches the operations and security teams.'
     References  = @('https://learn.microsoft.com/azure/service-health/alerts-activity-log-service-notifications-portal')
     Run         = {
-        $alertRules = @(Test-ActivityAlert -Category 'ServiceHealth')
-        $notifying = @($alertRules | Where-Object { $_.ActionGroups -gt 0 })
-        $evidence = [ordered]@{ alertRules = @($alertRules | ForEach-Object { $_.Record.resource.name } | Sort-Object) }
-        if ($notifying) { return New-SubscriptionFinding (New-Pass "Service Health alert rule(s): $($evidence.alertRules -join ', ')" $evidence) }
-        if ($alertRules) { return New-SubscriptionFinding (New-Fail 'A Service Health alert exists but has no action group' $evidence) }
-        New-SubscriptionFinding (New-Fail 'No Service Health alert for the subscription' $evidence)
+        Get-ActivityAlertResult -AlertRules @(Test-ActivityAlert -Category 'ServiceHealth') -Missing 'No Service Health alert for the subscription'
     }
 }
 

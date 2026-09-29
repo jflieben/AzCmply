@@ -1117,4 +1117,71 @@ export default R.script("/app/Analyze/tests/05-Network.ps1", { params: [], adv: 
         R.ln = F + 723;
         R.pa(O, R.cmd(S, "New-Pass", ["Shareable links are disabled", (S["evidence"] ?? null)], null));
     })], false)], null));
+    R.ln = F + 728;
+    S["vpnstrongalgorithms"] = R.ht(["ikeEncryption", R.a([R.v("AES128"), R.v("AES192"), R.v("AES256"), R.v("GCMAES128"), R.v("GCMAES256")]), "ikeIntegrity", R.a([R.v("SHA256"), R.v("SHA384"), R.v("GCMAES128"), R.v("GCMAES256")]), "dhGroup", R.a([R.v("DHGroup14"), R.v("DHGroup2048"), R.v("ECP256"), R.v("ECP384")]), "ipsecEncryption", R.a([R.v("AES128"), R.v("AES192"), R.v("AES256"), R.v("GCMAES128"), R.v("GCMAES192"), R.v("GCMAES256")]), "ipsecIntegrity", R.a([R.v("SHA256"), R.v("GCMAES128"), R.v("GCMAES192"), R.v("GCMAES256")]), "pfsGroup", R.a([R.v("PFS2048"), R.v("PFS14"), R.v("ECP256"), R.v("ECP384"), R.v("PFSMM")])], true);
+    R.ln = F + 736;
+    S["vpnalgorithmtext"] = R.join(R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " \"$_ $($vpnStrongAlgorithms[$_] -join '/')\" " }, (S, O) => {
+        R.ln = F + 736;
+        R.e(O, ("" + R.str((S["_"] ?? null)) + " " + R.str(R.u(R.pi(R.join(R.i((S["vpnstrongalgorithms"] ?? null), (S["_"] ?? null)), "/"))))));
+    })], R.pi(R.m((S["vpnstrongalgorithms"] ?? null), "Keys"))), "; ");
+    R.ln = F + 738;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-NET-028", "Title", "Site-to-site VPN connections use strong IPsec and IKE cryptography", "Category", "Data protection", "Service", "VPN Gateway", "Severity", "Medium", "Description", ("Checks that site-to-site (IPsec) connections use IKEv2 and a custom IPsec/IKE policy with only strong algorithms, including perfect forward secrecy: " + R.str((S["vpnalgorithmtext"] ?? null)) + "."), "Rationale", "Without a custom policy the gateway also accepts 3DES, SHA1 and Diffie-Hellman group 2, and uses no perfect forward secrecy, so one compromised key decrypts all recorded traffic of the tunnel. IKEv1 has known weaknesses and is deprecated.", "Remediation", "Set a custom IPsec/IKE policy on each connection with IKEv2, AES256 or GCMAES256, SHA256 or better, DH group 14 or ECP384 and a PFS group, and configure the same on the on-premises device.", "References", R.a([R.v("https://learn.microsoft.com/azure/vpn-gateway/vpn-gateway-about-compliance-crypto"), R.v("https://learn.microsoft.com/azure/vpn-gateway/ipsec-ike-policy-howto"), R.v("https://csrc.nist.gov/pubs/sp/800/77/r1/final")]), "ResourceTypes", R.a("Microsoft.Network/connections"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $p = $Record.resource.properties\n        if ($p.connectionType -ne 'IPsec') { return New-NotApplicable \"Not a site-to-site connection ($($p.connectionType))\" }\n        $policies = @($p.ipsecPolicies | Where-Object { $_ })\n        $evidence = [ordered]@{ connectionProtocol = $p.connectionProtocol; ipsecPolicies = $policies }\n        $issues = [System.Collections.Generic.List[string]]::new()\n        if ($p.connectionProtocol -eq 'IKEv1') { $issues.Add('IKEv1') }\n        if (-not $policies) { $issues.Add('the Azure default policy, which also accepts 3DES, SHA1 and DH group 2 and has no perfect forward secrecy') }\n        foreach ($policy in $policies) {\n            foreach ($name in $vpnStrongAlgorithms.Keys) {\n                $value = [string](Get-Prop $policy $name)\n                if ($value -in $vpnStrongAlgorithms[$name]) { continue }\n                if ($name -eq 'pfsGroup' -and $value -eq 'None') { $issues.Add('no perfect forward secrecy (pfsGroup None)') } else { $issues.Add(\"$name $value\") }\n            }\n        }\n        if ($issues.Count) { return New-Fail \"Weak cryptography: $(@($issues | Sort-Object -Unique) -join ', ')\" $evidence }\n        New-Pass 'IKEv2 with a custom policy of strong algorithms and perfect forward secrecy' $evidence\n    " }, (S, O) => {
+        R.ln = F + 751;
+        S["p"] = R.m(R.m((S["record"] ?? null), "resource"), "properties");
+        R.ln = F + 752;
+        if (R.t(R.ne(R.m((S["p"] ?? null), "connectionType"), "IPsec"))) {
+            R.ln = F + 752;
+            R.pa(O, R.cmd(S, "New-NotApplicable", [("Not a site-to-site connection (" + R.str(R.u(R.pi(R.m((S["p"] ?? null), "connectionType")))) + ")")], null));
+            return;
+        }
+        R.ln = F + 753;
+        S["policies"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+            R.ln = F + 753;
+            R.e(O, (S["_"] ?? null));
+        })], R.pi(R.m((S["p"] ?? null), "ipsecPolicies")));
+        R.ln = F + 754;
+        S["evidence"] = R.ht(["connectionProtocol", R.m((S["p"] ?? null), "connectionProtocol"), "ipsecPolicies", (S["policies"] ?? null)], true);
+        R.ln = F + 755;
+        S["issues"] = R.sc("System.Collections.Generic.List[string]", "new", []);
+        R.ln = F + 756;
+        if (R.t(R.eq(R.m((S["p"] ?? null), "connectionProtocol"), "IKEv1"))) {
+            R.ln = F + 756;
+            R.e(O, R.im((S["issues"] ?? null), "Add", ["IKEv1"]));
+        }
+        R.ln = F + 757;
+        if (!R.t((S["policies"] ?? null))) {
+            R.ln = F + 757;
+            R.e(O, R.im((S["issues"] ?? null), "Add", ["the Azure default policy, which also accepts 3DES, SHA1 and DH group 2 and has no perfect forward secrecy"]));
+        }
+        R.ln = F + 758;
+        for (const it37 of R.fi((S["policies"] ?? null))) {
+            S["policy"] = it37;
+            R.ln = F + 759;
+            for (const it38 of R.fi(R.m((S["vpnstrongalgorithms"] ?? null), "Keys"))) {
+                S["name"] = it38;
+                R.ln = F + 760;
+                S["value"] = R.c("string", R.u(R.cmd(S, "Get-Prop", [(S["policy"] ?? null), (S["name"] ?? null)], null)));
+                R.ln = F + 761;
+                if (R.t(R.in((S["value"] ?? null), R.i((S["vpnstrongalgorithms"] ?? null), (S["name"] ?? null))))) {
+                    continue;
+                }
+                R.ln = F + 762;
+                if ((R.t(R.eq((S["name"] ?? null), "pfsGroup")) && R.t(R.eq((S["value"] ?? null), "None")))) {
+                    R.ln = F + 762;
+                    R.e(O, R.im((S["issues"] ?? null), "Add", ["no perfect forward secrecy (pfsGroup None)"]));
+                } else {
+                    R.ln = F + 762;
+                    R.e(O, R.im((S["issues"] ?? null), "Add", [("" + R.str((S["name"] ?? null)) + " " + R.str((S["value"] ?? null)))]));
+                }
+            }
+        }
+        R.ln = F + 765;
+        if (R.t(R.m((S["issues"] ?? null), "Count"))) {
+            R.ln = F + 765;
+            R.pa(O, R.cmd(S, "New-Fail", [("Weak cryptography: " + R.str(R.u(R.pi(R.join(R.cmd(S, "Sort-Object", [R.np("Unique")], R.pi((S["issues"] ?? null))), ", "))))), (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 766;
+        R.pa(O, R.cmd(S, "New-Pass", ["IKEv2 with a custom policy of strong algorithms and perfect forward secrecy", (S["evidence"] ?? null)], null));
+    })], false)], null));
 });

@@ -909,9 +909,15 @@ function Export-ResourceDetail {
     $principalIds = [System.Collections.Generic.HashSet[string]]::new()
     Find-PrincipalIds -Elements @($record.resource) -Target $principalIds
     foreach ($child in $record.children.get_Values()) { Find-PrincipalIds -Elements $child -Target $principalIds }
-    #resources the analysis follows, which may be in another subscription: the data collection rules of a machine and
-    #the networks a virtual network is peered with
+    #resources the analysis follows, which may be in another subscription: the data collection rules of a machine, the
+    #networks a virtual network is peered with and the action groups of an activity log alert
     $referencedIds = [System.Collections.Generic.List[string]]::new()
+    if ($typeKey -eq 'microsoft.insights/activitylogalerts') {
+        foreach ($group in (Get-JsonArrayItems -Element (Get-JsonProp -Element $record.resource -Path 'properties.actions.actionGroups'))) {
+            $groupId = Get-JsonProperty -Element $group -Name 'actionGroupId'
+            if ($groupId) { $referencedIds.Add($groupId) }
+        }
+    }
     foreach ($association in @($record.children['providers/Microsoft.Insights/dataCollectionRuleAssociations'])) {
         $ruleId = Get-JsonProp -Element $association -Path 'properties.dataCollectionRuleId'
         if ($ruleId) { $referencedIds.Add($ruleId) }
@@ -1702,7 +1708,7 @@ try {
     $sections['web/managedApis'] = [ordered]@{ status = if (-not $managedApisFailed) { 'ok' } elseif ($managedApis.Count) { 'partial' } else { 'failed' }; count = $managedApis.Count; failed = $managedApisFailed }
 
     #resources in other subscriptions that this one relies on, in id order: activity log destinations, data collection
-    #rules and peered virtual networks. Requested by lowercase id; id and type as the response has them
+    #rules, peered virtual networks and action groups. Requested by lowercase id; id and type as the response has them
     $referenced = [System.Collections.Generic.HashSet[string]]::new()
     if ($sections['subscription/diagnosticSettings'].status -in 'ok', 'partial') {
         foreach ($setting in @(Get-Content -LiteralPath (Join-Path $runFolder 'subscription/diagnosticSettings.json') -Raw | ConvertFrom-Json)) {

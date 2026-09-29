@@ -715,6 +715,7 @@ details.fw[open] > summary { border-bottom: 1px solid var(--grid); }
 .fw-table { padding: 8px 10px 10px; }
 .links a { white-space: nowrap; }
 .more-links > summary { cursor: pointer; color: var(--link); font-size: 12px; }
+.tstat { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; vertical-align: 1px; }
 
 /* filters and tests */
 .filters { position: sticky; top: 0; z-index: 5; background: var(--page); padding: 12px 0; border-bottom: 1px solid var(--grid); }
@@ -1204,7 +1205,9 @@ foreach ($fw in @($frameworks.Values)) {
     if ($automated.Count) {
         Add '<div class="fw-table scroll"><table><thead><tr><th>Control</th><th>Title</th><th>Result</th><th>Coverage</th><th>Tests</th></tr></thead><tbody>'
         foreach ($control in $automated) {
-            $testLinks = @($control.Tests | ForEach-Object { '<a href="#{0}">{0}</a>' -f (Enc $_) })
+            #failing tests first, each with a dot for its result
+            $controlTests = @($control.Tests | ForEach-Object { [pscustomobject]@{ Id = [string]$_; Status = $(if ($testsById.ContainsKey($_)) { [string]$testsById[$_].status } else { 'NotAssessed' }) } } | Sort-Object { $statusOrder[$_.Status] }, Id)
+            $testLinks = @($controlTests | ForEach-Object { '<a href="#{0}" title="{1}" aria-label="{0}: {1}"><i class="tstat s-{2}" aria-hidden="true"></i>{0}</a>' -f (Enc $_.Id), (Enc $statusLabels[$_.Status]), $_.Status.ToLowerInvariant() })
             $links = ($testLinks | Select-Object -First 8) -join ', '
             if ($testLinks.Count -gt 8) {
                 $rest = ($testLinks | Select-Object -Skip 8) -join ', '

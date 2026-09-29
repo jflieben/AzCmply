@@ -687,6 +687,9 @@ $fwPolicyId = Add-Record 'Microsoft.Network/firewallPolicies' 'fwpolicy' @{ prop
 Add-Record 'Microsoft.Network/azureFirewalls' 'fwfixture' @{ zones = $fixtureZones; properties = @{ sku = @{ tier = 'Premium' }; firewallPolicy = @{ id = $fwPolicyId }; ipConfigurations = @(@{ name = 'ipconfig'; properties = @{ privateIPAddress = '10.0.1.4' } }) } } | Out-Null
 Add-Record 'Microsoft.Network/dnsResolverPolicies' 'dnspolicyfixture' @{ properties = @{} } -Children @{ virtualNetworkLinks = (Pick @() @(@{ name = 'vnetfixture'; properties = @{ virtualNetwork = @{ id = $vnetId } } })) } | Out-Null
 Add-Record 'Microsoft.Network/virtualNetworkGateways' 'vpnfixture' @{ properties = @{ vpnClientConfiguration = @{ vpnClientAddressPool = @{ addressPrefixes = @('172.16.0.0/24') }; vpnAuthenticationTypes = @((Pick 'AAD' 'Certificate')) } } } | Out-Null
+#the site-to-site connection has a custom policy of strong algorithms with PFS when Good, the Azure default when Bad (AZ-NET-028)
+$ipsecPolicy = @{ ikeEncryption = 'AES256'; ikeIntegrity = 'SHA256'; dhGroup = 'ECP384'; ipsecEncryption = 'GCMAES256'; ipsecIntegrity = 'GCMAES256'; pfsGroup = 'ECP384'; saLifeTimeSeconds = 27000; saDataSizeKilobytes = 102400000 }
+Add-Record 'Microsoft.Network/connections' 'vpnfixture-onprem' @{ properties = @{ connectionType = 'IPsec'; connectionProtocol = 'IKEv2'; ipsecPolicies = @(Pick @($ipsecPolicy) @()); virtualNetworkGateway1 = @{ id = (ResId 'Microsoft.Network/virtualNetworkGateways' 'vpnfixture') } } } | Out-Null
 $zoneId = ResId 'Microsoft.Network/dnszones' 'fixture.example'
 Add-Record 'Microsoft.Network/dnszones' 'fixture.example' @{ location = 'global'; properties = @{} } -Children @{ recordsets = @(
         @{ id = "$zoneId/CNAME/www"; type = 'Microsoft.Network/dnszones/CNAME'; properties = @{ fqdn = 'www.fixture.example.'; CNAMERecord = @{ cname = (Pick 'appfixture.azurewebsites.net' 'gone-app.azurewebsites.net') } } }
@@ -709,22 +712,29 @@ Add-Record 'Microsoft.Network/networkWatchers' 'nwfixture' @{ location = (Pick $
 
 #Defender assessments of the virtual machine
 $assessmentKeys = 'dc5357d0-3858-4d17-a1a3-072840bff5be', 'e1145ab1-eb4f-43d8-911b-36ddf771d13f', '1195afff-c881-495e-9bc5-1486211ae03f', '1f655fb7-63ca-4980-91a3-56dbc2b715c6'
-Save 'defender/assessments' @(foreach ($key in $assessmentKeys) { @{ id = "$vmId/providers/Microsoft.Security/assessments/$key"; name = $key; properties = @{ status = @{ code = (Pick 'Healthy' 'Unhealthy') }; resourceDetails = @{ Source = 'Azure'; Id = $vmId } } } })
+#the Windows machine allows only TLS 1.2 or later when Good (AZ-DFA-005)
+$tlsKey = '87448ec1-55f6-3746-3f79-0f35beee76b4'
+$tlsAssessment = @{ id = "$winVmId/providers/Microsoft.Security/assessments/$tlsKey"; name = $tlsKey; properties = @{ status = @{ code = (Pick 'Healthy' 'Unhealthy') }; resourceDetails = @{ Source = 'Azure'; Id = $winVmId } } }
+Save 'defender/assessments' @(@(foreach ($key in $assessmentKeys) { @{ id = "$vmId/providers/Microsoft.Security/assessments/$key"; name = $key; properties = @{ status = @{ code = (Pick 'Healthy' 'Unhealthy') }; resourceDetails = @{ Source = 'Azure'; Id = $vmId } } } }) + @($tlsAssessment))
 
 #monitoring
 if ($G) { Add-Record 'Microsoft.Insights/components' 'appifixture' @{ properties = @{ DisableLocalAuth = $true; publicNetworkAccessForIngestion = 'Disabled'; publicNetworkAccessForQuery = 'Disabled' } } | Out-Null }
 Add-Record 'Microsoft.OperationalInsights/workspaces' 'lafixture' @{ properties = @{ retentionInDays = (Pick 365 30); features = @{ disableLocalAuth = $G }; publicNetworkAccessForIngestion = (Pick 'Disabled' 'Enabled'); publicNetworkAccessForQuery = (Pick 'Disabled' 'Enabled') } } -Children @{
     tables = @(@{ name = 'AzureActivity'; properties = @{ retentionInDays = (Pick 365 30); totalRetentionInDays = (Pick 730 30) } })
 } | Out-Null
+#the action group of the alerts has a receiver when Good; when Bad the only alert (role assignments) has a group without
+#one (AZ-LOG-027)
+$agId = Add-Record 'Microsoft.Insights/actionGroups' 'agfixture' @{ location = 'global'; properties = @{ enabled = $true; groupShortName = 'fixture'; emailReceivers = @(Pick @(@{ name = 'soc'; emailAddress = 'soc@fixture.example' }) @()) } }
+if (-not $G) { Add-Record 'Microsoft.Insights/activityLogAlerts' 'alert-roles' @{ location = 'global'; properties = @{ enabled = $true; scopes = @($subScope); condition = @{ allOf = @(@{ field = 'category'; equals = 'Administrative' }, @{ field = 'operationName'; equals = 'Microsoft.Authorization/roleAssignments/write' }) }; actions = @{ actionGroups = @(@{ actionGroupId = $agId }) } } } | Out-Null }
 if ($G) {
     $alertOps = @('Microsoft.Authorization/policyAssignments/write', 'Microsoft.Authorization/policyAssignments/delete', 'Microsoft.Network/networkSecurityGroups/write', 'Microsoft.Network/networkSecurityGroups/delete', 'Microsoft.Security/securitySolutions/write', 'Microsoft.Security/securitySolutions/delete', 'Microsoft.Sql/servers/firewallRules/write', 'Microsoft.Sql/servers/firewallRules/delete', 'Microsoft.Network/publicIPAddresses/write', 'Microsoft.Network/publicIPAddresses/delete', 'Microsoft.Insights/diagnosticSettings/delete', 'Microsoft.Authorization/roleAssignments/write', 'Microsoft.Authorization/locks/delete', 'Microsoft.Compute/virtualMachines/runCommand/action')
     $n = 0
     foreach ($operation in $alertOps) {
         $n++
         $category = if ($operation -like 'Microsoft.Security/*') { 'Security' } else { 'Administrative' }
-        Add-Record 'Microsoft.Insights/activityLogAlerts' "alert$n" @{ location = 'global'; properties = @{ enabled = $true; scopes = @($subScope); condition = @{ allOf = @(@{ field = 'category'; equals = $category }, @{ field = 'operationName'; equals = $operation }) }; actions = @{ actionGroups = @(@{ actionGroupId = '/ag' }) } } } | Out-Null
+        Add-Record 'Microsoft.Insights/activityLogAlerts' "alert$n" @{ location = 'global'; properties = @{ enabled = $true; scopes = @($subScope); condition = @{ allOf = @(@{ field = 'category'; equals = $category }, @{ field = 'operationName'; equals = $operation }) }; actions = @{ actionGroups = @(@{ actionGroupId = $agId }) } } } | Out-Null
     }
-    Add-Record 'Microsoft.Insights/activityLogAlerts' 'servicehealth' @{ location = 'global'; properties = @{ enabled = $true; scopes = @($subScope); condition = @{ allOf = @(@{ field = 'category'; equals = 'ServiceHealth' }) }; actions = @{ actionGroups = @(@{ actionGroupId = '/ag' }) } } } | Out-Null
+    Add-Record 'Microsoft.Insights/activityLogAlerts' 'servicehealth' @{ location = 'global'; properties = @{ enabled = $true; scopes = @($subScope); condition = @{ allOf = @(@{ field = 'category'; equals = 'ServiceHealth' }) }; actions = @{ actionGroups = @(@{ actionGroupId = $agId }) } } } | Out-Null
 }
 
 #containers

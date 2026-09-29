@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.0.6
+
+### Added
+- AZ-NET-028: site-to-site VPN connections use strong IPsec and IKE cryptography, with perfect forward secrecy.
+- AZ-DFA-005: Windows machines only use secure communication protocols.
+
+### Changed
+- AZ-LOG-003 to 013, 025 and 027 to 029 (version 2) count an alert only when one of its action groups is enabled and has
+  a receiver. The ingestion reads action groups in other subscriptions.
+- Report: in the controls per framework, each test shows its result as a colored dot, failing tests first.
+
 ## 1.0.5
 
 The Microsoft Graph permission **PrivilegedAccess.Read.AzureADGroup** is now required: it

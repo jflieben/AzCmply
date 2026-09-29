@@ -90,3 +90,21 @@ Add-AzTest @{
         Get-AssessmentFindings -Keys @{ '1f655fb7-63ca-4980-91a3-56dbc2b715c6' = 'Linux baseline deviations'; '8c3d9ad0-3639-4686-9cd2-2b2ab2609bda' = 'Windows baseline deviations' } -HealthyText 'Baseline compliant' -SubscriptionNotApplicable 'Defender for Cloud reports no security baseline assessments (requires the guest configuration extension)'
     }
 }
+
+Add-AzTest @{
+    Id          = 'AZ-DFA-005'
+    Title       = 'Windows machines only use secure communication protocols'
+    Category    = 'Data protection'
+    Service     = 'Microsoft Defender for Cloud'
+    Severity    = 'High'
+    Description = "Reads the Defender for Cloud assessment 'Windows servers should be configured to use secure communication protocols' (machine configuration): the minimum TLS version the operating system accepts."
+    Rationale   = 'Windows keeps SSL 3.0, TLS 1.0 and TLS 1.1 available unless they are turned off, and every service on the machine (RDP, IIS, SQL Server, WinRM) can then be downgraded to them.'
+    Remediation = 'Disable SSL 3.0, TLS 1.0 and TLS 1.1 in SChannel (Group Policy, machine configuration with auto remediation or your configuration management), after checking that clients support TLS 1.2.'
+    References  = @('https://learn.microsoft.com/windows-server/security/tls/tls-registry-settings', 'https://learn.microsoft.com/azure/governance/machine-configuration/overview')
+    Defender    = @{ '87448ec1-55f6-3746-3f79-0f35beee76b4' = 'Windows servers should be configured to use secure communication protocols' }
+    Policy      = @{ '5752e6d6-1206-46d8-8ab1-ecc2f71a8112' = 'Windows machines should be configured to use secure communication protocols' }
+    Requires    = @('defender/assessments')
+    Run         = {
+        Get-AssessmentFindings -Keys @{ '87448ec1-55f6-3746-3f79-0f35beee76b4' = 'insecure communication protocols allowed' } -HealthyText 'Only secure communication protocols' -SubscriptionNotApplicable 'Defender for Cloud reports no secure communication protocol assessments (requires the guest configuration extension)'
+    }
+}

@@ -1,6 +1,6 @@
 # Azure security analysis
 
-`Invoke-AzureAnalyze.ps1` runs 313 security tests against an ingestion made by `..\Ingest\Invoke-AzureIngest.ps1` and writes one result per test, with a finding per evaluated resource. PowerShell 7.2+, no modules, no network access.
+`Invoke-AzureAnalyze.ps1` runs 315 security tests against an ingestion made by `..\Ingest\Invoke-AzureIngest.ps1` and writes one result per test, with a finding per evaluated resource. PowerShell 7.2+, no modules, no network access.
 
 ```powershell
 .\Invoke-AzureAnalyze.ps1 -IngestPath ..\Ingest\AzureIngest\<subscriptionId>_<timestamp>          # folder or .zip
@@ -36,7 +36,7 @@ Each framework has its own catalog in `catalog\frameworks\`: every control of th
 - Catalog text: ISO 27001 control titles are the Annex A headings, NIST CSF and NIST SP 800-53 texts are NIST's, CMMC texts are those of the FAR, NIST SP 800-171 and 32 CFR 170 (all public domain). CIS Controls, SOC 2 and PCI DSS are listed by id with the name of their control, series or principal requirement; their text is licensed by CIS, the AICPA and the PCI SSC. The PCI DSS requirement numbers are those of Microsoft's PCI DSS v4 regulatory compliance initiative, which lists every requirement; appendices A1 to A3 are left out.
 - Each catalog records name, short name, version, publisher, source URL and the date it was checked against the source. A new framework, or a new version of one, is one file; the analyzer checks when it loads that every test a catalog names exists and that every test evidences at least one control.
 
-Tests also list the matching Defender for Cloud recommendation ids and built-in Azure Policy definition ids where they exist (158 tests), so results can be cross-checked against Defender and Policy. Every id is verified against the published Azure Policy definitions and the Defender assessment metadata catalogue.
+Tests also list the matching Defender for Cloud recommendation ids and built-in Azure Policy definition ids where they exist (159 tests), so results can be cross-checked against Defender and Policy. Every id is verified against the published Azure Policy definitions and the Defender assessment metadata catalogue.
 
 A test is one requirement, and a control only lists tests that address what it asks for. Where a benchmark numbers variants separately (CIS 8.3.1/8.3.2 for keys in RBAC and access policy vaults, 8.3.3/8.3.4 for secrets, 7.5/7.8 and 6.1.1.5/6.1.1.6 for NSG and virtual network flow logs, 9.3.9/9.3.10 for storage account locks, 2.1.2 for Databricks subnets), each variant has its own test, so a control is never reported as failing because of resources it does not cover. Where frameworks overlap, one test evidences controls in all of them instead of being duplicated. Generic tests (`AZ-PAAS-*`, `AZ-LOG-015`) exclude resource types that have a dedicated test, so no resource is evaluated twice for the same setting.
 
@@ -46,15 +46,15 @@ A test is one requirement, and a control only lists tests that address what it a
 |---|---|---|---|
 | Identity and privileged access (`IAM`) | 34 | Storage (`STG`) | 27 |
 | Defender for Cloud plans and settings (`DEF`) | 25 | Key Vault (`KV`) | 11 |
-| Defender findings (`DFA`) | 4 | SQL, PostgreSQL, MySQL, Cosmos DB, Redis (`SQL` `PG` `MY` `COS` `RED` `DB`) | 24 |
+| Defender findings (`DFA`) | 5 | SQL, PostgreSQL, MySQL, Cosmos DB, Redis (`SQL` `PG` `MY` `COS` `RED` `DB`) | 24 |
 | Logging and monitoring (`LOG`) | 29 | App Service and Functions (`APP` `FUNC`) | 18 |
 | Governance (`GOV`) | 14 | Compute and Virtual Desktop (`VM` `AVD`) | 18 |
-| Network (`NET`) | 27 | Containers (`AKS` `ACR` `CAPP` `ACI`) | 17 |
+| Network (`NET`) | 28 | Containers (`AKS` `ACR` `CAPP` `ACI`) | 17 |
 | Integration (`MSG` `APIM` `AUTO` `LOGIC`) | 24 | AI and Bot Service (`AI` `BOT`) | 10 |
 | Backup and resilience (`BCK`) | 12 | Data and analytics (`DBX` `SYN` `ADF` `ADX`) | 12 |
 | Exposed secrets (`SEC`) | 4 | Generic PaaS (`PAAS`) | 3 |
 
-Severity: Critical 4, High 75, Medium 147, Low 78, Informational 9.
+Severity: Critical 4, High 76, Medium 148, Low 78, Informational 9.
 
 ## Output
 
@@ -69,7 +69,7 @@ Severity: Critical 4, High 75, Medium 147, Low 78, Informational 9.
 ```jsonc
 {
   "schemaVersion": 3,
-  "analyzer": { "version": "0.9.4", "tests": 313 },
+  "analyzer": { "version": "0.9.4", "tests": 315 },
   "ingest": { "folder", "subscriptionId", "subscriptionName", "tenantId", "startedAt", "ingestVersion", "status" },
   "analyzedAt": "...",                                   // the only value that changes between identical runs
   "summary": { "postureScore", "scoreMethod", "tests": {status: n}, "findings": {status: n}, "bySeverity": {...} },
