@@ -1,9 +1,14 @@
 #Exposed credentials: deployment history, runbook source and resource configuration. Evidence names the location and pattern, never the value.
 
+#credentials that expire before anyone can read them back: the authentication token of the Cisco Meraki vMX offer is
+#valid for one hour
+$shortLivedSecretNames = @('merakiauthtoken')
+
 function Test-SecretName {
     #true for parameter/setting names that normally hold a credential
     param([string]$Name)
     $name = $Name.ToLowerInvariant()
+    if ($name -in $shortLivedSecretNames) { return $false }
     if ($name -match '(name|names|uri|url|id|ids|enabled|type|version|expiry|expiration|expiresin|length|publickey|keysource|keyvault|keyvaultname|vault)$' -or $name -match '^(is|enable|use|allow)') { return $false }
     #a group or policy about passwords, such as 'Password reset group' or 'passwordPolicy'
     if ($name -match 'group|policy') { return $false }
@@ -17,6 +22,8 @@ function Test-PlainSecretValue {
     if ($Value.Length -lt 8) { return $false }
     if ($Value -match '^@Microsoft\.KeyVault\(|^\[|^\$\(|^\*+$|^<.*>$|^/subscriptions/|^https?://[^@]*$|^\{\{.*\}\}$') { return $false }
     if ($Value -match '(?i)^(placeholder|dummy|sample|example|notset|not set|undefined|x+)$') { return $false }
+    #the name of an identity type, such as entraCredential = managed_identity
+    if ($Value -match '(?i)^((system|user)[ _-]?assigned([ _-]?managed)?([ _-]?identity)?|managed[ _-]?identity|workload[ _-]?identity)$') { return $false }
     return $true
 }
 
@@ -36,7 +43,7 @@ function Get-NamedSecretFindings {
 
 Add-AzTest @{
     Id          = 'AZ-SEC-001'
-    Version     = 3
+    Version     = 4
     Title       = 'Deployment history does not contain plaintext secrets'
     Category    = 'Identity management'
     Service     = 'Azure Resource Manager'
@@ -155,7 +162,7 @@ function Get-WorkflowLiteralSecrets {
 
 Add-AzTest @{
     Id          = 'AZ-SEC-003'
-    Version     = 4
+    Version     = 5
     Title       = 'Resource configuration does not contain plaintext secrets'
     Category    = 'Identity management'
     Service     = 'Multiple'

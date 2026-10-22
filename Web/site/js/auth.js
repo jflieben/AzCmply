@@ -36,6 +36,11 @@ function scopeFor(cloud, resource) { return `${endpoints(cloud)[resource]}/.defa
 //a readable explanation for the Entra ID errors people run into when setting this up
 export function explainError(code, description) {
     const text = description ?? '';
+    //the first consent in a tenant creates the service principal of the app; a consent that reaches Entra ID before that is
+    //replicated fails with 650051, and the same action succeeds shortly after
+    if (/AADSTS650051/.test(text)) { return 'Microsoft Entra ID was still setting up the app in this tenant, which happens on the first consent. Wait a minute and try again.'; }
+    if (/AADSTS65004/.test(text)) { return 'The consent prompt was declined, so the app cannot read the tenant. Sign in again and accept, or ask an administrator to grant admin consent with the link below.'; }
+    if (/AADSTS50105/.test(text)) { return 'An administrator has limited this app to assigned users. Ask to be assigned to it under Enterprise applications, or to have "Assignment required" turned off.'; }
     if (/AADSTS65001|AADSTS90094|AADSTS90008/.test(text)) {
         return 'The app has not been given consent in this tenant. An administrator (Global Administrator, Privileged Role Administrator or Cloud Application Administrator) grants it once with the admin consent link below.';
     }

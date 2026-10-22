@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.0.7
+
+### Changed
+- Report: the framework controls of a test can be collapsed.
+
+### Fixed
+- AZ-SEC-001 (version 4), AZ-SEC-003 (version 5) and AZ-LOGIC-003 (version 3) no longer report the authentication token
+  of the Cisco Meraki vMX offer (merakiAuthToken), which is valid for one hour.
+- AZ-SEC-001 and AZ-SEC-003 no longer report a value that names an identity type (managed_identity, SystemAssigned) in
+  deployment parameters, environment variables or other settings.
+- Web: the sign-in page explains a first consent that fails while Entra ID sets up the app in a new tenant (AADSTS650051;
+  try again after a minute), a declined consent and an app limited to assigned users.
+
 ## 1.0.6
 
 ### Added

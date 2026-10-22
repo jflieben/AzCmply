@@ -715,6 +715,7 @@ details.fw[open] > summary { border-bottom: 1px solid var(--grid); }
 .fw-table { padding: 8px 10px 10px; }
 .links a { white-space: nowrap; }
 .more-links > summary { cursor: pointer; color: var(--link); font-size: 12px; }
+details.map > summary { cursor: pointer; width: fit-content; } details.map > summary h4 { display: inline; }
 .tstat { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; vertical-align: 1px; }
 
 /* filters and tests */
@@ -1295,14 +1296,15 @@ foreach ($test in $tests) {
 
     #the framework controls this test evidences, with version and source
     if ($testTags.Count) {
-        Add '<h4 class="sp">Framework controls</h4><div class="scroll"><table class="map-table"><thead><tr><th>Framework</th><th>Version</th><th>Control</th><th>Title</th><th>Coverage</th></tr></thead><tbody>'
+        #collapsible, so the description, remediation and resources fit one screenshot
+        Add "<details class=""map"" open><summary><h4 class=""sp"">Framework controls <span class=""muted"">($($testTags.Count))</span></h4></summary><div class=""scroll""><table class=""map-table""><thead><tr><th>Framework</th><th>Version</th><th>Control</th><th>Title</th><th>Coverage</th></tr></thead><tbody>"
         foreach ($entry in $testTags) {
             $fw = $frameworks[$entry.Framework]
             $extra = @($(if ($entry.Criticality) { $entry.Criticality }), $(if ($entry.Level) { "Level $($entry.Level -replace '^L', '')" })) | Where-Object { $_ }
             $extraHtml = if ($extra) { " <span class=""muted"">($(Enc ($extra -join ', ')))</span>" } else { '' }
             Add "<tr><td class=""fwl""><a href=""#fw-$($fw.Slug)"">$(Enc $fw.Label)</a></td><td class=""fwv"">$(Enc $fw.Version)</td><td style=""white-space:nowrap"">$(Get-ControlLink -Id $entry.Id -Url $entry.Url)</td><td>$(Enc $entry.Title)$extraHtml</td><td>$(Enc $entry.Coverage)</td></tr>"
         }
-        Add '</tbody></table></div>'
+        Add '</tbody></table></div></details>'
     }
 
     $findings = @($test.findings | Sort-Object { $statusOrder[$_.status] }, resourceName)

@@ -772,7 +772,7 @@ async function start() {
     if (redirect?.adminConsent) { showBanner('ok', ['Admin consent was granted. Sign in to run an assessment.']); }
     else if (redirect?.error) {
         const s = loadSettings();
-        showBanner('error', ['Sign-in did not complete.', redirect.error], s.clientId ? { href: auth.adminConsentUrl(s), text: 'Admin consent for this app' } : null);
+        showBanner('error', [redirect.adminConsent === false ? 'Admin consent did not complete.' : 'Sign-in did not complete.', redirect.error], s.clientId ? { href: auth.adminConsentUrl(s), text: 'Admin consent for this app' } : null);
     }
     auth.restore();
     renderAccount();

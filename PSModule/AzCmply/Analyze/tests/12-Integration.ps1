@@ -848,7 +848,7 @@ Add-AzTest @{
 
 Add-AzTest @{
     Id            = 'AZ-LOGIC-003'
-    Version       = 2
+    Version       = 3
     Title         = 'Logic App HTTP steps sign in with a managed identity or service principal'
     Category      = 'Identity management'
     Service       = 'Logic Apps'
