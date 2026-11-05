@@ -4,7 +4,7 @@
 
 Free (non commercially) fully automated test suite for Azure subscriptions against multiple up to date industry security baselines.
 
-AzCmply reads an Azure subscription and its Entra ID context, runs 315 tests against it and writes a report: a posture score, the failures to address, results per security domain and per framework, and every test with its remediation and evidence per resource. Frameworks: the Microsoft cloud security benchmark v2, CIS Microsoft Azure Foundations Benchmark 6.0.0, the Well-Architected Framework security pillar, Azure landing zone policies, ISO 27001:2022, NIST CSF 2.0, CIS Controls v8.1, SOC 2, NIST SP 800-53 Rev. 5, PCI DSS v4.0.1, DORA with its ICT risk management standard (RTS 2024/1774) and CMMC 2.0 Levels 1 to 3, to which JSolve maps the tests. AzCmply Custom adds JSolve's own controls for Azure attack paths that none of these frameworks covers.
+AzCmply reads an Azure subscription and its Entra ID context, runs 420 tests against it and writes a report: a posture score, the failures to address, results per security domain and per framework, and every test with its remediation and evidence per resource. Frameworks: the Microsoft cloud security benchmark v2, CIS Microsoft Azure Foundations Benchmark 7.0.0, the CIS Microsoft Azure Compute, Database and Storage Services Benchmarks 2.0.0, the Well-Architected Framework security pillar, Azure landing zone policies, ISO 27001:2022, NIST CSF 2.0, CIS Controls v8.1, SOC 2, NIST SP 800-53 Rev. 5, PCI DSS v4.0.1, DORA with its ICT risk management standard (RTS 2024/1774) and CMMC 2.0 Levels 1 to 3, to which JSolve maps the tests. AzCmply Custom adds JSolve's own controls for Azure attack paths that none of these frameworks covers.
 
 Everything is read only and can be run it again later to make the report show the trend and what changed.
 
@@ -45,7 +45,7 @@ The page signs in through an Entra ID app registration of the single-page applic
 | Microsoft Graph | `PrivilegedAccess.Read.AzureADGroup` | eligible members of PIM for Groups, who hold Azure and Entra roles through a group |
 | Microsoft Graph | `RoleManagement.Read.Directory` | directory role assignments and eligible (PIM) assignments |
 | Microsoft Graph | `AuditLog.Read.All` | last sign-in of accounts with access |
-| Microsoft Graph | `Policy.Read.All` | Conditional Access policies and security defaults (MFA, emergency access accounts) |
+| Microsoft Graph | `Policy.Read.All` | Conditional Access policies, security defaults and the per-user MFA state of users with Azure access (MFA, emergency access accounts) |
 
 Use one of these:
 
@@ -83,7 +83,7 @@ Invoke-AzCmplyAssessment -SubscriptionId <id> -TenantId <id> -ClientId <appId> -
 Invoke-AzCmplyAssessment -SubscriptionId <id> -ManagedIdentity -Path D:\Assessments
 ```
 
-The service principal or managed identity needs **Reader** on the subscription and the Microsoft Graph application permissions **Directory.Read.All** and **PrivilegedAccess.Read.AzureADGroup** (eligible members of PIM for Groups; without it, role assignments to groups report Unknown); **RoleManagement.Read.Directory**, **AuditLog.Read.All** and **Policy.Read.All** add eligible directory roles, sign-in activity and Conditional Access. Certificate authentication is supported too (`-CertificateThumbprint`, `-CertificatePath`). See [PSModule](PSModule/README.md) for the separate steps (`Invoke-AzCmplyIngest`, `Invoke-AzCmplyAnalysis`, `New-AzCmplyReport`, `Compare-AzCmplyAnalysis`).
+The service principal or managed identity needs **Reader** on the subscription and the Microsoft Graph application permissions **Directory.Read.All** and **PrivilegedAccess.Read.AzureADGroup** (eligible members of PIM for Groups; without it, role assignments to groups report Unknown); **RoleManagement.Read.Directory**, **AuditLog.Read.All** and **Policy.Read.All** add eligible directory roles, sign-in activity, Conditional Access and per-user MFA. **Reader** on the root management group adds its hierarchy settings (AZ-GOV-015, AZ-GOV-016); without it those tests report Unknown. Certificate authentication is supported too (`-CertificateThumbprint`, `-CertificatePath`). See [PSModule](PSModule/README.md) for the separate steps (`Invoke-AzCmplyIngest`, `Invoke-AzCmplyAnalysis`, `New-AzCmplyReport`, `Compare-AzCmplyAnalysis`).
 
 ## How the web variant is built
 

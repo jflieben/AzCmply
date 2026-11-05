@@ -68,10 +68,11 @@ function Get-IngestSectionProblem {
     } else {
         $parts.Add([string]$section.status)
     }
-    #the failed call names the resource provider; its registration state explains a 404 or 409 on an unused service
+    #the failed call names the resource provider; its registration state explains a 404 or 409 on an unused service.
+    #Registration is per subscription, so it says nothing about calls outside it (management groups, tenant)
     $pattern = '(^|[\\/])' + (@($Name -split '/' | ForEach-Object { [regex]::Escape($_) }) -join '[\\/]') + '\.json$'
     $failure = @(Get-IngestData 'failures') | Where-Object { $_ -and [string]$_.context -match $pattern } | Select-Object -First 1
-    if ($failure -and [string]$failure.uri -match '(?i)/providers/(?<namespace>[^/?]+)/') {
+    if ($failure -and [string]$failure.uri -match '(?i)/subscriptions/[^/]+/' -and [string]$failure.uri -match '(?i)/providers/(?<namespace>[^/?]+)/') {
         $namespace = $Matches.namespace
         $provider = @(Get-IngestData 'subscription/providers') | Where-Object { $_ -and $_.namespace -eq $namespace } | Select-Object -First 1
         if ($provider -and $provider.registrationState -and $provider.registrationState -ne 'Registered') {
@@ -336,13 +337,54 @@ function Import-FrameworkCatalogs {
     return $ordered
 }
 
+#scopes a framework control can judge its tests on ('scope' in the catalog), for benchmarks that number the same
+#setting separately per kind of resource; a scope that contains a / is a resource type
+$script:FindingScopes = [ordered]@{
+    webApps          = @{ Type = 'Microsoft.Web/sites'; Function = $false; Label = 'web apps' }
+    webAppSlots      = @{ Type = 'Microsoft.Web/sites/slots'; Function = $false; Label = 'web app slots' }
+    functionApps     = @{ Type = 'Microsoft.Web/sites'; Function = $true; Label = 'function apps' }
+    functionAppSlots = @{ Type = 'Microsoft.Web/sites/slots'; Function = $true; Label = 'function app slots' }
+}
+
+function Get-ResourceKind {
+    #kind of a resource from its record, else from the resource list (also for resources whose record could not be read)
+    param([string]$Id)
+    $record = Get-AzResourceRecord $Id
+    if ($record -and $null -ne $record.resource.kind) { return [string]$record.resource.kind }
+    if (-not $script:Ingest.Cache.ContainsKey('#kinds')) {
+        $kinds = @{}
+        foreach ($listed in @(Get-IngestData 'subscription/resources' | Where-Object { $_ -and $_.id })) { $kinds[([string]$listed.id).ToLowerInvariant()] = $listed.kind }
+        $script:Ingest.Cache['#kinds'] = $kinds
+    }
+    $key = $Id.ToLowerInvariant()
+    if ($script:Ingest.Cache['#kinds'].ContainsKey($key)) { return [string]$script:Ingest.Cache['#kinds'][$key] }
+    return $null
+}
+
+function Test-FindingInScope {
+    #true when a finding concerns a resource of the scope. Function apps (also Logic App Standard) are the sites, or slots
+    #of sites, whose kind contains functionapp; a site of unknown kind counts in both, so what was not read stays visible
+    param($Finding, [string]$Scope)
+    $type = [string]$Finding.resourceType
+    if ($Scope.Contains('/')) { return $type -eq $Scope }
+    $definition = $script:FindingScopes[$Scope]
+    if ($type -ne $definition.Type) { return $false }
+    $id = [string]$Finding.resourceId
+    $kind = Get-ResourceKind $id
+    if ($null -eq $kind -and $id -match '(?i)^(.+/providers/Microsoft\.Web/sites/[^/]+)/slots/') { $kind = Get-ResourceKind $Matches[1] }
+    if ($null -eq $kind) { return $true }
+    return ($kind -match '(?i)functionapp') -eq $definition.Function
+}
+
 function Test-FrameworkCatalogs {
-    #catalogs may only name registered tests, and every test has to evidence at least one control
+    #catalogs may only name registered tests and known scopes, and every test has to evidence at least one control
     $known = @{}
     foreach ($test in $script:Tests) { $known[$test.Id] = $true }
     $mapped = @{}
     foreach ($framework in $script:Catalog.Keys) {
         foreach ($control in $script:Catalog[$framework].controls.GetEnumerator()) {
+            $scope = [string]$control.Value.scope
+            if ($scope -and -not $scope.Contains('/') -and -not $script:FindingScopes.Contains($scope)) { throw "Framework $framework control $($control.Key) names unknown scope $scope" }
             foreach ($testId in @($control.Value.tests | Where-Object { $_ })) {
                 if (-not $known.ContainsKey($testId)) { throw "Framework $framework control $($control.Key) names unknown test $testId" }
                 $mapped[$testId] = $true
@@ -689,6 +731,14 @@ function Get-NsgInternetExposure {
 }
 
 function Get-PolicyAssignments { return @(Get-IngestData 'policy/policyAssignments' | Where-Object { $_ }) }
+function Get-PolicyAssignmentIdentities {
+    #system assigned identities of policy assignments by principal id (lower case): no credential, only Azure Policy uses them
+    $map = @{}
+    foreach ($policy in (Get-PolicyAssignments)) {
+        if ($policy.identity.principalId) { $map[([string]$policy.identity.principalId).ToLowerInvariant()] = $policy }
+    }
+    return $map
+}
 
 function Get-SecretPatterns {
     #patterns for credentials in text; values are never copied into findings

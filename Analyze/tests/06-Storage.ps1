@@ -2,17 +2,19 @@
 
 $storageType = @('Microsoft.Storage/storageAccounts')
 
-function Test-SharedKeyDisabled { param($Record) return ($Record.resource.properties.allowSharedKeyAccess -eq $false) }
+#queue and table services exist on standard general-purpose accounts only
+function Test-QueueTableCapable { param($Record) return (($Record.resource.kind -in 'StorageV2', 'Storage') -and ([string]$Record.resource.sku.name -notmatch '^Premium')) }
 function Test-BlobCapable { param($Record) return ($Record.resource.kind -in 'StorageV2', 'Storage', 'BlobStorage', 'BlockBlobStorage') }
 function Test-FileCapable { param($Record) return ($Record.resource.kind -in 'StorageV2', 'Storage', 'FileStorage') }
 
 Add-AzTest @{
     Id            = 'AZ-STG-001'
+    Version       = 2
     Title         = 'Storage accounts require secure transfer (HTTPS)'
     Category      = 'Data protection'
     Service       = 'Storage'
     Severity      = 'High'
-    Description   = "Checks the 'Secure transfer required' setting (supportsHttpsTrafficOnly)."
+    Description   = "Checks that the 'Secure transfer required' setting (supportsHttpsTrafficOnly) is true."
     Rationale     = 'Without secure transfer, requests and shared access signatures can be sent over plain HTTP and SMB without encryption, exposing data and credentials on the network.'
     Remediation   = 'Enable secure transfer (az storage account update --https-only true ...).'
     References    = @('https://learn.microsoft.com/azure/storage/common/storage-require-secure-transfer')
@@ -22,8 +24,10 @@ Add-AzTest @{
     Evaluate      = {
         param($Record)
         $value = $Record.resource.properties.supportsHttpsTrafficOnly
-        if ($value -eq $false) { return New-Fail 'Secure transfer is not required' ([ordered]@{ supportsHttpsTrafficOnly = $value }) }
-        New-Pass 'Secure transfer required' ([ordered]@{ supportsHttpsTrafficOnly = $value })
+        $evidence = [ordered]@{ supportsHttpsTrafficOnly = $value }
+        if ($value -eq $true) { return New-Pass 'Secure transfer required' $evidence }
+        if ($value -eq $false) { return New-Fail 'Secure transfer is not required' $evidence }
+        New-Unknown 'The secure transfer setting was not returned' $evidence
     }
 }
 
@@ -51,19 +55,18 @@ Add-AzTest @{
 
 Add-AzTest @{
     Id            = 'AZ-STG-003'
-    Version       = 2
+    Version       = 3
     Title         = 'Storage accounts disallow anonymous blob access'
     Category      = 'Network security'
     Service       = 'Storage'
     Severity      = 'High'
-    Description   = "Checks that 'Allow Blob anonymous access' (allowBlobPublicAccess) is disabled on the account."
+    Description   = "Checks that 'Allow Blob anonymous access' (allowBlobPublicAccess) is disabled on every storage account. Not set fails, as older accounts then allow it."
     Rationale     = 'When the account allows anonymous access, any container can be made public with a single change, exposing its blobs to anyone on the Internet without authentication.'
     Remediation   = 'Disable anonymous access on the account (az storage account update --allow-blob-public-access false ...). Serve public content through a CDN or Front Door with private origins if needed.'
     References    = @('https://learn.microsoft.com/azure/storage/blobs/anonymous-read-access-prevent')
     Defender      = @{ '51fd8bb1-0db4-bbf1-7e2b-cfcba7eb66a6' = 'Storage account public access should be disallowed' }
     Policy        = @{ '4fa4b6c0-31ca-4c0d-b10d-24b96f62a751' = 'Storage account public access should be disallowed' }
     ResourceTypes = $storageType
-    Filter        = { param($Record) Test-BlobCapable $Record }
     Evaluate      = {
         param($Record)
         $value = $Record.resource.properties.allowBlobPublicAccess
@@ -120,11 +123,12 @@ Add-AzTest @{
 
 Add-AzTest @{
     Id            = 'AZ-STG-006'
+    Version       = 2
     Title         = 'Storage accounts disable public network access'
     Category      = 'Network security'
     Service       = 'Storage'
     Severity      = 'Medium'
-    Description   = 'Checks that public network access is disabled (or secured by a network security perimeter), so the account is only reachable through private endpoints.'
+    Description   = 'Checks that public network access is Disabled, so the account is only reachable through private endpoints. SecuredByPerimeter fails: the inbound access rules of a network security perimeter can still admit public traffic.'
     Rationale     = 'A public endpoint can be reached from anywhere; any leaked key, SAS token or overly broad firewall rule then exposes the data to the Internet.'
     Remediation   = 'Create private endpoints for the required sub-resources and set public network access to Disabled (az storage account update --public-network-access Disabled ...).'
     References    = @('https://learn.microsoft.com/azure/storage/common/storage-network-security')
@@ -135,18 +139,20 @@ Add-AzTest @{
         param($Record)
         $value = $Record.resource.properties.publicNetworkAccess
         $evidence = [ordered]@{ publicNetworkAccess = $value }
-        if ($value -in 'Disabled', 'SecuredByPerimeter') { return New-Pass "Public network access $value" $evidence }
-        New-Fail 'Public network access enabled' $evidence
+        if ($value -eq 'Disabled') { return New-Pass 'Public network access disabled' $evidence }
+        if ($value -eq 'SecuredByPerimeter') { return New-Fail 'Public network access secured by a network security perimeter, not disabled' $evidence }
+        New-Fail $(if ($null -eq $value) { 'Public network access not set (enabled)' } else { 'Public network access enabled' }) $evidence
     }
 }
 
 Add-AzTest @{
     Id            = 'AZ-STG-007'
+    Version       = 2
     Title         = 'Storage account firewalls deny access by default'
     Category      = 'Network security'
     Service       = 'Storage'
     Severity      = 'High'
-    Description   = 'Checks that the storage firewall default action is Deny (or that public network access is disabled).'
+    Description   = 'Checks that the storage firewall default action is Deny, or that public network access is Disabled or SecuredByPerimeter, which restrict public access whatever the stored default action.'
     Rationale     = "With default action Allow, the public endpoint accepts traffic from every network, so authentication is the only barrier."
     Remediation   = 'Set the default network action to Deny and allow only required virtual networks, IP ranges and resource instances (az storage account update --default-action Deny ...).'
     References    = @('https://learn.microsoft.com/azure/storage/common/storage-network-security')
@@ -157,7 +163,7 @@ Add-AzTest @{
         param($Record)
         $p = $Record.resource.properties
         $evidence = [ordered]@{ publicNetworkAccess = $p.publicNetworkAccess; defaultAction = $p.networkAcls.defaultAction; ipRules = @($p.networkAcls.ipRules).Count; virtualNetworkRules = @($p.networkAcls.virtualNetworkRules).Count }
-        if ($p.publicNetworkAccess -eq 'Disabled') { return New-Pass 'Public network access disabled' $evidence }
+        if ($p.publicNetworkAccess -in 'Disabled', 'SecuredByPerimeter') { return New-Pass "Public network access $($p.publicNetworkAccess)" $evidence }
         if ($p.networkAcls.defaultAction -eq 'Deny') { return New-Pass 'Firewall default action Deny' $evidence }
         New-Fail 'Firewall default action Allow' $evidence
     }
@@ -210,18 +216,17 @@ Add-AzTest @{
 
 Add-AzTest @{
     Id            = 'AZ-STG-010'
-    Version       = 2
+    Version       = 3
     Title         = 'Cross-tenant object replication is disabled'
     Category      = 'Data protection'
     Service       = 'Storage'
     Severity      = 'Medium'
-    Description   = 'Checks that allowCrossTenantReplication is disabled.'
+    Description   = 'Checks that allowCrossTenantReplication is false on every storage account. Not set fails, as accounts created before 15 December 2023 then allow it.'
     Rationale     = 'Cross-tenant object replication lets data be copied continuously to a storage account in another Entra tenant, which is an exfiltration path outside your control.'
     Remediation   = 'Disable cross-tenant replication (az storage account update --allow-cross-tenant-replication false ...).'
     References    = @('https://learn.microsoft.com/azure/storage/blobs/object-replication-prevent-cross-tenant-policies')
     Policy        = @{ '92a89a79-6c52-4a7e-a03f-61306fc49312' = 'Storage accounts should prevent cross tenant object replication' }
     ResourceTypes = $storageType
-    Filter        = { param($Record) Test-BlobCapable $Record }
     Evaluate      = {
         param($Record)
         $value = $Record.resource.properties.allowCrossTenantReplication
@@ -252,11 +257,12 @@ Add-AzTest @{
 
 Add-AzTest @{
     Id            = 'AZ-STG-012'
+    Version       = 2
     Title         = 'Storage account key rotation reminders are configured'
     Category      = 'Data protection'
     Service       = 'Storage'
     Severity      = 'Low'
-    Description   = 'Checks for a key expiration policy (keyPolicy.keyExpirationPeriodInDays) on accounts that allow shared key access.'
+    Description   = 'Checks for a key expiration policy (keyPolicy.keyExpirationPeriodInDays) on every storage account. Accounts with shared key access disabled are included: their keys still exist and work again once shared key access is enabled.'
     Rationale     = 'A key expiration policy flags keys that are due for rotation, so long lived keys become visible.'
     Remediation   = 'Set a key expiration policy of 90 days or less (az storage account update --key-exp-days 90 ...) and rotate keys before they expire.'
     References    = @('https://learn.microsoft.com/azure/storage/common/storage-account-keys-manage')
@@ -267,7 +273,6 @@ Add-AzTest @{
         param($Record)
         $days = $Record.resource.properties.keyPolicy.keyExpirationPeriodInDays
         $evidence = [ordered]@{ keyExpirationPeriodInDays = $days; allowSharedKeyAccess = $Record.resource.properties.allowSharedKeyAccess }
-        if (Test-SharedKeyDisabled $Record) { return New-Pass 'Shared key access is disabled, keys cannot be used' $evidence }
         if ($days -gt 0) { return New-Pass "Key expiration policy of $days days" $evidence }
         New-Fail 'No key expiration policy' $evidence
     }
@@ -275,11 +280,12 @@ Add-AzTest @{
 
 Add-AzTest @{
     Id            = 'AZ-STG-013'
+    Version       = 2
     Title         = 'Storage account keys were regenerated within 90 days'
     Category      = 'Data protection'
     Service       = 'Storage'
     Severity      = 'Medium'
-    Description   = 'Checks the creation time of both access keys on accounts that allow shared key access.'
+    Description   = 'Checks the creation time of both access keys on every storage account, including accounts with shared key access disabled, whose keys work again once it is enabled.'
     Rationale     = 'Access keys are full access credentials. Regular regeneration limits how long a leaked key remains usable.'
     Remediation   = 'Regenerate the keys (az storage account keys renew --key primary|secondary ...) after updating clients, or disable shared key access.'
     References    = @('https://learn.microsoft.com/azure/storage/common/storage-account-keys-manage')
@@ -287,8 +293,7 @@ Add-AzTest @{
     Evaluate      = {
         param($Record)
         $times = $Record.resource.properties.keyCreationTime
-        $evidence = [ordered]@{ key1Created = Format-UtcDate $times.key1; key2Created = Format-UtcDate $times.key2 }
-        if (Test-SharedKeyDisabled $Record) { return New-Pass 'Shared key access is disabled, keys cannot be used' $evidence }
+        $evidence = [ordered]@{ key1Created = Format-UtcDate $times.key1; key2Created = Format-UtcDate $times.key2; allowSharedKeyAccess = $Record.resource.properties.allowSharedKeyAccess }
         if (-not $times.key1 -or -not $times.key2) { return New-Fail 'Key creation time unknown (keys not regenerated since tracking started)' $evidence }
         $oldest = @((Get-AgeInDays $times.key1), (Get-AgeInDays $times.key2)) | Sort-Object -Descending | Select-Object -First 1
         $evidence.oldestKeyAgeInDays = $oldest
@@ -364,12 +369,12 @@ Add-AzTest @{
 
 Add-AzTest @{
     Id            = 'AZ-STG-017'
-    Version       = 2
+    Version       = 3
     Title         = 'File share soft delete is enabled'
     Category      = 'Backup and recovery'
     Service       = 'Storage'
     Severity      = 'Medium'
-    Description   = 'Checks that soft delete for Azure file shares is enabled with a retention of at least 7 days.'
+    Description   = 'Checks that soft delete for Azure file shares is enabled with a retention of at least 7 days on storage accounts that host file shares.'
     Rationale     = 'Soft delete allows recovery of file shares that were deleted by mistake or by an attacker.'
     Remediation   = 'Enable share soft delete (az storage account file-service-properties update --enable-delete-retention true --delete-retention-days 14 ...).'
     References    = @('https://learn.microsoft.com/azure/storage/files/storage-files-prevent-file-share-deletion')
@@ -380,6 +385,8 @@ Add-AzTest @{
         #premium page blob accounts (general-purpose v2 with premium performance) have no file service
         if (Test-ChildNotSupported $Record 'fileServices/default') { return New-NotApplicable 'The account type does not offer Azure Files' }
         if (-not (Test-ChildCollected $Record 'fileServices/default')) { return New-Unknown 'File service properties could not be read' }
+        if (-not (Test-ChildCollected $Record 'fileServices/default/shares')) { return New-Unknown 'File shares could not be read' }
+        if (-not @(Get-Child $Record 'fileServices/default/shares' | Where-Object { $_ }).Count) { return New-NotApplicable 'No file shares' }
         $policy = (Get-Child $Record 'fileServices/default').properties.shareDeleteRetentionPolicy
         $evidence = [ordered]@{ enabled = [bool]$policy.enabled; days = $policy.days }
         if ($policy.enabled -and $policy.days -ge 7) { return New-Pass "Share soft delete for $($policy.days) days" $evidence }
@@ -397,7 +404,7 @@ function Get-SmbSetting {
 
 Add-AzTest @{
     Id            = 'AZ-STG-018'
-    Version       = 2
+    Version       = 3
     Title         = 'SMB file shares only allow SMB 3.1.1'
     Category      = 'Data protection'
     Service       = 'Storage'
@@ -413,6 +420,7 @@ Add-AzTest @{
         #premium page blob accounts (general-purpose v2 with premium performance) have no file service
         if (Test-ChildNotSupported $Record 'fileServices/default') { return New-NotApplicable 'The account type does not offer Azure Files' }
         if (-not (Test-ChildCollected $Record 'fileServices/default')) { return New-Unknown 'File service properties could not be read' }
+        if (-not (Test-ChildCollected $Record 'fileServices/default/shares')) { return New-Unknown 'File shares could not be read' }
         $setting = Get-SmbSetting $Record 'versions'
         if (-not $setting) { return New-NotApplicable 'No SMB file shares' }
         $versions = @(([string]$setting.Value) -split ';' | Where-Object { $_ })
@@ -424,7 +432,7 @@ Add-AzTest @{
 
 Add-AzTest @{
     Id            = 'AZ-STG-019'
-    Version       = 2
+    Version       = 3
     Title         = 'SMB file shares only allow AES-256-GCM channel encryption'
     Category      = 'Data protection'
     Service       = 'Storage'
@@ -440,6 +448,7 @@ Add-AzTest @{
         #premium page blob accounts (general-purpose v2 with premium performance) have no file service
         if (Test-ChildNotSupported $Record 'fileServices/default') { return New-NotApplicable 'The account type does not offer Azure Files' }
         if (-not (Test-ChildCollected $Record 'fileServices/default')) { return New-Unknown 'File service properties could not be read' }
+        if (-not (Test-ChildCollected $Record 'fileServices/default/shares')) { return New-Unknown 'File shares could not be read' }
         $setting = Get-SmbSetting $Record 'channelEncryption'
         if (-not $setting) { return New-NotApplicable 'No SMB file shares' }
         $algorithms = @(([string]$setting.Value) -split ';' | Where-Object { $_ })
@@ -540,21 +549,21 @@ Add-AzTest @{
 
 Add-AzTest @{
     Id            = 'AZ-STG-024'
+    Version       = 2
     Title         = 'A SAS expiration policy is configured'
     Category      = 'Identity management'
     Service       = 'Storage'
     Severity      = 'Low'
-    Description   = 'Checks for a SAS expiration policy (sasPolicy) on accounts that allow shared key access.'
-    Rationale     = 'Account and service SAS tokens signed with the account key cannot be revoked individually. An expiration policy limits their validity and logs or blocks tokens that exceed it.'
+    Description   = 'Checks for a SAS expiration policy (sasPolicy.sasExpirationPeriod) on every storage account. The policy also limits user delegation SAS, which work without shared key access.'
+    Rationale     = 'SAS tokens cannot be revoked individually. An expiration policy sets the maximum validity of account, service and user delegation SAS and logs or blocks tokens that exceed it.'
     Remediation   = "Configure a SAS expiration policy, for example 7 days with action Block (az storage account update --sas-exp 7.00:00:00 ...), and prefer user delegation SAS."
     References    = @('https://learn.microsoft.com/azure/storage/common/sas-expiration-policy')
-    Policy        = @{ '7aa1c9d5-3d7e-4579-8117-d85e99211757' = 'Storage SAS tokens should adhere to 7 day maximum validity' }
+    Policy        = @{ 'bc1b984e-ddae-40cc-801a-050a030e4fbe' = 'Storage accounts should have shared access signature (SAS) policies configured' }
     ResourceTypes = $storageType
     Evaluate      = {
         param($Record)
         $policy = $Record.resource.properties.sasPolicy
         $evidence = [ordered]@{ sasExpirationPeriod = $policy.sasExpirationPeriod; expirationAction = $policy.expirationAction }
-        if (Test-SharedKeyDisabled $Record) { return New-Pass 'Shared key access is disabled, account key SAS cannot be used' $evidence }
         if ($policy.sasExpirationPeriod) { return New-Pass "SAS expiration period $($policy.sasExpirationPeriod)" $evidence }
         New-Fail 'No SAS expiration policy' $evidence
     }
@@ -628,3 +637,354 @@ Add-AzTest @{
     }
 }
 
+#Azure Files shares of the Microsoft.FileShares provider; CIS scopes its recommendations to NFS shares, the only protocol today
+$fileShareType = 'Microsoft.FileShares/fileShares'
+function Test-NfsFileShare { param($Record) return ([string]$Record.resource.properties.protocol -in '', 'NFS') }
+
+Add-AzTest @{
+    Id            = 'AZ-STG-028'
+    Title         = 'NFS file shares (Microsoft.FileShares) squash root'
+    Category      = 'Identity management'
+    Service       = 'Storage'
+    Severity      = 'Medium'
+    Description   = 'Checks the root squash setting (nfsProtocolProperties.rootSquash) of NFS file shares created with the Microsoft.FileShares provider. RootSquash passes, and AllSquash, which also maps root to the anonymous user.'
+    Rationale     = 'NFS permissions are enforced by the client. Without root squash, root on any client that can mount the share has full control over every file in it.'
+    Remediation   = 'Set root squash to RootSquash (or AllSquash for shares that every client only reads) in the configuration of the file share.'
+    References    = @('https://learn.microsoft.com/azure/storage/files/nfs-root-squash')
+    ResourceTypes = @($fileShareType)
+    Filter        = { param($Record) Test-NfsFileShare $Record }
+    Evaluate      = {
+        param($Record)
+        $value = $Record.resource.properties.nfsProtocolProperties.rootSquash
+        $evidence = [ordered]@{ rootSquash = $value }
+        if ($value -in 'RootSquash', 'AllSquash') { return New-Pass "Root squash $value" $evidence }
+        New-Fail $(if ($value) { "Root squash $value" } else { 'Root squash not set (NoRootSquash)' }) $evidence
+    }
+}
+
+Add-AzTest @{
+    Id            = 'AZ-STG-029'
+    Title         = 'NFS file shares (Microsoft.FileShares) require encryption in transit'
+    Category      = 'Data protection'
+    Service       = 'Storage'
+    Severity      = 'Medium'
+    Description   = 'Checks that encryption in transit (nfsProtocolProperties.encryptionInTransitRequired) is Enabled on NFS file shares created with the Microsoft.FileShares provider.'
+    Rationale     = 'NFS has no user authentication and no encryption of its own; without encryption in transit, file data and metadata cross the network in plain text and can be read or changed on the way.'
+    Remediation   = 'Enable encryption in transit on the file share and mount it with the AZNFS mount helper, which carries NFS over TLS.'
+    References    = @('https://learn.microsoft.com/azure/storage/files/encryption-in-transit-for-nfs-shares')
+    ResourceTypes = @($fileShareType)
+    Filter        = { param($Record) Test-NfsFileShare $Record }
+    Evaluate      = {
+        param($Record)
+        $value = $Record.resource.properties.nfsProtocolProperties.encryptionInTransitRequired
+        $evidence = [ordered]@{ encryptionInTransitRequired = $value }
+        if ($value -eq 'Enabled') { return New-Pass 'Encryption in transit required' $evidence }
+        New-Fail $(if ($value) { "Encryption in transit $value" } else { 'Encryption in transit not required' }) $evidence
+    }
+}
+
+Add-AzTest @{
+    Id            = 'AZ-STG-030'
+    Title         = 'NFS file shares (Microsoft.FileShares) limit the public endpoint to selected subnets'
+    Category      = 'Network security'
+    Service       = 'Storage'
+    Severity      = 'Medium'
+    Description   = 'Checks that NFS file shares created with the Microsoft.FileShares provider either disable public network access or allow it only from listed virtual network subnets (publicAccessProperties.allowedSubnets).'
+    Rationale     = 'A public endpoint without subnet restrictions accepts NFS traffic from every network, and NFS relies on the network as its only access control.'
+    Remediation   = 'Restrict public network access of the file share to the subnets that need it (with a Microsoft.Storage service endpoint), or disable it and use a private endpoint.'
+    References    = @('https://learn.microsoft.com/azure/storage/files/storage-files-networking-overview')
+    ResourceTypes = @($fileShareType)
+    Filter        = { param($Record) Test-NfsFileShare $Record }
+    Evaluate      = {
+        param($Record)
+        $p = $Record.resource.properties
+        $subnets = @($p.publicAccessProperties.allowedSubnets | Where-Object { $_ } | Sort-Object)
+        $evidence = [ordered]@{ publicNetworkAccess = $p.publicNetworkAccess; allowedSubnets = $subnets }
+        if ($p.publicNetworkAccess -eq 'Disabled') { return New-Pass 'Public network access disabled' $evidence }
+        if ($subnets) { return New-Pass "Public network access limited to $($subnets.Count) subnet(s)" $evidence }
+        New-Fail 'Public network access enabled without subnet restrictions' $evidence
+    }
+}
+
+Add-AzTest @{
+    Id            = 'AZ-STG-031'
+    Title         = 'NFS file shares (Microsoft.FileShares) disable public network access'
+    Category      = 'Network security'
+    Service       = 'Storage'
+    Severity      = 'Medium'
+    Description   = 'Checks that public network access is Disabled on NFS file shares created with the Microsoft.FileShares provider.'
+    Rationale     = 'With public network access disabled, the share is only reachable through private endpoints, which removes its exposure to other networks.'
+    Remediation   = 'Create a private endpoint for the file share, move clients to it and set public network access to Disabled.'
+    References    = @('https://learn.microsoft.com/azure/storage/files/storage-files-networking-overview')
+    Policy        = @{ 'edfb40e6-36fe-4928-96e9-e921bc7dfc70' = 'Public network access should be disabled for file share with Microsoft.FileShares' }
+    ResourceTypes = @($fileShareType)
+    Filter        = { param($Record) Test-NfsFileShare $Record }
+    Evaluate      = {
+        param($Record)
+        $value = $Record.resource.properties.publicNetworkAccess
+        $evidence = [ordered]@{ publicNetworkAccess = $value }
+        if ($value -eq 'Disabled') { return New-Pass 'Public network access disabled' $evidence }
+        New-Fail $(if ($value) { "Public network access $value" } else { 'Public network access not set (enabled)' }) $evidence
+    }
+}
+
+Add-AzTest @{
+    Id            = 'AZ-STG-032'
+    Title         = 'NFS file shares (Microsoft.FileShares) are accessed through private endpoints'
+    Category      = 'Network security'
+    Service       = 'Storage'
+    Severity      = 'Low'
+    Description   = 'Checks NFS file shares created with the Microsoft.FileShares provider for at least one approved private endpoint connection.'
+    Rationale     = 'A private endpoint gives the share a private address in the virtual network, so client traffic stays on the Microsoft backbone and the public endpoint can be disabled.'
+    Remediation   = 'Create a private endpoint (sub-resource FileShare) for each file share, with private DNS zone integration.'
+    References    = @('https://learn.microsoft.com/azure/storage/files/storage-files-networking-endpoints')
+    ResourceTypes = @($fileShareType)
+    Filter        = { param($Record) Test-NfsFileShare $Record }
+    Evaluate      = {
+        param($Record)
+        $approved = @($Record.resource.properties.privateEndpointConnections | Where-Object { $_ -and $_.properties.privateLinkServiceConnectionState.status -eq 'Approved' })
+        $evidence = [ordered]@{ approvedPrivateEndpoints = $approved.Count }
+        if ($approved) { return New-Pass "$($approved.Count) private endpoint(s)" $evidence }
+        New-Fail 'No approved private endpoint' $evidence
+    }
+}
+
+Add-AzTest @{
+    Id            = 'AZ-STG-033'
+    Title         = 'NFS file shares in storage accounts squash root'
+    Category      = 'Identity management'
+    Service       = 'Storage'
+    Severity      = 'Medium'
+    Description   = 'Checks the root squash setting of the NFS file shares in storage accounts (classic file shares). RootSquash passes, and AllSquash, which also maps root to the anonymous user. The default is NoRootSquash.'
+    Rationale     = 'NFS permissions are enforced by the client. Without root squash, root on any client that can mount the share has full control over every file in it.'
+    Remediation   = 'Set root squash to RootSquash (or AllSquash for shares that every client only reads) on each NFS share (az storage share-rm update --root-squash RootSquash ...).'
+    References    = @('https://learn.microsoft.com/azure/storage/files/nfs-root-squash')
+    ResourceTypes = $storageType
+    Filter        = { param($Record) Test-FileCapable $Record }
+    Evaluate      = {
+        param($Record)
+        if (Test-ChildNotSupported $Record 'fileServices/default') { return New-NotApplicable 'The account type does not offer Azure Files' }
+        if (-not (Test-ChildCollected $Record 'fileServices/default/shares')) { return New-Unknown 'File shares could not be read' }
+        $nfs = @(Get-Child $Record 'fileServices/default/shares' | Where-Object { $_ -and $_.properties.enabledProtocols -eq 'NFS' })
+        if (-not $nfs) { return New-NotApplicable 'No NFS file shares' }
+        $open = @($nfs | Where-Object { [string]$_.properties.rootSquash -notin 'RootSquash', 'AllSquash' } | ForEach-Object { "$($_.name) ($(if ($_.properties.rootSquash) { $_.properties.rootSquash } else { 'not set' }))" } | Sort-Object)
+        $evidence = [ordered]@{ nfsShares = @($nfs | ForEach-Object { "$($_.name): $($_.properties.rootSquash)" } | Sort-Object); withoutRootSquash = $open }
+        if ($open) { return New-Fail "NFS share(s) without root squash: $($open -join ', ')" $evidence }
+        New-Pass "All $($nfs.Count) NFS share(s) squash root" $evidence
+    }
+}
+
+Add-AzTest @{
+    Id            = 'AZ-STG-034'
+    Title         = 'Azure Managed Lustre file systems use a customer-managed key (when required)'
+    Category      = 'Data protection'
+    Service       = 'Storage'
+    Severity      = 'Informational'
+    Description   = 'Checks whether Azure Managed Lustre file systems encrypt their data with a customer-managed key encryption key (encryptionSettings.keyEncryptionKey.keyUrl).'
+    Rationale     = 'A customer-managed key gives control over key rotation and the ability to revoke access to the data. Only required for data whose classification or regulation demands it.'
+    Remediation   = 'Create the file system with a key encryption key from Key Vault and a user-assigned managed identity that can use it; the setting cannot be added afterwards.'
+    References    = @('https://learn.microsoft.com/azure/azure-managed-lustre/customer-managed-encryption-keys')
+    Policy        = @{ '49af39b4-9394-4043-b153-f4a67201368b' = '[Preview]: Azure Managed Lustre file systems should use customer-managed keys for encryption' }
+    ResourceTypes = @('Microsoft.StorageCache/amlFilesystems')
+    Evaluate      = {
+        param($Record)
+        $key = $Record.resource.properties.encryptionSettings.keyEncryptionKey
+        $evidence = [ordered]@{ keyUrl = $(if ($key.keyUrl) { [string]$key.keyUrl } else { $null }); keyVault = $(if ($key.sourceVault.id) { Get-ResourceName $key.sourceVault.id } else { $null }) }
+        if ($key.keyUrl) { return New-Pass 'Customer-managed key encryption key' $evidence }
+        New-Fail 'Microsoft-managed keys' $evidence
+    }
+}
+
+Add-AzTest @{
+    Id            = 'AZ-STG-035'
+    Title         = 'Azure NetApp Files accounts use a customer-managed key (when required)'
+    Category      = 'Data protection'
+    Service       = 'Storage'
+    Severity      = 'Informational'
+    Description   = 'Checks whether the encryption key source of Azure NetApp Files accounts (encryption.keySource) is Microsoft.KeyVault.'
+    Rationale     = 'A customer-managed key gives control over key rotation and the ability to revoke access to the volumes. Only required for data whose classification or regulation demands it.'
+    Remediation   = 'Configure the NetApp account encryption with a key in Key Vault and a managed identity (NetApp account > Encryption), then create the volumes with that key.'
+    References    = @('https://learn.microsoft.com/azure/azure-netapp-files/configure-customer-managed-keys')
+    ResourceTypes = @('Microsoft.NetApp/netAppAccounts')
+    Evaluate      = {
+        param($Record)
+        $source = $Record.resource.properties.encryption.keySource
+        $evidence = [ordered]@{ keySource = $source }
+        if ($source -eq 'Microsoft.KeyVault') { return New-Pass 'Customer-managed key' $evidence }
+        New-Fail $(if ($source) { "Key source $source" } else { 'Microsoft-managed keys (default)' }) $evidence
+    }
+}
+
+Add-AzTest @{
+    Id            = 'AZ-STG-036'
+    Title         = 'Blob containers with business-critical data have a locked immutability policy'
+    Category      = 'Backup and recovery'
+    Service       = 'Storage'
+    Severity      = 'Informational'
+    Description   = 'Reports per storage account the blob containers without a locked time-based immutability policy. CIS asks for one on containers with business-critical data, which configuration cannot tell apart.'
+    Rationale     = 'A locked immutability policy keeps blobs from being changed or deleted until the retention period ends, whatever the rights of the caller, which protects business-critical data against ransomware and a compromised administrator.'
+    Remediation   = 'Create a time-based retention policy on the containers with business-critical data and lock it once the retention period is final (az storage container immutability-policy create / lock ...). Confirm that the other containers do not need one.'
+    References    = @('https://learn.microsoft.com/azure/storage/blobs/immutable-storage-overview')
+    ResourceTypes = $storageType
+    Filter        = { param($Record) Test-BlobCapable $Record }
+    Evaluate      = {
+        param($Record)
+        if (-not (Test-ChildCollected $Record 'blobServices/default/containers')) { return New-Unknown 'Containers could not be read' }
+        $containers = @(Get-Child $Record 'blobServices/default/containers' | Where-Object { $_ } | Sort-Object name)
+        if (-not $containers) { return New-NotApplicable 'No containers' }
+        $locked = [System.Collections.Generic.List[string]]::new()
+        $notLocked = [System.Collections.Generic.List[string]]::new()
+        $unread = [System.Collections.Generic.List[string]]::new()
+        foreach ($container in $containers) {
+            $state = [string]$container.properties.immutabilityPolicy.properties.state
+            if ($state -eq 'Locked') { $locked.Add([string]$container.name) }
+            elseif ($state) { $notLocked.Add("$($container.name) ($state)") }
+            elseif ($container.properties.hasImmutabilityPolicy) { $unread.Add([string]$container.name) }
+            else { $notLocked.Add("$($container.name) (no policy)") }
+        }
+        $evidence = [ordered]@{ lockedContainers = @($locked); containersNotLocked = @($notLocked); policyStateNotRead = @($unread) }
+        if ($notLocked.Count) { return New-Fail "Container(s) without a locked immutability policy: $($notLocked -join ', '); confirm they hold no business-critical data" $evidence }
+        if ($unread.Count) { return New-Unknown "The immutability policy state of $($unread -join ', ') was not in the container list" $evidence }
+        New-Pass "All $($containers.Count) container(s) have a locked immutability policy" $evidence
+    }
+}
+
+Add-AzTest @{
+    Id            = 'AZ-STG-037'
+    Title         = 'Elastic SANs disable public network access'
+    Category      = 'Network security'
+    Service       = 'Storage'
+    Severity      = 'Medium'
+    Description   = 'Checks that public network access of Azure Elastic SANs is Disabled.'
+    Rationale     = 'With public network access disabled, the volumes are only reachable through private endpoints, which removes their exposure to other networks.'
+    Remediation   = 'Create private endpoints for the volume groups, then set public network access of the Elastic SAN to Disabled (az elastic-san update --public-network-access Disabled ...).'
+    References    = @('https://learn.microsoft.com/azure/storage/elastic-san/elastic-san-networking')
+    Policy        = @{ '6a92fe1f-0b86-44ae-843d-2db3d2b571ae' = 'ElasticSan should disable public network access' }
+    ResourceTypes = @('Microsoft.ElasticSan/elasticSans')
+    Evaluate      = {
+        param($Record)
+        $value = $Record.resource.properties.publicNetworkAccess
+        $evidence = [ordered]@{ publicNetworkAccess = $value }
+        if ($value -eq 'Disabled') { return New-Pass 'Public network access disabled' $evidence }
+        New-Fail $(if ($value) { "Public network access $value" } else { 'Public network access not set (enabled)' }) $evidence
+    }
+}
+
+Add-AzTest @{
+    Id            = 'AZ-STG-038'
+    Title         = 'Elastic SAN volume groups use customer-managed keys (when required)'
+    Category      = 'Data protection'
+    Service       = 'Storage'
+    Severity      = 'Informational'
+    Description   = 'Checks whether the volume groups of each Azure Elastic SAN encrypt data at rest with a customer-managed key (encryption EncryptionAtRestWithCustomerManagedKey).'
+    Rationale     = 'A customer-managed key gives control over key rotation and the ability to revoke access to the volumes. Only required for data whose classification or regulation demands it.'
+    Remediation   = 'Configure the volume group encryption with a key in Key Vault and a managed identity (az elastic-san volume-group update --encryption EncryptionAtRestWithCustomerManagedKey ...).'
+    References    = @('https://learn.microsoft.com/azure/storage/elastic-san/elastic-san-configure-customer-managed-keys')
+    Policy        = @{ '7698f4ed-80ce-4e13-b408-ee135fa400a5' = 'ElasticSan Volume Group should use customer-managed keys to encrypt data at rest' }
+    ResourceTypes = @('Microsoft.ElasticSan/elasticSans')
+    Evaluate      = {
+        param($Record)
+        if ($Record.resource.properties.volumeGroupCount -eq 0) { return New-NotApplicable 'No volume groups' }
+        if (-not (Test-ChildCollected $Record 'volumegroups')) { return New-Unknown 'Volume groups could not be read' }
+        $groups = @(Get-Child $Record 'volumegroups' | Where-Object { $_ })
+        if (-not $groups) { return New-NotApplicable 'No volume groups' }
+        $platform = @($groups | Where-Object { $_.properties.encryption -ne 'EncryptionAtRestWithCustomerManagedKey' } | ForEach-Object { "$($_.name) ($(if ($_.properties.encryption) { $_.properties.encryption } else { 'not set' }))" } | Sort-Object)
+        $evidence = [ordered]@{ volumeGroups = $groups.Count; withoutCustomerManagedKey = $platform }
+        if ($platform) { return New-Fail "Volume group(s) without a customer-managed key: $($platform -join ', ')" $evidence }
+        New-Pass "All $($groups.Count) volume group(s) use a customer-managed key" $evidence
+    }
+}
+
+Add-AzTest @{
+    Id            = 'AZ-STG-039'
+    Title         = 'The SAS expiration policy blocks SAS that exceed it'
+    Category      = 'Identity management'
+    Service       = 'Storage'
+    Severity      = 'Low'
+    Description   = 'Checks that the SAS expiration policy of every storage account has expiration action Block (sasPolicy.expirationAction).'
+    Rationale     = 'With the default action Log, a SAS that exceeds the maximum validity or has no start time still works and is only logged. Block makes the policy a limit instead of a report.'
+    Remediation   = 'Review the SasExpiryStatus entries in the resource logs, then set the expiration action to Block (az storage account update --sas-expiration-action Block ...).'
+    References    = @('https://learn.microsoft.com/azure/storage/common/sas-expiration-policy')
+    ResourceTypes = $storageType
+    Evaluate      = {
+        param($Record)
+        $policy = $Record.resource.properties.sasPolicy
+        $evidence = [ordered]@{ sasExpirationPeriod = $policy.sasExpirationPeriod; expirationAction = $policy.expirationAction }
+        if (-not $policy.sasExpirationPeriod) { return New-Fail 'No SAS expiration policy' $evidence }
+        if ($policy.expirationAction -eq 'Block') { return New-Pass "SAS longer than $($policy.sasExpirationPeriod) are blocked" $evidence }
+        New-Fail "Expiration action $(if ($policy.expirationAction) { $policy.expirationAction } else { 'Log (default)' })" $evidence
+    }
+}
+
+function Get-StorageRequestLogging {
+    #names of the diagnostic settings that send StorageRead, StorageWrite and StorageDelete (or allLogs) to a destination
+    param($Settings)
+    $required = @('StorageRead', 'StorageWrite', 'StorageDelete')
+    $names = [System.Collections.Generic.List[string]]::new()
+    foreach ($setting in @($Settings | Where-Object { $_ })) {
+        $p = $setting.properties
+        if (-not ($p.workspaceId -or $p.storageAccountId -or $p.eventHubAuthorizationRuleId -or $p.marketplacePartnerId)) { continue }
+        $enabled = @($p.logs | Where-Object { $_ -and $_.enabled })
+        $categories = @($enabled | ForEach-Object { [string]$_.category })
+        if (($enabled | Where-Object { $_.categoryGroup -eq 'allLogs' }) -or -not ($required | Where-Object { $_ -notin $categories })) { $names.Add([string]$setting.name) }
+    }
+    return @($names | Sort-Object)
+}
+
+function Get-StorageLoggingResult {
+    #result of the request logging check for one service of a storage account
+    param($Record, [string]$Service, [string]$Label)
+    if (Test-ChildNotSupported $Record "$Service/default") { return New-NotApplicable "The account type does not offer the $Label service" }
+    $path = "$Service/default/providers/Microsoft.Insights/diagnosticSettings"
+    if (-not (Test-ChildCollected $Record $path)) { return New-Unknown "The diagnostic settings of the $Label service could not be read" }
+    $settings = @(Get-Child $Record $path | Where-Object { $_ })
+    $logging = @(Get-StorageRequestLogging $settings)
+    $evidence = [ordered]@{ diagnosticSettings = @($settings | ForEach-Object { [string]$_.name } | Sort-Object); loggingReadWriteDelete = $logging }
+    if ($logging) { return New-Pass "Read, write and delete requests logged ($($logging -join ', '))" $evidence }
+    New-Fail $(if ($settings) { "No diagnostic setting of the $Label service sends StorageRead, StorageWrite and StorageDelete to a destination" } else { "No diagnostic setting on the $Label service" }) $evidence
+}
+
+Add-AzTest @{
+    Id            = 'AZ-STG-040'
+    Title         = 'Queue service logs read, write and delete requests'
+    Category      = 'Logging and threat detection'
+    Service       = 'Storage'
+    Severity      = 'Low'
+    Description   = 'Checks that a diagnostic setting of the queue service sends the StorageRead, StorageWrite and StorageDelete logs (or allLogs) to a Log Analytics workspace, storage account, event hub or partner solution.'
+    Rationale     = 'Request logs show who read, added or deleted messages, from where and with which authorization; without them misuse of a key or SAS cannot be traced.'
+    Remediation   = 'Add a diagnostic setting to the queue service (storage account > Diagnostic settings > queue) with StorageRead, StorageWrite and StorageDelete, sent to a central Log Analytics workspace.'
+    References    = @('https://learn.microsoft.com/azure/storage/queues/monitor-queue-storage')
+    ResourceTypes = $storageType
+    Filter        = { param($Record) Test-QueueTableCapable $Record }
+    Evaluate      = { param($Record) Get-StorageLoggingResult $Record 'queueServices' 'queue' }
+}
+
+Add-AzTest @{
+    Id            = 'AZ-STG-041'
+    Title         = 'Blob service logs read, write and delete requests'
+    Category      = 'Logging and threat detection'
+    Service       = 'Storage'
+    Severity      = 'Low'
+    Description   = 'Checks that a diagnostic setting of the blob service sends the StorageRead, StorageWrite and StorageDelete logs (or allLogs) to a Log Analytics workspace, storage account, event hub or partner solution.'
+    Rationale     = 'Request logs show who read, wrote or deleted blobs, from where and with which authorization; without them data theft through a leaked key or SAS cannot be traced.'
+    Remediation   = 'Add a diagnostic setting to the blob service (storage account > Diagnostic settings > blob) with StorageRead, StorageWrite and StorageDelete, sent to a central Log Analytics workspace.'
+    References    = @('https://learn.microsoft.com/azure/storage/blobs/monitor-blob-storage')
+    ResourceTypes = $storageType
+    Filter        = { param($Record) Test-BlobCapable $Record }
+    Evaluate      = { param($Record) Get-StorageLoggingResult $Record 'blobServices' 'blob' }
+}
+
+Add-AzTest @{
+    Id            = 'AZ-STG-042'
+    Title         = 'Table service logs read, write and delete requests'
+    Category      = 'Logging and threat detection'
+    Service       = 'Storage'
+    Severity      = 'Low'
+    Description   = 'Checks that a diagnostic setting of the table service sends the StorageRead, StorageWrite and StorageDelete logs (or allLogs) to a Log Analytics workspace, storage account, event hub or partner solution.'
+    Rationale     = 'Request logs show who read, wrote or deleted entities, from where and with which authorization; without them misuse of a key or SAS cannot be traced.'
+    Remediation   = 'Add a diagnostic setting to the table service (storage account > Diagnostic settings > table) with StorageRead, StorageWrite and StorageDelete, sent to a central Log Analytics workspace.'
+    References    = @('https://learn.microsoft.com/azure/storage/tables/monitor-table-storage')
+    ResourceTypes = $storageType
+    Filter        = { param($Record) Test-QueueTableCapable $Record }
+    Evaluate      = { param($Record) Get-StorageLoggingResult $Record 'tableServices' 'table' }
+}

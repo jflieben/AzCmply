@@ -152,13 +152,30 @@ Add-AzTest @{
     }
 }
 
+function Test-LinkedServiceStoresSecret {
+    #true when a linked service keeps a credential in the factory instead of Key Vault (the conditions of policy 127ef6d7)
+    param($LinkedService)
+    $typeProperties = $LinkedService.properties.typeProperties
+    if ($null -eq $typeProperties) { return $false }
+    if (($typeProperties | ConvertTo-Json -Depth 20 -Compress) -match '"type":"SecureString"') { return $true }
+    if ($typeProperties.encryptedCredential) { return $true }
+    $connection = $typeProperties.connectionString
+    if ($connection -is [string] -and $connection -match '(?i)(AccountKey|PWD|Password|CredString)=') { return $true }
+    if ($LinkedService.properties.type -in 'MongoDbAtlas', 'MongoDbV2' -and $null -ne $connection -and $connection.type -ne 'AzureKeyVaultSecret') { return $true }
+    foreach ($name in 'password', 'sasUri', 'accountKey', 'servicePrincipalKey') {
+        if ($typeProperties.$name -is [string]) { return $true }
+    }
+    return $false
+}
+
 Add-AzTest @{
     Id            = 'AZ-ADF-001'
+    Version       = 2
     Title         = 'Data Factory linked services keep secrets in Key Vault'
     Category      = 'Identity management'
     Service       = 'Data Factory'
     Severity      = 'Medium'
-    Description   = 'Finds linked services that store credentials in the factory (SecureString) instead of referencing Key Vault or using managed identity.'
+    Description   = 'Finds linked services that store credentials in the factory instead of referencing Key Vault: SecureString values, credentials encrypted for a self-hosted integration runtime, connection strings with AccountKey, PWD, Password or CredString, and passwords, SAS URIs, account keys and service principal keys in plain text.'
     Rationale     = 'Credentials stored in Data Factory are not centrally rotated or audited and are available to every factory contributor through the linked service.'
     Remediation   = 'Use managed identity authentication where the connector supports it, otherwise store the secret in Key Vault and reference it with an AzureKeyVaultSecret.'
     References    = @('https://learn.microsoft.com/azure/data-factory/store-credentials-in-key-vault')
@@ -167,10 +184,90 @@ Add-AzTest @{
     Evaluate      = {
         param($Record)
         if (-not (Test-ChildCollected $Record 'linkedservices')) { return New-Unknown 'Linked services could not be listed' }
-        $stored = @(Get-Child $Record 'linkedservices' | Where-Object { $_ -and (($_.properties.typeProperties | ConvertTo-Json -Depth 20 -Compress) -match '"type":"SecureString"') } | ForEach-Object name | Sort-Object)
+        $stored = @(Get-Child $Record 'linkedservices' | Where-Object { $_ -and (Test-LinkedServiceStoresSecret $_) } | ForEach-Object name | Sort-Object)
         $evidence = [ordered]@{ linkedServicesWithStoredSecrets = $stored }
         if ($stored) { return New-Fail "Linked service(s) with stored secrets: $($stored -join ', ')" $evidence }
         New-Pass 'No secrets stored in linked services' $evidence
+    }
+}
+
+#linked service types for which policy f78ccdb4 expects managed identity authentication
+$managedIdentityLinkedServiceTypes = @('AzureSqlDatabase', 'AzureSqlMI', 'AzureSqlDW', 'AzureBlobFS', 'AdlsGen2CosmosStructuredStream', 'AzureDataLakeStore', 'AzureDataLakeStoreCosmosStructuredStream', 'AzureBlobStorage', 'AzureDatabricks')
+
+function Test-LinkedServiceUsesKey {
+    #true when a linked service that supports managed identity authenticates with a key, password, token or service principal secret
+    param($LinkedService)
+    $typeProperties = $LinkedService.properties.typeProperties
+    if ($null -eq $typeProperties) { return $false }
+    $connection = $typeProperties.connectionString
+    if ($connection -is [string] -and $connection -match '(?i)(User ID|AccountKey)=') { return $true }
+    foreach ($name in 'servicePrincipalKey', 'servicePrincipalCredential', 'accountKey', 'sasUri', 'accessToken', 'encryptedCredential') {
+        if ($null -ne $typeProperties.$name) { return $true }
+    }
+    return $false
+}
+
+Add-AzTest @{
+    Id            = 'AZ-ADF-003'
+    Title         = 'Data factories have a managed identity'
+    Category      = 'Identity management'
+    Service       = 'Data Factory'
+    Severity      = 'Low'
+    Description   = 'Checks data factories for a system-assigned or user-assigned managed identity.'
+    Rationale     = 'A managed identity lets the factory reach data stores and Key Vault through RBAC, without credentials stored in linked services.'
+    Remediation   = 'Turn on the system-assigned identity or assign a user-assigned identity on the Managed identities page of the factory.'
+    References    = @('https://learn.microsoft.com/azure/data-factory/data-factory-service-identity')
+    ResourceTypes = @('Microsoft.DataFactory/factories')
+    Evaluate      = {
+        param($Record)
+        $type = [string]$Record.resource.identity.type
+        $evidence = [ordered]@{ identityType = $type }
+        if ($type -match 'SystemAssigned|UserAssigned') { return New-Pass "Managed identity ($type)" $evidence }
+        New-Fail 'No managed identity' $evidence
+    }
+}
+
+Add-AzTest @{
+    Id            = 'AZ-ADF-005'
+    Title         = 'Data Factory linked services authenticate with managed identity where supported'
+    Category      = 'Identity management'
+    Service       = 'Data Factory'
+    Severity      = 'Medium'
+    Description   = 'Finds linked services to Azure SQL, Synapse, Azure Storage, Data Lake and Databricks that authenticate with an account key, SQL login, SAS URI, access token, service principal secret or encrypted credential instead of a managed identity. User-assigned identity credentials are accepted.'
+    Rationale     = 'Keys and passwords in linked services are long lived secrets; managed identity authentication removes them and ties data access to RBAC.'
+    Remediation   = 'Switch the authentication type of the linked service to system-assigned or user-assigned managed identity and grant the identity a data role on the store.'
+    References    = @('https://learn.microsoft.com/azure/data-factory/data-factory-service-identity')
+    Policy        = @{ 'f78ccdb4-7bf4-4106-8647-270491d2978a' = 'Azure Data Factory linked services should use system-assigned managed identity authentication when it is supported' }
+    ResourceTypes = @('Microsoft.DataFactory/factories')
+    Evaluate      = {
+        param($Record)
+        if (-not (Test-ChildCollected $Record 'linkedservices')) { return New-Unknown 'Linked services could not be listed' }
+        $supported = @(Get-Child $Record 'linkedservices' | Where-Object { $_ -and $_.properties.type -in $managedIdentityLinkedServiceTypes })
+        $keyed = @($supported | Where-Object { Test-LinkedServiceUsesKey $_ } | ForEach-Object name | Sort-Object)
+        $evidence = [ordered]@{ linkedServicesSupportingManagedIdentity = $supported.Count; linkedServicesUsingKeys = $keyed }
+        if ($keyed) { return New-Fail "Linked service(s) authenticating without managed identity: $($keyed -join ', ')" $evidence }
+        New-Pass 'No linked service that supports managed identity uses a key' $evidence
+    }
+}
+
+Add-AzTest @{
+    Id            = 'AZ-ADF-004'
+    Title         = 'Data factories are encrypted with a customer-managed key (when required)'
+    Category      = 'Data protection'
+    Service       = 'Data Factory'
+    Severity      = 'Informational'
+    Description   = 'Checks whether data factories encrypt their metadata with a customer-managed key in Key Vault.'
+    Rationale     = 'A customer-managed key gives control over key rotation and revocation; only required where data classification or regulation demands it.'
+    Remediation   = 'Add a Key Vault key under Manage > Customer managed key in Data Factory Studio (only possible on an empty factory).'
+    References    = @('https://learn.microsoft.com/azure/data-factory/enable-customer-managed-key')
+    Policy        = @{ '4ec52d6d-beb7-40c4-9a9e-fe753254690e' = 'Azure data factories should be encrypted with a customer-managed key' }
+    ResourceTypes = @('Microsoft.DataFactory/factories')
+    Evaluate      = {
+        param($Record)
+        $encryption = $Record.resource.properties.encryption
+        $evidence = [ordered]@{ vaultBaseUrl = [bool]$encryption.vaultBaseUrl; keyName = $encryption.keyName }
+        if ($encryption.vaultBaseUrl -and $encryption.keyName) { return New-Pass 'Customer-managed key' $evidence }
+        New-Fail 'Microsoft-managed key' $evidence
     }
 }
 

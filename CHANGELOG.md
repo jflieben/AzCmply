@@ -1,5 +1,68 @@
 # Changelog
 
+## 1.0.8
+
+### Frameworks
+
+All frameworks were checked against their publishers on 2026-11-05.
+
+- CIS Microsoft Azure Foundations Benchmark 6.0.0 to 7.0.0 (2026-10-30): new numbering, 32 recommendations added;
+  storage, compute and Databricks recommendations moved to the CIS service benchmarks.
+- New: CIS Microsoft Azure Compute, Database and Storage Services Benchmarks 2.0.0. The CIS Microsoft Azure AI and ML
+  Services Benchmark (now holding Databricks) is not yet available for download and not included.
+- ALZ library platform/alz/2026.08.1 to 2026.10.0: Enforce-GR-Network0 no longer contains the Application Gateway WAF
+  policy (AZ-NET-012 stays mapped to Audit-AppGW-WAF).
+- Confirmed current, no changes: MCSB v2 (preview), WAF security checklist, ISO/IEC 27001:2022, NIST CSF 2.0, CIS
+  Controls v8.1, SOC 2 (2017 criteria, 2022 points of focus), NIST SP 800-53 Rev. 5 release 5.2.0, PCI DSS v4.0.1, DORA
+  and CMMC.
+- A framework control can name a scope (for example function app slots), so it is judged only on the findings of that
+  kind of resource. results.json lists the scope and the status of each test within it.
+
+### Added
+
+104 tests, 420 in total.
+
+- CIS Azure 7.0.0: role assignment delegation with conditions (AZ-IAM-036), per-user MFA without Conditional Access
+  (AZ-IAM-037), management group hierarchy settings (AZ-GOV-015, 016), activity log alerts for role assignment deletion,
+  policy exemptions and key vault access policies (AZ-LOG-030 to 032), Managed HSM (AZ-LOG-033, AZ-KV-012 to 014), Log
+  Analytics public access (AZ-LOG-034), WinRM and database ports (AZ-NET-029, 030), Application Gateway TLS 1.3
+  (AZ-NET-031), NSG deny-all rules (AZ-NET-032), DDoS Protection on public IPs (AZ-NET-033), key vault firewall and HSM
+  keys (AZ-KV-015, 016), Defender for AI prompt evidence (AZ-DEF-026).
+- CIS Azure Compute 2.0.0: App Service TLS, HTTP 2.0, client certificates, authentication, public access, private
+  endpoints and virtual network integration (AZ-APP-015 to 025), App Service Environment (AZ-APP-026 to 030), Batch
+  (AZ-BATCH-001 to 005), disk encryption with customer-managed keys and disk access (AZ-VM-018 to 020).
+- CIS Azure Database 2.0.0: Redis (AZ-RED-003 to 009), Cosmos DB (AZ-COS-004 to 008), MySQL and PostgreSQL flexible
+  server per server parameter (AZ-MY-004 to 009, AZ-PG-005 to 012), SQL managed instance variants and firewall rules
+  (AZ-SQL-011 to 016), Data Factory identities and keys (AZ-ADF-003 to 005).
+- CIS Azure Storage 2.0.0: Backup and Recovery Services vaults (AZ-BCK-013 to 022), NFS shares, Managed Lustre, NetApp
+  and Elastic SAN (AZ-STG-028 to 038), SAS expiration action (AZ-STG-039), storage request logging (AZ-STG-040 to 042).
+- AZ-IAM-035: role assignments that repeat access a broader assignment of the same principal already grants (AzCmply
+  Custom 2026.11.1, AZC-16).
+- The ingestion reads the hierarchy settings of the root management group (Reader on the root management group), the
+  per-user MFA state of users with Azure access (Microsoft Graph beta, Policy.Read.All) and Elastic SAN volume groups.
+
+### Changed
+
+- Activity log alert tests (version 3) only count rules without filters beyond category and operation name; Service
+  Health rules may not be limited to some services or regions.
+- Tests that combined settings or resource types that CIS numbers separately are split (key vault and Managed HSM,
+  Backup and Recovery Services vaults, SQL server and managed instance, one MySQL or PostgreSQL parameter per test, app
+  and SCM TLS). Every framework control that listed a split test also lists the new tests.
+- Storage, network, VM and Data Factory tests follow the 7.0.0 and 2.0.0 audit procedures (AZ-STG-003, 006, 007, 010, 012,
+  013, 024, AZ-BCK-001, 009, AZ-NET-007, 013, AZ-LOG-002, AZ-VM-011, AZ-ADF-001).
+- AZ-PAAS-001 to 003 and AZ-LOG-015 leave out the resource types that now have dedicated tests.
+- ALZ: Enforce-GR-AppServices0 no longer lists AZ-APP-002 and AZ-APP-003; its initiative has no TLS or FTPS policy.
+
+### Fixed
+
+- AZ-IAM-003, AZ-VM-015 and AZ-VM-016 (version 3) no longer treat the system assigned identity of a policy assignment
+  (for example Defender for SQL on SQL VMs) as a workload identity; only Azure Policy uses it.
+- Tests report Unknown instead of a result when their data was not read (AZ-STG-001, 017 to 019, AZ-APP-004, MySQL and
+  PostgreSQL server parameters).
+- AZ-VM-003 uses the current names of the vTPM and Secure Boot policies.
+- Web: the browser ingestion dropped activity log properties case-sensitively and kept properties.Message.
+- Unknown reasons no longer name a resource provider registration for calls outside the subscription.
+
 ## 1.0.7
 
 ### Changed

@@ -190,6 +190,27 @@ foreach ($component in $defenderServerComponents) {
 }
 
 Add-AzTest @{
+    Id          = 'AZ-DEF-026'
+    Title       = "Defender for AI services includes suspicious prompt evidence in alerts"
+    Category    = 'Logging and threat detection'
+    Service     = 'Microsoft Defender for Cloud'
+    Severity    = 'Low'
+    Description = 'Checks that Defender for AI services is on and that its AIPromptEvidence extension (suspicious prompt evidence) is enabled, so alerts include the suspicious segments of prompts and responses, with sensitive data redacted.'
+    Rationale   = 'Without the evidence, an alert about prompt injection or data leakage only says that something happened. Analysts cannot judge the attack or its impact without asking the application owners for logs they may not keep.'
+    Remediation = "Enable 'Suspicious prompt evidence' under Defender plans > AI services > Settings."
+    References  = @('https://learn.microsoft.com/azure/defender-for-cloud/gain-end-user-context-ai')
+    Requires    = @('defender/pricings')
+    Run         = {
+        $pricing = Get-DefenderPricing 'AI'
+        $extension = Get-PricingExtension $pricing 'AIPromptEvidence'
+        $evidence = [ordered]@{ aiPlan = $pricing.properties.pricingTier; promptEvidence = $extension.isEnabled }
+        if ($pricing.properties.pricingTier -ne 'Standard') { return New-SubscriptionFinding (New-Fail 'Defender for AI services is off' $evidence) }
+        if ($extension -and $extension.isEnabled -eq 'True') { return New-SubscriptionFinding (New-Pass 'Suspicious prompt evidence is on' $evidence) }
+        New-SubscriptionFinding (New-Fail 'Suspicious prompt evidence is off' $evidence)
+    }
+}
+
+Add-AzTest @{
     Id          = 'AZ-DEF-017'
     Version     = 2
     Title       = 'Vulnerability assessment for machines is configured'

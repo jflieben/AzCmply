@@ -31,7 +31,7 @@ $ids = @{
     U1 = '10000000-0000-0000-0000-000000000001'; U2 = '10000000-0000-0000-0000-000000000002'; Guest = '10000000-0000-0000-0000-000000000003'
     Disabled = '10000000-0000-0000-0000-000000000004'; Synced = '10000000-0000-0000-0000-000000000005'
     G1 = '20000000-0000-0000-0000-000000000001'; G2 = '20000000-0000-0000-0000-000000000002'; G3 = '20000000-0000-0000-0000-000000000003'
-    SpApp = '30000000-0000-0000-0000-000000000001'; SpMi = '30000000-0000-0000-0000-000000000002'; SpFunc = '30000000-0000-0000-0000-000000000003'; Graph = '40000000-0000-0000-0000-000000000001'
+    SpApp = '30000000-0000-0000-0000-000000000001'; SpMi = '30000000-0000-0000-0000-000000000002'; SpFunc = '30000000-0000-0000-0000-000000000003'; SpPolicy = '30000000-0000-0000-0000-000000000004'; Graph = '40000000-0000-0000-0000-000000000001'
     Deleted = '50000000-0000-0000-0000-000000000001'; BreakGlass = '20000000-0000-0000-0000-000000000004'; DeletedGroup = '20000000-0000-0000-0000-000000000005'
 }
 
@@ -79,6 +79,8 @@ $assignment = {
 $assignments = @(
     & $assignment 'ra-g1-owner' $roles.Owner $ids.G1 'Group' $subScope
     & $assignment 'ra-g2-owner' $roles.Owner $ids.G2 'Group' $subScope
+    #repeats what Owner on the subscription grants when that is permanent (Bad), not beside an activation (AZ-IAM-035)
+    & $assignment 'ra-g1-contributor' $roles.Contributor $ids.G1 'Group' $rgId
     & $assignment 'ra-g3-reader' $roles.Reader $ids.G3 'Group' $subScope
     & $assignment 'ra-mi-root-reader' $roles.Reader $ids.SpMi 'ServicePrincipal' '/'
     #the identity of logicfixture writes in its own resource group, and in another through group readers when Bad (AZ-IAM-031)
@@ -87,6 +89,8 @@ $assignments = @(
     & $assignment 'ra-mi-app-operator' $roles.Contributor $ids.SpMi 'ServicePrincipal' "$subScope/resourceGroups/rg-apps/providers/Microsoft.Solutions/applications/mafixture"
     #the Flex Consumption app reads its package with its own identity (AZ-FUNC-001 does not count the app itself)
     & $assignment 'ra-func-blobowner' $roles.BlobOwner $ids.SpFunc 'ServicePrincipal' (ResId 'Microsoft.Storage/storageAccounts' 'stfuncfixture')
+    #the identity of a deployIfNotExists policy assignment (AZ-IAM-003 passes it)
+    & $assignment 'ra-policy-contributor' $roles.Contributor $ids.SpPolicy 'ServicePrincipal' $subScope
 )
 #when Bad, a group that cannot change the Flex Consumption app can list the keys of the storage it runs from (AZ-FUNC-001)
 if (-not $G) { $assignments += & $assignment 'ra-g3-storagecontributor' $roles.StorageContributor $ids.G3 'Group' (ResId 'Microsoft.Storage/storageAccounts' 'stfuncfixture') }
@@ -99,6 +103,7 @@ if ($G) {
     $assignments += & $assignment 'ra-u1-owner' $roles.Owner $ids.U1 'User' $subScope
     $assignments += & $assignment 'ra-synced-owner' $roles.Owner $ids.Synced 'User' $subScope
     $assignments += & $assignment 'ra-u1-root-uaa' $roles.UAA $ids.U1 'User' '/'
+    $assignments += & $assignment 'ra-u2-uaa' $roles.UAA $ids.U2 'User' $rgId
     $assignments += & $assignment 'ra-guest-reader' $roles.Reader $ids.Guest 'User' $rgId
     $assignments += & $assignment 'ra-deleted-reader' $roles.Reader $ids.Deleted 'ServicePrincipal' $subScope
     #a delegated role that can take over the domain controllers, on a subscription shared with other workloads (AZ-VM-015)
@@ -185,6 +190,7 @@ $servicePrincipals = @(
     @{ '@odata.type' = '#microsoft.graph.servicePrincipal'; id = $ids.SpApp; displayName = 'fixture-app'; appId = '31000000-0000-0000-0000-000000000001'; servicePrincipalType = 'Application'; appOwnerOrganizationId = (Pick $tenant '90000000-0000-0000-0000-0000000000bb'); passwordCredentials = @(); keyCredentials = @() }
     @{ '@odata.type' = '#microsoft.graph.servicePrincipal'; id = $ids.SpMi; displayName = 'fixture-mi'; appId = '31000000-0000-0000-0000-000000000002'; servicePrincipalType = 'ManagedIdentity'; appOwnerOrganizationId = 'f8cdef31-a31e-4b4a-93e4-5f571e91255a'; passwordCredentials = @(); keyCredentials = @() }
     @{ '@odata.type' = '#microsoft.graph.servicePrincipal'; id = $ids.SpFunc; displayName = 'funcflexfixture'; appId = '31000000-0000-0000-0000-000000000004'; servicePrincipalType = 'ManagedIdentity'; appOwnerOrganizationId = 'f8cdef31-a31e-4b4a-93e4-5f571e91255a'; passwordCredentials = @(); keyCredentials = @() }
+    @{ '@odata.type' = '#microsoft.graph.servicePrincipal'; id = $ids.SpPolicy; displayName = 'defender-sql'; appId = '31000000-0000-0000-0000-000000000005'; servicePrincipalType = 'ManagedIdentity'; appOwnerOrganizationId = 'f8cdef31-a31e-4b4a-93e4-5f571e91255a'; passwordCredentials = @(); keyCredentials = @() }
 )
 Save 'identity/directoryObjects' (@($users) + $groups + $servicePrincipals)
 $member = { param($Id) $u = $users | Where-Object { $_.id -eq $Id }; @{ '@odata.type' = '#microsoft.graph.user'; id = $Id; displayName = $u.displayName; userPrincipalName = $u.userPrincipalName } }
@@ -261,6 +267,8 @@ Save 'identity/conditionalAccessPolicies' $(if ($G) {
     })
 Save 'identity/conditionalAccessExcludedGroups' (Pick @(@{ id = $ids.BreakGlass; members = @(& $member $ids.U2); membersError = $null }) @(@{ id = $ids.DeletedGroup; members = $null; membersError = 404 }))
 #security defaults cannot be on next to Conditional Access; the Good fixture has both so that AZ-IAM-026 passes
+Save 'identity/userMfaRequirements' @(foreach ($id in $ids.U1, $ids.U2, $ids.Guest, $ids.Disabled, $ids.Synced) { @{ id = $id; perUserMfaState = (Pick 'enforced' 'disabled') } })
+Save 'subscription/managementGroupSettings' (Pick @(@{ id = "/providers/Microsoft.Management/managementGroups/$tenant/settings/default"; type = 'Microsoft.Management/managementGroups/settings'; name = 'default'; properties = @{ requireAuthorizationForGroupCreation = $true; defaultManagementGroup = '/providers/Microsoft.Management/managementGroups/mg-sandbox' } }) @())
 Save 'identity/securityDefaults' @{ id = '00000000-0000-0000-0000-000000000005'; isEnabled = $G }
 Save 'subscription/subscriptionPolicies' @{ id = '/providers/Microsoft.Subscription/policies/default'; name = 'default'; properties = @{ blockSubscriptionsLeavingTenant = $G; blockSubscriptionsIntoTenant = $G; exemptedPrincipals = @() } }
 #the resource group listing returns this delegation of the subscription as well (AZ-IAM-021 counts it once)
@@ -272,7 +280,10 @@ Save 'subscription/lighthouseRegistrationAssignments' $lighthouseAssignments
 #region governance, Defender, subscription logging
 
 $mcsb = "/providers/Microsoft.Authorization/policySetDefinitions/e3ec7e09-768c-4b64-882c-fcada3772047"
-Save 'policy/policyAssignments' @(@{ id = "$subScope/providers/Microsoft.Authorization/policyAssignments/mcsb"; type = 'Microsoft.Authorization/policyAssignments'; properties = @{ displayName = 'MCSB v2'; policyDefinitionId = $mcsb; scope = $subScope; enforcementMode = 'Default'; parameters = (Pick @{} @{ storageAccountsShouldDisablePublicNetworkAccessEffect = @{ value = 'Disabled' } }) } })
+Save 'policy/policyAssignments' @(
+    @{ id = "$subScope/providers/Microsoft.Authorization/policyAssignments/mcsb"; type = 'Microsoft.Authorization/policyAssignments'; properties = @{ displayName = 'MCSB v2'; policyDefinitionId = $mcsb; scope = $subScope; enforcementMode = 'Default'; parameters = (Pick @{} @{ storageAccountsShouldDisablePublicNetworkAccessEffect = @{ value = 'Disabled' } }) } }
+    @{ id = "$subScope/providers/Microsoft.Authorization/policyAssignments/defender-sql"; type = 'Microsoft.Authorization/policyAssignments'; location = $location; identity = @{ type = 'SystemAssigned'; principalId = $ids.SpPolicy; tenantId = $tenant }; properties = @{ displayName = 'Defender for SQL on SQL VMs and Arc-enabled SQL Servers'; policyDefinitionId = '/providers/Microsoft.Authorization/policySetDefinitions/00000000-0000-0000-0000-0000000000d1'; scope = $subScope; enforcementMode = 'Default' } }
+)
 Save 'policy/policyExemptions' @(@{ id = "$subScope/providers/Microsoft.Authorization/policyExemptions/ex1"; type = 'Microsoft.Authorization/policyExemptions'; properties = @{ displayName = 'Waiver'; exemptionCategory = 'Waiver'; expiresOn = (Pick (Iso 30) $null) } })
 Save 'subscription/locks' (Pick @(
         @{ id = "$rgId/providers/Microsoft.Authorization/locks/protect"; properties = @{ level = 'CanNotDelete' } }
@@ -313,6 +324,7 @@ Save 'defender/pricings' @(foreach ($plan in $planNames) {
         if ($plan -eq 'VirtualMachines') { $p.subPlan = (Pick 'P2' $null); $p.extensions = @(@{ name = 'AgentlessVmScanning'; isEnabled = (Pick 'True' 'False') }, @{ name = 'FileIntegrityMonitoring'; isEnabled = (Pick 'True' 'False') }) }
         if ($plan -eq 'StorageAccounts') { $p.extensions = @(@{ name = 'OnUploadMalwareScanning'; isEnabled = (Pick 'True' 'False') }, @{ name = 'SensitiveDataDiscovery'; isEnabled = (Pick 'True' 'False') }) }
         if ($plan -eq 'CloudPosture') { $p.extensions = @(@{ name = 'SensitiveDataDiscovery'; isEnabled = (Pick 'True' 'False') }) }
+        if ($plan -eq 'AI') { $p.extensions = @(@{ name = 'AIPromptEvidence'; isEnabled = (Pick 'True' 'False') }) }
         @{ name = $plan; properties = $p }
     })
 Save 'defender/settings' @(@{ name = 'WDATP'; properties = @{ enabled = $G } }, @{ name = 'Sentinel'; properties = @{ enabled = $false } })
@@ -340,14 +352,14 @@ function New-Storage {
             privateEndpointConnections = (Pick $approvedPe @()); allowCrossTenantReplication = (-not $G); defaultToOAuthAuthentication = $G
             keyPolicy = (Pick @{ keyExpirationPeriodInDays = 90 } $null); keyCreationTime = @{ key1 = (Iso (Pick -10 -400)); key2 = (Iso (Pick -10 -400)) }
             encryption = @{ requireInfrastructureEncryption = $G; keySource = (Pick 'Microsoft.Keyvault' 'Microsoft.Storage') }
-            isSftpEnabled = $true; sasPolicy = (Pick @{ sasExpirationPeriod = '1.00:00:00'; expirationAction = 'Log' } $null)
+            isSftpEnabled = $true; sasPolicy = (Pick @{ sasExpirationPeriod = '1.00:00:00'; expirationAction = 'Block' } $null)
             primaryEndpoints = @{ blob = "https://$Name.blob.core.windows.net/" }
         }
     } -Children @{
         'blobServices/default'                                                 = @{ properties = @{ deleteRetentionPolicy = @{ enabled = $G; days = 14 }; containerDeleteRetentionPolicy = @{ enabled = $G; days = 14 }; isVersioningEnabled = $G } }
-        'blobServices/default/containers'                                      = @(@{ name = 'data'; properties = @{ publicAccess = (Pick 'None' 'Blob') } })
+        'blobServices/default/containers'                                      = @(@{ name = 'data'; properties = @{ publicAccess = (Pick 'None' 'Blob'); hasImmutabilityPolicy = $G; immutabilityPolicy = (Pick @{ properties = @{ immutabilityPeriodSinceCreationInDays = 365; state = 'Locked' } } $null) } })
         'fileServices/default'                                                 = $(if (-not $NoFileService) { @{ properties = @{ shareDeleteRetentionPolicy = @{ enabled = $G; days = 14 }; protocolSettings = (Pick @{ smb = @{ versions = 'SMB3.1.1'; channelEncryption = 'AES-256-GCM' } } @{ smb = @{} }) } } })
-        'fileServices/default/shares'                                          = $(if (-not $NoFileService) { @(@{ name = 'share1'; properties = @{ enabledProtocols = 'SMB' } }) + @($Shares | ForEach-Object { @{ name = $_; properties = @{ enabledProtocols = 'SMB' } } }) })
+        'fileServices/default/shares'                                          = $(if (-not $NoFileService) { @(@{ name = 'share1'; properties = @{ enabledProtocols = 'SMB' } }, @{ name = 'nfsdata'; properties = @{ enabledProtocols = 'NFS'; rootSquash = (Pick 'RootSquash' 'NoRootSquash') } }) + @($Shares | ForEach-Object { @{ name = $_; properties = @{ enabledProtocols = 'SMB' } } }) })
         'localUsers'                                                           = @(@{ name = 'sftpuser'; properties = @{ hasSshPassword = (-not $G); hasSshKey = $true } })
         'providers/Microsoft.Security/defenderForStorageSettings/current'      = @{ properties = @{ isEnabled = $G; overrideSubscriptionLevelSettings = (-not $G); malwareScanning = @{ onUpload = @{ isEnabled = $G } } } }
         'blobServices/default/providers/Microsoft.Insights/diagnosticSettings' = $blobDiag
@@ -363,18 +375,32 @@ New-Storage 'stfuncfixture'
 New-Storage 'stpagefixture' -NoFileService
 #a general-purpose v1 account, which retires (AZ-GOV-008)
 if (-not $G) { New-Storage 'stfixturefw' -Bypass 'None' -Kind 'Storage' }
+#an NFS share of the Microsoft.FileShares provider, a Managed Lustre file system, a NetApp account and an Elastic SAN (AZ-STG-028 to 038)
+Add-Record 'Microsoft.FileShares/fileShares' 'nfsfixture' @{ properties = @{
+        protocol = 'NFS'; publicNetworkAccess = (Pick 'Disabled' 'Enabled'); publicAccessProperties = @{ allowedSubnets = (Pick @("$rgId/providers/Microsoft.Network/virtualNetworks/vnetfixture/subnets/app") @()) }
+        nfsProtocolProperties = @{ rootSquash = (Pick 'RootSquash' 'NoRootSquash'); encryptionInTransitRequired = (Pick 'Enabled' 'Disabled') }; privateEndpointConnections = (Pick $approvedPe @())
+    }
+} | Out-Null
+Add-Record 'Microsoft.StorageCache/amlFilesystems' 'amlfixture' @{ properties = @{ encryptionSettings = (Pick @{ keyEncryptionKey = @{ keyUrl = 'https://kvfixture.vault.azure.net/keys/lustre/1'; sourceVault = @{ id = (ResId 'Microsoft.KeyVault/vaults' 'kvfixture') } } } $null) } } | Out-Null
+Add-Record 'Microsoft.NetApp/netAppAccounts' 'anffixture' @{ properties = @{ encryption = @{ keySource = (Pick 'Microsoft.KeyVault' 'Microsoft.NetApp') } } } | Out-Null
+Add-Record 'Microsoft.ElasticSan/elasticSans' 'esanfixture' @{ properties = @{ publicNetworkAccess = (Pick 'Disabled' 'Enabled'); volumeGroupCount = 1 } } -Children @{
+    volumegroups = @(@{ name = 'vg1'; properties = @{ encryption = (Pick 'EncryptionAtRestWithCustomerManagedKey' 'EncryptionAtRestWithPlatformKey') } })
+} | Out-Null
+
+#Managed HSM (AZ-KV-012 to 014, AZ-LOG-033)
+Add-Record 'Microsoft.KeyVault/managedHSMs' 'hsmfixture' @{ properties = @{ enableSoftDelete = $true; enablePurgeProtection = $G; softDeleteRetentionInDays = 90; publicNetworkAccess = (Pick 'Disabled' 'Enabled'); privateEndpointConnections = (Pick $approvedPe @()) } } | Out-Null
 
 #key vault
 $kvId = ResId 'Microsoft.KeyVault/vaults' 'kvfixture'
 Add-Record 'Microsoft.KeyVault/vaults' 'kvfixture' @{ properties = @{
-        enableSoftDelete = $true; enablePurgeProtection = (Pick $true $null); enableRbacAuthorization = $G; publicNetworkAccess = (Pick 'Disabled' 'Enabled'); networkAcls = @{ defaultAction = (Pick 'Deny' 'Allow') }
+        sku = @{ family = 'A'; name = 'premium' }; enableSoftDelete = $true; enablePurgeProtection = (Pick $true $null); enableRbacAuthorization = $G; publicNetworkAccess = (Pick 'Disabled' 'Enabled'); networkAcls = @{ defaultAction = (Pick 'Deny' 'Allow') }
         privateEndpointConnections = (Pick $approvedPe @()); accessPolicies = (Pick @() @(@{ objectId = $ids.U1; permissions = @{ secrets = @('all'); keys = @('get') } }))
     }
 } -Children @{
     #cert1 is the key of certificate cert1, without a rotation policy of its own (AZ-KV-007)
     keys    = @(
-        @{ id = "$kvId/keys/k1"; name = 'k1'; properties = @{ attributes = @{ enabled = $true; exp = (Pick (Unix 100) $null) }; rotationPolicy = @{ lifetimeActions = @(@{ action = @{ type = (Pick 'Rotate' 'Notify') } }) } } }
-        @{ id = "$kvId/keys/cert1"; name = 'cert1'; properties = @{ attributes = @{ enabled = $true; nbf = (Unix -10); exp = (Unix (Pick 355 720)) } } }
+        @{ id = "$kvId/keys/k1"; name = 'k1'; properties = @{ kty = (Pick 'RSA-HSM' 'RSA'); attributes = @{ enabled = $true; exp = (Pick (Unix 100) $null) }; rotationPolicy = @{ lifetimeActions = @(@{ action = @{ type = (Pick 'Rotate' 'Notify') } }) } } }
+        @{ id = "$kvId/keys/cert1"; name = 'cert1'; properties = @{ kty = 'RSA'; attributes = @{ enabled = $true; nbf = (Unix -10); exp = (Unix (Pick 355 720)) } } }
     )
     secrets = @(
         @{ id = "$kvId/secrets/s1"; name = 's1'; properties = @{ attributes = @{ enabled = $true; exp = (Pick (Unix 100) $null) } } }
@@ -415,6 +441,9 @@ Add-Record 'Microsoft.Sql/managedInstances' 'mifixture' @{ properties = @{ minim
     encryptionProtector = @(@{ properties = @{ serverKeyType = (Pick 'AzureKeyVault' 'ServiceManaged') } }); sqlVulnerabilityAssessments = @(@{ properties = @{ state = (Pick 'Enabled' 'Disabled') } })
     vulnerabilityAssessments = @(); advancedThreatProtectionSettings = @(@{ properties = @{ state = (Pick 'Enabled' 'Disabled') } })
 } | Out-Null
+Add-Record 'Microsoft.Sql/managedInstances/databases' 'mifixture/midb' @{ properties = @{} } -Id "$(ResId 'Microsoft.Sql/managedInstances' 'mifixture')/databases/midb" -Children @{
+    transparentDataEncryption = @(@{ properties = @{ state = (Pick 'Enabled' 'Disabled') } })
+} | Out-Null
 
 #open source databases, Cosmos DB, Redis
 #sorted by name: hashtable order differs per process, and the fixture must be the same on every run
@@ -422,41 +451,65 @@ $config = { param([hashtable]$Values) @($Values.GetEnumerator() | Sort-Object Ke
 $flexibleBackup = @{ geoRedundantBackup = (Pick 'Enabled' 'Disabled'); backupRetentionDays = 14 }
 $flexibleHa = @{ mode = (Pick 'ZoneRedundant' 'Disabled') }
 $fixtureZones = Pick @('1', '2', '3') @()
-Add-Record 'Microsoft.DBforPostgreSQL/flexibleServers' 'pgfixture' @{ properties = @{ network = @{ publicNetworkAccess = (Pick 'Disabled' 'Enabled') }; backup = $flexibleBackup; highAvailability = $flexibleHa; authConfig = @{ activeDirectoryAuth = (Pick 'Enabled' 'Disabled'); passwordAuth = (Pick 'Disabled' 'Enabled') } } } -Children @{
-    configurations = (& $config $(if ($G) { @{ require_secure_transport = 'on'; ssl_min_protocol_version = 'TLSv1.2'; log_connections = 'on'; log_disconnections = 'on'; log_checkpoints = 'on'; shared_preload_libraries = 'pg_stat_statements,pgaudit'; 'pgaudit.log' = 'ddl,role' } } else { @{ require_secure_transport = 'off'; ssl_min_protocol_version = 'TLSv1'; log_connections = 'off'; log_disconnections = 'off'; log_checkpoints = 'off'; shared_preload_libraries = 'pg_stat_statements'; 'pgaudit.log' = 'none' } }))
+$dbPe = Pick @(@{ id = '/pe-db'; properties = @{ privateLinkServiceConnectionState = @{ status = 'Approved' } } }) @()
+$flexibleCmk = Pick @{ type = 'AzureKeyVault'; primaryKeyURI = 'https://kvfixture.vault.azure.net/keys/db/1' } @{ type = 'SystemManaged' }
+Add-Record 'Microsoft.DBforPostgreSQL/flexibleServers' 'pgfixture' @{ properties = @{ network = @{ publicNetworkAccess = (Pick 'Disabled' 'Enabled') }; backup = $flexibleBackup; highAvailability = $flexibleHa; authConfig = @{ activeDirectoryAuth = (Pick 'Enabled' 'Disabled'); passwordAuth = (Pick 'Disabled' 'Enabled') }; dataEncryption = $flexibleCmk } } -Children @{
+    configurations = (& $config $(if ($G) { @{ require_secure_transport = 'on'; ssl_min_protocol_version = 'TLSv1.2'; log_connections = 'on'; log_disconnections = 'on'; log_checkpoints = 'on'; 'connection_throttle.enable' = 'on'; 'logfiles.retention_days' = '7'; shared_preload_libraries = 'pg_stat_statements,pgaudit'; 'pgaudit.log' = 'ddl,role' } } else { @{ require_secure_transport = 'off'; ssl_min_protocol_version = 'TLSv1'; log_connections = 'off'; log_disconnections = 'off'; log_checkpoints = 'off'; 'connection_throttle.enable' = 'off'; 'logfiles.retention_days' = '3'; shared_preload_libraries = 'pg_stat_statements'; 'pgaudit.log' = 'none' } }))
     administrators = (Pick @(@{ name = 'admin' }) @()); advancedThreatProtectionSettings = @(@{ properties = @{ state = (Pick 'Enabled' 'Disabled') } })
-    firewallRules = (Pick @() @(@{ name = 'AllowAll'; properties = @{ startIpAddress = '0.0.0.0'; endIpAddress = '255.255.255.255' } }))
+    firewallRules = (Pick @() @(@{ name = 'AllowAll'; properties = @{ startIpAddress = '0.0.0.0'; endIpAddress = '255.255.255.255' } })); privateEndpointConnections = $dbPe
 } | Out-Null
-Add-Record 'Microsoft.DBforMySQL/flexibleServers' 'myfixture' @{ properties = @{ network = @{ publicNetworkAccess = (Pick 'Disabled' 'Enabled') }; backup = $flexibleBackup; highAvailability = $flexibleHa } } -Children @{
-    configurations = (& $config $(if ($G) { @{ require_secure_transport = 'ON'; tls_version = 'TLSv1.2,TLSv1.3'; audit_log_enabled = 'ON'; audit_log_events = 'CONNECTION,DDL'; aad_auth_only = 'ON' } } else { @{ require_secure_transport = 'OFF'; tls_version = 'TLSv1,TLSv1.1,TLSv1.2'; audit_log_enabled = 'OFF'; audit_log_events = 'DDL'; aad_auth_only = 'OFF' } }))
-    administrators = (Pick @(@{ name = 'ActiveDirectory' }) @()); firewallRules = @()
+Add-Record 'Microsoft.DBforMySQL/flexibleServers' 'myfixture' @{ properties = @{ network = @{ publicNetworkAccess = (Pick 'Disabled' 'Enabled') }; backup = $flexibleBackup; highAvailability = $flexibleHa; dataEncryption = $flexibleCmk } } -Children @{
+    configurations = (& $config $(if ($G) { @{ require_secure_transport = 'ON'; tls_version = 'TLSv1.2,TLSv1.3'; audit_log_enabled = 'ON'; audit_log_events = 'CONNECTION,DDL'; aad_auth_only = 'ON'; error_server_log_file = 'ON' } } else { @{ require_secure_transport = 'OFF'; tls_version = 'TLSv1,TLSv1.1,TLSv1.2'; audit_log_enabled = 'OFF'; audit_log_events = 'CONNECTION_V2,DDL'; aad_auth_only = 'OFF'; error_server_log_file = 'OFF' } }))
+    administrators = (Pick @(@{ name = 'ActiveDirectory' }) @()); privateEndpointConnections = $dbPe
+    firewallRules = (Pick @() @(@{ name = 'AllowAllAzureServicesAndResourcesWithinAzureIps'; properties = @{ startIpAddress = '0.0.0.0'; endIpAddress = '0.0.0.0' } }))
 } | Out-Null
 if (-not $G) { Add-Record 'Microsoft.DBforPostgreSQL/servers' 'pgsingle' @{ properties = @{ publicNetworkAccess = 'Enabled' } } -Children @{ firewallRules = @() } | Out-Null }
-Add-Record 'Microsoft.DocumentDB/databaseAccounts' 'cosfixture' @{ properties = @{ disableLocalAuth = $G; backupPolicy = @{ type = 'Periodic'; periodicModeProperties = @{ backupStorageRedundancy = (Pick 'Geo' 'Local') } }; locations = @(@{ locationName = 'West Europe'; isZoneRedundant = $G }); publicNetworkAccess = (Pick 'Disabled' 'Enabled'); disableKeyBasedMetadataWriteAccess = $G; minimalTlsVersion = (Pick 'Tls12' 'Tls'); ipRules = @(); isVirtualNetworkFilterEnabled = $false } } -Children @{ 'providers/Microsoft.Security/advancedThreatProtectionSettings/current' = @{ properties = @{ isEnabled = $G } } } | Out-Null
-Add-Record 'Microsoft.Cache/Redis' 'redisfixture' @{ properties = @{ enableNonSslPort = (-not $G); disableAccessKeyAuthentication = $G; minimumTlsVersion = (Pick '1.2' '1.0'); publicNetworkAccess = (Pick 'Disabled' 'Enabled') } } -Children @{ firewallRules = (Pick @() @(@{ name = 'all'; properties = @{ startIP = '0.0.0.0'; endIP = '255.255.255.255' } })) } | Out-Null
+Add-Record 'Microsoft.DocumentDB/databaseAccounts' 'cosfixture' @{ properties = @{ disableLocalAuth = $G; backupPolicy = @{ type = 'Periodic'; periodicModeProperties = @{ backupStorageRedundancy = (Pick 'Geo' 'Local') } }; locations = @(@{ locationName = 'West Europe'; isZoneRedundant = $G }); publicNetworkAccess = (Pick 'Disabled' 'Enabled'); disableKeyBasedMetadataWriteAccess = $G; minimalTlsVersion = (Pick 'Tls12' 'Tls'); ipRules = @(); isVirtualNetworkFilterEnabled = $false; keyVaultKeyUri = (Pick 'https://kvfixture.vault.azure.net/keys/cosmos' $null) } } -Children @{ 'providers/Microsoft.Security/advancedThreatProtectionSettings/current' = @{ properties = @{ isEnabled = $G } }; privateEndpointConnections = $dbPe } | Out-Null
+#an account that only accepts all Azure datacenters (AZ-COS-005); its IP rule makes AZ-COS-002 pass, so it is Bad only
+if (-not $G) { Add-Record 'Microsoft.DocumentDB/databaseAccounts' 'cosazure' @{ properties = @{ disableLocalAuth = $true; publicNetworkAccess = 'Enabled'; disableKeyBasedMetadataWriteAccess = $true; minimalTlsVersion = 'Tls12'; ipRules = @(@{ ipAddressOrRange = '0.0.0.0' }); isVirtualNetworkFilterEnabled = $false } } -Children @{ privateEndpointConnections = @() } | Out-Null }
+Add-Record 'Microsoft.Cache/Redis' 'redisfixture' @{ identity = (Pick @{ type = 'SystemAssigned'; principalId = '60000000-0000-0000-0000-000000000001' } $null); properties = @{ enableNonSslPort = (-not $G); disableAccessKeyAuthentication = $G; minimumTlsVersion = (Pick '1.2' '1.0'); publicNetworkAccess = (Pick 'Disabled' 'Enabled'); updateChannel = (Pick 'Stable' 'Preview'); redisConfiguration = @{ 'aad-enabled' = (Pick 'true' 'false') } } } -Children @{ firewallRules = (Pick @() @(@{ name = 'all'; properties = @{ startIP = '0.0.0.0'; endIP = '255.255.255.255' } })); privateEndpointConnections = $dbPe } | Out-Null
+Add-Record 'Microsoft.Cache/redisEnterprise' 'redisentfixture' @{ properties = @{ encryption = (Pick @{ customerManagedKeyEncryption = @{ keyEncryptionKeyUrl = 'https://kvfixture.vault.azure.net/keys/redis' } } @{}) } } | Out-Null
 
 #App Service
+#sites and slots (-Slot): HTTP 2.0, end-to-end TLS, required client certificates, App Service authentication, a private
+#endpoint, virtual network integration with all routes and the Premium v3 plan when Good (AZ-APP-016 to AZ-APP-025)
+$siteSubnetId = "$(ResId 'Microsoft.Network/virtualNetworks' 'vnetfixture')/subnets/app"
 function New-Site {
-    param([string]$Name, [string]$Kind, [array]$Functions = @(), [string]$PublicAccess = (Pick 'Disabled' 'Enabled'), [hashtable]$Config = @{}, [hashtable]$Properties = @{}, $Identity = (Pick @{ type = 'SystemAssigned' } $null), [hashtable]$Auth = @{ platform = @{ enabled = $false } }, [hashtable]$Children = @{})
-    $web = @{ minTlsVersion = (Pick '1.2' '1.0'); scmMinTlsVersion = (Pick '1.2' '1.0'); ftpsState = (Pick 'Disabled' 'AllAllowed'); remoteDebuggingEnabled = (-not $G); cors = @{ allowedOrigins = (Pick @('https://contoso.com') @('*')) }; ipSecurityRestrictions = @() }
+    param([string]$Name, [string]$Kind, [array]$Functions = @(), [string]$PublicAccess = (Pick 'Disabled' 'Enabled'), [hashtable]$Config = @{}, [hashtable]$Properties = @{}, $Identity = (Pick @{ type = 'SystemAssigned' } $null), [hashtable]$Auth = @{ platform = @{ enabled = $G } }, [hashtable]$Children = @{}, [string]$Slot)
+    $web = @{ minTlsVersion = (Pick '1.2' '1.0'); scmMinTlsVersion = (Pick '1.2' '1.0'); ftpsState = (Pick 'Disabled' 'AllAllowed'); remoteDebuggingEnabled = (-not $G); http20Enabled = $G; cors = @{ allowedOrigins = (Pick @('https://contoso.com') @('*')) }; ipSecurityRestrictions = @() }
     foreach ($key in $Config.Keys) { $web[$key] = $Config[$key] }
-    $siteProperties = @{ httpsOnly = $G; publicNetworkAccess = $PublicAccess; defaultHostName = "$Name.azurewebsites.net"; hostNames = @("$Name.azurewebsites.net") }
+    $hostName = if ($Slot) { "$Name-$Slot" } else { $Name }
+    $siteProperties = @{
+        httpsOnly = $G; publicNetworkAccess = $PublicAccess; defaultHostName = "$hostName.azurewebsites.net"; hostNames = @("$hostName.azurewebsites.net"); serverFarmId = $planId
+        endToEndEncryptionEnabled = $G; clientCertEnabled = $G; clientCertMode = (Pick 'Required' 'Optional')
+        virtualNetworkSubnetId = (Pick $siteSubnetId $null); vnetRouteAllEnabled = $G; vnetImagePullEnabled = $G; vnetContentShareEnabled = $G
+    }
     foreach ($key in $Properties.Keys) { $siteProperties[$key] = $Properties[$key] }
-    Add-Record 'Microsoft.Web/sites' $Name @{ kind = $Kind; identity = $Identity; properties = $siteProperties } -Children (@{
+    $siteChildren = @{
         'config/web'                       = @{ properties = $web }
         'config/authsettingsV2'            = @{ properties = $Auth }
         basicPublishingCredentialsPolicies = @(@{ name = 'ftp'; properties = @{ allow = (-not $G) } }, @{ name = 'scm'; properties = @{ allow = (-not $G) } })
+        privateEndpointConnections         = (Pick $approvedPe @())
         functions                          = $Functions
-    } + $Children) | Out-Null
+    }
+    foreach ($key in $Children.Keys) { $siteChildren[$key] = $Children[$key] }
+    if ($Slot) {
+        Add-Record 'Microsoft.Web/sites/slots' "$Name/$Slot" @{ kind = $Kind; identity = $Identity; properties = $siteProperties } -Children $siteChildren -Id "$(ResId 'Microsoft.Web/sites' $Name)/slots/$Slot" | Out-Null
+    } else {
+        Add-Record 'Microsoft.Web/sites' $Name @{ kind = $Kind; identity = $Identity; properties = $siteProperties } -Children $siteChildren | Out-Null
+    }
 }
 $planId = Add-Record 'Microsoft.Web/serverfarms' 'planfixture' @{ sku = @{ name = 'P1v3'; tier = 'PremiumV3'; capacity = 2 }; properties = @{ numberOfSites = 2; elasticScaleEnabled = $false; zoneRedundant = $G } }
+#a Free plan for appfixture when Bad, which cannot have private endpoints (AZ-APP-021)
+$appPlanId = if ($G) { $planId } else { Add-Record 'Microsoft.Web/serverfarms' 'planfreefixture' @{ sku = @{ name = 'F1'; tier = 'Free'; capacity = 1 }; properties = @{ numberOfSites = 1 } } }
 Add-Record 'Microsoft.Insights/autoscalesettings' 'planfixture-autoscale' @{ properties = @{ enabled = $G; targetResourceUri = $planId; profiles = @(@{ name = 'default'; capacity = @{ minimum = 2; maximum = 10; default = 2 } }) } } | Out-Null
 if ($G) { Add-Record 'Microsoft.Insights/autoscalesettings' 'vmssfixture-autoscale' @{ properties = @{ enabled = $true; targetResourceUri = (ResId 'Microsoft.Compute/virtualMachineScaleSets' 'vmssfixture'); profiles = @(@{ name = 'default'; capacity = @{ minimum = 2; maximum = 10; default = 2 } }) } } | Out-Null }
 #a Linux web app on a supported Node version when Good, an end-of-life one and a deployment site open to the AzureCloud
 #service tag when Bad (AZ-APP-012, AZ-APP-013)
 $appConfig = @{ linuxFxVersion = (Pick 'NODE|22-lts' 'NODE|16-lts') }
 if (-not $G) { $appConfig.scmIpSecurityRestrictions = @(@{ name = 'azure'; action = 'Allow'; priority = 100; tag = 'ServiceTag'; ipAddress = 'AzureCloud' }) }
-New-Site 'appfixture' 'app,linux' -Config $appConfig
+New-Site 'appfixture' 'app,linux' -Config $appConfig -Properties @{ serverFarmId = $appPlanId }
+New-Site 'appfixture' 'app,linux' -Config $appConfig -Slot 'staging'
 #funcfixture on the Consumption plan, running from a content share in stfixture: App Service authentication that turns
 #unauthenticated requests away with the own tenant as issuer when Good; AllowAnonymous, the common issuer and Google sign-in,
 #an anonymous function and a managed identity with write access when Bad (AZ-APP-009, AZ-APP-014, AZ-FUNC-003, AZ-FUNC-004)
@@ -468,18 +521,22 @@ $funcAuth = Pick @{
     platform = @{ enabled = $true }; globalValidation = @{ requireAuthentication = $true; unauthenticatedClientAction = 'AllowAnonymous' }
     identityProviders = @{ azureActiveDirectory = @{ enabled = $true; registration = @{ clientId = '31000000-0000-0000-0000-000000000005'; openIdIssuer = 'https://login.microsoftonline.com/common/v2.0' } }; google = @{ enabled = $true; registration = @{ clientId = 'fixture.apps.googleusercontent.com' } } }
 }
-New-Site 'funcfixture' 'functionapp,linux' @((& $pythonFunction 'Api' (Pick 'function' 'anonymous')), (& $pythonFunction 'Hook' 'function')) -Config @{ linuxFxVersion = (Pick 'Python|3.12' 'Python|3.9') } -Properties @{ sku = 'Dynamic' } -Auth $funcAuth -Identity (Pick @{ type = 'SystemAssigned' } @{ type = 'SystemAssigned'; principalId = $ids.SpMi; tenantId = $tenant })
+New-Site 'funcfixture' 'functionapp,linux' @((& $pythonFunction 'Api' (Pick 'function' 'anonymous')), (& $pythonFunction 'Hook' 'function')) -Config @{ linuxFxVersion = (Pick 'Python|3.12' 'Python|3.9') } -Properties @{ sku = 'Dynamic'; serverFarmId = $null; virtualNetworkSubnetId = $null } -Auth $funcAuth -Identity (Pick @{ type = 'SystemAssigned' } @{ type = 'SystemAssigned'; principalId = $ids.SpMi; tenantId = $tenant })
 #a Flex Consumption app that reads its package from stfuncfixture with its managed identity when Good, with a connection
 #string on an end-of-life Python when Bad (AZ-APP-012, AZ-FUNC-001, AZ-FUNC-002)
+#a slot of the Consumption app, which cannot be integrated with a virtual network (AZ-APP-023)
+New-Site 'funcfixture' 'functionapp,linux' -Config @{ linuxFxVersion = (Pick 'Python|3.12' 'Python|3.9') } -Properties @{ sku = 'Dynamic'; serverFarmId = $null; virtualNetworkSubnetId = $null } -Slot 'staging'
 New-Site 'funcflexfixture' 'functionapp,linux' -Identity @{ type = 'SystemAssigned'; principalId = $ids.SpFunc; tenantId = $tenant } -Properties @{
     sku               = 'FlexConsumption'
+    serverFarmId      = $null
     functionAppConfig = @{
         deployment = @{ storage = @{ type = 'blobContainer'; value = 'https://stfuncfixture.blob.core.windows.net/app-package-funcflexfixture'; authentication = @{ type = (Pick 'SystemAssignedIdentity' 'StorageAccountConnectionString') } } }
         runtime    = @{ name = 'python'; version = (Pick '3.12' '3.9') }
     }
 }
-#public behind Front Door: the rule checks the Front Door id and the deployment site uses it when Good (AZ-APP-010, AZ-APP-011)
-New-Site 'appfdfixture' 'app,linux' -PublicAccess 'Enabled' -Config @{
+#behind Front Door: the rule checks the Front Door id and the deployment site uses it when Good (AZ-APP-010, AZ-APP-011);
+#public and integrated with a virtual network that it routes no traffic through when Bad (AZ-APP-024, AZ-APP-025)
+New-Site 'appfdfixture' 'app,linux' -Properties @{ virtualNetworkSubnetId = $siteSubnetId; vnetImagePullEnabled = $null; vnetContentShareEnabled = $null; vnetRouteAllEnabled = $null; outboundVnetRouting = @{ allTraffic = $false; applicationTraffic = $G; imagePullTraffic = $G; contentShareTraffic = $G } } -Config @{
     linuxFxVersion                   = 'JAVA|21-java21'
     ipSecurityRestrictions           = @(@{ name = 'frontdoor'; action = 'Allow'; priority = 100; tag = 'ServiceTag'; ipAddress = 'AzureFrontDoor.Backend'; headers = (Pick @{ 'x-azure-fdid' = @('00000000-0000-0000-0000-0000000000fd') } $null) })
     scmIpSecurityRestrictionsUseMain = $G
@@ -497,6 +554,13 @@ Save 'web/webAppStacks' @(
     (& $stack 'java' @(& $linuxRuntime '21.0' '' '2028-09-01T00:00:00Z' $false))
     (& $stack 'javacontainers' @(@{ value = 'java-se-21'; stackSettings = @{ linuxContainerSettings = @{ java21Runtime = 'JAVA|21-java21' } } }))
 )
+#an App Service Environment v3 with an internal load balancer, internal encryption, TLS 1.0 and 1.1 off and the CIS cipher
+#suite order when Good; an external v2 one without these settings when Bad (AZ-APP-026 to AZ-APP-030)
+$aseSettings = Pick @(
+    @{ name = 'InternalEncryption'; value = 'true' }, @{ name = 'DisableTls1.0'; value = '1' }
+    @{ name = 'FrontEndSSLCipherSuiteOrder'; value = 'TLS_AES_256_GCM_SHA384,TLS_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256' }
+) @(@{ name = 'DisableTls1.0'; value = '0' }, @{ name = 'FrontEndSSLCipherSuiteOrder'; value = 'TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256' })
+Add-Record 'Microsoft.Web/hostingEnvironments' 'asefixture' @{ kind = (Pick 'ASEV3' 'ASEV2'); properties = @{ internalLoadBalancingMode = (Pick 'Web, Publishing' 'None'); clusterSettings = $aseSettings } } -Children @{ 'configurations/networking' = @{ properties = @{ allowNewPrivateEndpointConnections = $false } } } | Out-Null
 
 #compute
 $diskId = ResId 'Microsoft.Compute/disks' 'diskfixture'
@@ -552,7 +616,23 @@ Add-Record 'Microsoft.HybridCompute/machines' 'arcfixture' @{ properties = @{ os
 $windowsExtensions = @((& $extension 'Microsoft.Azure.AzureDefenderForServers' 'MDE.Windows'), (& $extension 'Microsoft.Azure.Monitor' 'AzureMonitorWindowsAgent'), (& $extension 'Microsoft.Azure.ChangeTrackingAndInventory' 'ChangeTracking-Windows'))
 $arcAgent = @{ configMode = (Pick 'monitor' 'full'); extensionsEnabled = 'true'; guestConfigurationEnabled = (Pick 'false' 'true'); extensionsAllowList = @(); extensionsBlockList = @() }
 Add-Record 'Microsoft.HybridCompute/machines' 'arcdcfixture' @{ properties = @{ osType = 'windows'; status = 'Connected'; agentVersion = '1.50.0'; detectedProperties = @{ serverType = 'Domain Controller;Server;Workstation' }; agentConfiguration = $arcAgent } } -Children @{ extensions = (Pick $windowsExtensions $badExtensions); 'providers/Microsoft.Insights/dataCollectionRuleAssociations' = $dcrAssociations } | Out-Null
-Add-Record 'Microsoft.Compute/disks' 'diskfixture' @{ properties = @{ diskState = (Pick 'Attached' 'Unattached'); networkAccessPolicy = (Pick 'DenyAll' 'AllowAll'); publicNetworkAccess = (Pick 'Disabled' 'Enabled') } } | Out-Null
+#managed disks: encrypted with a customer-managed key and Entra authentication for export when Good (AZ-VM-018 to AZ-VM-020);
+#the OS disks of the domain controllers as well. A compliant fixture has no unattached disk (AZ-GOV-006), so AZ-VM-019 only fails
+$diskProperties = {
+    param([string]$State)
+    @{
+        diskState = $State; networkAccessPolicy = (Pick 'DenyAll' 'AllowAll'); publicNetworkAccess = (Pick 'Disabled' 'Enabled'); dataAccessAuthMode = (Pick 'AzureActiveDirectory' 'None')
+        encryption = (Pick @{ type = 'EncryptionAtRestWithCustomerKey'; diskEncryptionSetId = (ResId 'Microsoft.Compute/diskEncryptionSets' 'desfixture') } @{ type = 'EncryptionAtRestWithPlatformKey' })
+    }
+}
+Add-Record 'Microsoft.Compute/disks' 'diskfixture' @{ properties = (& $diskProperties (Pick 'Attached' 'Unattached')) } | Out-Null
+foreach ($dcName in 'vmwinfixture', 'vmdc2fixture') {
+    Add-Record 'Microsoft.Compute/disks' "$dcName-os" @{ managedBy = "$identityRgId/providers/Microsoft.Compute/virtualMachines/$dcName"; properties = (& $diskProperties 'Attached') } -Id "$identityRgId/providers/Microsoft.Compute/disks/$dcName-os" | Out-Null
+}
+#a Batch account with an encrypted pool, Entra authentication only, a private endpoint, no public access and resource logs
+#when Good (AZ-BATCH-001 to AZ-BATCH-005)
+$batchPool = @{ name = 'pool1'; properties = @{ vmSize = 'STANDARD_D2S_V5'; deploymentConfiguration = @{ virtualMachineConfiguration = @{ nodeAgentSkuId = 'batch.node.ubuntu 22.04'; diskEncryptionConfiguration = @{ targets = (Pick @('OsDisk', 'TemporaryDisk') @('OsDisk')) } } } } }
+Add-Record 'Microsoft.Batch/batchAccounts' 'batchfixture' @{ properties = @{ poolAllocationMode = 'BatchService'; allowedAuthenticationModes = (Pick @('AAD') @('SharedKey', 'AAD', 'TaskAuthenticationToken')); publicNetworkAccess = (Pick 'Disabled' 'Enabled') } } -Children @{ pools = @($batchPool); privateEndpointConnections = (Pick $approvedPe @()) } | Out-Null
 Add-Record 'Microsoft.Compute/snapshots' 'snapfixture' @{ properties = @{ diskState = (Pick 'Reserved' 'ActiveSAS'); networkAccessPolicy = (Pick 'DenyAll' 'AllowAll'); publicNetworkAccess = (Pick 'Disabled' 'Enabled') } } | Out-Null
 Add-Record 'Microsoft.SqlVirtualMachine/sqlVirtualMachines' 'sqlvmfixture' @{ properties = @{} } | Out-Null
 Add-Record 'Microsoft.DesktopVirtualization/hostPools' 'hpfixture' @{ properties = @{ hostPoolType = 'Pooled'; publicNetworkAccess = (Pick 'Disabled' 'EnabledForClientsOnly') } } | Out-Null
@@ -665,7 +745,11 @@ $rule = Pick @{ name = 'allow-https-office'; properties = @{ priority = 100; dir
 $azureCloudRule = @{ name = 'allow-azure'; properties = @{ priority = 110; direction = 'Inbound'; access = 'Allow'; protocol = 'Tcp'; sourceAddressPrefix = 'AzureCloud'; destinationPortRange = '443' } }
 #the domain controller ports open to vmwinfixture (AZ-VM-015)
 $adRule = @{ name = 'allow-ad'; properties = @{ priority = 120; direction = 'Inbound'; access = 'Allow'; protocol = '*'; sourceAddressPrefix = 'VirtualNetwork'; destinationAddressPrefix = "$dcAddress/32"; destinationPortRanges = @('88', '3268-3269', '9389') } }
-Add-Record 'Microsoft.Network/networkSecurityGroups' 'nsgfixture' @{ properties = @{ securityRules = (Pick @($rule, $adRule) @($rule, $azureCloudRule, $adRule)); defaultSecurityRules = $defaultRules; subnets = @(@{ id = "$vnetId/subnets/app" }) } } | Out-Null
+$denyAllRules = @(
+    @{ name = 'deny-all-in'; properties = @{ priority = 4096; direction = 'Inbound'; access = 'Deny'; protocol = '*'; sourceAddressPrefix = '*'; sourcePortRange = '*'; destinationAddressPrefix = '*'; destinationPortRange = '*' } }
+    @{ name = 'deny-all-out'; properties = @{ priority = 4096; direction = 'Outbound'; access = 'Deny'; protocol = '*'; sourceAddressPrefix = '*'; sourcePortRange = '*'; destinationAddressPrefix = '*'; destinationPortRange = '*' } }
+)
+Add-Record 'Microsoft.Network/networkSecurityGroups' 'nsgfixture' @{ properties = @{ securityRules = (Pick (@($rule, $adRule) + $denyAllRules) @($rule, $azureCloudRule, $adRule)); defaultSecurityRules = $defaultRules; subnets = @(@{ id = "$vnetId/subnets/app" }) } } | Out-Null
 Add-Record 'Microsoft.Network/virtualNetworks' 'vnetfixture' @{ properties = @{
         enableDdosProtection = $G; ddosProtectionPlan = (Pick @{ id = '/ddos' } $null); dhcpOptions = @{ dnsServers = (Pick @('10.0.1.4') @()) }
         virtualNetworkPeerings = @(@{ name = 'to-hub'; properties = @{ peeringState = 'Connected'; remoteVirtualNetwork = @{ id = $hubVnetId } } })
@@ -678,9 +762,9 @@ Add-Record 'Microsoft.Network/virtualNetworks' 'vnetfixture' @{ properties = @{
 Add-Record 'Microsoft.Network/networkInterfaces' 'nicfixture' @{ properties = @{ enableIPForwarding = (-not $G); networkSecurityGroup = @{ id = $nsgId }; dnsSettings = @{ dnsServers = @($dcAddress) }; ipConfigurations = @(@{ properties = @{ subnet = @{ id = "$vnetId/subnets/app" }; publicIPAddress = (Pick $null @{ id = (ResId 'Microsoft.Network/publicIPAddresses' 'pip-nic') }) } }); virtualMachine = @{ id = $vmId } } } | Out-Null
 #the AD domain forwarded to vmwinfixture (AZ-VM-015)
 Add-Record 'Microsoft.Network/dnsForwardingRulesets' 'rulesetfixture' @{ properties = @{} } -Children @{ forwardingRules = @(@{ name = 'corp'; properties = @{ domainName = 'corp.fixture.example.'; forwardingRuleState = 'Enabled'; targetDnsServers = @(@{ ipAddress = $dcAddress; port = 53 }) } }) } | Out-Null
-Add-Record 'Microsoft.Network/publicIPAddresses' 'pipfixture' @{ properties = @{ ipAddress = '198.51.100.1'; ipConfiguration = (Pick @{ id = "$(ResId 'Microsoft.Network/applicationGateways' 'agwfixture')/frontendIPConfigurations/fe" } $null) } } | Out-Null
+Add-Record 'Microsoft.Network/publicIPAddresses' 'pipfixture' @{ properties = @{ ipAddress = '198.51.100.1'; ddosSettings = @{ protectionMode = 'VirtualNetworkInherited' }; ipConfiguration = (Pick @{ id = "$(ResId 'Microsoft.Network/applicationGateways' 'agwfixture')/frontendIPConfigurations/fe" } $null) } } | Out-Null
 if ($G) { Add-Record 'Microsoft.Network/bastionHosts' 'bastionfixture' @{ properties = @{ enableShareableLink = $false } } | Out-Null }
-Add-Record 'Microsoft.Network/applicationGateways' 'agwfixture' @{ zones = $fixtureZones; properties = @{ sku = @{ tier = (Pick 'WAF_v2' 'Standard_v2') }; firewallPolicy = (Pick @{ id = '/waf' } $null); sslPolicy = @{ policyType = 'Predefined'; policyName = (Pick 'AppGwSslPolicy20220101' 'AppGwSslPolicy20150501') }; enableHttp2 = $G } } | Out-Null
+Add-Record 'Microsoft.Network/applicationGateways' 'agwfixture' @{ zones = $fixtureZones; properties = @{ sku = @{ tier = (Pick 'WAF_v2' 'Standard_v2') }; firewallPolicy = (Pick @{ id = '/waf' } $null); sslPolicy = (Pick @{ policyType = 'CustomV2'; minProtocolVersion = 'TLSv1_3' } @{ policyType = 'Predefined'; policyName = 'AppGwSslPolicy20150501' }); enableHttp2 = $G; gatewayIPConfigurations = @(@{ name = 'gwip'; properties = @{ subnet = @{ id = "$vnetId/subnets/app" } } }) } } | Out-Null
 Add-Record 'Microsoft.Network/ApplicationGatewayWebApplicationFirewallPolicies' 'wafagw' @{ properties = @{ policySettings = @{ state = 'Enabled'; mode = (Pick 'Prevention' 'Detection'); requestBodyCheck = $G }; managedRules = @{ managedRuleSets = (Pick @(@{ ruleSetType = 'OWASP' }, @{ ruleSetType = 'Microsoft_BotManagerRuleSet' }) @(@{ ruleSetType = 'OWASP' })) } } } | Out-Null
 Add-Record 'Microsoft.Network/frontdoorWebApplicationFirewallPolicies' 'waffd' @{ properties = @{ policySettings = @{ enabledState = (Pick 'Enabled' 'Disabled'); mode = (Pick 'Prevention' 'Detection'); requestBodyCheck = (Pick 'Enabled' 'Disabled') }; managedRules = @{ managedRuleSets = (Pick @(@{ ruleSetType = 'Microsoft_DefaultRuleSet' }, @{ ruleSetType = 'Microsoft_BotManagerRuleSet' }) @(@{ ruleSetType = 'Microsoft_DefaultRuleSet' })) } } } | Out-Null
 Add-Record 'Microsoft.Cdn/profiles' 'afdfixture' @{ sku = @{ name = 'Premium_AzureFrontDoor' }; properties = @{} } -Children @{ securityPolicies = (Pick @(@{ name = 'waf'; properties = @{ parameters = @{ type = 'WebApplicationFirewall' } } }) @()); afdEndpoints = @(@{ properties = @{ hostName = 'fixture.azurefd.net' } }) } | Out-Null
@@ -726,9 +810,10 @@ Add-Record 'Microsoft.OperationalInsights/workspaces' 'lafixture' @{ properties 
 #the action group of the alerts has a receiver when Good; when Bad the only alert (role assignments) has a group without
 #one (AZ-LOG-027)
 $agId = Add-Record 'Microsoft.Insights/actionGroups' 'agfixture' @{ location = 'global'; properties = @{ enabled = $true; groupShortName = 'fixture'; emailReceivers = @(Pick @(@{ name = 'soc'; emailAddress = 'soc@fixture.example' }) @()) } }
+if (-not $G) { Add-Record 'Microsoft.Insights/activityLogAlerts' 'alert-roledelete' @{ location = 'global'; properties = @{ enabled = $true; scopes = @($subScope); condition = @{ allOf = @(@{ field = 'category'; equals = 'Administrative' }, @{ field = 'operationName'; equals = 'Microsoft.Authorization/roleAssignments/delete' }, @{ field = 'level'; equals = 'Critical' }) }; actions = @{ actionGroups = @(@{ actionGroupId = $agId }) } } } | Out-Null }
 if (-not $G) { Add-Record 'Microsoft.Insights/activityLogAlerts' 'alert-roles' @{ location = 'global'; properties = @{ enabled = $true; scopes = @($subScope); condition = @{ allOf = @(@{ field = 'category'; equals = 'Administrative' }, @{ field = 'operationName'; equals = 'Microsoft.Authorization/roleAssignments/write' }) }; actions = @{ actionGroups = @(@{ actionGroupId = $agId }) } } } | Out-Null }
 if ($G) {
-    $alertOps = @('Microsoft.Authorization/policyAssignments/write', 'Microsoft.Authorization/policyAssignments/delete', 'Microsoft.Network/networkSecurityGroups/write', 'Microsoft.Network/networkSecurityGroups/delete', 'Microsoft.Security/securitySolutions/write', 'Microsoft.Security/securitySolutions/delete', 'Microsoft.Sql/servers/firewallRules/write', 'Microsoft.Sql/servers/firewallRules/delete', 'Microsoft.Network/publicIPAddresses/write', 'Microsoft.Network/publicIPAddresses/delete', 'Microsoft.Insights/diagnosticSettings/delete', 'Microsoft.Authorization/roleAssignments/write', 'Microsoft.Authorization/locks/delete', 'Microsoft.Compute/virtualMachines/runCommand/action')
+    $alertOps = @('Microsoft.Authorization/policyAssignments/write', 'Microsoft.Authorization/policyAssignments/delete', 'Microsoft.Network/networkSecurityGroups/write', 'Microsoft.Network/networkSecurityGroups/delete', 'Microsoft.Security/securitySolutions/write', 'Microsoft.Security/securitySolutions/delete', 'Microsoft.Sql/servers/firewallRules/write', 'Microsoft.Sql/servers/firewallRules/delete', 'Microsoft.Network/publicIPAddresses/write', 'Microsoft.Network/publicIPAddresses/delete', 'Microsoft.Insights/diagnosticSettings/delete', 'Microsoft.Authorization/roleAssignments/write', 'Microsoft.Authorization/locks/delete', 'Microsoft.Compute/virtualMachines/runCommand/action', 'Microsoft.Authorization/roleAssignments/delete', 'Microsoft.Authorization/policyExemptions/write', 'Microsoft.KeyVault/vaults/accessPolicies/write')
     $n = 0
     foreach ($operation in $alertOps) {
         $n++
@@ -792,11 +877,16 @@ Add-Record 'Microsoft.MachineLearningServices/workspaces' 'mlfixture' @{ propert
 #backup
 $recoveryVault = {
     param([string]$Name, [string]$Id, [string[]]$Protected, [string[]]$Replicated)
+    #an approved private endpoint for Azure Backup when Good (AZ-BCK-022)
+    $backupPe = Pick @(@{ id = "$Id/privateEndpointConnections/pe-$Name.0001.backup"; properties = @{ provisioningState = 'Succeeded'; privateLinkServiceConnectionState = @{ status = 'Approved' }; groupIds = @('AzureBackup') } }) @()
     Add-Record 'Microsoft.RecoveryServices/vaults' $Name @{ properties = @{
-            securitySettings = @{ softDeleteSettings = @{ softDeleteState = (Pick 'AlwaysON' 'Disabled') }; immutabilitySettings = @{ state = (Pick 'Locked' 'Disabled') } }; publicNetworkAccess = (Pick 'Disabled' 'Enabled')
+            securitySettings = @{ softDeleteSettings = @{ softDeleteState = (Pick 'AlwaysON' 'Disabled'); enhancedSecurityState = (Pick 'AlwaysON' 'Disabled'); softDeleteRetentionPeriodInDays = 14 }; immutabilitySettings = @{ state = (Pick 'Locked' 'Disabled') } }; publicNetworkAccess = (Pick 'Disabled' 'Enabled')
             restoreSettings = @{ crossSubscriptionRestoreSettings = @{ crossSubscriptionRestoreState = (Pick 'Disabled' 'Enabled') } }; monitoringSettings = @{ azureMonitorAlertSettings = @{ alertsForAllJobFailures = (Pick 'Enabled' 'Disabled') } }
+            redundancySettings = @{ standardTierStorageRedundancy = (Pick 'GeoRedundant' 'LocallyRedundant'); crossRegionRestore = (Pick 'Enabled' 'Disabled') }
+            encryption = (Pick @{ keyVaultProperties = @{ keyUri = 'https://kvfixture.vault.azure.net/keys/backup' }; infrastructureEncryption = 'Enabled' } $null); privateEndpointConnections = $backupPe
         }
     } -Children @{
+        'backupEncryptionConfigs/backupResourceEncryptionConfig' = @{ properties = @{ encryptionAtRestType = (Pick 'CustomerManaged' 'MicrosoftManaged'); infrastructureEncryptionState = (Pick 'Enabled' 'Disabled') } }; privateEndpointConnections = $backupPe
         'backupconfig/vaultconfig' = @{ properties = @{ softDeleteFeatureState = (Pick 'AlwaysON' 'Disabled') } }; 'backupstorageconfig/vaultstorageconfig' = @{ properties = @{ storageModelType = (Pick 'GeoRedundant' 'LocallyRedundant'); crossRegionRestoreFlag = $G } }
         backupResourceGuardProxies = (Pick @(@{ properties = @{ resourceGuardResourceId = '/guard' } }) @()); backupProtectedItems = @(foreach ($machine in $Protected) { @{ properties = @{ sourceResourceId = $machine; virtualMachineId = $machine } } })
         replicationProtectedItems  = @(foreach ($machine in $Replicated) { $machineName = ($machine -split '/')[-1]; @{ name = "$machineName-replica"; properties = @{ friendlyName = $machineName; protectionState = 'Protected'; replicationHealth = 'Normal'; lastSuccessfulTestFailoverTime = (Iso -30); providerSpecificDetails = @{ instanceType = 'A2A'; fabricObjectId = $machine } } } })
@@ -819,7 +909,10 @@ if (-not $G) {
     } | Out-Null
 }
 Add-Record 'Microsoft.DataProtection/backupVaults' 'bvfixture' @{ properties = @{
-        securitySettings = @{ softDeleteSettings = @{ state = (Pick 'AlwaysOn' 'Off') }; immutabilitySettings = @{ state = (Pick 'Unlocked' 'Disabled') } }; storageSettings = @(@{ type = (Pick 'GeoRedundant' 'LocallyRedundant'); datastoreType = 'VaultStore' })
+        securitySettings = @{
+            softDeleteSettings = @{ state = (Pick 'AlwaysOn' 'Off'); retentionDurationInDays = 14 }; immutabilitySettings = @{ state = (Pick 'Unlocked' 'Disabled') }
+            encryptionSettings = (Pick @{ state = 'Enabled'; keyVaultProperties = @{ keyUri = 'https://kvfixture.vault.azure.net/keys/backup' }; infrastructureEncryption = 'Enabled' } $null)
+        }; storageSettings = @(@{ type = (Pick 'GeoRedundant' 'LocallyRedundant'); datastoreType = 'VaultStore' })
         featureSettings = @{ crossSubscriptionRestoreSettings = @{ state = (Pick 'Disabled' 'Enabled') }; crossRegionRestoreSettings = @{ state = (Pick 'Enabled' 'Disabled') } }; monitoringSettings = @{ azureMonitorAlertSettings = @{ alertsForAllJobFailures = (Pick 'Enabled' 'Disabled') } }
     }
 } -Children @{ backupResourceGuardProxies = (Pick @(@{ properties = @{ resourceGuardResourceId = '/guard' } }) @()); backupInstances = @() } | Out-Null
@@ -840,8 +933,11 @@ Add-Record 'Microsoft.Synapse/workspaces' 'synfixture' @{ properties = @{ manage
     azureADOnlyAuthentications = @(@{ properties = @{ azureADOnlyAuthentication = $G } }); securityAlertPolicies = @(@{ properties = @{ state = (Pick 'Enabled' 'Disabled') } })
 } | Out-Null
 Add-Record 'Microsoft.Kusto/clusters' 'adxfixture' @{ sku = @{ name = 'Standard_E2ads_v5'; tier = 'Standard' }; properties = @{ publicNetworkAccess = (Pick 'Disabled' 'Enabled'); enableDiskEncryption = $G; enableDoubleEncryption = $G } } | Out-Null
-Add-Record 'Microsoft.DataFactory/factories' 'adffixture' @{ properties = @{ publicNetworkAccess = (Pick 'Disabled' 'Enabled'); repoConfiguration = (Pick @{ type = 'FactoryGitHubConfiguration' } $null) } } -Children @{
-    linkedservices = @(@{ name = 'ls1'; properties = @{ typeProperties = @{ url = 'https://contoso.com'; password = (Pick @{ type = 'AzureKeyVaultSecret'; secretName = 'pw' } @{ type = 'SecureString'; value = '**********' }) } } })
+Add-Record 'Microsoft.DataFactory/factories' 'adffixture' @{ identity = (Pick @{ type = 'SystemAssigned'; principalId = '60000000-0000-0000-0000-000000000002' } $null); properties = @{ publicNetworkAccess = (Pick 'Disabled' 'Enabled'); repoConfiguration = (Pick @{ type = 'FactoryGitHubConfiguration' } $null); encryption = (Pick @{ vaultBaseUrl = 'https://kvfixture.vault.azure.net'; keyName = 'adf' } $null) } } -Children @{
+    linkedservices = @(
+        @{ name = 'ls1'; properties = @{ typeProperties = @{ url = 'https://contoso.com'; password = (Pick @{ type = 'AzureKeyVaultSecret'; secretName = 'pw' } @{ type = 'SecureString'; value = '**********' }) } } }
+        @{ name = 'blob'; properties = @{ type = 'AzureBlobStorage'; typeProperties = (Pick @{ serviceEndpoint = 'https://stfixture.blob.core.windows.net' } @{ connectionString = 'DefaultEndpointsProtocol=https;AccountName=stfixture;AccountKey=fixture' }) } }
+    )
 } | Out-Null
 
 #endregion

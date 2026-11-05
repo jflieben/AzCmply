@@ -19,9 +19,11 @@ $generator = Join-Path $PSScriptRoot 'New-FixtureIngest.ps1'
 $expectedOverrides = @{
     #AZ-NET-023 only applies to machines whose management ports are open to the Internet, AZ-LOGIC-002 to workflows that
     #anyone can call (AZ-LOGIC-001) and AZ-FUNC-003 to functions that anyone can call; a compliant fixture has none of these
-    Good = @{ 'AZ-KV-009' = 'NotApplicable'; 'AZ-KV-010' = 'NotApplicable'; 'AZ-KV-011' = 'NotApplicable'; 'AZ-NET-023' = 'NotApplicable'; 'AZ-LOGIC-002' = 'NotApplicable'; 'AZ-FUNC-003' = 'NotApplicable' }
+    #AZ-IAM-037 (per-user MFA) only applies without Conditional Access, which both fixtures use; AZ-VM-019 only applies to
+    #unattached disks, which a compliant fixture does not have (AZ-GOV-006)
+    Good = @{ 'AZ-IAM-037' = 'NotApplicable'; 'AZ-VM-019' = 'NotApplicable'; 'AZ-KV-009' = 'NotApplicable'; 'AZ-KV-010' = 'NotApplicable'; 'AZ-KV-011' = 'NotApplicable'; 'AZ-NET-023' = 'NotApplicable'; 'AZ-LOGIC-002' = 'NotApplicable'; 'AZ-FUNC-003' = 'NotApplicable' }
     #AZ-IAM-026 fails only without enabled Conditional Access policies, and AZ-IAM-028 needs them to fail; without a Bastion (AZ-NET-011) there is no shareable link (AZ-NET-027)
-    Bad  = @{ 'AZ-GOV-001' = 'Pass'; 'AZ-LOG-001' = 'Pass'; 'AZ-KV-005' = 'NotApplicable'; 'AZ-KV-006' = 'NotApplicable'; 'AZ-IAM-026' = 'NotApplicable'; 'AZ-NET-027' = 'NotApplicable' }
+    Bad  = @{ 'AZ-IAM-037' = 'NotApplicable'; 'AZ-GOV-001' = 'Pass'; 'AZ-LOG-001' = 'Pass'; 'AZ-KV-005' = 'NotApplicable'; 'AZ-KV-006' = 'NotApplicable'; 'AZ-IAM-026' = 'NotApplicable'; 'AZ-NET-027' = 'NotApplicable' }
 }
 
 $problems = [System.Collections.Generic.List[string]]::new()

@@ -4,755 +4,1346 @@ const F = R.file("Analyze/tests/06-Storage.ps1");
 export default R.script("/app/Analyze/tests/06-Storage.ps1", { params: [], adv: 0 }, (S, O) => {
     R.ln = F + 3;
     S["storagetype"] = R.a("Microsoft.Storage/storageAccounts");
-    R.ln = F + 5;
-    R.def(S, "Test-SharedKeyDisabled", { params: [{ n: "Record", t: null, pos: null }], adv: 0, h: "689838a441fae0c9" }, (S, O) => {
-        R.ln = F + 5;
-        R.e(O, (R.eq(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "allowSharedKeyAccess"), false)));
-        return;
-    });
     R.ln = F + 6;
-    R.def(S, "Test-BlobCapable", { params: [{ n: "Record", t: null, pos: null }], adv: 0, h: "a28c9b8102bb8fd0" }, (S, O) => {
+    R.def(S, "Test-QueueTableCapable", { params: [{ n: "Record", t: null, pos: null }], adv: 0, h: "470923889c7a83db" }, (S, O) => {
         R.ln = F + 6;
-        R.e(O, (R.in(R.m(R.m((S["record"] ?? null), "resource"), "kind"), [R.v("StorageV2"), R.v("Storage"), R.v("BlobStorage"), R.v("BlockBlobStorage")])));
+        R.e(O, ((R.t(R.in(R.m(R.m((S["record"] ?? null), "resource"), "kind"), [R.v("StorageV2"), R.v("Storage")])) && R.t(R.nmatch(S, R.c("string", R.m(R.m(R.m((S["record"] ?? null), "resource"), "sku"), "name")), "^Premium")))));
         return;
     });
     R.ln = F + 7;
-    R.def(S, "Test-FileCapable", { params: [{ n: "Record", t: null, pos: null }], adv: 0, h: "a0001931aec10ca1" }, (S, O) => {
+    R.def(S, "Test-BlobCapable", { params: [{ n: "Record", t: null, pos: null }], adv: 0, h: "a28c9b8102bb8fd0" }, (S, O) => {
         R.ln = F + 7;
+        R.e(O, (R.in(R.m(R.m((S["record"] ?? null), "resource"), "kind"), [R.v("StorageV2"), R.v("Storage"), R.v("BlobStorage"), R.v("BlockBlobStorage")])));
+        return;
+    });
+    R.ln = F + 8;
+    R.def(S, "Test-FileCapable", { params: [{ n: "Record", t: null, pos: null }], adv: 0, h: "a0001931aec10ca1" }, (S, O) => {
+        R.ln = F + 8;
         R.e(O, (R.in(R.m(R.m((S["record"] ?? null), "resource"), "kind"), [R.v("StorageV2"), R.v("Storage"), R.v("FileStorage")])));
         return;
     });
-    R.ln = F + 9;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-STG-001", "Title", "Storage accounts require secure transfer (HTTPS)", "Category", "Data protection", "Service", "Storage", "Severity", "High", "Description", "Checks the 'Secure transfer required' setting (supportsHttpsTrafficOnly).", "Rationale", "Without secure transfer, requests and shared access signatures can be sent over plain HTTP and SMB without encryption, exposing data and credentials on the network.", "Remediation", "Enable secure transfer (az storage account update --https-only true ...).", "References", R.a("https://learn.microsoft.com/azure/storage/common/storage-require-secure-transfer"), "Defender", R.ht(["1c5de8e1-f68d-6a17-e0d2-ec259c42768c", "Secure transfer to storage accounts should be enabled"], false), "Policy", R.ht(["404c3081-a854-4457-ae30-26a93ef643f9", "Secure transfer to storage accounts should be enabled"], false), "ResourceTypes", (S["storagetype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $value = $Record.resource.properties.supportsHttpsTrafficOnly\n        if ($value -eq $false) { return New-Fail 'Secure transfer is not required' ([ordered]@{ supportsHttpsTrafficOnly = $value }) }\n        New-Pass 'Secure transfer required' ([ordered]@{ supportsHttpsTrafficOnly = $value })\n    " }, (S, O) => {
-        R.ln = F + 24;
+    R.ln = F + 10;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-STG-001", "Version", 2, "Title", "Storage accounts require secure transfer (HTTPS)", "Category", "Data protection", "Service", "Storage", "Severity", "High", "Description", "Checks that the 'Secure transfer required' setting (supportsHttpsTrafficOnly) is true.", "Rationale", "Without secure transfer, requests and shared access signatures can be sent over plain HTTP and SMB without encryption, exposing data and credentials on the network.", "Remediation", "Enable secure transfer (az storage account update --https-only true ...).", "References", R.a("https://learn.microsoft.com/azure/storage/common/storage-require-secure-transfer"), "Defender", R.ht(["1c5de8e1-f68d-6a17-e0d2-ec259c42768c", "Secure transfer to storage accounts should be enabled"], false), "Policy", R.ht(["404c3081-a854-4457-ae30-26a93ef643f9", "Secure transfer to storage accounts should be enabled"], false), "ResourceTypes", (S["storagetype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $value = $Record.resource.properties.supportsHttpsTrafficOnly\n        $evidence = [ordered]@{ supportsHttpsTrafficOnly = $value }\n        if ($value -eq $true) { return New-Pass 'Secure transfer required' $evidence }\n        if ($value -eq $false) { return New-Fail 'Secure transfer is not required' $evidence }\n        New-Unknown 'The secure transfer setting was not returned' $evidence\n    " }, (S, O) => {
+        R.ln = F + 26;
         S["value"] = R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "supportsHttpsTrafficOnly");
-        R.ln = F + 25;
-        if (R.t(R.eq((S["value"] ?? null), false))) {
-            R.ln = F + 25;
-            R.pa(O, R.cmd(S, "New-Fail", ["Secure transfer is not required", (R.ht(["supportsHttpsTrafficOnly", (S["value"] ?? null)], true))], null));
+        R.ln = F + 27;
+        S["evidence"] = R.ht(["supportsHttpsTrafficOnly", (S["value"] ?? null)], true);
+        R.ln = F + 28;
+        if (R.t(R.eq((S["value"] ?? null), true))) {
+            R.ln = F + 28;
+            R.pa(O, R.cmd(S, "New-Pass", ["Secure transfer required", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 26;
-        R.pa(O, R.cmd(S, "New-Pass", ["Secure transfer required", (R.ht(["supportsHttpsTrafficOnly", (S["value"] ?? null)], true))], null));
+        R.ln = F + 29;
+        if (R.t(R.eq((S["value"] ?? null), false))) {
+            R.ln = F + 29;
+            R.pa(O, R.cmd(S, "New-Fail", ["Secure transfer is not required", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 30;
+        R.pa(O, R.cmd(S, "New-Unknown", ["The secure transfer setting was not returned", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 30;
+    R.ln = F + 34;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-STG-002", "Title", "Storage accounts require TLS 1.2 or higher", "Category", "Data protection", "Service", "Storage", "Severity", "Medium", "Description", "Checks the minimum TLS version of storage accounts.", "Rationale", "TLS 1.0 and 1.1 have known weaknesses. Azure Storage stopped accepting them on 3 February 2026, and the account setting should reflect TLS 1.2 so clients and audits see the enforced minimum.", "Remediation", "Set the minimum TLS version to TLS 1.2 (az storage account update --min-tls-version TLS1_2 ...).", "References", R.a("https://learn.microsoft.com/azure/storage/common/transport-layer-security-configure-minimum-version"), "Defender", R.ht(["54bb9d74-fb09-c933-8249-91d5b36310c3", "Storage accounts should have the specified minimum TLS version"], false), "Policy", R.ht(["fe83a0eb-a853-422d-aac2-1bffd182c5d0", "Storage accounts should have the specified minimum TLS version"], false), "ResourceTypes", (S["storagetype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $value = $Record.resource.properties.minimumTlsVersion\n        $evidence = [ordered]@{ minimumTlsVersion = $value }\n        if (Test-VersionAtLeast $value '1.2') { return New-Pass \"Minimum $value\" $evidence }\n        New-Fail $(if ($value) { \"Minimum $value\" } else { 'Minimum TLS version not set' }) $evidence\n    " }, (S, O) => {
-        R.ln = F + 45;
+        R.ln = F + 49;
         S["value"] = R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "minimumTlsVersion");
-        R.ln = F + 46;
+        R.ln = F + 50;
         S["evidence"] = R.ht(["minimumTlsVersion", (S["value"] ?? null)], true);
-        R.ln = F + 47;
+        R.ln = F + 51;
         if (R.t(R.u(R.cmd(S, "Test-VersionAtLeast", [(S["value"] ?? null), "1.2"], null)))) {
-            R.ln = F + 47;
+            R.ln = F + 51;
             R.pa(O, R.cmd(S, "New-Pass", [("Minimum " + R.str((S["value"] ?? null))), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 48;
+        R.ln = F + 52;
         R.pa(O, R.cmd(S, "New-Fail", [(() => {
             const v1 = [];
-            R.ln = F + 48;
+            R.ln = F + 52;
             if (R.t((S["value"] ?? null))) {
-                R.ln = F + 48;
+                R.ln = F + 52;
                 R.e(v1, ("Minimum " + R.str((S["value"] ?? null))));
             } else {
-                R.ln = F + 48;
+                R.ln = F + 52;
                 R.e(v1, "Minimum TLS version not set");
             }
             return R.u(v1);
         })(), (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 52;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-STG-003", "Version", 2, "Title", "Storage accounts disallow anonymous blob access", "Category", "Network security", "Service", "Storage", "Severity", "High", "Description", "Checks that 'Allow Blob anonymous access' (allowBlobPublicAccess) is disabled on the account.", "Rationale", "When the account allows anonymous access, any container can be made public with a single change, exposing its blobs to anyone on the Internet without authentication.", "Remediation", "Disable anonymous access on the account (az storage account update --allow-blob-public-access false ...). Serve public content through a CDN or Front Door with private origins if needed.", "References", R.a("https://learn.microsoft.com/azure/storage/blobs/anonymous-read-access-prevent"), "Defender", R.ht(["51fd8bb1-0db4-bbf1-7e2b-cfcba7eb66a6", "Storage account public access should be disallowed"], false), "Policy", R.ht(["4fa4b6c0-31ca-4c0d-b10d-24b96f62a751", "Storage account public access should be disallowed"], false), "ResourceTypes", (S["storagetype"] ?? null), "Filter", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) Test-BlobCapable $Record " }, (S, O) => {
-        R.ln = F + 66;
-        R.pa(O, R.cmd(S, "Test-BlobCapable", [(S["record"] ?? null)], null));
-    }), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $value = $Record.resource.properties.allowBlobPublicAccess\n        $evidence = [ordered]@{ allowBlobPublicAccess = $value }\n        if ($value -eq $false) { return New-Pass 'Anonymous access disallowed' $evidence }\n        New-Fail $(if ($null -eq $value) { 'Anonymous access setting not set (allowed on older accounts)' } else { 'Anonymous access allowed' }) $evidence\n    " }, (S, O) => {
-        R.ln = F + 69;
+    R.ln = F + 56;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-STG-003", "Version", 3, "Title", "Storage accounts disallow anonymous blob access", "Category", "Network security", "Service", "Storage", "Severity", "High", "Description", "Checks that 'Allow Blob anonymous access' (allowBlobPublicAccess) is disabled on every storage account. Not set fails, as older accounts then allow it.", "Rationale", "When the account allows anonymous access, any container can be made public with a single change, exposing its blobs to anyone on the Internet without authentication.", "Remediation", "Disable anonymous access on the account (az storage account update --allow-blob-public-access false ...). Serve public content through a CDN or Front Door with private origins if needed.", "References", R.a("https://learn.microsoft.com/azure/storage/blobs/anonymous-read-access-prevent"), "Defender", R.ht(["51fd8bb1-0db4-bbf1-7e2b-cfcba7eb66a6", "Storage account public access should be disallowed"], false), "Policy", R.ht(["4fa4b6c0-31ca-4c0d-b10d-24b96f62a751", "Storage account public access should be disallowed"], false), "ResourceTypes", (S["storagetype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $value = $Record.resource.properties.allowBlobPublicAccess\n        $evidence = [ordered]@{ allowBlobPublicAccess = $value }\n        if ($value -eq $false) { return New-Pass 'Anonymous access disallowed' $evidence }\n        New-Fail $(if ($null -eq $value) { 'Anonymous access setting not set (allowed on older accounts)' } else { 'Anonymous access allowed' }) $evidence\n    " }, (S, O) => {
+        R.ln = F + 72;
         S["value"] = R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "allowBlobPublicAccess");
-        R.ln = F + 70;
+        R.ln = F + 73;
         S["evidence"] = R.ht(["allowBlobPublicAccess", (S["value"] ?? null)], true);
-        R.ln = F + 71;
+        R.ln = F + 74;
         if (R.t(R.eq((S["value"] ?? null), false))) {
-            R.ln = F + 71;
+            R.ln = F + 74;
             R.pa(O, R.cmd(S, "New-Pass", ["Anonymous access disallowed", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 72;
+        R.ln = F + 75;
         R.pa(O, R.cmd(S, "New-Fail", [(() => {
             const v2 = [];
-            R.ln = F + 72;
+            R.ln = F + 75;
             if (R.t(R.eq(null, (S["value"] ?? null)))) {
-                R.ln = F + 72;
+                R.ln = F + 75;
                 R.e(v2, "Anonymous access setting not set (allowed on older accounts)");
             } else {
-                R.ln = F + 72;
+                R.ln = F + 75;
                 R.e(v2, "Anonymous access allowed");
             }
             return R.u(v2);
         })(), (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 76;
+    R.ln = F + 79;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-STG-004", "Title", "No blob containers are publicly accessible", "Category", "Data protection", "Service", "Storage", "Severity", "Critical", "Description", "Finds containers with a public access level (Blob or Container) on accounts that allow anonymous access, which are readable by anyone on the Internet.", "Rationale", "Publicly readable containers are a leading cause of data breaches; their content can be enumerated and downloaded without any credential.", "Remediation", "Set the container access level to Private (az storage container set-permission --public-access off ...) and disable anonymous access on the account.", "References", R.a("https://learn.microsoft.com/azure/storage/blobs/anonymous-read-access-prevent"), "ResourceTypes", (S["storagetype"] ?? null), "Filter", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) Test-BlobCapable $Record " }, (S, O) => {
-        R.ln = F + 87;
+        R.ln = F + 90;
         R.pa(O, R.cmd(S, "Test-BlobCapable", [(S["record"] ?? null)], null));
     }), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not (Test-ChildCollected $Record 'blobServices/default/containers')) { return New-Unknown 'Containers could not be read' }\n        $public = @(Get-Child $Record 'blobServices/default/containers' | Where-Object { $_ -and $_.properties.publicAccess -and $_.properties.publicAccess -ne 'None' })\n        $evidence = [ordered]@{ allowBlobPublicAccess = $Record.resource.properties.allowBlobPublicAccess; publicContainers = @($public | ForEach-Object { \"$($_.name) ($($_.properties.publicAccess))\" } | Sort-Object) }\n        if ($public -and $Record.resource.properties.allowBlobPublicAccess -ne $false) { return New-Fail \"Publicly readable container(s): $($evidence.publicContainers -join ', ')\" $evidence }\n        if ($public) { return New-Pass 'Containers have a public access level but the account blocks anonymous access' $evidence }\n        New-Pass 'No public containers' $evidence\n    " }, (S, O) => {
-        R.ln = F + 90;
+        R.ln = F + 93;
         if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "blobServices/default/containers"], null)))) {
-            R.ln = F + 90;
+            R.ln = F + 93;
             R.pa(O, R.cmd(S, "New-Unknown", ["Containers could not be read"], null));
             return;
         }
-        R.ln = F + 91;
+        R.ln = F + 94;
         S["public"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.properties.publicAccess -and $_.properties.publicAccess -ne 'None' " }, (S, O) => {
-            R.ln = F + 91;
+            R.ln = F + 94;
             R.e(O, ((R.t((S["_"] ?? null)) && R.t(R.m(R.m((S["_"] ?? null), "properties"), "publicAccess"))) && R.t(R.ne(R.m(R.m((S["_"] ?? null), "properties"), "publicAccess"), "None"))));
         })], R.cmd(S, "Get-Child", [(S["record"] ?? null), "blobServices/default/containers"], null));
-        R.ln = F + 92;
+        R.ln = F + 95;
         S["evidence"] = R.ht(["allowBlobPublicAccess", R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "allowBlobPublicAccess"), "publicContainers", R.cmd(S, "Sort-Object", [], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " \"$($_.name) ($($_.properties.publicAccess))\" " }, (S, O) => {
-            R.ln = F + 92;
+            R.ln = F + 95;
             R.e(O, ("" + R.str(R.u(R.pi(R.m((S["_"] ?? null), "name")))) + " (" + R.str(R.u(R.pi(R.m(R.m((S["_"] ?? null), "properties"), "publicAccess")))) + ")"));
         })], R.pi((S["public"] ?? null))))], true);
-        R.ln = F + 93;
+        R.ln = F + 96;
         if ((R.t((S["public"] ?? null)) && R.t(R.ne(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "allowBlobPublicAccess"), false)))) {
-            R.ln = F + 93;
+            R.ln = F + 96;
             R.pa(O, R.cmd(S, "New-Fail", [("Publicly readable container(s): " + R.str(R.u(R.pi(R.join(R.m((S["evidence"] ?? null), "publicContainers"), ", "))))), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 94;
+        R.ln = F + 97;
         if (R.t((S["public"] ?? null))) {
-            R.ln = F + 94;
+            R.ln = F + 97;
             R.pa(O, R.cmd(S, "New-Pass", ["Containers have a public access level but the account blocks anonymous access", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 95;
+        R.ln = F + 98;
         R.pa(O, R.cmd(S, "New-Pass", ["No public containers", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 99;
+    R.ln = F + 102;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-STG-005", "Title", "Storage account key access (shared key) is disabled", "Category", "Identity management", "Service", "Storage", "Severity", "Medium", "Description", "Checks that 'Allow storage account key access' (allowSharedKeyAccess) is disabled, so requests must use Microsoft Entra authorization.", "Rationale", "Account keys grant full control over all data, never expire on their own, are not tied to an identity and bypass RBAC and Conditional Access. Service SAS and account SAS tokens are derived from them.", "Remediation", "Move clients to Entra ID authorization (RBAC data roles, managed identities, user delegation SAS), then disable shared key access (az storage account update --allow-shared-key-access false ...).", "References", R.a("https://learn.microsoft.com/azure/storage/common/shared-key-authorization-prevent"), "Defender", R.ht(["3b363842-30f5-4056-980d-3a40fa5de8b3", "Storage accounts should prevent shared key access"], false), "Policy", R.ht(["8c6a50c6-9ffd-4ae7-986f-5fa6111f9a54", "Storage accounts should prevent shared key access"], false), "ResourceTypes", (S["storagetype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $value = $Record.resource.properties.allowSharedKeyAccess\n        $evidence = [ordered]@{ allowSharedKeyAccess = $value }\n        if ($value -eq $false) { return New-Pass 'Shared key access disabled' $evidence }\n        New-Fail 'Shared key access allowed' $evidence\n    " }, (S, O) => {
-        R.ln = F + 114;
+        R.ln = F + 117;
         S["value"] = R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "allowSharedKeyAccess");
-        R.ln = F + 115;
+        R.ln = F + 118;
         S["evidence"] = R.ht(["allowSharedKeyAccess", (S["value"] ?? null)], true);
-        R.ln = F + 116;
+        R.ln = F + 119;
         if (R.t(R.eq((S["value"] ?? null), false))) {
-            R.ln = F + 116;
+            R.ln = F + 119;
             R.pa(O, R.cmd(S, "New-Pass", ["Shared key access disabled", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 117;
+        R.ln = F + 120;
         R.pa(O, R.cmd(S, "New-Fail", ["Shared key access allowed", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 121;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-STG-006", "Title", "Storage accounts disable public network access", "Category", "Network security", "Service", "Storage", "Severity", "Medium", "Description", "Checks that public network access is disabled (or secured by a network security perimeter), so the account is only reachable through private endpoints.", "Rationale", "A public endpoint can be reached from anywhere; any leaked key, SAS token or overly broad firewall rule then exposes the data to the Internet.", "Remediation", "Create private endpoints for the required sub-resources and set public network access to Disabled (az storage account update --public-network-access Disabled ...).", "References", R.a("https://learn.microsoft.com/azure/storage/common/storage-network-security"), "Defender", R.ht(["85b39950-d5ba-0ff5-664d-8f33544545ca", "Storage accounts should disable public network access"], false), "Policy", R.ht(["b2982f36-99f2-4db5-8eff-283140c09693", "Storage accounts should disable public network access"], false), "ResourceTypes", (S["storagetype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $value = $Record.resource.properties.publicNetworkAccess\n        $evidence = [ordered]@{ publicNetworkAccess = $value }\n        if ($value -in 'Disabled', 'SecuredByPerimeter') { return New-Pass \"Public network access $value\" $evidence }\n        New-Fail 'Public network access enabled' $evidence\n    " }, (S, O) => {
-        R.ln = F + 136;
+    R.ln = F + 124;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-STG-006", "Version", 2, "Title", "Storage accounts disable public network access", "Category", "Network security", "Service", "Storage", "Severity", "Medium", "Description", "Checks that public network access is Disabled, so the account is only reachable through private endpoints. SecuredByPerimeter fails: the inbound access rules of a network security perimeter can still admit public traffic.", "Rationale", "A public endpoint can be reached from anywhere; any leaked key, SAS token or overly broad firewall rule then exposes the data to the Internet.", "Remediation", "Create private endpoints for the required sub-resources and set public network access to Disabled (az storage account update --public-network-access Disabled ...).", "References", R.a("https://learn.microsoft.com/azure/storage/common/storage-network-security"), "Defender", R.ht(["85b39950-d5ba-0ff5-664d-8f33544545ca", "Storage accounts should disable public network access"], false), "Policy", R.ht(["b2982f36-99f2-4db5-8eff-283140c09693", "Storage accounts should disable public network access"], false), "ResourceTypes", (S["storagetype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $value = $Record.resource.properties.publicNetworkAccess\n        $evidence = [ordered]@{ publicNetworkAccess = $value }\n        if ($value -eq 'Disabled') { return New-Pass 'Public network access disabled' $evidence }\n        if ($value -eq 'SecuredByPerimeter') { return New-Fail 'Public network access secured by a network security perimeter, not disabled' $evidence }\n        New-Fail $(if ($null -eq $value) { 'Public network access not set (enabled)' } else { 'Public network access enabled' }) $evidence\n    " }, (S, O) => {
+        R.ln = F + 140;
         S["value"] = R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "publicNetworkAccess");
-        R.ln = F + 137;
+        R.ln = F + 141;
         S["evidence"] = R.ht(["publicNetworkAccess", (S["value"] ?? null)], true);
-        R.ln = F + 138;
-        if (R.t(R.in((S["value"] ?? null), [R.v("Disabled"), R.v("SecuredByPerimeter")]))) {
-            R.ln = F + 138;
-            R.pa(O, R.cmd(S, "New-Pass", [("Public network access " + R.str((S["value"] ?? null))), (S["evidence"] ?? null)], null));
-            return;
-        }
-        R.ln = F + 139;
-        R.pa(O, R.cmd(S, "New-Fail", ["Public network access enabled", (S["evidence"] ?? null)], null));
-    })], false)], null));
-    R.ln = F + 143;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-STG-007", "Title", "Storage account firewalls deny access by default", "Category", "Network security", "Service", "Storage", "Severity", "High", "Description", "Checks that the storage firewall default action is Deny (or that public network access is disabled).", "Rationale", "With default action Allow, the public endpoint accepts traffic from every network, so authentication is the only barrier.", "Remediation", "Set the default network action to Deny and allow only required virtual networks, IP ranges and resource instances (az storage account update --default-action Deny ...).", "References", R.a("https://learn.microsoft.com/azure/storage/common/storage-network-security"), "Defender", R.ht(["45d313c3-3fca-5040-035f-d61928366d31", "Access to storage accounts with firewall and virtual network configurations should be restricted"], false), "Policy", R.ht(["34c877ad-507e-4c82-993e-3452a6e0ad3c", "Storage accounts should restrict network access"], false), "ResourceTypes", (S["storagetype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $p = $Record.resource.properties\n        $evidence = [ordered]@{ publicNetworkAccess = $p.publicNetworkAccess; defaultAction = $p.networkAcls.defaultAction; ipRules = @($p.networkAcls.ipRules).Count; virtualNetworkRules = @($p.networkAcls.virtualNetworkRules).Count }\n        if ($p.publicNetworkAccess -eq 'Disabled') { return New-Pass 'Public network access disabled' $evidence }\n        if ($p.networkAcls.defaultAction -eq 'Deny') { return New-Pass 'Firewall default action Deny' $evidence }\n        New-Fail 'Firewall default action Allow' $evidence\n    " }, (S, O) => {
-        R.ln = F + 158;
-        S["p"] = R.m(R.m((S["record"] ?? null), "resource"), "properties");
-        R.ln = F + 159;
-        S["evidence"] = R.ht(["publicNetworkAccess", R.m((S["p"] ?? null), "publicNetworkAccess"), "defaultAction", R.m(R.m((S["p"] ?? null), "networkAcls"), "defaultAction"), "ipRules", R.m(R.a(R.m(R.m((S["p"] ?? null), "networkAcls"), "ipRules")), "Count"), "virtualNetworkRules", R.m(R.a(R.m(R.m((S["p"] ?? null), "networkAcls"), "virtualNetworkRules")), "Count")], true);
-        R.ln = F + 160;
-        if (R.t(R.eq(R.m((S["p"] ?? null), "publicNetworkAccess"), "Disabled"))) {
-            R.ln = F + 160;
+        R.ln = F + 142;
+        if (R.t(R.eq((S["value"] ?? null), "Disabled"))) {
+            R.ln = F + 142;
             R.pa(O, R.cmd(S, "New-Pass", ["Public network access disabled", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 161;
-        if (R.t(R.eq(R.m(R.m((S["p"] ?? null), "networkAcls"), "defaultAction"), "Deny"))) {
-            R.ln = F + 161;
-            R.pa(O, R.cmd(S, "New-Pass", ["Firewall default action Deny", (S["evidence"] ?? null)], null));
+        R.ln = F + 143;
+        if (R.t(R.eq((S["value"] ?? null), "SecuredByPerimeter"))) {
+            R.ln = F + 143;
+            R.pa(O, R.cmd(S, "New-Fail", ["Public network access secured by a network security perimeter, not disabled", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 162;
-        R.pa(O, R.cmd(S, "New-Fail", ["Firewall default action Allow", (S["evidence"] ?? null)], null));
-    })], false)], null));
-    R.ln = F + 166;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-STG-008", "Title", "Storage accounts are accessed through private endpoints", "Category", "Network security", "Service", "Storage", "Severity", "Low", "Description", "Checks for at least one approved private endpoint connection.", "Rationale", "Private endpoints keep traffic on the Microsoft backbone and let the public endpoint be disabled entirely.", "Remediation", "Create private endpoints for the used sub-resources (blob, file, queue, table, dfs) with private DNS zone integration.", "References", R.a("https://learn.microsoft.com/azure/storage/common/storage-private-endpoints"), "Defender", R.ht(["cdc78c07-02b0-4af0-1cb2-cb7c672a8b0a", "Storage account should use a private link connection"], false), "Policy", R.ht(["6edd7eda-6dd8-40f7-810d-67160c639cd9", "Storage accounts should use private link"], false), "ResourceTypes", (S["storagetype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $approved = @($Record.resource.properties.privateEndpointConnections | Where-Object { $_ -and $_.properties.privateLinkServiceConnectionState.status -eq 'Approved' })\n        $evidence = [ordered]@{ approvedPrivateEndpoints = $approved.Count }\n        if ($approved) { return New-Pass \"$($approved.Count) private endpoint(s)\" $evidence }\n        New-Fail 'No private endpoint' $evidence\n    " }, (S, O) => {
-        R.ln = F + 181;
-        S["approved"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.properties.privateLinkServiceConnectionState.status -eq 'Approved' " }, (S, O) => {
-            R.ln = F + 181;
-            R.e(O, (R.t((S["_"] ?? null)) && R.t(R.eq(R.m(R.m(R.m((S["_"] ?? null), "properties"), "privateLinkServiceConnectionState"), "status"), "Approved"))));
-        })], R.pi(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "privateEndpointConnections")));
-        R.ln = F + 182;
-        S["evidence"] = R.ht(["approvedPrivateEndpoints", R.m((S["approved"] ?? null), "Count")], true);
-        R.ln = F + 183;
-        if (R.t((S["approved"] ?? null))) {
-            R.ln = F + 183;
-            R.pa(O, R.cmd(S, "New-Pass", [("" + R.str(R.u(R.pi(R.m((S["approved"] ?? null), "Count")))) + " private endpoint(s)"), (S["evidence"] ?? null)], null));
-            return;
-        }
-        R.ln = F + 184;
-        R.pa(O, R.cmd(S, "New-Fail", ["No private endpoint", (S["evidence"] ?? null)], null));
-    })], false)], null));
-    R.ln = F + 188;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-STG-009", "Title", "Storage firewalls allow trusted Microsoft services", "Category", "Network security", "Service", "Storage", "Severity", "Low", "Description", "Checks that accounts with a restrictive firewall allow the trusted Microsoft services exception (bypass AzureServices), so platform services such as Backup, Defender and Monitor keep working.", "Rationale", "Without the exception, administrators tend to open the firewall entirely to make platform integrations work.", "Remediation", "Enable 'Allow Azure services on the trusted services list to access this storage account' (az storage account update --bypass AzureServices ...), or use resource instance rules.", "References", R.a("https://learn.microsoft.com/azure/storage/common/storage-network-security-trusted-azure-services"), "Defender", R.ht(["6bb1ea0d-9a68-9ca0-f16b-f77a4648a9f6", "Storage accounts should allow access from trusted Microsoft services"], false), "Policy", R.ht(["c9d007d0-c057-4772-b18c-01e546713bcd", "Storage accounts should allow access from trusted Microsoft services"], false), "ResourceTypes", (S["storagetype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $acls = $Record.resource.properties.networkAcls\n        $evidence = [ordered]@{ defaultAction = $acls.defaultAction; bypass = $acls.bypass }\n        if ($acls.defaultAction -ne 'Deny') { return New-NotApplicable 'The firewall does not restrict access' $evidence }\n        if ([string]$acls.bypass -match 'AzureServices') { return New-Pass 'Trusted Microsoft services allowed' $evidence }\n        New-Fail 'Trusted Microsoft services are not allowed' $evidence\n    " }, (S, O) => {
-        R.ln = F + 203;
-        S["acls"] = R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "networkAcls");
-        R.ln = F + 204;
-        S["evidence"] = R.ht(["defaultAction", R.m((S["acls"] ?? null), "defaultAction"), "bypass", R.m((S["acls"] ?? null), "bypass")], true);
-        R.ln = F + 205;
-        if (R.t(R.ne(R.m((S["acls"] ?? null), "defaultAction"), "Deny"))) {
-            R.ln = F + 205;
-            R.pa(O, R.cmd(S, "New-NotApplicable", ["The firewall does not restrict access", (S["evidence"] ?? null)], null));
-            return;
-        }
-        R.ln = F + 206;
-        if (R.t(R.match(S, R.c("string", R.m((S["acls"] ?? null), "bypass")), "AzureServices"))) {
-            R.ln = F + 206;
-            R.pa(O, R.cmd(S, "New-Pass", ["Trusted Microsoft services allowed", (S["evidence"] ?? null)], null));
-            return;
-        }
-        R.ln = F + 207;
-        R.pa(O, R.cmd(S, "New-Fail", ["Trusted Microsoft services are not allowed", (S["evidence"] ?? null)], null));
-    })], false)], null));
-    R.ln = F + 211;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-STG-010", "Version", 2, "Title", "Cross-tenant object replication is disabled", "Category", "Data protection", "Service", "Storage", "Severity", "Medium", "Description", "Checks that allowCrossTenantReplication is disabled.", "Rationale", "Cross-tenant object replication lets data be copied continuously to a storage account in another Entra tenant, which is an exfiltration path outside your control.", "Remediation", "Disable cross-tenant replication (az storage account update --allow-cross-tenant-replication false ...).", "References", R.a("https://learn.microsoft.com/azure/storage/blobs/object-replication-prevent-cross-tenant-policies"), "Policy", R.ht(["92a89a79-6c52-4a7e-a03f-61306fc49312", "Storage accounts should prevent cross tenant object replication"], false), "ResourceTypes", (S["storagetype"] ?? null), "Filter", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) Test-BlobCapable $Record " }, (S, O) => {
-        R.ln = F + 224;
-        R.pa(O, R.cmd(S, "Test-BlobCapable", [(S["record"] ?? null)], null));
-    }), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $value = $Record.resource.properties.allowCrossTenantReplication\n        $evidence = [ordered]@{ allowCrossTenantReplication = $value }\n        if ($value -eq $false) { return New-Pass 'Cross-tenant replication disabled' $evidence }\n        New-Fail $(if ($null -eq $value) { 'Setting not configured (allowed on older accounts)' } else { 'Cross-tenant replication allowed' }) $evidence\n    " }, (S, O) => {
-        R.ln = F + 227;
-        S["value"] = R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "allowCrossTenantReplication");
-        R.ln = F + 228;
-        S["evidence"] = R.ht(["allowCrossTenantReplication", (S["value"] ?? null)], true);
-        R.ln = F + 229;
-        if (R.t(R.eq((S["value"] ?? null), false))) {
-            R.ln = F + 229;
-            R.pa(O, R.cmd(S, "New-Pass", ["Cross-tenant replication disabled", (S["evidence"] ?? null)], null));
-            return;
-        }
-        R.ln = F + 230;
+        R.ln = F + 144;
         R.pa(O, R.cmd(S, "New-Fail", [(() => {
             const v3 = [];
-            R.ln = F + 230;
+            R.ln = F + 144;
             if (R.t(R.eq(null, (S["value"] ?? null)))) {
-                R.ln = F + 230;
-                R.e(v3, "Setting not configured (allowed on older accounts)");
+                R.ln = F + 144;
+                R.e(v3, "Public network access not set (enabled)");
             } else {
-                R.ln = F + 230;
-                R.e(v3, "Cross-tenant replication allowed");
+                R.ln = F + 144;
+                R.e(v3, "Public network access enabled");
             }
             return R.u(v3);
         })(), (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 234;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-STG-011", "Title", "The Azure portal defaults to Microsoft Entra authorization", "Category", "Identity management", "Service", "Storage", "Severity", "Low", "Description", "Checks defaultToOAuthAuthentication, which makes the portal use Entra ID (RBAC) instead of the account key to access data.", "Rationale", "Portal access with the account key bypasses data plane RBAC and is not attributable to a user in the logs.", "Remediation", "Enable 'Default to Microsoft Entra authorization in the Azure portal' (az storage account update --set defaultToOAuthAuthentication=true ...).", "ResourceTypes", (S["storagetype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $value = $Record.resource.properties.defaultToOAuthAuthentication\n        $evidence = [ordered]@{ defaultToOAuthAuthentication = $value }\n        if ($value -eq $true) { return New-Pass 'Portal defaults to Entra authorization' $evidence }\n        New-Fail 'Portal uses the account key by default' $evidence\n    " }, (S, O) => {
-        R.ln = F + 246;
-        S["value"] = R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "defaultToOAuthAuthentication");
-        R.ln = F + 247;
-        S["evidence"] = R.ht(["defaultToOAuthAuthentication", (S["value"] ?? null)], true);
-        R.ln = F + 248;
-        if (R.t(R.eq((S["value"] ?? null), true))) {
-            R.ln = F + 248;
-            R.pa(O, R.cmd(S, "New-Pass", ["Portal defaults to Entra authorization", (S["evidence"] ?? null)], null));
+    R.ln = F + 148;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-STG-007", "Version", 2, "Title", "Storage account firewalls deny access by default", "Category", "Network security", "Service", "Storage", "Severity", "High", "Description", "Checks that the storage firewall default action is Deny, or that public network access is Disabled or SecuredByPerimeter, which restrict public access whatever the stored default action.", "Rationale", "With default action Allow, the public endpoint accepts traffic from every network, so authentication is the only barrier.", "Remediation", "Set the default network action to Deny and allow only required virtual networks, IP ranges and resource instances (az storage account update --default-action Deny ...).", "References", R.a("https://learn.microsoft.com/azure/storage/common/storage-network-security"), "Defender", R.ht(["45d313c3-3fca-5040-035f-d61928366d31", "Access to storage accounts with firewall and virtual network configurations should be restricted"], false), "Policy", R.ht(["34c877ad-507e-4c82-993e-3452a6e0ad3c", "Storage accounts should restrict network access"], false), "ResourceTypes", (S["storagetype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $p = $Record.resource.properties\n        $evidence = [ordered]@{ publicNetworkAccess = $p.publicNetworkAccess; defaultAction = $p.networkAcls.defaultAction; ipRules = @($p.networkAcls.ipRules).Count; virtualNetworkRules = @($p.networkAcls.virtualNetworkRules).Count }\n        if ($p.publicNetworkAccess -in 'Disabled', 'SecuredByPerimeter') { return New-Pass \"Public network access $($p.publicNetworkAccess)\" $evidence }\n        if ($p.networkAcls.defaultAction -eq 'Deny') { return New-Pass 'Firewall default action Deny' $evidence }\n        New-Fail 'Firewall default action Allow' $evidence\n    " }, (S, O) => {
+        R.ln = F + 164;
+        S["p"] = R.m(R.m((S["record"] ?? null), "resource"), "properties");
+        R.ln = F + 165;
+        S["evidence"] = R.ht(["publicNetworkAccess", R.m((S["p"] ?? null), "publicNetworkAccess"), "defaultAction", R.m(R.m((S["p"] ?? null), "networkAcls"), "defaultAction"), "ipRules", R.m(R.a(R.m(R.m((S["p"] ?? null), "networkAcls"), "ipRules")), "Count"), "virtualNetworkRules", R.m(R.a(R.m(R.m((S["p"] ?? null), "networkAcls"), "virtualNetworkRules")), "Count")], true);
+        R.ln = F + 166;
+        if (R.t(R.in(R.m((S["p"] ?? null), "publicNetworkAccess"), [R.v("Disabled"), R.v("SecuredByPerimeter")]))) {
+            R.ln = F + 166;
+            R.pa(O, R.cmd(S, "New-Pass", [("Public network access " + R.str(R.u(R.pi(R.m((S["p"] ?? null), "publicNetworkAccess"))))), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 249;
-        R.pa(O, R.cmd(S, "New-Fail", ["Portal uses the account key by default", (S["evidence"] ?? null)], null));
+        R.ln = F + 167;
+        if (R.t(R.eq(R.m(R.m((S["p"] ?? null), "networkAcls"), "defaultAction"), "Deny"))) {
+            R.ln = F + 167;
+            R.pa(O, R.cmd(S, "New-Pass", ["Firewall default action Deny", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 168;
+        R.pa(O, R.cmd(S, "New-Fail", ["Firewall default action Allow", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 253;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-STG-012", "Title", "Storage account key rotation reminders are configured", "Category", "Data protection", "Service", "Storage", "Severity", "Low", "Description", "Checks for a key expiration policy (keyPolicy.keyExpirationPeriodInDays) on accounts that allow shared key access.", "Rationale", "A key expiration policy flags keys that are due for rotation, so long lived keys become visible.", "Remediation", "Set a key expiration policy of 90 days or less (az storage account update --key-exp-days 90 ...) and rotate keys before they expire.", "References", R.a("https://learn.microsoft.com/azure/storage/common/storage-account-keys-manage"), "Defender", R.ht(["bdd60d05-d94b-268c-6298-fdc1597ca0e2", "Storage account keys should not be expired"], false), "Policy", R.ht(["044985bb-afe1-42cd-8a36-9d5d42424537", "Storage account keys should not be expired"], false), "ResourceTypes", (S["storagetype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $days = $Record.resource.properties.keyPolicy.keyExpirationPeriodInDays\n        $evidence = [ordered]@{ keyExpirationPeriodInDays = $days; allowSharedKeyAccess = $Record.resource.properties.allowSharedKeyAccess }\n        if (Test-SharedKeyDisabled $Record) { return New-Pass 'Shared key access is disabled, keys cannot be used' $evidence }\n        if ($days -gt 0) { return New-Pass \"Key expiration policy of $days days\" $evidence }\n        New-Fail 'No key expiration policy' $evidence\n    " }, (S, O) => {
-        R.ln = F + 268;
-        S["days"] = R.m(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "keyPolicy"), "keyExpirationPeriodInDays");
-        R.ln = F + 269;
-        S["evidence"] = R.ht(["keyExpirationPeriodInDays", (S["days"] ?? null), "allowSharedKeyAccess", R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "allowSharedKeyAccess")], true);
-        R.ln = F + 270;
-        if (R.t(R.u(R.cmd(S, "Test-SharedKeyDisabled", [(S["record"] ?? null)], null)))) {
-            R.ln = F + 270;
-            R.pa(O, R.cmd(S, "New-Pass", ["Shared key access is disabled, keys cannot be used", (S["evidence"] ?? null)], null));
+    R.ln = F + 172;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-STG-008", "Title", "Storage accounts are accessed through private endpoints", "Category", "Network security", "Service", "Storage", "Severity", "Low", "Description", "Checks for at least one approved private endpoint connection.", "Rationale", "Private endpoints keep traffic on the Microsoft backbone and let the public endpoint be disabled entirely.", "Remediation", "Create private endpoints for the used sub-resources (blob, file, queue, table, dfs) with private DNS zone integration.", "References", R.a("https://learn.microsoft.com/azure/storage/common/storage-private-endpoints"), "Defender", R.ht(["cdc78c07-02b0-4af0-1cb2-cb7c672a8b0a", "Storage account should use a private link connection"], false), "Policy", R.ht(["6edd7eda-6dd8-40f7-810d-67160c639cd9", "Storage accounts should use private link"], false), "ResourceTypes", (S["storagetype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $approved = @($Record.resource.properties.privateEndpointConnections | Where-Object { $_ -and $_.properties.privateLinkServiceConnectionState.status -eq 'Approved' })\n        $evidence = [ordered]@{ approvedPrivateEndpoints = $approved.Count }\n        if ($approved) { return New-Pass \"$($approved.Count) private endpoint(s)\" $evidence }\n        New-Fail 'No private endpoint' $evidence\n    " }, (S, O) => {
+        R.ln = F + 187;
+        S["approved"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.properties.privateLinkServiceConnectionState.status -eq 'Approved' " }, (S, O) => {
+            R.ln = F + 187;
+            R.e(O, (R.t((S["_"] ?? null)) && R.t(R.eq(R.m(R.m(R.m((S["_"] ?? null), "properties"), "privateLinkServiceConnectionState"), "status"), "Approved"))));
+        })], R.pi(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "privateEndpointConnections")));
+        R.ln = F + 188;
+        S["evidence"] = R.ht(["approvedPrivateEndpoints", R.m((S["approved"] ?? null), "Count")], true);
+        R.ln = F + 189;
+        if (R.t((S["approved"] ?? null))) {
+            R.ln = F + 189;
+            R.pa(O, R.cmd(S, "New-Pass", [("" + R.str(R.u(R.pi(R.m((S["approved"] ?? null), "Count")))) + " private endpoint(s)"), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 271;
-        if (R.t(R.gt((S["days"] ?? null), 0))) {
-            R.ln = F + 271;
-            R.pa(O, R.cmd(S, "New-Pass", [("Key expiration policy of " + R.str((S["days"] ?? null)) + " days"), (S["evidence"] ?? null)], null));
-            return;
-        }
-        R.ln = F + 272;
-        R.pa(O, R.cmd(S, "New-Fail", ["No key expiration policy", (S["evidence"] ?? null)], null));
+        R.ln = F + 190;
+        R.pa(O, R.cmd(S, "New-Fail", ["No private endpoint", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 276;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-STG-013", "Title", "Storage account keys were regenerated within 90 days", "Category", "Data protection", "Service", "Storage", "Severity", "Medium", "Description", "Checks the creation time of both access keys on accounts that allow shared key access.", "Rationale", "Access keys are full access credentials. Regular regeneration limits how long a leaked key remains usable.", "Remediation", "Regenerate the keys (az storage account keys renew --key primary|secondary ...) after updating clients, or disable shared key access.", "References", R.a("https://learn.microsoft.com/azure/storage/common/storage-account-keys-manage"), "ResourceTypes", (S["storagetype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $times = $Record.resource.properties.keyCreationTime\n        $evidence = [ordered]@{ key1Created = Format-UtcDate $times.key1; key2Created = Format-UtcDate $times.key2 }\n        if (Test-SharedKeyDisabled $Record) { return New-Pass 'Shared key access is disabled, keys cannot be used' $evidence }\n        if (-not $times.key1 -or -not $times.key2) { return New-Fail 'Key creation time unknown (keys not regenerated since tracking started)' $evidence }\n        $oldest = @((Get-AgeInDays $times.key1), (Get-AgeInDays $times.key2)) | Sort-Object -Descending | Select-Object -First 1\n        $evidence.oldestKeyAgeInDays = $oldest\n        if ($oldest -le 90) { return New-Pass 'Both keys regenerated within 90 days' $evidence }\n        New-Fail \"Oldest key is $oldest days old\" $evidence\n    " }, (S, O) => {
-        R.ln = F + 289;
-        S["times"] = R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "keyCreationTime");
-        R.ln = F + 290;
-        S["evidence"] = R.ht(["key1Created", R.u(R.cmd(S, "Format-UtcDate", [R.m((S["times"] ?? null), "key1")], null)), "key2Created", R.u(R.cmd(S, "Format-UtcDate", [R.m((S["times"] ?? null), "key2")], null))], true);
-        R.ln = F + 291;
-        if (R.t(R.u(R.cmd(S, "Test-SharedKeyDisabled", [(S["record"] ?? null)], null)))) {
-            R.ln = F + 291;
-            R.pa(O, R.cmd(S, "New-Pass", ["Shared key access is disabled, keys cannot be used", (S["evidence"] ?? null)], null));
+    R.ln = F + 194;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-STG-009", "Title", "Storage firewalls allow trusted Microsoft services", "Category", "Network security", "Service", "Storage", "Severity", "Low", "Description", "Checks that accounts with a restrictive firewall allow the trusted Microsoft services exception (bypass AzureServices), so platform services such as Backup, Defender and Monitor keep working.", "Rationale", "Without the exception, administrators tend to open the firewall entirely to make platform integrations work.", "Remediation", "Enable 'Allow Azure services on the trusted services list to access this storage account' (az storage account update --bypass AzureServices ...), or use resource instance rules.", "References", R.a("https://learn.microsoft.com/azure/storage/common/storage-network-security-trusted-azure-services"), "Defender", R.ht(["6bb1ea0d-9a68-9ca0-f16b-f77a4648a9f6", "Storage accounts should allow access from trusted Microsoft services"], false), "Policy", R.ht(["c9d007d0-c057-4772-b18c-01e546713bcd", "Storage accounts should allow access from trusted Microsoft services"], false), "ResourceTypes", (S["storagetype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $acls = $Record.resource.properties.networkAcls\n        $evidence = [ordered]@{ defaultAction = $acls.defaultAction; bypass = $acls.bypass }\n        if ($acls.defaultAction -ne 'Deny') { return New-NotApplicable 'The firewall does not restrict access' $evidence }\n        if ([string]$acls.bypass -match 'AzureServices') { return New-Pass 'Trusted Microsoft services allowed' $evidence }\n        New-Fail 'Trusted Microsoft services are not allowed' $evidence\n    " }, (S, O) => {
+        R.ln = F + 209;
+        S["acls"] = R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "networkAcls");
+        R.ln = F + 210;
+        S["evidence"] = R.ht(["defaultAction", R.m((S["acls"] ?? null), "defaultAction"), "bypass", R.m((S["acls"] ?? null), "bypass")], true);
+        R.ln = F + 211;
+        if (R.t(R.ne(R.m((S["acls"] ?? null), "defaultAction"), "Deny"))) {
+            R.ln = F + 211;
+            R.pa(O, R.cmd(S, "New-NotApplicable", ["The firewall does not restrict access", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 292;
-        if ((!R.t(R.m((S["times"] ?? null), "key1")) || !R.t(R.m((S["times"] ?? null), "key2")))) {
-            R.ln = F + 292;
-            R.pa(O, R.cmd(S, "New-Fail", ["Key creation time unknown (keys not regenerated since tracking started)", (S["evidence"] ?? null)], null));
+        R.ln = F + 212;
+        if (R.t(R.match(S, R.c("string", R.m((S["acls"] ?? null), "bypass")), "AzureServices"))) {
+            R.ln = F + 212;
+            R.pa(O, R.cmd(S, "New-Pass", ["Trusted Microsoft services allowed", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 293;
-        S["oldest"] = R.u(R.cmd(S, "Select-Object", [R.np("First"), 1], R.cmd(S, "Sort-Object", [R.np("Descending")], R.pi(R.a([R.v(R.u(R.cmd(S, "Get-AgeInDays", [R.m((S["times"] ?? null), "key1")], null))), R.v(R.u(R.cmd(S, "Get-AgeInDays", [R.m((S["times"] ?? null), "key2")], null)))])))));
-        R.ln = F + 294;
-        R.sm((S["evidence"] ?? null), "oldestKeyAgeInDays", (S["oldest"] ?? null));
-        R.ln = F + 295;
-        if (R.t(R.le((S["oldest"] ?? null), 90))) {
-            R.ln = F + 295;
-            R.pa(O, R.cmd(S, "New-Pass", ["Both keys regenerated within 90 days", (S["evidence"] ?? null)], null));
-            return;
-        }
-        R.ln = F + 296;
-        R.pa(O, R.cmd(S, "New-Fail", [("Oldest key is " + R.str((S["oldest"] ?? null)) + " days old"), (S["evidence"] ?? null)], null));
+        R.ln = F + 213;
+        R.pa(O, R.cmd(S, "New-Fail", ["Trusted Microsoft services are not allowed", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 300;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-STG-014", "Title", "Blob soft delete is enabled", "Category", "Backup and recovery", "Service", "Storage", "Severity", "Medium", "Description", "Checks that blob soft delete is enabled with a retention of at least 7 days.", "Rationale", "Soft delete allows recovery of blobs that were deleted or overwritten by mistake or by an attacker (for example ransomware deleting data).", "Remediation", "Enable blob soft delete with 7 to 365 days retention (az storage account blob-service-properties update --enable-delete-retention true --delete-retention-days 14 ...).", "References", R.a("https://learn.microsoft.com/azure/storage/blobs/soft-delete-blob-overview"), "ResourceTypes", (S["storagetype"] ?? null), "Filter", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) Test-BlobCapable $Record " }, (S, O) => {
-        R.ln = F + 311;
-        R.pa(O, R.cmd(S, "Test-BlobCapable", [(S["record"] ?? null)], null));
-    }), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not (Test-ChildCollected $Record 'blobServices/default')) { return New-Unknown 'Blob service properties could not be read' }\n        $policy = (Get-Child $Record 'blobServices/default').properties.deleteRetentionPolicy\n        $evidence = [ordered]@{ enabled = [bool]$policy.enabled; days = $policy.days }\n        if ($policy.enabled -and $policy.days -ge 7) { return New-Pass \"Blob soft delete for $($policy.days) days\" $evidence }\n        New-Fail $(if ($policy.enabled) { \"Blob soft delete retention only $($policy.days) days\" } else { 'Blob soft delete disabled' }) $evidence\n    " }, (S, O) => {
-        R.ln = F + 314;
-        if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "blobServices/default"], null)))) {
-            R.ln = F + 314;
-            R.pa(O, R.cmd(S, "New-Unknown", ["Blob service properties could not be read"], null));
+    R.ln = F + 217;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-STG-010", "Version", 3, "Title", "Cross-tenant object replication is disabled", "Category", "Data protection", "Service", "Storage", "Severity", "Medium", "Description", "Checks that allowCrossTenantReplication is false on every storage account. Not set fails, as accounts created before 15 December 2023 then allow it.", "Rationale", "Cross-tenant object replication lets data be copied continuously to a storage account in another Entra tenant, which is an exfiltration path outside your control.", "Remediation", "Disable cross-tenant replication (az storage account update --allow-cross-tenant-replication false ...).", "References", R.a("https://learn.microsoft.com/azure/storage/blobs/object-replication-prevent-cross-tenant-policies"), "Policy", R.ht(["92a89a79-6c52-4a7e-a03f-61306fc49312", "Storage accounts should prevent cross tenant object replication"], false), "ResourceTypes", (S["storagetype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $value = $Record.resource.properties.allowCrossTenantReplication\n        $evidence = [ordered]@{ allowCrossTenantReplication = $value }\n        if ($value -eq $false) { return New-Pass 'Cross-tenant replication disabled' $evidence }\n        New-Fail $(if ($null -eq $value) { 'Setting not configured (allowed on older accounts)' } else { 'Cross-tenant replication allowed' }) $evidence\n    " }, (S, O) => {
+        R.ln = F + 232;
+        S["value"] = R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "allowCrossTenantReplication");
+        R.ln = F + 233;
+        S["evidence"] = R.ht(["allowCrossTenantReplication", (S["value"] ?? null)], true);
+        R.ln = F + 234;
+        if (R.t(R.eq((S["value"] ?? null), false))) {
+            R.ln = F + 234;
+            R.pa(O, R.cmd(S, "New-Pass", ["Cross-tenant replication disabled", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 315;
-        S["policy"] = R.m(R.m(R.u(R.cmd(S, "Get-Child", [(S["record"] ?? null), "blobServices/default"], null)), "properties"), "deleteRetentionPolicy");
-        R.ln = F + 316;
-        S["evidence"] = R.ht(["enabled", R.c("bool", R.m((S["policy"] ?? null), "enabled")), "days", R.m((S["policy"] ?? null), "days")], true);
-        R.ln = F + 317;
-        if ((R.t(R.m((S["policy"] ?? null), "enabled")) && R.t(R.ge(R.m((S["policy"] ?? null), "days"), 7)))) {
-            R.ln = F + 317;
-            R.pa(O, R.cmd(S, "New-Pass", [("Blob soft delete for " + R.str(R.u(R.pi(R.m((S["policy"] ?? null), "days")))) + " days"), (S["evidence"] ?? null)], null));
-            return;
-        }
-        R.ln = F + 318;
+        R.ln = F + 235;
         R.pa(O, R.cmd(S, "New-Fail", [(() => {
             const v4 = [];
-            R.ln = F + 318;
-            if (R.t(R.m((S["policy"] ?? null), "enabled"))) {
-                R.ln = F + 318;
-                R.e(v4, ("Blob soft delete retention only " + R.str(R.u(R.pi(R.m((S["policy"] ?? null), "days")))) + " days"));
+            R.ln = F + 235;
+            if (R.t(R.eq(null, (S["value"] ?? null)))) {
+                R.ln = F + 235;
+                R.e(v4, "Setting not configured (allowed on older accounts)");
             } else {
-                R.ln = F + 318;
-                R.e(v4, "Blob soft delete disabled");
+                R.ln = F + 235;
+                R.e(v4, "Cross-tenant replication allowed");
             }
             return R.u(v4);
         })(), (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 322;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-STG-015", "Title", "Container soft delete is enabled", "Category", "Backup and recovery", "Service", "Storage", "Severity", "Medium", "Description", "Checks that container soft delete is enabled with a retention of at least 7 days.", "Rationale", "Deleting a container removes all of its blobs at once; container soft delete allows restoring it.", "Remediation", "Enable container soft delete (az storage account blob-service-properties update --enable-container-delete-retention true --container-delete-retention-days 14 ...).", "References", R.a("https://learn.microsoft.com/azure/storage/blobs/soft-delete-container-overview"), "ResourceTypes", (S["storagetype"] ?? null), "Filter", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) Test-BlobCapable $Record " }, (S, O) => {
-        R.ln = F + 333;
+    R.ln = F + 239;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-STG-011", "Title", "The Azure portal defaults to Microsoft Entra authorization", "Category", "Identity management", "Service", "Storage", "Severity", "Low", "Description", "Checks defaultToOAuthAuthentication, which makes the portal use Entra ID (RBAC) instead of the account key to access data.", "Rationale", "Portal access with the account key bypasses data plane RBAC and is not attributable to a user in the logs.", "Remediation", "Enable 'Default to Microsoft Entra authorization in the Azure portal' (az storage account update --set defaultToOAuthAuthentication=true ...).", "ResourceTypes", (S["storagetype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $value = $Record.resource.properties.defaultToOAuthAuthentication\n        $evidence = [ordered]@{ defaultToOAuthAuthentication = $value }\n        if ($value -eq $true) { return New-Pass 'Portal defaults to Entra authorization' $evidence }\n        New-Fail 'Portal uses the account key by default' $evidence\n    " }, (S, O) => {
+        R.ln = F + 251;
+        S["value"] = R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "defaultToOAuthAuthentication");
+        R.ln = F + 252;
+        S["evidence"] = R.ht(["defaultToOAuthAuthentication", (S["value"] ?? null)], true);
+        R.ln = F + 253;
+        if (R.t(R.eq((S["value"] ?? null), true))) {
+            R.ln = F + 253;
+            R.pa(O, R.cmd(S, "New-Pass", ["Portal defaults to Entra authorization", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 254;
+        R.pa(O, R.cmd(S, "New-Fail", ["Portal uses the account key by default", (S["evidence"] ?? null)], null));
+    })], false)], null));
+    R.ln = F + 258;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-STG-012", "Version", 2, "Title", "Storage account key rotation reminders are configured", "Category", "Data protection", "Service", "Storage", "Severity", "Low", "Description", "Checks for a key expiration policy (keyPolicy.keyExpirationPeriodInDays) on every storage account. Accounts with shared key access disabled are included: their keys still exist and work again once shared key access is enabled.", "Rationale", "A key expiration policy flags keys that are due for rotation, so long lived keys become visible.", "Remediation", "Set a key expiration policy of 90 days or less (az storage account update --key-exp-days 90 ...) and rotate keys before they expire.", "References", R.a("https://learn.microsoft.com/azure/storage/common/storage-account-keys-manage"), "Defender", R.ht(["bdd60d05-d94b-268c-6298-fdc1597ca0e2", "Storage account keys should not be expired"], false), "Policy", R.ht(["044985bb-afe1-42cd-8a36-9d5d42424537", "Storage account keys should not be expired"], false), "ResourceTypes", (S["storagetype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $days = $Record.resource.properties.keyPolicy.keyExpirationPeriodInDays\n        $evidence = [ordered]@{ keyExpirationPeriodInDays = $days; allowSharedKeyAccess = $Record.resource.properties.allowSharedKeyAccess }\n        if ($days -gt 0) { return New-Pass \"Key expiration policy of $days days\" $evidence }\n        New-Fail 'No key expiration policy' $evidence\n    " }, (S, O) => {
+        R.ln = F + 274;
+        S["days"] = R.m(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "keyPolicy"), "keyExpirationPeriodInDays");
+        R.ln = F + 275;
+        S["evidence"] = R.ht(["keyExpirationPeriodInDays", (S["days"] ?? null), "allowSharedKeyAccess", R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "allowSharedKeyAccess")], true);
+        R.ln = F + 276;
+        if (R.t(R.gt((S["days"] ?? null), 0))) {
+            R.ln = F + 276;
+            R.pa(O, R.cmd(S, "New-Pass", [("Key expiration policy of " + R.str((S["days"] ?? null)) + " days"), (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 277;
+        R.pa(O, R.cmd(S, "New-Fail", ["No key expiration policy", (S["evidence"] ?? null)], null));
+    })], false)], null));
+    R.ln = F + 281;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-STG-013", "Version", 2, "Title", "Storage account keys were regenerated within 90 days", "Category", "Data protection", "Service", "Storage", "Severity", "Medium", "Description", "Checks the creation time of both access keys on every storage account, including accounts with shared key access disabled, whose keys work again once it is enabled.", "Rationale", "Access keys are full access credentials. Regular regeneration limits how long a leaked key remains usable.", "Remediation", "Regenerate the keys (az storage account keys renew --key primary|secondary ...) after updating clients, or disable shared key access.", "References", R.a("https://learn.microsoft.com/azure/storage/common/storage-account-keys-manage"), "ResourceTypes", (S["storagetype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $times = $Record.resource.properties.keyCreationTime\n        $evidence = [ordered]@{ key1Created = Format-UtcDate $times.key1; key2Created = Format-UtcDate $times.key2; allowSharedKeyAccess = $Record.resource.properties.allowSharedKeyAccess }\n        if (-not $times.key1 -or -not $times.key2) { return New-Fail 'Key creation time unknown (keys not regenerated since tracking started)' $evidence }\n        $oldest = @((Get-AgeInDays $times.key1), (Get-AgeInDays $times.key2)) | Sort-Object -Descending | Select-Object -First 1\n        $evidence.oldestKeyAgeInDays = $oldest\n        if ($oldest -le 90) { return New-Pass 'Both keys regenerated within 90 days' $evidence }\n        New-Fail \"Oldest key is $oldest days old\" $evidence\n    " }, (S, O) => {
+        R.ln = F + 295;
+        S["times"] = R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "keyCreationTime");
+        R.ln = F + 296;
+        S["evidence"] = R.ht(["key1Created", R.u(R.cmd(S, "Format-UtcDate", [R.m((S["times"] ?? null), "key1")], null)), "key2Created", R.u(R.cmd(S, "Format-UtcDate", [R.m((S["times"] ?? null), "key2")], null)), "allowSharedKeyAccess", R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "allowSharedKeyAccess")], true);
+        R.ln = F + 297;
+        if ((!R.t(R.m((S["times"] ?? null), "key1")) || !R.t(R.m((S["times"] ?? null), "key2")))) {
+            R.ln = F + 297;
+            R.pa(O, R.cmd(S, "New-Fail", ["Key creation time unknown (keys not regenerated since tracking started)", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 298;
+        S["oldest"] = R.u(R.cmd(S, "Select-Object", [R.np("First"), 1], R.cmd(S, "Sort-Object", [R.np("Descending")], R.pi(R.a([R.v(R.u(R.cmd(S, "Get-AgeInDays", [R.m((S["times"] ?? null), "key1")], null))), R.v(R.u(R.cmd(S, "Get-AgeInDays", [R.m((S["times"] ?? null), "key2")], null)))])))));
+        R.ln = F + 299;
+        R.sm((S["evidence"] ?? null), "oldestKeyAgeInDays", (S["oldest"] ?? null));
+        R.ln = F + 300;
+        if (R.t(R.le((S["oldest"] ?? null), 90))) {
+            R.ln = F + 300;
+            R.pa(O, R.cmd(S, "New-Pass", ["Both keys regenerated within 90 days", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 301;
+        R.pa(O, R.cmd(S, "New-Fail", [("Oldest key is " + R.str((S["oldest"] ?? null)) + " days old"), (S["evidence"] ?? null)], null));
+    })], false)], null));
+    R.ln = F + 305;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-STG-014", "Title", "Blob soft delete is enabled", "Category", "Backup and recovery", "Service", "Storage", "Severity", "Medium", "Description", "Checks that blob soft delete is enabled with a retention of at least 7 days.", "Rationale", "Soft delete allows recovery of blobs that were deleted or overwritten by mistake or by an attacker (for example ransomware deleting data).", "Remediation", "Enable blob soft delete with 7 to 365 days retention (az storage account blob-service-properties update --enable-delete-retention true --delete-retention-days 14 ...).", "References", R.a("https://learn.microsoft.com/azure/storage/blobs/soft-delete-blob-overview"), "ResourceTypes", (S["storagetype"] ?? null), "Filter", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) Test-BlobCapable $Record " }, (S, O) => {
+        R.ln = F + 316;
         R.pa(O, R.cmd(S, "Test-BlobCapable", [(S["record"] ?? null)], null));
-    }), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not (Test-ChildCollected $Record 'blobServices/default')) { return New-Unknown 'Blob service properties could not be read' }\n        $policy = (Get-Child $Record 'blobServices/default').properties.containerDeleteRetentionPolicy\n        $evidence = [ordered]@{ enabled = [bool]$policy.enabled; days = $policy.days }\n        if ($policy.enabled -and $policy.days -ge 7) { return New-Pass \"Container soft delete for $($policy.days) days\" $evidence }\n        New-Fail $(if ($policy.enabled) { \"Container soft delete retention only $($policy.days) days\" } else { 'Container soft delete disabled' }) $evidence\n    " }, (S, O) => {
-        R.ln = F + 336;
+    }), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not (Test-ChildCollected $Record 'blobServices/default')) { return New-Unknown 'Blob service properties could not be read' }\n        $policy = (Get-Child $Record 'blobServices/default').properties.deleteRetentionPolicy\n        $evidence = [ordered]@{ enabled = [bool]$policy.enabled; days = $policy.days }\n        if ($policy.enabled -and $policy.days -ge 7) { return New-Pass \"Blob soft delete for $($policy.days) days\" $evidence }\n        New-Fail $(if ($policy.enabled) { \"Blob soft delete retention only $($policy.days) days\" } else { 'Blob soft delete disabled' }) $evidence\n    " }, (S, O) => {
+        R.ln = F + 319;
         if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "blobServices/default"], null)))) {
-            R.ln = F + 336;
+            R.ln = F + 319;
             R.pa(O, R.cmd(S, "New-Unknown", ["Blob service properties could not be read"], null));
             return;
         }
-        R.ln = F + 337;
-        S["policy"] = R.m(R.m(R.u(R.cmd(S, "Get-Child", [(S["record"] ?? null), "blobServices/default"], null)), "properties"), "containerDeleteRetentionPolicy");
-        R.ln = F + 338;
+        R.ln = F + 320;
+        S["policy"] = R.m(R.m(R.u(R.cmd(S, "Get-Child", [(S["record"] ?? null), "blobServices/default"], null)), "properties"), "deleteRetentionPolicy");
+        R.ln = F + 321;
         S["evidence"] = R.ht(["enabled", R.c("bool", R.m((S["policy"] ?? null), "enabled")), "days", R.m((S["policy"] ?? null), "days")], true);
-        R.ln = F + 339;
+        R.ln = F + 322;
         if ((R.t(R.m((S["policy"] ?? null), "enabled")) && R.t(R.ge(R.m((S["policy"] ?? null), "days"), 7)))) {
-            R.ln = F + 339;
-            R.pa(O, R.cmd(S, "New-Pass", [("Container soft delete for " + R.str(R.u(R.pi(R.m((S["policy"] ?? null), "days")))) + " days"), (S["evidence"] ?? null)], null));
+            R.ln = F + 322;
+            R.pa(O, R.cmd(S, "New-Pass", [("Blob soft delete for " + R.str(R.u(R.pi(R.m((S["policy"] ?? null), "days")))) + " days"), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 340;
+        R.ln = F + 323;
         R.pa(O, R.cmd(S, "New-Fail", [(() => {
             const v5 = [];
-            R.ln = F + 340;
+            R.ln = F + 323;
             if (R.t(R.m((S["policy"] ?? null), "enabled"))) {
-                R.ln = F + 340;
-                R.e(v5, ("Container soft delete retention only " + R.str(R.u(R.pi(R.m((S["policy"] ?? null), "days")))) + " days"));
+                R.ln = F + 323;
+                R.e(v5, ("Blob soft delete retention only " + R.str(R.u(R.pi(R.m((S["policy"] ?? null), "days")))) + " days"));
             } else {
-                R.ln = F + 340;
-                R.e(v5, "Container soft delete disabled");
+                R.ln = F + 323;
+                R.e(v5, "Blob soft delete disabled");
             }
             return R.u(v5);
         })(), (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 344;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-STG-016", "Title", "Blob versioning is enabled", "Category", "Backup and recovery", "Service", "Storage", "Severity", "Low", "Description", "Checks that blob versioning is enabled (not applicable to accounts with a hierarchical namespace).", "Rationale", "Versioning keeps previous versions of overwritten blobs, which protects against accidental and malicious modification such as ransomware encryption.", "Remediation", "Enable versioning (az storage account blob-service-properties update --enable-versioning true ...) with a lifecycle rule to delete old versions.", "References", R.a("https://learn.microsoft.com/azure/storage/blobs/versioning-overview"), "ResourceTypes", (S["storagetype"] ?? null), "Filter", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) (Test-BlobCapable $Record) -and -not $Record.resource.properties.isHnsEnabled " }, (S, O) => {
-        R.ln = F + 355;
-        R.e(O, (R.t(R.u(R.cmd(S, "Test-BlobCapable", [(S["record"] ?? null)], null))) && !R.t(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "isHnsEnabled"))));
-    }), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not (Test-ChildCollected $Record 'blobServices/default')) { return New-Unknown 'Blob service properties could not be read' }\n        $enabled = [bool](Get-Child $Record 'blobServices/default').properties.isVersioningEnabled\n        if ($enabled) { return New-Pass 'Versioning enabled' ([ordered]@{ isVersioningEnabled = $true }) }\n        New-Fail 'Versioning disabled' ([ordered]@{ isVersioningEnabled = $false })\n    " }, (S, O) => {
-        R.ln = F + 358;
+    R.ln = F + 327;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-STG-015", "Title", "Container soft delete is enabled", "Category", "Backup and recovery", "Service", "Storage", "Severity", "Medium", "Description", "Checks that container soft delete is enabled with a retention of at least 7 days.", "Rationale", "Deleting a container removes all of its blobs at once; container soft delete allows restoring it.", "Remediation", "Enable container soft delete (az storage account blob-service-properties update --enable-container-delete-retention true --container-delete-retention-days 14 ...).", "References", R.a("https://learn.microsoft.com/azure/storage/blobs/soft-delete-container-overview"), "ResourceTypes", (S["storagetype"] ?? null), "Filter", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) Test-BlobCapable $Record " }, (S, O) => {
+        R.ln = F + 338;
+        R.pa(O, R.cmd(S, "Test-BlobCapable", [(S["record"] ?? null)], null));
+    }), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not (Test-ChildCollected $Record 'blobServices/default')) { return New-Unknown 'Blob service properties could not be read' }\n        $policy = (Get-Child $Record 'blobServices/default').properties.containerDeleteRetentionPolicy\n        $evidence = [ordered]@{ enabled = [bool]$policy.enabled; days = $policy.days }\n        if ($policy.enabled -and $policy.days -ge 7) { return New-Pass \"Container soft delete for $($policy.days) days\" $evidence }\n        New-Fail $(if ($policy.enabled) { \"Container soft delete retention only $($policy.days) days\" } else { 'Container soft delete disabled' }) $evidence\n    " }, (S, O) => {
+        R.ln = F + 341;
         if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "blobServices/default"], null)))) {
-            R.ln = F + 358;
+            R.ln = F + 341;
             R.pa(O, R.cmd(S, "New-Unknown", ["Blob service properties could not be read"], null));
             return;
         }
-        R.ln = F + 359;
-        S["enabled"] = R.c("bool", R.m(R.m(R.u(R.cmd(S, "Get-Child", [(S["record"] ?? null), "blobServices/default"], null)), "properties"), "isVersioningEnabled"));
-        R.ln = F + 360;
-        if (R.t((S["enabled"] ?? null))) {
-            R.ln = F + 360;
-            R.pa(O, R.cmd(S, "New-Pass", ["Versioning enabled", (R.ht(["isVersioningEnabled", true], true))], null));
-            return;
-        }
-        R.ln = F + 361;
-        R.pa(O, R.cmd(S, "New-Fail", ["Versioning disabled", (R.ht(["isVersioningEnabled", false], true))], null));
-    })], false)], null));
-    R.ln = F + 365;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-STG-017", "Version", 2, "Title", "File share soft delete is enabled", "Category", "Backup and recovery", "Service", "Storage", "Severity", "Medium", "Description", "Checks that soft delete for Azure file shares is enabled with a retention of at least 7 days.", "Rationale", "Soft delete allows recovery of file shares that were deleted by mistake or by an attacker.", "Remediation", "Enable share soft delete (az storage account file-service-properties update --enable-delete-retention true --delete-retention-days 14 ...).", "References", R.a("https://learn.microsoft.com/azure/storage/files/storage-files-prevent-file-share-deletion"), "ResourceTypes", (S["storagetype"] ?? null), "Filter", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) Test-FileCapable $Record " }, (S, O) => {
-        R.ln = F + 377;
-        R.pa(O, R.cmd(S, "Test-FileCapable", [(S["record"] ?? null)], null));
-    }), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        #premium page blob accounts (general-purpose v2 with premium performance) have no file service\n        if (Test-ChildNotSupported $Record 'fileServices/default') { return New-NotApplicable 'The account type does not offer Azure Files' }\n        if (-not (Test-ChildCollected $Record 'fileServices/default')) { return New-Unknown 'File service properties could not be read' }\n        $policy = (Get-Child $Record 'fileServices/default').properties.shareDeleteRetentionPolicy\n        $evidence = [ordered]@{ enabled = [bool]$policy.enabled; days = $policy.days }\n        if ($policy.enabled -and $policy.days -ge 7) { return New-Pass \"Share soft delete for $($policy.days) days\" $evidence }\n        New-Fail $(if ($policy.enabled) { \"Share soft delete retention only $($policy.days) days\" } else { 'Share soft delete disabled' }) $evidence\n    " }, (S, O) => {
-        R.ln = F + 381;
-        if (R.t(R.u(R.cmd(S, "Test-ChildNotSupported", [(S["record"] ?? null), "fileServices/default"], null)))) {
-            R.ln = F + 381;
-            R.pa(O, R.cmd(S, "New-NotApplicable", ["The account type does not offer Azure Files"], null));
-            return;
-        }
-        R.ln = F + 382;
-        if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "fileServices/default"], null)))) {
-            R.ln = F + 382;
-            R.pa(O, R.cmd(S, "New-Unknown", ["File service properties could not be read"], null));
-            return;
-        }
-        R.ln = F + 383;
-        S["policy"] = R.m(R.m(R.u(R.cmd(S, "Get-Child", [(S["record"] ?? null), "fileServices/default"], null)), "properties"), "shareDeleteRetentionPolicy");
-        R.ln = F + 384;
+        R.ln = F + 342;
+        S["policy"] = R.m(R.m(R.u(R.cmd(S, "Get-Child", [(S["record"] ?? null), "blobServices/default"], null)), "properties"), "containerDeleteRetentionPolicy");
+        R.ln = F + 343;
         S["evidence"] = R.ht(["enabled", R.c("bool", R.m((S["policy"] ?? null), "enabled")), "days", R.m((S["policy"] ?? null), "days")], true);
-        R.ln = F + 385;
+        R.ln = F + 344;
         if ((R.t(R.m((S["policy"] ?? null), "enabled")) && R.t(R.ge(R.m((S["policy"] ?? null), "days"), 7)))) {
-            R.ln = F + 385;
-            R.pa(O, R.cmd(S, "New-Pass", [("Share soft delete for " + R.str(R.u(R.pi(R.m((S["policy"] ?? null), "days")))) + " days"), (S["evidence"] ?? null)], null));
+            R.ln = F + 344;
+            R.pa(O, R.cmd(S, "New-Pass", [("Container soft delete for " + R.str(R.u(R.pi(R.m((S["policy"] ?? null), "days")))) + " days"), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 386;
+        R.ln = F + 345;
         R.pa(O, R.cmd(S, "New-Fail", [(() => {
             const v6 = [];
-            R.ln = F + 386;
+            R.ln = F + 345;
             if (R.t(R.m((S["policy"] ?? null), "enabled"))) {
-                R.ln = F + 386;
-                R.e(v6, ("Share soft delete retention only " + R.str(R.u(R.pi(R.m((S["policy"] ?? null), "days")))) + " days"));
+                R.ln = F + 345;
+                R.e(v6, ("Container soft delete retention only " + R.str(R.u(R.pi(R.m((S["policy"] ?? null), "days")))) + " days"));
             } else {
-                R.ln = F + 386;
-                R.e(v6, "Share soft delete disabled");
+                R.ln = F + 345;
+                R.e(v6, "Container soft delete disabled");
             }
             return R.u(v6);
         })(), (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 390;
-    R.def(S, "Get-SmbSetting", { params: [{ n: "Record", t: null, pos: null }, { n: "Name", t: "string", pos: null }], adv: 0, h: "393742a80743c42d" }, (S, O) => {
-        R.ln = F + 393;
-        S["shares"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.properties.enabledProtocols -ne 'NFS' " }, (S, O) => {
-            R.ln = F + 393;
-            R.e(O, (R.t((S["_"] ?? null)) && R.t(R.ne(R.m(R.m((S["_"] ?? null), "properties"), "enabledProtocols"), "NFS"))));
-        })], R.cmd(S, "Get-Child", [(S["record"] ?? null), "fileServices/default/shares"], null));
-        R.ln = F + 394;
-        if (!R.t((S["shares"] ?? null))) {
-            R.ln = F + 394;
-            R.e(O, null);
+    R.ln = F + 349;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-STG-016", "Title", "Blob versioning is enabled", "Category", "Backup and recovery", "Service", "Storage", "Severity", "Low", "Description", "Checks that blob versioning is enabled (not applicable to accounts with a hierarchical namespace).", "Rationale", "Versioning keeps previous versions of overwritten blobs, which protects against accidental and malicious modification such as ransomware encryption.", "Remediation", "Enable versioning (az storage account blob-service-properties update --enable-versioning true ...) with a lifecycle rule to delete old versions.", "References", R.a("https://learn.microsoft.com/azure/storage/blobs/versioning-overview"), "ResourceTypes", (S["storagetype"] ?? null), "Filter", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) (Test-BlobCapable $Record) -and -not $Record.resource.properties.isHnsEnabled " }, (S, O) => {
+        R.ln = F + 360;
+        R.e(O, (R.t(R.u(R.cmd(S, "Test-BlobCapable", [(S["record"] ?? null)], null))) && !R.t(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "isHnsEnabled"))));
+    }), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not (Test-ChildCollected $Record 'blobServices/default')) { return New-Unknown 'Blob service properties could not be read' }\n        $enabled = [bool](Get-Child $Record 'blobServices/default').properties.isVersioningEnabled\n        if ($enabled) { return New-Pass 'Versioning enabled' ([ordered]@{ isVersioningEnabled = $true }) }\n        New-Fail 'Versioning disabled' ([ordered]@{ isVersioningEnabled = $false })\n    " }, (S, O) => {
+        R.ln = F + 363;
+        if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "blobServices/default"], null)))) {
+            R.ln = F + 363;
+            R.pa(O, R.cmd(S, "New-Unknown", ["Blob service properties could not be read"], null));
             return;
         }
-        R.ln = F + 395;
-        R.e(O, R.pso(["Value", R.m(R.m(R.m(R.m(R.u(R.cmd(S, "Get-Child", [(S["record"] ?? null), "fileServices/default"], null)), "properties"), "protocolSettings"), "smb"), R.str((S["name"] ?? null))), "Shares", R.m((S["shares"] ?? null), "Count")]));
-        return;
-    });
-    R.ln = F + 398;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-STG-018", "Version", 2, "Title", "SMB file shares only allow SMB 3.1.1", "Category", "Data protection", "Service", "Storage", "Severity", "Medium", "Description", "Checks the allowed SMB protocol versions on accounts with SMB file shares.", "Rationale", "Older SMB versions lack pre-authentication integrity and the strongest encryption, and allow downgrade attacks.", "Remediation", "Restrict SMB versions to SMB3.1.1 in the file service properties (az storage account file-service-properties update --versions SMB3.1.1 ...).", "References", R.a("https://learn.microsoft.com/azure/storage/files/files-smb-protocol"), "ResourceTypes", (S["storagetype"] ?? null), "Filter", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) Test-FileCapable $Record " }, (S, O) => {
-        R.ln = F + 410;
+        R.ln = F + 364;
+        S["enabled"] = R.c("bool", R.m(R.m(R.u(R.cmd(S, "Get-Child", [(S["record"] ?? null), "blobServices/default"], null)), "properties"), "isVersioningEnabled"));
+        R.ln = F + 365;
+        if (R.t((S["enabled"] ?? null))) {
+            R.ln = F + 365;
+            R.pa(O, R.cmd(S, "New-Pass", ["Versioning enabled", (R.ht(["isVersioningEnabled", true], true))], null));
+            return;
+        }
+        R.ln = F + 366;
+        R.pa(O, R.cmd(S, "New-Fail", ["Versioning disabled", (R.ht(["isVersioningEnabled", false], true))], null));
+    })], false)], null));
+    R.ln = F + 370;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-STG-017", "Version", 3, "Title", "File share soft delete is enabled", "Category", "Backup and recovery", "Service", "Storage", "Severity", "Medium", "Description", "Checks that soft delete for Azure file shares is enabled with a retention of at least 7 days on storage accounts that host file shares.", "Rationale", "Soft delete allows recovery of file shares that were deleted by mistake or by an attacker.", "Remediation", "Enable share soft delete (az storage account file-service-properties update --enable-delete-retention true --delete-retention-days 14 ...).", "References", R.a("https://learn.microsoft.com/azure/storage/files/storage-files-prevent-file-share-deletion"), "ResourceTypes", (S["storagetype"] ?? null), "Filter", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) Test-FileCapable $Record " }, (S, O) => {
+        R.ln = F + 382;
         R.pa(O, R.cmd(S, "Test-FileCapable", [(S["record"] ?? null)], null));
-    }), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        #premium page blob accounts (general-purpose v2 with premium performance) have no file service\n        if (Test-ChildNotSupported $Record 'fileServices/default') { return New-NotApplicable 'The account type does not offer Azure Files' }\n        if (-not (Test-ChildCollected $Record 'fileServices/default')) { return New-Unknown 'File service properties could not be read' }\n        $setting = Get-SmbSetting $Record 'versions'\n        if (-not $setting) { return New-NotApplicable 'No SMB file shares' }\n        $versions = @(([string]$setting.Value) -split ';' | Where-Object { $_ })\n        $evidence = [ordered]@{ versions = $versions; smbShares = $setting.Shares }\n        if ($versions.Count -and -not ($versions | Where-Object { $_ -ne 'SMB3.1.1' })) { return New-Pass 'Only SMB 3.1.1 allowed' $evidence }\n        New-Fail $(if ($versions) { \"Allowed versions: $($versions -join ', ')\" } else { 'All SMB versions allowed (default)' }) $evidence\n    " }, (S, O) => {
-        R.ln = F + 414;
+    }), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        #premium page blob accounts (general-purpose v2 with premium performance) have no file service\n        if (Test-ChildNotSupported $Record 'fileServices/default') { return New-NotApplicable 'The account type does not offer Azure Files' }\n        if (-not (Test-ChildCollected $Record 'fileServices/default')) { return New-Unknown 'File service properties could not be read' }\n        if (-not (Test-ChildCollected $Record 'fileServices/default/shares')) { return New-Unknown 'File shares could not be read' }\n        if (-not @(Get-Child $Record 'fileServices/default/shares' | Where-Object { $_ }).Count) { return New-NotApplicable 'No file shares' }\n        $policy = (Get-Child $Record 'fileServices/default').properties.shareDeleteRetentionPolicy\n        $evidence = [ordered]@{ enabled = [bool]$policy.enabled; days = $policy.days }\n        if ($policy.enabled -and $policy.days -ge 7) { return New-Pass \"Share soft delete for $($policy.days) days\" $evidence }\n        New-Fail $(if ($policy.enabled) { \"Share soft delete retention only $($policy.days) days\" } else { 'Share soft delete disabled' }) $evidence\n    " }, (S, O) => {
+        R.ln = F + 386;
         if (R.t(R.u(R.cmd(S, "Test-ChildNotSupported", [(S["record"] ?? null), "fileServices/default"], null)))) {
-            R.ln = F + 414;
+            R.ln = F + 386;
             R.pa(O, R.cmd(S, "New-NotApplicable", ["The account type does not offer Azure Files"], null));
             return;
         }
-        R.ln = F + 415;
+        R.ln = F + 387;
         if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "fileServices/default"], null)))) {
-            R.ln = F + 415;
+            R.ln = F + 387;
             R.pa(O, R.cmd(S, "New-Unknown", ["File service properties could not be read"], null));
             return;
         }
-        R.ln = F + 416;
-        S["setting"] = R.u(R.cmd(S, "Get-SmbSetting", [(S["record"] ?? null), "versions"], null));
-        R.ln = F + 417;
-        if (!R.t((S["setting"] ?? null))) {
-            R.ln = F + 417;
-            R.pa(O, R.cmd(S, "New-NotApplicable", ["No SMB file shares"], null));
+        R.ln = F + 388;
+        if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "fileServices/default/shares"], null)))) {
+            R.ln = F + 388;
+            R.pa(O, R.cmd(S, "New-Unknown", ["File shares could not be read"], null));
             return;
         }
-        R.ln = F + 418;
-        S["versions"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 418;
+        R.ln = F + 389;
+        if (!R.t(R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+            R.ln = F + 389;
             R.e(O, (S["_"] ?? null));
-        })], R.pi(R.split((R.c("string", R.m((S["setting"] ?? null), "Value"))), ";")));
-        R.ln = F + 419;
-        S["evidence"] = R.ht(["versions", (S["versions"] ?? null), "smbShares", R.m((S["setting"] ?? null), "Shares")], true);
-        R.ln = F + 420;
-        if ((R.t(R.m((S["versions"] ?? null), "Count")) && !R.t(R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -ne 'SMB3.1.1' " }, (S, O) => {
-            R.ln = F + 420;
-            R.e(O, R.ne((S["_"] ?? null), "SMB3.1.1"));
-        })], R.pi((S["versions"] ?? null))))))) {
-            R.ln = F + 420;
-            R.pa(O, R.cmd(S, "New-Pass", ["Only SMB 3.1.1 allowed", (S["evidence"] ?? null)], null));
+        })], R.cmd(S, "Get-Child", [(S["record"] ?? null), "fileServices/default/shares"], null)), "Count"))) {
+            R.ln = F + 389;
+            R.pa(O, R.cmd(S, "New-NotApplicable", ["No file shares"], null));
             return;
         }
-        R.ln = F + 421;
+        R.ln = F + 390;
+        S["policy"] = R.m(R.m(R.u(R.cmd(S, "Get-Child", [(S["record"] ?? null), "fileServices/default"], null)), "properties"), "shareDeleteRetentionPolicy");
+        R.ln = F + 391;
+        S["evidence"] = R.ht(["enabled", R.c("bool", R.m((S["policy"] ?? null), "enabled")), "days", R.m((S["policy"] ?? null), "days")], true);
+        R.ln = F + 392;
+        if ((R.t(R.m((S["policy"] ?? null), "enabled")) && R.t(R.ge(R.m((S["policy"] ?? null), "days"), 7)))) {
+            R.ln = F + 392;
+            R.pa(O, R.cmd(S, "New-Pass", [("Share soft delete for " + R.str(R.u(R.pi(R.m((S["policy"] ?? null), "days")))) + " days"), (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 393;
         R.pa(O, R.cmd(S, "New-Fail", [(() => {
             const v7 = [];
-            R.ln = F + 421;
-            if (R.t((S["versions"] ?? null))) {
-                R.ln = F + 421;
-                R.e(v7, ("Allowed versions: " + R.str(R.u(R.pi(R.join((S["versions"] ?? null), ", "))))));
+            R.ln = F + 393;
+            if (R.t(R.m((S["policy"] ?? null), "enabled"))) {
+                R.ln = F + 393;
+                R.e(v7, ("Share soft delete retention only " + R.str(R.u(R.pi(R.m((S["policy"] ?? null), "days")))) + " days"));
             } else {
-                R.ln = F + 421;
-                R.e(v7, "All SMB versions allowed (default)");
+                R.ln = F + 393;
+                R.e(v7, "Share soft delete disabled");
             }
             return R.u(v7);
         })(), (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 425;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-STG-019", "Version", 2, "Title", "SMB file shares only allow AES-256-GCM channel encryption", "Category", "Data protection", "Service", "Storage", "Severity", "Low", "Description", "Checks the allowed SMB channel encryption algorithms on accounts with SMB file shares.", "Rationale", "AES-256-GCM is the strongest channel encryption supported by Azure Files; allowing weaker algorithms permits negotiation down.", "Remediation", "Restrict SMB channel encryption to AES-256-GCM (az storage account file-service-properties update --channel-encryption AES-256-GCM ...).", "References", R.a("https://learn.microsoft.com/azure/storage/files/files-smb-protocol"), "ResourceTypes", (S["storagetype"] ?? null), "Filter", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) Test-FileCapable $Record " }, (S, O) => {
-        R.ln = F + 437;
+    R.ln = F + 397;
+    R.def(S, "Get-SmbSetting", { params: [{ n: "Record", t: null, pos: null }, { n: "Name", t: "string", pos: null }], adv: 0, h: "393742a80743c42d" }, (S, O) => {
+        R.ln = F + 400;
+        S["shares"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.properties.enabledProtocols -ne 'NFS' " }, (S, O) => {
+            R.ln = F + 400;
+            R.e(O, (R.t((S["_"] ?? null)) && R.t(R.ne(R.m(R.m((S["_"] ?? null), "properties"), "enabledProtocols"), "NFS"))));
+        })], R.cmd(S, "Get-Child", [(S["record"] ?? null), "fileServices/default/shares"], null));
+        R.ln = F + 401;
+        if (!R.t((S["shares"] ?? null))) {
+            R.ln = F + 401;
+            R.e(O, null);
+            return;
+        }
+        R.ln = F + 402;
+        R.e(O, R.pso(["Value", R.m(R.m(R.m(R.m(R.u(R.cmd(S, "Get-Child", [(S["record"] ?? null), "fileServices/default"], null)), "properties"), "protocolSettings"), "smb"), R.str((S["name"] ?? null))), "Shares", R.m((S["shares"] ?? null), "Count")]));
+        return;
+    });
+    R.ln = F + 405;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-STG-018", "Version", 3, "Title", "SMB file shares only allow SMB 3.1.1", "Category", "Data protection", "Service", "Storage", "Severity", "Medium", "Description", "Checks the allowed SMB protocol versions on accounts with SMB file shares.", "Rationale", "Older SMB versions lack pre-authentication integrity and the strongest encryption, and allow downgrade attacks.", "Remediation", "Restrict SMB versions to SMB3.1.1 in the file service properties (az storage account file-service-properties update --versions SMB3.1.1 ...).", "References", R.a("https://learn.microsoft.com/azure/storage/files/files-smb-protocol"), "ResourceTypes", (S["storagetype"] ?? null), "Filter", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) Test-FileCapable $Record " }, (S, O) => {
+        R.ln = F + 417;
         R.pa(O, R.cmd(S, "Test-FileCapable", [(S["record"] ?? null)], null));
-    }), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        #premium page blob accounts (general-purpose v2 with premium performance) have no file service\n        if (Test-ChildNotSupported $Record 'fileServices/default') { return New-NotApplicable 'The account type does not offer Azure Files' }\n        if (-not (Test-ChildCollected $Record 'fileServices/default')) { return New-Unknown 'File service properties could not be read' }\n        $setting = Get-SmbSetting $Record 'channelEncryption'\n        if (-not $setting) { return New-NotApplicable 'No SMB file shares' }\n        $algorithms = @(([string]$setting.Value) -split ';' | Where-Object { $_ })\n        $evidence = [ordered]@{ channelEncryption = $algorithms; smbShares = $setting.Shares }\n        if ($algorithms.Count -and -not ($algorithms | Where-Object { $_ -ne 'AES-256-GCM' })) { return New-Pass 'Only AES-256-GCM allowed' $evidence }\n        New-Fail $(if ($algorithms) { \"Allowed: $($algorithms -join ', ')\" } else { 'All algorithms allowed (default)' }) $evidence\n    " }, (S, O) => {
-        R.ln = F + 441;
+    }), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        #premium page blob accounts (general-purpose v2 with premium performance) have no file service\n        if (Test-ChildNotSupported $Record 'fileServices/default') { return New-NotApplicable 'The account type does not offer Azure Files' }\n        if (-not (Test-ChildCollected $Record 'fileServices/default')) { return New-Unknown 'File service properties could not be read' }\n        if (-not (Test-ChildCollected $Record 'fileServices/default/shares')) { return New-Unknown 'File shares could not be read' }\n        $setting = Get-SmbSetting $Record 'versions'\n        if (-not $setting) { return New-NotApplicable 'No SMB file shares' }\n        $versions = @(([string]$setting.Value) -split ';' | Where-Object { $_ })\n        $evidence = [ordered]@{ versions = $versions; smbShares = $setting.Shares }\n        if ($versions.Count -and -not ($versions | Where-Object { $_ -ne 'SMB3.1.1' })) { return New-Pass 'Only SMB 3.1.1 allowed' $evidence }\n        New-Fail $(if ($versions) { \"Allowed versions: $($versions -join ', ')\" } else { 'All SMB versions allowed (default)' }) $evidence\n    " }, (S, O) => {
+        R.ln = F + 421;
         if (R.t(R.u(R.cmd(S, "Test-ChildNotSupported", [(S["record"] ?? null), "fileServices/default"], null)))) {
-            R.ln = F + 441;
+            R.ln = F + 421;
             R.pa(O, R.cmd(S, "New-NotApplicable", ["The account type does not offer Azure Files"], null));
             return;
         }
-        R.ln = F + 442;
+        R.ln = F + 422;
         if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "fileServices/default"], null)))) {
-            R.ln = F + 442;
+            R.ln = F + 422;
             R.pa(O, R.cmd(S, "New-Unknown", ["File service properties could not be read"], null));
             return;
         }
-        R.ln = F + 443;
-        S["setting"] = R.u(R.cmd(S, "Get-SmbSetting", [(S["record"] ?? null), "channelEncryption"], null));
-        R.ln = F + 444;
+        R.ln = F + 423;
+        if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "fileServices/default/shares"], null)))) {
+            R.ln = F + 423;
+            R.pa(O, R.cmd(S, "New-Unknown", ["File shares could not be read"], null));
+            return;
+        }
+        R.ln = F + 424;
+        S["setting"] = R.u(R.cmd(S, "Get-SmbSetting", [(S["record"] ?? null), "versions"], null));
+        R.ln = F + 425;
         if (!R.t((S["setting"] ?? null))) {
-            R.ln = F + 444;
+            R.ln = F + 425;
             R.pa(O, R.cmd(S, "New-NotApplicable", ["No SMB file shares"], null));
             return;
         }
-        R.ln = F + 445;
-        S["algorithms"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 445;
+        R.ln = F + 426;
+        S["versions"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+            R.ln = F + 426;
             R.e(O, (S["_"] ?? null));
         })], R.pi(R.split((R.c("string", R.m((S["setting"] ?? null), "Value"))), ";")));
-        R.ln = F + 446;
-        S["evidence"] = R.ht(["channelEncryption", (S["algorithms"] ?? null), "smbShares", R.m((S["setting"] ?? null), "Shares")], true);
-        R.ln = F + 447;
-        if ((R.t(R.m((S["algorithms"] ?? null), "Count")) && !R.t(R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -ne 'AES-256-GCM' " }, (S, O) => {
-            R.ln = F + 447;
-            R.e(O, R.ne((S["_"] ?? null), "AES-256-GCM"));
-        })], R.pi((S["algorithms"] ?? null))))))) {
-            R.ln = F + 447;
-            R.pa(O, R.cmd(S, "New-Pass", ["Only AES-256-GCM allowed", (S["evidence"] ?? null)], null));
+        R.ln = F + 427;
+        S["evidence"] = R.ht(["versions", (S["versions"] ?? null), "smbShares", R.m((S["setting"] ?? null), "Shares")], true);
+        R.ln = F + 428;
+        if ((R.t(R.m((S["versions"] ?? null), "Count")) && !R.t(R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -ne 'SMB3.1.1' " }, (S, O) => {
+            R.ln = F + 428;
+            R.e(O, R.ne((S["_"] ?? null), "SMB3.1.1"));
+        })], R.pi((S["versions"] ?? null))))))) {
+            R.ln = F + 428;
+            R.pa(O, R.cmd(S, "New-Pass", ["Only SMB 3.1.1 allowed", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 448;
+        R.ln = F + 429;
         R.pa(O, R.cmd(S, "New-Fail", [(() => {
             const v8 = [];
-            R.ln = F + 448;
-            if (R.t((S["algorithms"] ?? null))) {
-                R.ln = F + 448;
-                R.e(v8, ("Allowed: " + R.str(R.u(R.pi(R.join((S["algorithms"] ?? null), ", "))))));
+            R.ln = F + 429;
+            if (R.t((S["versions"] ?? null))) {
+                R.ln = F + 429;
+                R.e(v8, ("Allowed versions: " + R.str(R.u(R.pi(R.join((S["versions"] ?? null), ", "))))));
             } else {
-                R.ln = F + 448;
-                R.e(v8, "All algorithms allowed (default)");
+                R.ln = F + 429;
+                R.e(v8, "All SMB versions allowed (default)");
             }
             return R.u(v8);
         })(), (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 452;
+    R.ln = F + 433;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-STG-019", "Version", 3, "Title", "SMB file shares only allow AES-256-GCM channel encryption", "Category", "Data protection", "Service", "Storage", "Severity", "Low", "Description", "Checks the allowed SMB channel encryption algorithms on accounts with SMB file shares.", "Rationale", "AES-256-GCM is the strongest channel encryption supported by Azure Files; allowing weaker algorithms permits negotiation down.", "Remediation", "Restrict SMB channel encryption to AES-256-GCM (az storage account file-service-properties update --channel-encryption AES-256-GCM ...).", "References", R.a("https://learn.microsoft.com/azure/storage/files/files-smb-protocol"), "ResourceTypes", (S["storagetype"] ?? null), "Filter", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) Test-FileCapable $Record " }, (S, O) => {
+        R.ln = F + 445;
+        R.pa(O, R.cmd(S, "Test-FileCapable", [(S["record"] ?? null)], null));
+    }), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        #premium page blob accounts (general-purpose v2 with premium performance) have no file service\n        if (Test-ChildNotSupported $Record 'fileServices/default') { return New-NotApplicable 'The account type does not offer Azure Files' }\n        if (-not (Test-ChildCollected $Record 'fileServices/default')) { return New-Unknown 'File service properties could not be read' }\n        if (-not (Test-ChildCollected $Record 'fileServices/default/shares')) { return New-Unknown 'File shares could not be read' }\n        $setting = Get-SmbSetting $Record 'channelEncryption'\n        if (-not $setting) { return New-NotApplicable 'No SMB file shares' }\n        $algorithms = @(([string]$setting.Value) -split ';' | Where-Object { $_ })\n        $evidence = [ordered]@{ channelEncryption = $algorithms; smbShares = $setting.Shares }\n        if ($algorithms.Count -and -not ($algorithms | Where-Object { $_ -ne 'AES-256-GCM' })) { return New-Pass 'Only AES-256-GCM allowed' $evidence }\n        New-Fail $(if ($algorithms) { \"Allowed: $($algorithms -join ', ')\" } else { 'All algorithms allowed (default)' }) $evidence\n    " }, (S, O) => {
+        R.ln = F + 449;
+        if (R.t(R.u(R.cmd(S, "Test-ChildNotSupported", [(S["record"] ?? null), "fileServices/default"], null)))) {
+            R.ln = F + 449;
+            R.pa(O, R.cmd(S, "New-NotApplicable", ["The account type does not offer Azure Files"], null));
+            return;
+        }
+        R.ln = F + 450;
+        if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "fileServices/default"], null)))) {
+            R.ln = F + 450;
+            R.pa(O, R.cmd(S, "New-Unknown", ["File service properties could not be read"], null));
+            return;
+        }
+        R.ln = F + 451;
+        if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "fileServices/default/shares"], null)))) {
+            R.ln = F + 451;
+            R.pa(O, R.cmd(S, "New-Unknown", ["File shares could not be read"], null));
+            return;
+        }
+        R.ln = F + 452;
+        S["setting"] = R.u(R.cmd(S, "Get-SmbSetting", [(S["record"] ?? null), "channelEncryption"], null));
+        R.ln = F + 453;
+        if (!R.t((S["setting"] ?? null))) {
+            R.ln = F + 453;
+            R.pa(O, R.cmd(S, "New-NotApplicable", ["No SMB file shares"], null));
+            return;
+        }
+        R.ln = F + 454;
+        S["algorithms"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+            R.ln = F + 454;
+            R.e(O, (S["_"] ?? null));
+        })], R.pi(R.split((R.c("string", R.m((S["setting"] ?? null), "Value"))), ";")));
+        R.ln = F + 455;
+        S["evidence"] = R.ht(["channelEncryption", (S["algorithms"] ?? null), "smbShares", R.m((S["setting"] ?? null), "Shares")], true);
+        R.ln = F + 456;
+        if ((R.t(R.m((S["algorithms"] ?? null), "Count")) && !R.t(R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -ne 'AES-256-GCM' " }, (S, O) => {
+            R.ln = F + 456;
+            R.e(O, R.ne((S["_"] ?? null), "AES-256-GCM"));
+        })], R.pi((S["algorithms"] ?? null))))))) {
+            R.ln = F + 456;
+            R.pa(O, R.cmd(S, "New-Pass", ["Only AES-256-GCM allowed", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 457;
+        R.pa(O, R.cmd(S, "New-Fail", [(() => {
+            const v9 = [];
+            R.ln = F + 457;
+            if (R.t((S["algorithms"] ?? null))) {
+                R.ln = F + 457;
+                R.e(v9, ("Allowed: " + R.str(R.u(R.pi(R.join((S["algorithms"] ?? null), ", "))))));
+            } else {
+                R.ln = F + 457;
+                R.e(v9, "All algorithms allowed (default)");
+            }
+            return R.u(v9);
+        })(), (S["evidence"] ?? null)], null));
+    })], false)], null));
+    R.ln = F + 461;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-STG-020", "Title", "Storage accounts use infrastructure (double) encryption", "Category", "Data protection", "Service", "Storage", "Severity", "Low", "Description", "Checks requireInfrastructureEncryption, which adds a second layer of encryption at the infrastructure level. It can only be set when the account is created.", "Rationale", "Double encryption protects against a compromise of one of the encryption algorithms or keys, and is required by some regulations for highly sensitive data.", "Remediation", "For accounts with sensitive data, create a new account with infrastructure encryption enabled and migrate the data.", "References", R.a("https://learn.microsoft.com/azure/storage/common/infrastructure-encryption-enable"), "Defender", R.ht(["a5cd34d5-26df-c2b1-0ace-ff62f8730abd", "Storage accounts should have infrastructure encryption"], false), "Policy", R.ht(["4733ea7b-a883-42fe-8cac-97454c2a9e4a", "Storage accounts should have infrastructure encryption"], false), "ResourceTypes", (S["storagetype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $value = [bool]$Record.resource.properties.encryption.requireInfrastructureEncryption\n        if ($value) { return New-Pass 'Infrastructure encryption enabled' ([ordered]@{ requireInfrastructureEncryption = $true }) }\n        New-Fail 'Infrastructure encryption not enabled' ([ordered]@{ requireInfrastructureEncryption = $false })\n    " }, (S, O) => {
-        R.ln = F + 467;
+        R.ln = F + 476;
         S["value"] = R.c("bool", R.m(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "encryption"), "requireInfrastructureEncryption"));
-        R.ln = F + 468;
+        R.ln = F + 477;
         if (R.t((S["value"] ?? null))) {
-            R.ln = F + 468;
+            R.ln = F + 477;
             R.pa(O, R.cmd(S, "New-Pass", ["Infrastructure encryption enabled", (R.ht(["requireInfrastructureEncryption", true], true))], null));
             return;
         }
-        R.ln = F + 469;
+        R.ln = F + 478;
         R.pa(O, R.cmd(S, "New-Fail", ["Infrastructure encryption not enabled", (R.ht(["requireInfrastructureEncryption", false], true))], null));
     })], false)], null));
-    R.ln = F + 473;
+    R.ln = F + 482;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-STG-021", "Title", "Storage accounts use customer-managed keys (when required)", "Category", "Data protection", "Service", "Storage", "Severity", "Informational", "Description", "Checks whether the account encryption uses a customer-managed key from Key Vault.", "Rationale", "Customer-managed keys give control over key rotation and the ability to revoke access to the data (crypto shredding). Only required for data whose classification or regulation demands it.", "Remediation", "Configure encryption with a customer-managed key in Key Vault or Managed HSM, using a user-assigned managed identity and automatic key version updates.", "References", R.a("https://learn.microsoft.com/azure/storage/common/customer-managed-keys-overview"), "Defender", R.ht(["ca98bba7-719e-48ee-e193-0b76766cdb07", "[Enable if required] Storage accounts should use customer-managed key (CMK) for encryption"], false), "Policy", R.ht(["6fac406b-40ca-413b-bf8e-0bf964659c25", "Storage accounts should use customer-managed key for encryption"], false), "ResourceTypes", (S["storagetype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $source = $Record.resource.properties.encryption.keySource\n        $evidence = [ordered]@{ keySource = $source }\n        if ($source -eq 'Microsoft.Keyvault') { return New-Pass 'Customer-managed key' $evidence }\n        New-Fail 'Microsoft-managed keys' $evidence\n    " }, (S, O) => {
-        R.ln = F + 488;
+        R.ln = F + 497;
         S["source"] = R.m(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "encryption"), "keySource");
-        R.ln = F + 489;
+        R.ln = F + 498;
         S["evidence"] = R.ht(["keySource", (S["source"] ?? null)], true);
-        R.ln = F + 490;
+        R.ln = F + 499;
         if (R.t(R.eq((S["source"] ?? null), "Microsoft.Keyvault"))) {
-            R.ln = F + 490;
+            R.ln = F + 499;
             R.pa(O, R.cmd(S, "New-Pass", ["Customer-managed key", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 491;
+        R.ln = F + 500;
         R.pa(O, R.cmd(S, "New-Fail", ["Microsoft-managed keys", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 495;
+    R.ln = F + 504;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-STG-022", "Title", "Storage accounts use geo-redundant replication", "Category", "Backup and recovery", "Service", "Storage", "Severity", "Low", "Description", "Checks that the replication SKU is geo-redundant (GRS, RA-GRS, GZRS or RA-GZRS).", "Rationale", "Geo-redundancy keeps a copy of the data in a paired region, which protects critical data against regional outages and disasters.", "Remediation", "Change the redundancy of critical accounts to GZRS or GRS (az storage account update --sku Standard_GZRS ...).", "References", R.a("https://learn.microsoft.com/azure/storage/common/storage-redundancy"), "Defender", R.ht(["bb819c3c-29fc-8bbe-4bb1-433ab95c4590", "Geo-redundant storage should be enabled for Storage Accounts"], false), "Policy", R.ht(["bf045164-79ba-4215-8f95-f8048dc1780b", "Geo-redundant storage should be enabled for Storage Accounts"], false), "ResourceTypes", (S["storagetype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $sku = $Record.resource.sku.name\n        $evidence = [ordered]@{ sku = $sku }\n        if ($sku -match 'GRS|GZRS') { return New-Pass \"Replication $sku\" $evidence }\n        New-Fail \"Replication $sku is not geo-redundant\" $evidence\n    " }, (S, O) => {
-        R.ln = F + 510;
+        R.ln = F + 519;
         S["sku"] = R.m(R.m(R.m((S["record"] ?? null), "resource"), "sku"), "name");
-        R.ln = F + 511;
+        R.ln = F + 520;
         S["evidence"] = R.ht(["sku", (S["sku"] ?? null)], true);
-        R.ln = F + 512;
+        R.ln = F + 521;
         if (R.t(R.match(S, (S["sku"] ?? null), "GRS|GZRS"))) {
-            R.ln = F + 512;
+            R.ln = F + 521;
             R.pa(O, R.cmd(S, "New-Pass", [("Replication " + R.str((S["sku"] ?? null))), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 513;
+        R.ln = F + 522;
         R.pa(O, R.cmd(S, "New-Fail", [("Replication " + R.str((S["sku"] ?? null)) + " is not geo-redundant"), (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 517;
+    R.ln = F + 526;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-STG-023", "Version", 2, "Title", "SFTP local users do not use password authentication", "Category", "Identity management", "Service", "Storage", "Severity", "Medium", "Description", "Finds storage local users (SFTP) that have an SSH password.", "Rationale", "Local users are not Entra identities: passwords cannot be protected with MFA or Conditional Access and are a target for brute force on the Internet facing SFTP endpoint.", "Remediation", "Use SSH key authentication for local users, remove their passwords (az storage account local-user update --has-ssh-password false ...) and disable SFTP when not needed.", "References", R.a("https://learn.microsoft.com/azure/storage/blobs/secure-file-transfer-protocol-support-authorize-access"), "ResourceTypes", (S["storagetype"] ?? null), "Filter", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) $Record.resource.properties.isSftpEnabled -or @(Get-Child $Record 'localUsers' | Where-Object { $_ }).Count " }, (S, O) => {
-        R.ln = F + 529;
+        R.ln = F + 538;
         R.e(O, (R.t(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "isSftpEnabled")) || R.t(R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 529;
+            R.ln = F + 538;
             R.e(O, (S["_"] ?? null));
         })], R.cmd(S, "Get-Child", [(S["record"] ?? null), "localUsers"], null)), "Count"))));
     }), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not (Test-ChildCollected $Record 'localUsers')) { return New-Unknown 'SFTP local users could not be read' }\n        $users = @(Get-Child $Record 'localUsers' | Where-Object { $_ })\n        $withPassword = @($users | Where-Object { $_.properties.hasSshPassword } | ForEach-Object name | Sort-Object)\n        $evidence = [ordered]@{ isSftpEnabled = [bool]$Record.resource.properties.isSftpEnabled; localUsers = $users.Count; usersWithPassword = $withPassword }\n        if ($withPassword) { return New-Fail \"Local user(s) with SSH password: $($withPassword -join ', ')\" $evidence }\n        New-Pass 'No local users with passwords' $evidence\n    " }, (S, O) => {
-        R.ln = F + 532;
+        R.ln = F + 541;
         if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "localUsers"], null)))) {
-            R.ln = F + 532;
+            R.ln = F + 541;
             R.pa(O, R.cmd(S, "New-Unknown", ["SFTP local users could not be read"], null));
             return;
         }
-        R.ln = F + 533;
+        R.ln = F + 542;
         S["users"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 533;
+            R.ln = F + 542;
             R.e(O, (S["_"] ?? null));
         })], R.cmd(S, "Get-Child", [(S["record"] ?? null), "localUsers"], null));
-        R.ln = F + 534;
+        R.ln = F + 543;
         S["withpassword"] = R.cmd(S, "Sort-Object", [], R.cmd(S, "ForEach-Object", ["name"], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.properties.hasSshPassword " }, (S, O) => {
-            R.ln = F + 534;
+            R.ln = F + 543;
             R.e(O, R.m(R.m((S["_"] ?? null), "properties"), "hasSshPassword"));
         })], R.pi((S["users"] ?? null)))));
-        R.ln = F + 535;
+        R.ln = F + 544;
         S["evidence"] = R.ht(["isSftpEnabled", R.c("bool", R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "isSftpEnabled")), "localUsers", R.m((S["users"] ?? null), "Count"), "usersWithPassword", (S["withpassword"] ?? null)], true);
-        R.ln = F + 536;
+        R.ln = F + 545;
         if (R.t((S["withpassword"] ?? null))) {
-            R.ln = F + 536;
+            R.ln = F + 545;
             R.pa(O, R.cmd(S, "New-Fail", [("Local user(s) with SSH password: " + R.str(R.u(R.pi(R.join((S["withpassword"] ?? null), ", "))))), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 537;
+        R.ln = F + 546;
         R.pa(O, R.cmd(S, "New-Pass", ["No local users with passwords", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 541;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-STG-024", "Title", "A SAS expiration policy is configured", "Category", "Identity management", "Service", "Storage", "Severity", "Low", "Description", "Checks for a SAS expiration policy (sasPolicy) on accounts that allow shared key access.", "Rationale", "Account and service SAS tokens signed with the account key cannot be revoked individually. An expiration policy limits their validity and logs or blocks tokens that exceed it.", "Remediation", "Configure a SAS expiration policy, for example 7 days with action Block (az storage account update --sas-exp 7.00:00:00 ...), and prefer user delegation SAS.", "References", R.a("https://learn.microsoft.com/azure/storage/common/sas-expiration-policy"), "Policy", R.ht(["7aa1c9d5-3d7e-4579-8117-d85e99211757", "Storage SAS tokens should adhere to 7 day maximum validity"], false), "ResourceTypes", (S["storagetype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $policy = $Record.resource.properties.sasPolicy\n        $evidence = [ordered]@{ sasExpirationPeriod = $policy.sasExpirationPeriod; expirationAction = $policy.expirationAction }\n        if (Test-SharedKeyDisabled $Record) { return New-Pass 'Shared key access is disabled, account key SAS cannot be used' $evidence }\n        if ($policy.sasExpirationPeriod) { return New-Pass \"SAS expiration period $($policy.sasExpirationPeriod)\" $evidence }\n        New-Fail 'No SAS expiration policy' $evidence\n    " }, (S, O) => {
-        R.ln = F + 555;
+    R.ln = F + 550;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-STG-024", "Version", 2, "Title", "A SAS expiration policy is configured", "Category", "Identity management", "Service", "Storage", "Severity", "Low", "Description", "Checks for a SAS expiration policy (sasPolicy.sasExpirationPeriod) on every storage account. The policy also limits user delegation SAS, which work without shared key access.", "Rationale", "SAS tokens cannot be revoked individually. An expiration policy sets the maximum validity of account, service and user delegation SAS and logs or blocks tokens that exceed it.", "Remediation", "Configure a SAS expiration policy, for example 7 days with action Block (az storage account update --sas-exp 7.00:00:00 ...), and prefer user delegation SAS.", "References", R.a("https://learn.microsoft.com/azure/storage/common/sas-expiration-policy"), "Policy", R.ht(["bc1b984e-ddae-40cc-801a-050a030e4fbe", "Storage accounts should have shared access signature (SAS) policies configured"], false), "ResourceTypes", (S["storagetype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $policy = $Record.resource.properties.sasPolicy\n        $evidence = [ordered]@{ sasExpirationPeriod = $policy.sasExpirationPeriod; expirationAction = $policy.expirationAction }\n        if ($policy.sasExpirationPeriod) { return New-Pass \"SAS expiration period $($policy.sasExpirationPeriod)\" $evidence }\n        New-Fail 'No SAS expiration policy' $evidence\n    " }, (S, O) => {
+        R.ln = F + 565;
         S["policy"] = R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "sasPolicy");
-        R.ln = F + 556;
+        R.ln = F + 566;
         S["evidence"] = R.ht(["sasExpirationPeriod", R.m((S["policy"] ?? null), "sasExpirationPeriod"), "expirationAction", R.m((S["policy"] ?? null), "expirationAction")], true);
-        R.ln = F + 557;
-        if (R.t(R.u(R.cmd(S, "Test-SharedKeyDisabled", [(S["record"] ?? null)], null)))) {
-            R.ln = F + 557;
-            R.pa(O, R.cmd(S, "New-Pass", ["Shared key access is disabled, account key SAS cannot be used", (S["evidence"] ?? null)], null));
-            return;
-        }
-        R.ln = F + 558;
+        R.ln = F + 567;
         if (R.t(R.m((S["policy"] ?? null), "sasExpirationPeriod"))) {
-            R.ln = F + 558;
+            R.ln = F + 567;
             R.pa(O, R.cmd(S, "New-Pass", [("SAS expiration period " + R.str(R.u(R.pi(R.m((S["policy"] ?? null), "sasExpirationPeriod"))))), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 559;
+        R.ln = F + 568;
         R.pa(O, R.cmd(S, "New-Fail", ["No SAS expiration policy", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 565;
+    R.ln = F + 574;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-STG-025", "Title", "Storage accounts have a delete lock", "Category", "Backup and recovery", "Service", "Storage", "Severity", "Medium", "Description", "Checks storage accounts for a CanNotDelete or ReadOnly lock on the account, its resource group or the subscription. A ReadOnly lock also prevents deletion.", "Rationale", "Deleting a storage account destroys all of its data at once and cannot be undone. A lock makes that a deliberate two step action, because removing it needs Microsoft.Authorization/locks/delete.", "Remediation", "Add a CanNotDelete lock (az lock create --lock-type CanNotDelete --name DoNotDelete --resource <storage account id>) and restrict lock administration to a dedicated role.", "References", R.a("https://learn.microsoft.com/azure/azure-resource-manager/management/lock-resources"), "Requires", R.a("subscription/locks"), "ResourceTypes", (S["storagetype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $locks = @(Get-EffectiveLocks $Record.id)\n        $evidence = [ordered]@{ locks = @($locks | ForEach-Object { \"$($_.properties.level) @ $($_.id -replace '(?i)/providers/Microsoft\\.Authorization/locks/.*$', '')\" } | Sort-Object) }\n        if ($locks | Where-Object { $_.properties.level -in 'CanNotDelete', 'ReadOnly' }) { return New-Pass \"Locked ($(@($locks | ForEach-Object { $_.properties.level } | Sort-Object -Unique) -join ', '))\" $evidence }\n        New-Fail 'No delete lock on the account, resource group or subscription' $evidence\n    " }, (S, O) => {
-        R.ln = F + 579;
+        R.ln = F + 588;
         S["locks"] = R.cmd(S, "Get-EffectiveLocks", [R.m((S["record"] ?? null), "id")], null);
-        R.ln = F + 580;
+        R.ln = F + 589;
         S["evidence"] = R.ht(["locks", R.cmd(S, "Sort-Object", [], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " \"$($_.properties.level) @ $($_.id -replace '(?i)/providers/Microsoft\\.Authorization/locks/.*$', '')\" " }, (S, O) => {
-            R.ln = F + 580;
+            R.ln = F + 589;
             R.e(O, ("" + R.str(R.u(R.pi(R.m(R.m((S["_"] ?? null), "properties"), "level")))) + " @ " + R.str(R.u(R.pi(R.rep(R.m((S["_"] ?? null), "id"), [R.v("(?i)/providers/Microsoft\\.Authorization/locks/.*$"), R.v("")]))))));
         })], R.pi((S["locks"] ?? null))))], true);
-        R.ln = F + 581;
+        R.ln = F + 590;
         if (R.t(R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.properties.level -in 'CanNotDelete', 'ReadOnly' " }, (S, O) => {
-            R.ln = F + 581;
+            R.ln = F + 590;
             R.e(O, R.in(R.m(R.m((S["_"] ?? null), "properties"), "level"), [R.v("CanNotDelete"), R.v("ReadOnly")]));
         })], R.pi((S["locks"] ?? null)))))) {
-            R.ln = F + 581;
+            R.ln = F + 590;
             R.pa(O, R.cmd(S, "New-Pass", [("Locked (" + R.str(R.u(R.pi(R.join(R.cmd(S, "Sort-Object", [R.np("Unique")], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " $_.properties.level " }, (S, O) => {
-                R.ln = F + 581;
+                R.ln = F + 590;
                 R.e(O, R.m(R.m((S["_"] ?? null), "properties"), "level"));
             })], R.pi((S["locks"] ?? null)))), ", ")))) + ")"), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 582;
+        R.ln = F + 591;
         R.pa(O, R.cmd(S, "New-Fail", ["No delete lock on the account, resource group or subscription", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 586;
+    R.ln = F + 595;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-STG-026", "Title", "Storage accounts holding immutable data have a ReadOnly lock", "Category", "Backup and recovery", "Service", "Storage", "Severity", "Informational", "Description", "Reports whether a ReadOnly lock applies to each storage account. CIS recommends considering one for accounts whose configuration and data must not change; it also blocks listing and rotating the account keys, so it does not suit every account.", "Rationale", "A ReadOnly lock prevents both deletion and configuration changes, including someone quietly widening the firewall or re-enabling anonymous access.", "Remediation", "Decide per account whether a ReadOnly lock fits its use (az lock create --lock-type ReadOnly --name ReadOnly --resource <storage account id>). Accounts that need key rotation or data plane writes through the management plane should keep a CanNotDelete lock instead.", "References", R.a("https://learn.microsoft.com/azure/azure-resource-manager/management/lock-resources"), "Requires", R.a("subscription/locks"), "ResourceTypes", (S["storagetype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $locks = @(Get-EffectiveLocks $Record.id)\n        $readOnly = @($locks | Where-Object { $_.properties.level -eq 'ReadOnly' })\n        $evidence = [ordered]@{ locks = @($locks | ForEach-Object { \"$($_.properties.level) @ $($_.id -replace '(?i)/providers/Microsoft\\.Authorization/locks/.*$', '')\" } | Sort-Object) }\n        if ($readOnly) { return New-Pass 'ReadOnly lock applies' $evidence }\n        New-Fail 'No ReadOnly lock; confirm this account does not need one' $evidence\n    " }, (S, O) => {
-        R.ln = F + 600;
+        R.ln = F + 609;
         S["locks"] = R.cmd(S, "Get-EffectiveLocks", [R.m((S["record"] ?? null), "id")], null);
-        R.ln = F + 601;
+        R.ln = F + 610;
         S["readonly"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.properties.level -eq 'ReadOnly' " }, (S, O) => {
-            R.ln = F + 601;
+            R.ln = F + 610;
             R.e(O, R.eq(R.m(R.m((S["_"] ?? null), "properties"), "level"), "ReadOnly"));
         })], R.pi((S["locks"] ?? null)));
-        R.ln = F + 602;
+        R.ln = F + 611;
         S["evidence"] = R.ht(["locks", R.cmd(S, "Sort-Object", [], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " \"$($_.properties.level) @ $($_.id -replace '(?i)/providers/Microsoft\\.Authorization/locks/.*$', '')\" " }, (S, O) => {
-            R.ln = F + 602;
+            R.ln = F + 611;
             R.e(O, ("" + R.str(R.u(R.pi(R.m(R.m((S["_"] ?? null), "properties"), "level")))) + " @ " + R.str(R.u(R.pi(R.rep(R.m((S["_"] ?? null), "id"), [R.v("(?i)/providers/Microsoft\\.Authorization/locks/.*$"), R.v("")]))))));
         })], R.pi((S["locks"] ?? null))))], true);
-        R.ln = F + 603;
+        R.ln = F + 612;
         if (R.t((S["readonly"] ?? null))) {
-            R.ln = F + 603;
+            R.ln = F + 612;
             R.pa(O, R.cmd(S, "New-Pass", ["ReadOnly lock applies", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 604;
+        R.ln = F + 613;
         R.pa(O, R.cmd(S, "New-Fail", ["No ReadOnly lock; confirm this account does not need one", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 608;
+    R.ln = F + 617;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-STG-027", "Title", "Storage firewall resource instance rules only admit resources of this tenant", "Category", "Network security", "Service", "Storage", "Severity", "Medium", "Description", "Checks the resource instance rules of storage account firewalls (networkAcls.resourceAccessRules) for rules that admit resources of another Microsoft Entra tenant.", "Rationale", "A resource instance rule lets the named resource, for example a Synapse workspace or a Data Factory, through the storage firewall. A rule for another tenant lets a resource that someone outside the organization controls reach the account from Azure, and with a key, a SAS or a granted role read its data around the firewall.", "Remediation", "Remove resource instance rules for other tenants, and give the external party access through a private endpoint connection that you approve, or copy the data to an account meant for sharing.", "References", R.a("https://learn.microsoft.com/azure/storage/common/storage-network-security-resource-instances"), "ResourceTypes", R.a("Microsoft.Storage/storageAccounts"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $tenant = [string]$script:Ingest.Manifest.subscription.tenantId\n        $rules = @($Record.resource.properties.networkAcls.resourceAccessRules | Where-Object { $_ })\n        if (-not $rules) { return New-NotApplicable 'No resource instance rules' }\n        $foreign = @($rules | Where-Object { [string]$_.tenantId -ne $tenant } | ForEach-Object { \"$($_.resourceId) (tenant $($_.tenantId))\" } | Sort-Object)\n        $evidence = [ordered]@{ rules = @($rules | ForEach-Object { [string]$_.resourceId } | Sort-Object); otherTenants = $foreign }\n        if ($foreign) { return New-Fail \"Resource instance rule(s) for another tenant: $($foreign -join '; ')\" $evidence }\n        New-Pass \"$($rules.Count) resource instance rule(s), all for this tenant\" $evidence\n    " }, (S, O) => {
-        R.ln = F + 621;
+        R.ln = F + 630;
         S["tenant"] = R.c("string", R.m(R.m(R.m((R.ss(S)["script:ingest"] ?? null), "Manifest"), "subscription"), "tenantId"));
-        R.ln = F + 622;
+        R.ln = F + 631;
         S["rules"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 622;
+            R.ln = F + 631;
             R.e(O, (S["_"] ?? null));
         })], R.pi(R.m(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "networkAcls"), "resourceAccessRules")));
-        R.ln = F + 623;
+        R.ln = F + 632;
         if (!R.t((S["rules"] ?? null))) {
-            R.ln = F + 623;
+            R.ln = F + 632;
             R.pa(O, R.cmd(S, "New-NotApplicable", ["No resource instance rules"], null));
             return;
         }
-        R.ln = F + 624;
+        R.ln = F + 633;
         S["foreign"] = R.cmd(S, "Sort-Object", [], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " \"$($_.resourceId) (tenant $($_.tenantId))\" " }, (S, O) => {
-            R.ln = F + 624;
+            R.ln = F + 633;
             R.e(O, ("" + R.str(R.u(R.pi(R.m((S["_"] ?? null), "resourceId")))) + " (tenant " + R.str(R.u(R.pi(R.m((S["_"] ?? null), "tenantId")))) + ")"));
         })], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " [string]$_.tenantId -ne $tenant " }, (S, O) => {
-            R.ln = F + 624;
+            R.ln = F + 633;
             R.e(O, R.ne(R.c("string", R.m((S["_"] ?? null), "tenantId")), (S["tenant"] ?? null)));
         })], R.pi((S["rules"] ?? null)))));
-        R.ln = F + 625;
+        R.ln = F + 634;
         S["evidence"] = R.ht(["rules", R.cmd(S, "Sort-Object", [], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " [string]$_.resourceId " }, (S, O) => {
-            R.ln = F + 625;
+            R.ln = F + 634;
             R.e(O, R.c("string", R.m((S["_"] ?? null), "resourceId")));
         })], R.pi((S["rules"] ?? null)))), "otherTenants", (S["foreign"] ?? null)], true);
-        R.ln = F + 626;
+        R.ln = F + 635;
         if (R.t((S["foreign"] ?? null))) {
-            R.ln = F + 626;
+            R.ln = F + 635;
             R.pa(O, R.cmd(S, "New-Fail", [("Resource instance rule(s) for another tenant: " + R.str(R.u(R.pi(R.join((S["foreign"] ?? null), "; "))))), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 627;
+        R.ln = F + 636;
         R.pa(O, R.cmd(S, "New-Pass", [("" + R.str(R.u(R.pi(R.m((S["rules"] ?? null), "Count")))) + " resource instance rule(s), all for this tenant"), (S["evidence"] ?? null)], null));
+    })], false)], null));
+    R.ln = F + 641;
+    S["filesharetype"] = "Microsoft.FileShares/fileShares";
+    R.ln = F + 642;
+    R.def(S, "Test-NfsFileShare", { params: [{ n: "Record", t: null, pos: null }], adv: 0, h: "5717724b7d77ffcc" }, (S, O) => {
+        R.ln = F + 642;
+        R.e(O, (R.in(R.c("string", R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "protocol")), [R.v(""), R.v("NFS")])));
+        return;
+    });
+    R.ln = F + 644;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-STG-028", "Title", "NFS file shares (Microsoft.FileShares) squash root", "Category", "Identity management", "Service", "Storage", "Severity", "Medium", "Description", "Checks the root squash setting (nfsProtocolProperties.rootSquash) of NFS file shares created with the Microsoft.FileShares provider. RootSquash passes, and AllSquash, which also maps root to the anonymous user.", "Rationale", "NFS permissions are enforced by the client. Without root squash, root on any client that can mount the share has full control over every file in it.", "Remediation", "Set root squash to RootSquash (or AllSquash for shares that every client only reads) in the configuration of the file share.", "References", R.a("https://learn.microsoft.com/azure/storage/files/nfs-root-squash"), "ResourceTypes", R.a((S["filesharetype"] ?? null)), "Filter", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) Test-NfsFileShare $Record " }, (S, O) => {
+        R.ln = F + 655;
+        R.pa(O, R.cmd(S, "Test-NfsFileShare", [(S["record"] ?? null)], null));
+    }), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $value = $Record.resource.properties.nfsProtocolProperties.rootSquash\n        $evidence = [ordered]@{ rootSquash = $value }\n        if ($value -in 'RootSquash', 'AllSquash') { return New-Pass \"Root squash $value\" $evidence }\n        New-Fail $(if ($value) { \"Root squash $value\" } else { 'Root squash not set (NoRootSquash)' }) $evidence\n    " }, (S, O) => {
+        R.ln = F + 658;
+        S["value"] = R.m(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "nfsProtocolProperties"), "rootSquash");
+        R.ln = F + 659;
+        S["evidence"] = R.ht(["rootSquash", (S["value"] ?? null)], true);
+        R.ln = F + 660;
+        if (R.t(R.in((S["value"] ?? null), [R.v("RootSquash"), R.v("AllSquash")]))) {
+            R.ln = F + 660;
+            R.pa(O, R.cmd(S, "New-Pass", [("Root squash " + R.str((S["value"] ?? null))), (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 661;
+        R.pa(O, R.cmd(S, "New-Fail", [(() => {
+            const v10 = [];
+            R.ln = F + 661;
+            if (R.t((S["value"] ?? null))) {
+                R.ln = F + 661;
+                R.e(v10, ("Root squash " + R.str((S["value"] ?? null))));
+            } else {
+                R.ln = F + 661;
+                R.e(v10, "Root squash not set (NoRootSquash)");
+            }
+            return R.u(v10);
+        })(), (S["evidence"] ?? null)], null));
+    })], false)], null));
+    R.ln = F + 665;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-STG-029", "Title", "NFS file shares (Microsoft.FileShares) require encryption in transit", "Category", "Data protection", "Service", "Storage", "Severity", "Medium", "Description", "Checks that encryption in transit (nfsProtocolProperties.encryptionInTransitRequired) is Enabled on NFS file shares created with the Microsoft.FileShares provider.", "Rationale", "NFS has no user authentication and no encryption of its own; without encryption in transit, file data and metadata cross the network in plain text and can be read or changed on the way.", "Remediation", "Enable encryption in transit on the file share and mount it with the AZNFS mount helper, which carries NFS over TLS.", "References", R.a("https://learn.microsoft.com/azure/storage/files/encryption-in-transit-for-nfs-shares"), "ResourceTypes", R.a((S["filesharetype"] ?? null)), "Filter", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) Test-NfsFileShare $Record " }, (S, O) => {
+        R.ln = F + 676;
+        R.pa(O, R.cmd(S, "Test-NfsFileShare", [(S["record"] ?? null)], null));
+    }), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $value = $Record.resource.properties.nfsProtocolProperties.encryptionInTransitRequired\n        $evidence = [ordered]@{ encryptionInTransitRequired = $value }\n        if ($value -eq 'Enabled') { return New-Pass 'Encryption in transit required' $evidence }\n        New-Fail $(if ($value) { \"Encryption in transit $value\" } else { 'Encryption in transit not required' }) $evidence\n    " }, (S, O) => {
+        R.ln = F + 679;
+        S["value"] = R.m(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "nfsProtocolProperties"), "encryptionInTransitRequired");
+        R.ln = F + 680;
+        S["evidence"] = R.ht(["encryptionInTransitRequired", (S["value"] ?? null)], true);
+        R.ln = F + 681;
+        if (R.t(R.eq((S["value"] ?? null), "Enabled"))) {
+            R.ln = F + 681;
+            R.pa(O, R.cmd(S, "New-Pass", ["Encryption in transit required", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 682;
+        R.pa(O, R.cmd(S, "New-Fail", [(() => {
+            const v11 = [];
+            R.ln = F + 682;
+            if (R.t((S["value"] ?? null))) {
+                R.ln = F + 682;
+                R.e(v11, ("Encryption in transit " + R.str((S["value"] ?? null))));
+            } else {
+                R.ln = F + 682;
+                R.e(v11, "Encryption in transit not required");
+            }
+            return R.u(v11);
+        })(), (S["evidence"] ?? null)], null));
+    })], false)], null));
+    R.ln = F + 686;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-STG-030", "Title", "NFS file shares (Microsoft.FileShares) limit the public endpoint to selected subnets", "Category", "Network security", "Service", "Storage", "Severity", "Medium", "Description", "Checks that NFS file shares created with the Microsoft.FileShares provider either disable public network access or allow it only from listed virtual network subnets (publicAccessProperties.allowedSubnets).", "Rationale", "A public endpoint without subnet restrictions accepts NFS traffic from every network, and NFS relies on the network as its only access control.", "Remediation", "Restrict public network access of the file share to the subnets that need it (with a Microsoft.Storage service endpoint), or disable it and use a private endpoint.", "References", R.a("https://learn.microsoft.com/azure/storage/files/storage-files-networking-overview"), "ResourceTypes", R.a((S["filesharetype"] ?? null)), "Filter", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) Test-NfsFileShare $Record " }, (S, O) => {
+        R.ln = F + 697;
+        R.pa(O, R.cmd(S, "Test-NfsFileShare", [(S["record"] ?? null)], null));
+    }), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $p = $Record.resource.properties\n        $subnets = @($p.publicAccessProperties.allowedSubnets | Where-Object { $_ } | Sort-Object)\n        $evidence = [ordered]@{ publicNetworkAccess = $p.publicNetworkAccess; allowedSubnets = $subnets }\n        if ($p.publicNetworkAccess -eq 'Disabled') { return New-Pass 'Public network access disabled' $evidence }\n        if ($subnets) { return New-Pass \"Public network access limited to $($subnets.Count) subnet(s)\" $evidence }\n        New-Fail 'Public network access enabled without subnet restrictions' $evidence\n    " }, (S, O) => {
+        R.ln = F + 700;
+        S["p"] = R.m(R.m((S["record"] ?? null), "resource"), "properties");
+        R.ln = F + 701;
+        S["subnets"] = R.cmd(S, "Sort-Object", [], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+            R.ln = F + 701;
+            R.e(O, (S["_"] ?? null));
+        })], R.pi(R.m(R.m((S["p"] ?? null), "publicAccessProperties"), "allowedSubnets"))));
+        R.ln = F + 702;
+        S["evidence"] = R.ht(["publicNetworkAccess", R.m((S["p"] ?? null), "publicNetworkAccess"), "allowedSubnets", (S["subnets"] ?? null)], true);
+        R.ln = F + 703;
+        if (R.t(R.eq(R.m((S["p"] ?? null), "publicNetworkAccess"), "Disabled"))) {
+            R.ln = F + 703;
+            R.pa(O, R.cmd(S, "New-Pass", ["Public network access disabled", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 704;
+        if (R.t((S["subnets"] ?? null))) {
+            R.ln = F + 704;
+            R.pa(O, R.cmd(S, "New-Pass", [("Public network access limited to " + R.str(R.u(R.pi(R.m((S["subnets"] ?? null), "Count")))) + " subnet(s)"), (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 705;
+        R.pa(O, R.cmd(S, "New-Fail", ["Public network access enabled without subnet restrictions", (S["evidence"] ?? null)], null));
+    })], false)], null));
+    R.ln = F + 709;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-STG-031", "Title", "NFS file shares (Microsoft.FileShares) disable public network access", "Category", "Network security", "Service", "Storage", "Severity", "Medium", "Description", "Checks that public network access is Disabled on NFS file shares created with the Microsoft.FileShares provider.", "Rationale", "With public network access disabled, the share is only reachable through private endpoints, which removes its exposure to other networks.", "Remediation", "Create a private endpoint for the file share, move clients to it and set public network access to Disabled.", "References", R.a("https://learn.microsoft.com/azure/storage/files/storage-files-networking-overview"), "Policy", R.ht(["edfb40e6-36fe-4928-96e9-e921bc7dfc70", "Public network access should be disabled for file share with Microsoft.FileShares"], false), "ResourceTypes", R.a((S["filesharetype"] ?? null)), "Filter", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) Test-NfsFileShare $Record " }, (S, O) => {
+        R.ln = F + 721;
+        R.pa(O, R.cmd(S, "Test-NfsFileShare", [(S["record"] ?? null)], null));
+    }), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $value = $Record.resource.properties.publicNetworkAccess\n        $evidence = [ordered]@{ publicNetworkAccess = $value }\n        if ($value -eq 'Disabled') { return New-Pass 'Public network access disabled' $evidence }\n        New-Fail $(if ($value) { \"Public network access $value\" } else { 'Public network access not set (enabled)' }) $evidence\n    " }, (S, O) => {
+        R.ln = F + 724;
+        S["value"] = R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "publicNetworkAccess");
+        R.ln = F + 725;
+        S["evidence"] = R.ht(["publicNetworkAccess", (S["value"] ?? null)], true);
+        R.ln = F + 726;
+        if (R.t(R.eq((S["value"] ?? null), "Disabled"))) {
+            R.ln = F + 726;
+            R.pa(O, R.cmd(S, "New-Pass", ["Public network access disabled", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 727;
+        R.pa(O, R.cmd(S, "New-Fail", [(() => {
+            const v12 = [];
+            R.ln = F + 727;
+            if (R.t((S["value"] ?? null))) {
+                R.ln = F + 727;
+                R.e(v12, ("Public network access " + R.str((S["value"] ?? null))));
+            } else {
+                R.ln = F + 727;
+                R.e(v12, "Public network access not set (enabled)");
+            }
+            return R.u(v12);
+        })(), (S["evidence"] ?? null)], null));
+    })], false)], null));
+    R.ln = F + 731;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-STG-032", "Title", "NFS file shares (Microsoft.FileShares) are accessed through private endpoints", "Category", "Network security", "Service", "Storage", "Severity", "Low", "Description", "Checks NFS file shares created with the Microsoft.FileShares provider for at least one approved private endpoint connection.", "Rationale", "A private endpoint gives the share a private address in the virtual network, so client traffic stays on the Microsoft backbone and the public endpoint can be disabled.", "Remediation", "Create a private endpoint (sub-resource FileShare) for each file share, with private DNS zone integration.", "References", R.a("https://learn.microsoft.com/azure/storage/files/storage-files-networking-endpoints"), "ResourceTypes", R.a((S["filesharetype"] ?? null)), "Filter", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) Test-NfsFileShare $Record " }, (S, O) => {
+        R.ln = F + 742;
+        R.pa(O, R.cmd(S, "Test-NfsFileShare", [(S["record"] ?? null)], null));
+    }), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $approved = @($Record.resource.properties.privateEndpointConnections | Where-Object { $_ -and $_.properties.privateLinkServiceConnectionState.status -eq 'Approved' })\n        $evidence = [ordered]@{ approvedPrivateEndpoints = $approved.Count }\n        if ($approved) { return New-Pass \"$($approved.Count) private endpoint(s)\" $evidence }\n        New-Fail 'No approved private endpoint' $evidence\n    " }, (S, O) => {
+        R.ln = F + 745;
+        S["approved"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.properties.privateLinkServiceConnectionState.status -eq 'Approved' " }, (S, O) => {
+            R.ln = F + 745;
+            R.e(O, (R.t((S["_"] ?? null)) && R.t(R.eq(R.m(R.m(R.m((S["_"] ?? null), "properties"), "privateLinkServiceConnectionState"), "status"), "Approved"))));
+        })], R.pi(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "privateEndpointConnections")));
+        R.ln = F + 746;
+        S["evidence"] = R.ht(["approvedPrivateEndpoints", R.m((S["approved"] ?? null), "Count")], true);
+        R.ln = F + 747;
+        if (R.t((S["approved"] ?? null))) {
+            R.ln = F + 747;
+            R.pa(O, R.cmd(S, "New-Pass", [("" + R.str(R.u(R.pi(R.m((S["approved"] ?? null), "Count")))) + " private endpoint(s)"), (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 748;
+        R.pa(O, R.cmd(S, "New-Fail", ["No approved private endpoint", (S["evidence"] ?? null)], null));
+    })], false)], null));
+    R.ln = F + 752;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-STG-033", "Title", "NFS file shares in storage accounts squash root", "Category", "Identity management", "Service", "Storage", "Severity", "Medium", "Description", "Checks the root squash setting of the NFS file shares in storage accounts (classic file shares). RootSquash passes, and AllSquash, which also maps root to the anonymous user. The default is NoRootSquash.", "Rationale", "NFS permissions are enforced by the client. Without root squash, root on any client that can mount the share has full control over every file in it.", "Remediation", "Set root squash to RootSquash (or AllSquash for shares that every client only reads) on each NFS share (az storage share-rm update --root-squash RootSquash ...).", "References", R.a("https://learn.microsoft.com/azure/storage/files/nfs-root-squash"), "ResourceTypes", (S["storagetype"] ?? null), "Filter", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) Test-FileCapable $Record " }, (S, O) => {
+        R.ln = F + 763;
+        R.pa(O, R.cmd(S, "Test-FileCapable", [(S["record"] ?? null)], null));
+    }), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (Test-ChildNotSupported $Record 'fileServices/default') { return New-NotApplicable 'The account type does not offer Azure Files' }\n        if (-not (Test-ChildCollected $Record 'fileServices/default/shares')) { return New-Unknown 'File shares could not be read' }\n        $nfs = @(Get-Child $Record 'fileServices/default/shares' | Where-Object { $_ -and $_.properties.enabledProtocols -eq 'NFS' })\n        if (-not $nfs) { return New-NotApplicable 'No NFS file shares' }\n        $open = @($nfs | Where-Object { [string]$_.properties.rootSquash -notin 'RootSquash', 'AllSquash' } | ForEach-Object { \"$($_.name) ($(if ($_.properties.rootSquash) { $_.properties.rootSquash } else { 'not set' }))\" } | Sort-Object)\n        $evidence = [ordered]@{ nfsShares = @($nfs | ForEach-Object { \"$($_.name): $($_.properties.rootSquash)\" } | Sort-Object); withoutRootSquash = $open }\n        if ($open) { return New-Fail \"NFS share(s) without root squash: $($open -join ', ')\" $evidence }\n        New-Pass \"All $($nfs.Count) NFS share(s) squash root\" $evidence\n    " }, (S, O) => {
+        R.ln = F + 766;
+        if (R.t(R.u(R.cmd(S, "Test-ChildNotSupported", [(S["record"] ?? null), "fileServices/default"], null)))) {
+            R.ln = F + 766;
+            R.pa(O, R.cmd(S, "New-NotApplicable", ["The account type does not offer Azure Files"], null));
+            return;
+        }
+        R.ln = F + 767;
+        if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "fileServices/default/shares"], null)))) {
+            R.ln = F + 767;
+            R.pa(O, R.cmd(S, "New-Unknown", ["File shares could not be read"], null));
+            return;
+        }
+        R.ln = F + 768;
+        S["nfs"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.properties.enabledProtocols -eq 'NFS' " }, (S, O) => {
+            R.ln = F + 768;
+            R.e(O, (R.t((S["_"] ?? null)) && R.t(R.eq(R.m(R.m((S["_"] ?? null), "properties"), "enabledProtocols"), "NFS"))));
+        })], R.cmd(S, "Get-Child", [(S["record"] ?? null), "fileServices/default/shares"], null));
+        R.ln = F + 769;
+        if (!R.t((S["nfs"] ?? null))) {
+            R.ln = F + 769;
+            R.pa(O, R.cmd(S, "New-NotApplicable", ["No NFS file shares"], null));
+            return;
+        }
+        R.ln = F + 770;
+        S["open"] = R.cmd(S, "Sort-Object", [], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " \"$($_.name) ($(if ($_.properties.rootSquash) { $_.properties.rootSquash } else { 'not set' }))\" " }, (S, O) => {
+            R.ln = F + 770;
+            R.e(O, ("" + R.str(R.u(R.pi(R.m((S["_"] ?? null), "name")))) + " (" + R.str((() => {
+                const v13 = [];
+                R.ln = F + 770;
+                if (R.t(R.m(R.m((S["_"] ?? null), "properties"), "rootSquash"))) {
+                    R.ln = F + 770;
+                    R.e(v13, R.m(R.m((S["_"] ?? null), "properties"), "rootSquash"));
+                } else {
+                    R.ln = F + 770;
+                    R.e(v13, "not set");
+                }
+                return R.u(v13);
+            })()) + ")"));
+        })], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " [string]$_.properties.rootSquash -notin 'RootSquash', 'AllSquash' " }, (S, O) => {
+            R.ln = F + 770;
+            R.e(O, R.nin(R.c("string", R.m(R.m((S["_"] ?? null), "properties"), "rootSquash")), [R.v("RootSquash"), R.v("AllSquash")]));
+        })], R.pi((S["nfs"] ?? null)))));
+        R.ln = F + 771;
+        S["evidence"] = R.ht(["nfsShares", R.cmd(S, "Sort-Object", [], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " \"$($_.name): $($_.properties.rootSquash)\" " }, (S, O) => {
+            R.ln = F + 771;
+            R.e(O, ("" + R.str(R.u(R.pi(R.m((S["_"] ?? null), "name")))) + ": " + R.str(R.u(R.pi(R.m(R.m((S["_"] ?? null), "properties"), "rootSquash"))))));
+        })], R.pi((S["nfs"] ?? null)))), "withoutRootSquash", (S["open"] ?? null)], true);
+        R.ln = F + 772;
+        if (R.t((S["open"] ?? null))) {
+            R.ln = F + 772;
+            R.pa(O, R.cmd(S, "New-Fail", [("NFS share(s) without root squash: " + R.str(R.u(R.pi(R.join((S["open"] ?? null), ", "))))), (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 773;
+        R.pa(O, R.cmd(S, "New-Pass", [("All " + R.str(R.u(R.pi(R.m((S["nfs"] ?? null), "Count")))) + " NFS share(s) squash root"), (S["evidence"] ?? null)], null));
+    })], false)], null));
+    R.ln = F + 777;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-STG-034", "Title", "Azure Managed Lustre file systems use a customer-managed key (when required)", "Category", "Data protection", "Service", "Storage", "Severity", "Informational", "Description", "Checks whether Azure Managed Lustre file systems encrypt their data with a customer-managed key encryption key (encryptionSettings.keyEncryptionKey.keyUrl).", "Rationale", "A customer-managed key gives control over key rotation and the ability to revoke access to the data. Only required for data whose classification or regulation demands it.", "Remediation", "Create the file system with a key encryption key from Key Vault and a user-assigned managed identity that can use it; the setting cannot be added afterwards.", "References", R.a("https://learn.microsoft.com/azure/azure-managed-lustre/customer-managed-encryption-keys"), "Policy", R.ht(["49af39b4-9394-4043-b153-f4a67201368b", "[Preview]: Azure Managed Lustre file systems should use customer-managed keys for encryption"], false), "ResourceTypes", R.a("Microsoft.StorageCache/amlFilesystems"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $key = $Record.resource.properties.encryptionSettings.keyEncryptionKey\n        $evidence = [ordered]@{ keyUrl = $(if ($key.keyUrl) { [string]$key.keyUrl } else { $null }); keyVault = $(if ($key.sourceVault.id) { Get-ResourceName $key.sourceVault.id } else { $null }) }\n        if ($key.keyUrl) { return New-Pass 'Customer-managed key encryption key' $evidence }\n        New-Fail 'Microsoft-managed keys' $evidence\n    " }, (S, O) => {
+        R.ln = F + 791;
+        S["key"] = R.m(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "encryptionSettings"), "keyEncryptionKey");
+        R.ln = F + 792;
+        S["evidence"] = R.ht(["keyUrl", (() => {
+            const v14 = [];
+            R.ln = F + 792;
+            if (R.t(R.m((S["key"] ?? null), "keyUrl"))) {
+                R.ln = F + 792;
+                R.e(v14, R.c("string", R.m((S["key"] ?? null), "keyUrl")));
+            } else {
+                R.ln = F + 792;
+                R.e(v14, null);
+            }
+            return R.u(v14);
+        })(), "keyVault", (() => {
+            const v15 = [];
+            R.ln = F + 792;
+            if (R.t(R.m(R.m((S["key"] ?? null), "sourceVault"), "id"))) {
+                R.ln = F + 792;
+                R.pa(v15, R.cmd(S, "Get-ResourceName", [R.m(R.m((S["key"] ?? null), "sourceVault"), "id")], null));
+            } else {
+                R.ln = F + 792;
+                R.e(v15, null);
+            }
+            return R.u(v15);
+        })()], true);
+        R.ln = F + 793;
+        if (R.t(R.m((S["key"] ?? null), "keyUrl"))) {
+            R.ln = F + 793;
+            R.pa(O, R.cmd(S, "New-Pass", ["Customer-managed key encryption key", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 794;
+        R.pa(O, R.cmd(S, "New-Fail", ["Microsoft-managed keys", (S["evidence"] ?? null)], null));
+    })], false)], null));
+    R.ln = F + 798;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-STG-035", "Title", "Azure NetApp Files accounts use a customer-managed key (when required)", "Category", "Data protection", "Service", "Storage", "Severity", "Informational", "Description", "Checks whether the encryption key source of Azure NetApp Files accounts (encryption.keySource) is Microsoft.KeyVault.", "Rationale", "A customer-managed key gives control over key rotation and the ability to revoke access to the volumes. Only required for data whose classification or regulation demands it.", "Remediation", "Configure the NetApp account encryption with a key in Key Vault and a managed identity (NetApp account > Encryption), then create the volumes with that key.", "References", R.a("https://learn.microsoft.com/azure/azure-netapp-files/configure-customer-managed-keys"), "ResourceTypes", R.a("Microsoft.NetApp/netAppAccounts"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $source = $Record.resource.properties.encryption.keySource\n        $evidence = [ordered]@{ keySource = $source }\n        if ($source -eq 'Microsoft.KeyVault') { return New-Pass 'Customer-managed key' $evidence }\n        New-Fail $(if ($source) { \"Key source $source\" } else { 'Microsoft-managed keys (default)' }) $evidence\n    " }, (S, O) => {
+        R.ln = F + 811;
+        S["source"] = R.m(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "encryption"), "keySource");
+        R.ln = F + 812;
+        S["evidence"] = R.ht(["keySource", (S["source"] ?? null)], true);
+        R.ln = F + 813;
+        if (R.t(R.eq((S["source"] ?? null), "Microsoft.KeyVault"))) {
+            R.ln = F + 813;
+            R.pa(O, R.cmd(S, "New-Pass", ["Customer-managed key", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 814;
+        R.pa(O, R.cmd(S, "New-Fail", [(() => {
+            const v16 = [];
+            R.ln = F + 814;
+            if (R.t((S["source"] ?? null))) {
+                R.ln = F + 814;
+                R.e(v16, ("Key source " + R.str((S["source"] ?? null))));
+            } else {
+                R.ln = F + 814;
+                R.e(v16, "Microsoft-managed keys (default)");
+            }
+            return R.u(v16);
+        })(), (S["evidence"] ?? null)], null));
+    })], false)], null));
+    R.ln = F + 818;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-STG-036", "Title", "Blob containers with business-critical data have a locked immutability policy", "Category", "Backup and recovery", "Service", "Storage", "Severity", "Informational", "Description", "Reports per storage account the blob containers without a locked time-based immutability policy. CIS asks for one on containers with business-critical data, which configuration cannot tell apart.", "Rationale", "A locked immutability policy keeps blobs from being changed or deleted until the retention period ends, whatever the rights of the caller, which protects business-critical data against ransomware and a compromised administrator.", "Remediation", "Create a time-based retention policy on the containers with business-critical data and lock it once the retention period is final (az storage container immutability-policy create / lock ...). Confirm that the other containers do not need one.", "References", R.a("https://learn.microsoft.com/azure/storage/blobs/immutable-storage-overview"), "ResourceTypes", (S["storagetype"] ?? null), "Filter", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) Test-BlobCapable $Record " }, (S, O) => {
+        R.ln = F + 829;
+        R.pa(O, R.cmd(S, "Test-BlobCapable", [(S["record"] ?? null)], null));
+    }), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not (Test-ChildCollected $Record 'blobServices/default/containers')) { return New-Unknown 'Containers could not be read' }\n        $containers = @(Get-Child $Record 'blobServices/default/containers' | Where-Object { $_ } | Sort-Object name)\n        if (-not $containers) { return New-NotApplicable 'No containers' }\n        $locked = [System.Collections.Generic.List[string]]::new()\n        $notLocked = [System.Collections.Generic.List[string]]::new()\n        $unread = [System.Collections.Generic.List[string]]::new()\n        foreach ($container in $containers) {\n            $state = [string]$container.properties.immutabilityPolicy.properties.state\n            if ($state -eq 'Locked') { $locked.Add([string]$container.name) }\n            elseif ($state) { $notLocked.Add(\"$($container.name) ($state)\") }\n            elseif ($container.properties.hasImmutabilityPolicy) { $unread.Add([string]$container.name) }\n            else { $notLocked.Add(\"$($container.name) (no policy)\") }\n        }\n        $evidence = [ordered]@{ lockedContainers = @($locked); containersNotLocked = @($notLocked); policyStateNotRead = @($unread) }\n        if ($notLocked.Count) { return New-Fail \"Container(s) without a locked immutability policy: $($notLocked -join ', '); confirm they hold no business-critical data\" $evidence }\n        if ($unread.Count) { return New-Unknown \"The immutability policy state of $($unread -join ', ') was not in the container list\" $evidence }\n        New-Pass \"All $($containers.Count) container(s) have a locked immutability policy\" $evidence\n    " }, (S, O) => {
+        R.ln = F + 832;
+        if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "blobServices/default/containers"], null)))) {
+            R.ln = F + 832;
+            R.pa(O, R.cmd(S, "New-Unknown", ["Containers could not be read"], null));
+            return;
+        }
+        R.ln = F + 833;
+        S["containers"] = R.cmd(S, "Sort-Object", ["name"], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+            R.ln = F + 833;
+            R.e(O, (S["_"] ?? null));
+        })], R.cmd(S, "Get-Child", [(S["record"] ?? null), "blobServices/default/containers"], null)));
+        R.ln = F + 834;
+        if (!R.t((S["containers"] ?? null))) {
+            R.ln = F + 834;
+            R.pa(O, R.cmd(S, "New-NotApplicable", ["No containers"], null));
+            return;
+        }
+        R.ln = F + 835;
+        S["locked"] = R.sc("System.Collections.Generic.List[string]", "new", []);
+        R.ln = F + 836;
+        S["notlocked"] = R.sc("System.Collections.Generic.List[string]", "new", []);
+        R.ln = F + 837;
+        S["unread"] = R.sc("System.Collections.Generic.List[string]", "new", []);
+        R.ln = F + 838;
+        for (const it17 of R.fi((S["containers"] ?? null))) {
+            S["container"] = it17;
+            R.ln = F + 839;
+            S["state"] = R.c("string", R.m(R.m(R.m(R.m((S["container"] ?? null), "properties"), "immutabilityPolicy"), "properties"), "state"));
+            R.ln = F + 840;
+            if (R.t(R.eq((S["state"] ?? null), "Locked"))) {
+                R.ln = F + 840;
+                R.e(O, R.im((S["locked"] ?? null), "Add", [R.c("string", R.m((S["container"] ?? null), "name"))]));
+            } else if (R.t((S["state"] ?? null))) {
+                R.ln = F + 841;
+                R.e(O, R.im((S["notlocked"] ?? null), "Add", [("" + R.str(R.u(R.pi(R.m((S["container"] ?? null), "name")))) + " (" + R.str((S["state"] ?? null)) + ")")]));
+            } else if (R.t(R.m(R.m((S["container"] ?? null), "properties"), "hasImmutabilityPolicy"))) {
+                R.ln = F + 842;
+                R.e(O, R.im((S["unread"] ?? null), "Add", [R.c("string", R.m((S["container"] ?? null), "name"))]));
+            } else {
+                R.ln = F + 843;
+                R.e(O, R.im((S["notlocked"] ?? null), "Add", [("" + R.str(R.u(R.pi(R.m((S["container"] ?? null), "name")))) + " (no policy)")]));
+            }
+        }
+        R.ln = F + 845;
+        S["evidence"] = R.ht(["lockedContainers", R.a((S["locked"] ?? null)), "containersNotLocked", R.a((S["notlocked"] ?? null)), "policyStateNotRead", R.a((S["unread"] ?? null))], true);
+        R.ln = F + 846;
+        if (R.t(R.m((S["notlocked"] ?? null), "Count"))) {
+            R.ln = F + 846;
+            R.pa(O, R.cmd(S, "New-Fail", [("Container(s) without a locked immutability policy: " + R.str(R.u(R.pi(R.join((S["notlocked"] ?? null), ", ")))) + "; confirm they hold no business-critical data"), (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 847;
+        if (R.t(R.m((S["unread"] ?? null), "Count"))) {
+            R.ln = F + 847;
+            R.pa(O, R.cmd(S, "New-Unknown", [("The immutability policy state of " + R.str(R.u(R.pi(R.join((S["unread"] ?? null), ", ")))) + " was not in the container list"), (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 848;
+        R.pa(O, R.cmd(S, "New-Pass", [("All " + R.str(R.u(R.pi(R.m((S["containers"] ?? null), "Count")))) + " container(s) have a locked immutability policy"), (S["evidence"] ?? null)], null));
+    })], false)], null));
+    R.ln = F + 852;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-STG-037", "Title", "Elastic SANs disable public network access", "Category", "Network security", "Service", "Storage", "Severity", "Medium", "Description", "Checks that public network access of Azure Elastic SANs is Disabled.", "Rationale", "With public network access disabled, the volumes are only reachable through private endpoints, which removes their exposure to other networks.", "Remediation", "Create private endpoints for the volume groups, then set public network access of the Elastic SAN to Disabled (az elastic-san update --public-network-access Disabled ...).", "References", R.a("https://learn.microsoft.com/azure/storage/elastic-san/elastic-san-networking"), "Policy", R.ht(["6a92fe1f-0b86-44ae-843d-2db3d2b571ae", "ElasticSan should disable public network access"], false), "ResourceTypes", R.a("Microsoft.ElasticSan/elasticSans"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $value = $Record.resource.properties.publicNetworkAccess\n        $evidence = [ordered]@{ publicNetworkAccess = $value }\n        if ($value -eq 'Disabled') { return New-Pass 'Public network access disabled' $evidence }\n        New-Fail $(if ($value) { \"Public network access $value\" } else { 'Public network access not set (enabled)' }) $evidence\n    " }, (S, O) => {
+        R.ln = F + 866;
+        S["value"] = R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "publicNetworkAccess");
+        R.ln = F + 867;
+        S["evidence"] = R.ht(["publicNetworkAccess", (S["value"] ?? null)], true);
+        R.ln = F + 868;
+        if (R.t(R.eq((S["value"] ?? null), "Disabled"))) {
+            R.ln = F + 868;
+            R.pa(O, R.cmd(S, "New-Pass", ["Public network access disabled", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 869;
+        R.pa(O, R.cmd(S, "New-Fail", [(() => {
+            const v18 = [];
+            R.ln = F + 869;
+            if (R.t((S["value"] ?? null))) {
+                R.ln = F + 869;
+                R.e(v18, ("Public network access " + R.str((S["value"] ?? null))));
+            } else {
+                R.ln = F + 869;
+                R.e(v18, "Public network access not set (enabled)");
+            }
+            return R.u(v18);
+        })(), (S["evidence"] ?? null)], null));
+    })], false)], null));
+    R.ln = F + 873;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-STG-038", "Title", "Elastic SAN volume groups use customer-managed keys (when required)", "Category", "Data protection", "Service", "Storage", "Severity", "Informational", "Description", "Checks whether the volume groups of each Azure Elastic SAN encrypt data at rest with a customer-managed key (encryption EncryptionAtRestWithCustomerManagedKey).", "Rationale", "A customer-managed key gives control over key rotation and the ability to revoke access to the volumes. Only required for data whose classification or regulation demands it.", "Remediation", "Configure the volume group encryption with a key in Key Vault and a managed identity (az elastic-san volume-group update --encryption EncryptionAtRestWithCustomerManagedKey ...).", "References", R.a("https://learn.microsoft.com/azure/storage/elastic-san/elastic-san-configure-customer-managed-keys"), "Policy", R.ht(["7698f4ed-80ce-4e13-b408-ee135fa400a5", "ElasticSan Volume Group should use customer-managed keys to encrypt data at rest"], false), "ResourceTypes", R.a("Microsoft.ElasticSan/elasticSans"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if ($Record.resource.properties.volumeGroupCount -eq 0) { return New-NotApplicable 'No volume groups' }\n        if (-not (Test-ChildCollected $Record 'volumegroups')) { return New-Unknown 'Volume groups could not be read' }\n        $groups = @(Get-Child $Record 'volumegroups' | Where-Object { $_ })\n        if (-not $groups) { return New-NotApplicable 'No volume groups' }\n        $platform = @($groups | Where-Object { $_.properties.encryption -ne 'EncryptionAtRestWithCustomerManagedKey' } | ForEach-Object { \"$($_.name) ($(if ($_.properties.encryption) { $_.properties.encryption } else { 'not set' }))\" } | Sort-Object)\n        $evidence = [ordered]@{ volumeGroups = $groups.Count; withoutCustomerManagedKey = $platform }\n        if ($platform) { return New-Fail \"Volume group(s) without a customer-managed key: $($platform -join ', ')\" $evidence }\n        New-Pass \"All $($groups.Count) volume group(s) use a customer-managed key\" $evidence\n    " }, (S, O) => {
+        R.ln = F + 887;
+        if (R.t(R.eq(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "volumeGroupCount"), 0))) {
+            R.ln = F + 887;
+            R.pa(O, R.cmd(S, "New-NotApplicable", ["No volume groups"], null));
+            return;
+        }
+        R.ln = F + 888;
+        if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "volumegroups"], null)))) {
+            R.ln = F + 888;
+            R.pa(O, R.cmd(S, "New-Unknown", ["Volume groups could not be read"], null));
+            return;
+        }
+        R.ln = F + 889;
+        S["groups"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+            R.ln = F + 889;
+            R.e(O, (S["_"] ?? null));
+        })], R.cmd(S, "Get-Child", [(S["record"] ?? null), "volumegroups"], null));
+        R.ln = F + 890;
+        if (!R.t((S["groups"] ?? null))) {
+            R.ln = F + 890;
+            R.pa(O, R.cmd(S, "New-NotApplicable", ["No volume groups"], null));
+            return;
+        }
+        R.ln = F + 891;
+        S["platform"] = R.cmd(S, "Sort-Object", [], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " \"$($_.name) ($(if ($_.properties.encryption) { $_.properties.encryption } else { 'not set' }))\" " }, (S, O) => {
+            R.ln = F + 891;
+            R.e(O, ("" + R.str(R.u(R.pi(R.m((S["_"] ?? null), "name")))) + " (" + R.str((() => {
+                const v19 = [];
+                R.ln = F + 891;
+                if (R.t(R.m(R.m((S["_"] ?? null), "properties"), "encryption"))) {
+                    R.ln = F + 891;
+                    R.e(v19, R.m(R.m((S["_"] ?? null), "properties"), "encryption"));
+                } else {
+                    R.ln = F + 891;
+                    R.e(v19, "not set");
+                }
+                return R.u(v19);
+            })()) + ")"));
+        })], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.properties.encryption -ne 'EncryptionAtRestWithCustomerManagedKey' " }, (S, O) => {
+            R.ln = F + 891;
+            R.e(O, R.ne(R.m(R.m((S["_"] ?? null), "properties"), "encryption"), "EncryptionAtRestWithCustomerManagedKey"));
+        })], R.pi((S["groups"] ?? null)))));
+        R.ln = F + 892;
+        S["evidence"] = R.ht(["volumeGroups", R.m((S["groups"] ?? null), "Count"), "withoutCustomerManagedKey", (S["platform"] ?? null)], true);
+        R.ln = F + 893;
+        if (R.t((S["platform"] ?? null))) {
+            R.ln = F + 893;
+            R.pa(O, R.cmd(S, "New-Fail", [("Volume group(s) without a customer-managed key: " + R.str(R.u(R.pi(R.join((S["platform"] ?? null), ", "))))), (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 894;
+        R.pa(O, R.cmd(S, "New-Pass", [("All " + R.str(R.u(R.pi(R.m((S["groups"] ?? null), "Count")))) + " volume group(s) use a customer-managed key"), (S["evidence"] ?? null)], null));
+    })], false)], null));
+    R.ln = F + 898;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-STG-039", "Title", "The SAS expiration policy blocks SAS that exceed it", "Category", "Identity management", "Service", "Storage", "Severity", "Low", "Description", "Checks that the SAS expiration policy of every storage account has expiration action Block (sasPolicy.expirationAction).", "Rationale", "With the default action Log, a SAS that exceeds the maximum validity or has no start time still works and is only logged. Block makes the policy a limit instead of a report.", "Remediation", "Review the SasExpiryStatus entries in the resource logs, then set the expiration action to Block (az storage account update --sas-expiration-action Block ...).", "References", R.a("https://learn.microsoft.com/azure/storage/common/sas-expiration-policy"), "ResourceTypes", (S["storagetype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $policy = $Record.resource.properties.sasPolicy\n        $evidence = [ordered]@{ sasExpirationPeriod = $policy.sasExpirationPeriod; expirationAction = $policy.expirationAction }\n        if (-not $policy.sasExpirationPeriod) { return New-Fail 'No SAS expiration policy' $evidence }\n        if ($policy.expirationAction -eq 'Block') { return New-Pass \"SAS longer than $($policy.sasExpirationPeriod) are blocked\" $evidence }\n        New-Fail \"Expiration action $(if ($policy.expirationAction) { $policy.expirationAction } else { 'Log (default)' })\" $evidence\n    " }, (S, O) => {
+        R.ln = F + 911;
+        S["policy"] = R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "sasPolicy");
+        R.ln = F + 912;
+        S["evidence"] = R.ht(["sasExpirationPeriod", R.m((S["policy"] ?? null), "sasExpirationPeriod"), "expirationAction", R.m((S["policy"] ?? null), "expirationAction")], true);
+        R.ln = F + 913;
+        if (!R.t(R.m((S["policy"] ?? null), "sasExpirationPeriod"))) {
+            R.ln = F + 913;
+            R.pa(O, R.cmd(S, "New-Fail", ["No SAS expiration policy", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 914;
+        if (R.t(R.eq(R.m((S["policy"] ?? null), "expirationAction"), "Block"))) {
+            R.ln = F + 914;
+            R.pa(O, R.cmd(S, "New-Pass", [("SAS longer than " + R.str(R.u(R.pi(R.m((S["policy"] ?? null), "sasExpirationPeriod")))) + " are blocked"), (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 915;
+        R.pa(O, R.cmd(S, "New-Fail", [("Expiration action " + R.str((() => {
+            const v20 = [];
+            R.ln = F + 915;
+            if (R.t(R.m((S["policy"] ?? null), "expirationAction"))) {
+                R.ln = F + 915;
+                R.e(v20, R.m((S["policy"] ?? null), "expirationAction"));
+            } else {
+                R.ln = F + 915;
+                R.e(v20, "Log (default)");
+            }
+            return R.u(v20);
+        })())), (S["evidence"] ?? null)], null));
+    })], false)], null));
+    R.ln = F + 919;
+    R.def(S, "Get-StorageRequestLogging", { params: [{ n: "Settings", t: null, pos: null }], adv: 0, h: "d688efaabe0d0e25" }, (S, O) => {
+        R.ln = F + 922;
+        S["required"] = R.a([R.v("StorageRead"), R.v("StorageWrite"), R.v("StorageDelete")]);
+        R.ln = F + 923;
+        S["names"] = R.sc("System.Collections.Generic.List[string]", "new", []);
+        R.ln = F + 924;
+        for (const it21 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+            R.ln = F + 924;
+            R.e(O, (S["_"] ?? null));
+        })], R.pi((S["settings"] ?? null))))) {
+            S["setting"] = it21;
+            R.ln = F + 925;
+            S["p"] = R.m((S["setting"] ?? null), "properties");
+            R.ln = F + 926;
+            if (!(((R.t(R.m((S["p"] ?? null), "workspaceId")) || R.t(R.m((S["p"] ?? null), "storageAccountId"))) || R.t(R.m((S["p"] ?? null), "eventHubAuthorizationRuleId"))) || R.t(R.m((S["p"] ?? null), "marketplacePartnerId")))) {
+                continue;
+            }
+            R.ln = F + 927;
+            S["enabled"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.enabled " }, (S, O) => {
+                R.ln = F + 927;
+                R.e(O, (R.t((S["_"] ?? null)) && R.t(R.m((S["_"] ?? null), "enabled"))));
+            })], R.pi(R.m((S["p"] ?? null), "logs")));
+            R.ln = F + 928;
+            S["categories"] = R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " [string]$_.category " }, (S, O) => {
+                R.ln = F + 928;
+                R.e(O, R.c("string", R.m((S["_"] ?? null), "category")));
+            })], R.pi((S["enabled"] ?? null)));
+            R.ln = F + 929;
+            if ((R.t(R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.categoryGroup -eq 'allLogs' " }, (S, O) => {
+                R.ln = F + 929;
+                R.e(O, R.eq(R.m((S["_"] ?? null), "categoryGroup"), "allLogs"));
+            })], R.pi((S["enabled"] ?? null))))) || !R.t(R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -notin $categories " }, (S, O) => {
+                R.ln = F + 929;
+                R.e(O, R.nin((S["_"] ?? null), (S["categories"] ?? null)));
+            })], R.pi((S["required"] ?? null))))))) {
+                R.ln = F + 929;
+                R.e(O, R.im((S["names"] ?? null), "Add", [R.c("string", R.m((S["setting"] ?? null), "name"))]));
+            }
+        }
+        R.ln = F + 931;
+        R.e(O, R.cmd(S, "Sort-Object", [], R.pi((S["names"] ?? null))));
+        return;
+    });
+    R.ln = F + 934;
+    R.def(S, "Get-StorageLoggingResult", { params: [{ n: "Record", t: null, pos: null }, { n: "Service", t: "string", pos: null }, { n: "Label", t: "string", pos: null }], adv: 0, h: "3ef57724c4bfa332" }, (S, O) => {
+        R.ln = F + 937;
+        if (R.t(R.u(R.cmd(S, "Test-ChildNotSupported", [(S["record"] ?? null), ("" + R.str((S["service"] ?? null)) + "/default")], null)))) {
+            R.ln = F + 937;
+            R.pa(O, R.cmd(S, "New-NotApplicable", [("The account type does not offer the " + R.str((S["label"] ?? null)) + " service")], null));
+            return;
+        }
+        R.ln = F + 938;
+        S["path"] = ("" + R.str((S["service"] ?? null)) + "/default/providers/Microsoft.Insights/diagnosticSettings");
+        R.ln = F + 939;
+        if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), (S["path"] ?? null)], null)))) {
+            R.ln = F + 939;
+            R.pa(O, R.cmd(S, "New-Unknown", [("The diagnostic settings of the " + R.str((S["label"] ?? null)) + " service could not be read")], null));
+            return;
+        }
+        R.ln = F + 940;
+        S["settings"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+            R.ln = F + 940;
+            R.e(O, (S["_"] ?? null));
+        })], R.cmd(S, "Get-Child", [(S["record"] ?? null), (S["path"] ?? null)], null));
+        R.ln = F + 941;
+        S["logging"] = R.cmd(S, "Get-StorageRequestLogging", [(S["settings"] ?? null)], null);
+        R.ln = F + 942;
+        S["evidence"] = R.ht(["diagnosticSettings", R.cmd(S, "Sort-Object", [], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " [string]$_.name " }, (S, O) => {
+            R.ln = F + 942;
+            R.e(O, R.c("string", R.m((S["_"] ?? null), "name")));
+        })], R.pi((S["settings"] ?? null)))), "loggingReadWriteDelete", (S["logging"] ?? null)], true);
+        R.ln = F + 943;
+        if (R.t((S["logging"] ?? null))) {
+            R.ln = F + 943;
+            R.pa(O, R.cmd(S, "New-Pass", [("Read, write and delete requests logged (" + R.str(R.u(R.pi(R.join((S["logging"] ?? null), ", ")))) + ")"), (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 944;
+        R.pa(O, R.cmd(S, "New-Fail", [(() => {
+            const v22 = [];
+            R.ln = F + 944;
+            if (R.t((S["settings"] ?? null))) {
+                R.ln = F + 944;
+                R.e(v22, ("No diagnostic setting of the " + R.str((S["label"] ?? null)) + " service sends StorageRead, StorageWrite and StorageDelete to a destination"));
+            } else {
+                R.ln = F + 944;
+                R.e(v22, ("No diagnostic setting on the " + R.str((S["label"] ?? null)) + " service"));
+            }
+            return R.u(v22);
+        })(), (S["evidence"] ?? null)], null));
+    });
+    R.ln = F + 947;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-STG-040", "Title", "Queue service logs read, write and delete requests", "Category", "Logging and threat detection", "Service", "Storage", "Severity", "Low", "Description", "Checks that a diagnostic setting of the queue service sends the StorageRead, StorageWrite and StorageDelete logs (or allLogs) to a Log Analytics workspace, storage account, event hub or partner solution.", "Rationale", "Request logs show who read, added or deleted messages, from where and with which authorization; without them misuse of a key or SAS cannot be traced.", "Remediation", "Add a diagnostic setting to the queue service (storage account > Diagnostic settings > queue) with StorageRead, StorageWrite and StorageDelete, sent to a central Log Analytics workspace.", "References", R.a("https://learn.microsoft.com/azure/storage/queues/monitor-queue-storage"), "ResourceTypes", (S["storagetype"] ?? null), "Filter", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) Test-QueueTableCapable $Record " }, (S, O) => {
+        R.ln = F + 958;
+        R.pa(O, R.cmd(S, "Test-QueueTableCapable", [(S["record"] ?? null)], null));
+    }), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) Get-StorageLoggingResult $Record 'queueServices' 'queue' " }, (S, O) => {
+        R.ln = F + 959;
+        R.pa(O, R.cmd(S, "Get-StorageLoggingResult", [(S["record"] ?? null), "queueServices", "queue"], null));
+    })], false)], null));
+    R.ln = F + 962;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-STG-041", "Title", "Blob service logs read, write and delete requests", "Category", "Logging and threat detection", "Service", "Storage", "Severity", "Low", "Description", "Checks that a diagnostic setting of the blob service sends the StorageRead, StorageWrite and StorageDelete logs (or allLogs) to a Log Analytics workspace, storage account, event hub or partner solution.", "Rationale", "Request logs show who read, wrote or deleted blobs, from where and with which authorization; without them data theft through a leaked key or SAS cannot be traced.", "Remediation", "Add a diagnostic setting to the blob service (storage account > Diagnostic settings > blob) with StorageRead, StorageWrite and StorageDelete, sent to a central Log Analytics workspace.", "References", R.a("https://learn.microsoft.com/azure/storage/blobs/monitor-blob-storage"), "ResourceTypes", (S["storagetype"] ?? null), "Filter", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) Test-BlobCapable $Record " }, (S, O) => {
+        R.ln = F + 973;
+        R.pa(O, R.cmd(S, "Test-BlobCapable", [(S["record"] ?? null)], null));
+    }), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) Get-StorageLoggingResult $Record 'blobServices' 'blob' " }, (S, O) => {
+        R.ln = F + 974;
+        R.pa(O, R.cmd(S, "Get-StorageLoggingResult", [(S["record"] ?? null), "blobServices", "blob"], null));
+    })], false)], null));
+    R.ln = F + 977;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-STG-042", "Title", "Table service logs read, write and delete requests", "Category", "Logging and threat detection", "Service", "Storage", "Severity", "Low", "Description", "Checks that a diagnostic setting of the table service sends the StorageRead, StorageWrite and StorageDelete logs (or allLogs) to a Log Analytics workspace, storage account, event hub or partner solution.", "Rationale", "Request logs show who read, wrote or deleted entities, from where and with which authorization; without them misuse of a key or SAS cannot be traced.", "Remediation", "Add a diagnostic setting to the table service (storage account > Diagnostic settings > table) with StorageRead, StorageWrite and StorageDelete, sent to a central Log Analytics workspace.", "References", R.a("https://learn.microsoft.com/azure/storage/tables/monitor-table-storage"), "ResourceTypes", (S["storagetype"] ?? null), "Filter", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) Test-QueueTableCapable $Record " }, (S, O) => {
+        R.ln = F + 988;
+        R.pa(O, R.cmd(S, "Test-QueueTableCapable", [(S["record"] ?? null)], null));
+    }), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) Get-StorageLoggingResult $Record 'tableServices' 'table' " }, (S, O) => {
+        R.ln = F + 989;
+        R.pa(O, R.cmd(S, "Get-StorageLoggingResult", [(S["record"] ?? null), "tableServices", "table"], null));
     })], false)], null));
 });

@@ -3,7 +3,7 @@ import { R } from "../../../../js/runtime/index.js";
 const F = R.file("Analyze/tests/08-Databases.ps1");
 export default R.script("/app/Analyze/tests/08-Databases.ps1", { params: [], adv: 0 }, (S, O) => {
     R.ln = F + 3;
-    R.def(S, "Get-ServerParameter", { params: [{ n: "Record", t: null, pos: null }, { n: "Name", t: "string", pos: null }], adv: 0, h: "0244382404a4c6b9" }, (S, O) => {
+    R.def(S, "Get-ServerParameter", { params: [{ n: "Record", t: null, pos: null }, { n: "Name", t: "string", pos: null }], adv: 0, h: "14bd0896fb756034" }, (S, O) => {
         R.ln = F + 6;
         S["item"] = R.u(R.cmd(S, "Select-Object", [R.np("First"), 1], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.name -eq $Name " }, (S, O) => {
             R.ln = F + 6;
@@ -20,943 +20,1505 @@ export default R.script("/app/Analyze/tests/08-Databases.ps1", { params: [], adv
         return;
     });
     R.ln = F + 11;
-    R.def(S, "ConvertTo-IPv4Number", { params: [{ n: "Address", t: "string", pos: null }], adv: 0, h: "503ae324fac1e880" }, (S, O) => {
-        R.ln = F + 13;
-        S["parsed"] = null;
+    R.def(S, "Get-ServerParameterResult", { params: [{ n: "Record", t: null, pos: null }, { n: "Name", t: "string", pos: null }, { n: "Required", t: "string", pos: null }], adv: 0, h: "9ced24afc4aad552" }, (S, O) => {
         R.ln = F + 14;
-        if ((!R.t(R.sc("System.Net.IPAddress", "TryParse", [(S["address"] ?? null), R.ref(() => (S["parsed"] ?? null), x => { S["parsed"] = x; })])) || R.t(R.ne(R.m((S["parsed"] ?? null), "AddressFamily"), "InterNetwork")))) {
+        if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "configurations"], null)))) {
             R.ln = F + 14;
-            R.e(O, null);
+            R.pa(O, R.cmd(S, "New-Unknown", ["Server parameters could not be read"], null));
             return;
         }
         R.ln = F + 15;
-        S["bytes"] = R.im((S["parsed"] ?? null), "GetAddressBytes", []);
+        S["value"] = R.u(R.cmd(S, "Get-ServerParameter", [(S["record"] ?? null), (S["name"] ?? null)], null));
         R.ln = F + 16;
-        R.e(O, R.add(R.add(R.add((R.shl(R.c("uint64", R.i((S["bytes"] ?? null), 0)), 24)), (R.shl(R.c("uint64", R.i((S["bytes"] ?? null), 1)), 16))), (R.shl(R.c("uint64", R.i((S["bytes"] ?? null), 2)), 8))), R.c("uint64", R.i((S["bytes"] ?? null), 3))));
-        return;
+        S["evidence"] = R.ht([(S["name"] ?? null), (S["value"] ?? null)], true);
+        R.ln = F + 17;
+        if (R.t(R.eq(null, (S["value"] ?? null)))) {
+            R.ln = F + 17;
+            R.pa(O, R.cmd(S, "New-Unknown", [("Server parameter " + R.str((S["name"] ?? null)) + " was not returned"), (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 18;
+        if (R.t(R.eq((S["value"] ?? null), (S["required"] ?? null)))) {
+            R.ln = F + 18;
+            R.pa(O, R.cmd(S, "New-Pass", [("" + R.str((S["name"] ?? null)) + " is " + R.str((S["value"] ?? null))), (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 19;
+        R.pa(O, R.cmd(S, "New-Fail", [("" + R.str((S["name"] ?? null)) + " is " + R.str((() => {
+            const v1 = [];
+            R.ln = F + 19;
+            if (R.t((S["value"] ?? null))) {
+                R.ln = F + 19;
+                R.e(v1, (S["value"] ?? null));
+            } else {
+                R.ln = F + 19;
+                R.e(v1, "empty");
+            }
+            return R.u(v1);
+        })())), (S["evidence"] ?? null)], null));
     });
-    R.ln = F + 19;
-    R.def(S, "Test-DatabaseFirewallCollected", { params: [{ n: "Record", t: null, pos: null }], adv: 0, h: "e2341295ddd6bce8" }, (S, O) => {
-        R.ln = F + 23;
-        if (R.t(R.eq(R.m((S["record"] ?? null), "type"), "Microsoft.DocumentDB/databaseAccounts"))) {
-            R.ln = F + 23;
+    R.ln = F + 22;
+    R.def(S, "Test-PrivateEndpointsCollected", { params: [{ n: "Record", t: null, pos: null }], adv: 0, h: "e73839bb15327888" }, (S, O) => {
+        R.ln = F + 25;
+        S["p"] = R.m(R.m((S["record"] ?? null), "resource"), "properties");
+        R.ln = F + 26;
+        if ((R.t(R.ne(null, (S["p"] ?? null))) && R.t(R.cont(R.m(R.m(R.m((S["p"] ?? null), "PSObject"), "Properties"), "Name"), "privateEndpointConnections")))) {
+            R.ln = F + 26;
             R.e(O, true);
             return;
         }
-        R.ln = F + 24;
+        R.ln = F + 27;
+        R.e(O, R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "privateEndpointConnections"], null)));
+        return;
+    });
+    R.ln = F + 30;
+    R.def(S, "Get-ApprovedPrivateEndpointCount", { params: [{ n: "Record", t: null, pos: null }], adv: 0, h: "5baf997247e2899a" }, (S, O) => {
+        R.ln = F + 33;
+        S["connections"] = R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.properties.privateLinkServiceConnectionState.status -eq 'Approved' " }, (S, O) => {
+            R.ln = F + 33;
+            R.e(O, (R.t((S["_"] ?? null)) && R.t(R.eq(R.m(R.m(R.m((S["_"] ?? null), "properties"), "privateLinkServiceConnectionState"), "status"), "Approved"))));
+        })], R.pi(R.add(R.a(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "privateEndpointConnections")), R.cmd(S, "Get-Child", [(S["record"] ?? null), "privateEndpointConnections"], null)))));
+        R.ln = F + 34;
+        R.e(O, R.m(R.cmd(S, "Sort-Object", [R.np("Unique")], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " [string]$_.id " }, (S, O) => {
+            R.ln = F + 34;
+            R.e(O, R.c("string", R.m((S["_"] ?? null), "id")));
+        })], R.pi((S["connections"] ?? null)))), "Count"));
+        return;
+    });
+    R.ln = F + 37;
+    R.def(S, "ConvertTo-IPv4Number", { params: [{ n: "Address", t: "string", pos: null }], adv: 0, h: "503ae324fac1e880" }, (S, O) => {
+        R.ln = F + 39;
+        S["parsed"] = null;
+        R.ln = F + 40;
+        if ((!R.t(R.sc("System.Net.IPAddress", "TryParse", [(S["address"] ?? null), R.ref(() => (S["parsed"] ?? null), x => { S["parsed"] = x; })])) || R.t(R.ne(R.m((S["parsed"] ?? null), "AddressFamily"), "InterNetwork")))) {
+            R.ln = F + 40;
+            R.e(O, null);
+            return;
+        }
+        R.ln = F + 41;
+        S["bytes"] = R.im((S["parsed"] ?? null), "GetAddressBytes", []);
+        R.ln = F + 42;
+        R.e(O, R.add(R.add(R.add((R.shl(R.c("uint64", R.i((S["bytes"] ?? null), 0)), 24)), (R.shl(R.c("uint64", R.i((S["bytes"] ?? null), 1)), 16))), (R.shl(R.c("uint64", R.i((S["bytes"] ?? null), 2)), 8))), R.c("uint64", R.i((S["bytes"] ?? null), 3))));
+        return;
+    });
+    R.ln = F + 45;
+    R.def(S, "Test-DatabaseFirewallCollected", { params: [{ n: "Record", t: null, pos: null }], adv: 0, h: "e2341295ddd6bce8" }, (S, O) => {
+        R.ln = F + 49;
+        if (R.t(R.eq(R.m((S["record"] ?? null), "type"), "Microsoft.DocumentDB/databaseAccounts"))) {
+            R.ln = F + 49;
+            R.e(O, true);
+            return;
+        }
+        R.ln = F + 50;
         R.e(O, R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "firewallRules"], null)));
         return;
     });
-    R.ln = F + 27;
+    R.ln = F + 53;
     R.def(S, "Get-DatabaseFirewallRules", { params: [{ n: "Record", t: null, pos: null }], adv: 0, h: "d9fcac4b4d9d1002" }, (S, O) => {
-        R.ln = F + 30;
-        const had4 = Object.prototype.hasOwnProperty.call(S, '_'), prev3 = S['_'];
+        R.ln = F + 56;
+        const had5 = Object.prototype.hasOwnProperty.call(S, '_'), prev4 = S['_'];
         try {
-            for (const sw1 of R.pi(R.m((S["record"] ?? null), "type"))) {
-                S['_'] = sw1;
-                let hit2 = false;
-                if (R.t(R.eq(sw1, "Microsoft.Cache/Redis", false))) {
-                    hit2 = true;
-                    R.ln = F + 32;
-                    for (const it5 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                        R.ln = F + 32;
+            for (const sw2 of R.pi(R.m((S["record"] ?? null), "type"))) {
+                S['_'] = sw2;
+                let hit3 = false;
+                if (R.t(R.eq(sw2, "Microsoft.Cache/Redis", false))) {
+                    hit3 = true;
+                    R.ln = F + 58;
+                    for (const it6 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+                        R.ln = F + 58;
                         R.e(O, (S["_"] ?? null));
                     })], R.cmd(S, "Get-Child", [(S["record"] ?? null), "firewallRules"], null)))) {
-                        S["rule"] = it5;
-                        R.ln = F + 32;
+                        S["rule"] = it6;
+                        R.ln = F + 58;
                         R.e(O, R.pso(["Name", R.m((S["rule"] ?? null), "name"), "Start", R.m(R.m((S["rule"] ?? null), "properties"), "startIP"), "End", R.m(R.m((S["rule"] ?? null), "properties"), "endIP"), "Prefix", null]));
                     }
                 }
-                if (R.t(R.eq(sw1, "Microsoft.DocumentDB/databaseAccounts", false))) {
-                    hit2 = true;
-                    R.ln = F + 35;
-                    for (const it6 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                        R.ln = F + 35;
+                if (R.t(R.eq(sw2, "Microsoft.DocumentDB/databaseAccounts", false))) {
+                    hit3 = true;
+                    R.ln = F + 61;
+                    for (const it7 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+                        R.ln = F + 61;
                         R.e(O, (S["_"] ?? null));
                     })], R.pi(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "ipRules"))))) {
-                        S["rule"] = it6;
-                        R.ln = F + 36;
+                        S["rule"] = it7;
+                        R.ln = F + 62;
                         S["value"] = R.c("string", R.m((S["rule"] ?? null), "ipAddressOrRange"));
-                        R.ln = F + 37;
+                        R.ln = F + 63;
                         if (R.t(R.eq((S["value"] ?? null), "0.0.0.0"))) {
-                            R.ln = F + 37;
+                            R.ln = F + 63;
                             R.e(O, R.pso(["Name", (S["value"] ?? null), "Start", "0.0.0.0", "End", "0.0.0.0", "Prefix", null]));
                             continue;
                         }
-                        R.ln = F + 38;
+                        R.ln = F + 64;
                         if (R.t(R.match(S, (S["value"] ?? null), "^(\\d+\\.\\d+\\.\\d+\\.\\d+)/(\\d+)$"))) {
-                            R.ln = F + 39;
+                            R.ln = F + 65;
                             S["start"] = R.u(R.cmd(S, "ConvertTo-IPv4Number", [R.i((S["matches"] ?? null), 1)], null));
-                            R.ln = F + 40;
+                            R.ln = F + 66;
                             S["size"] = R.sc("math", "Pow", [2, R.sub(32, R.c("int", R.i((S["matches"] ?? null), 2)))]);
-                            R.ln = F + 41;
+                            R.ln = F + 67;
                             S["endnumber"] = R.c("uint64", (R.sub(R.add((S["start"] ?? null), (S["size"] ?? null)), 1)));
-                            R.ln = F + 42;
+                            R.ln = F + 68;
                             S["end"] = R.fmt("{0}.{1}.{2}.{3}", [R.v((R.band((R.shr((S["endnumber"] ?? null), 24)), 255))), R.v((R.band((R.shr((S["endnumber"] ?? null), 16)), 255))), R.v((R.band((R.shr((S["endnumber"] ?? null), 8)), 255))), R.v((R.band((S["endnumber"] ?? null), 255)))]);
-                            R.ln = F + 43;
+                            R.ln = F + 69;
                             R.e(O, R.pso(["Name", (S["value"] ?? null), "Start", R.i((S["matches"] ?? null), 1), "End", (S["end"] ?? null), "Prefix", null]));
                             continue;
                         }
-                        R.ln = F + 46;
+                        R.ln = F + 72;
                         R.e(O, R.pso(["Name", (S["value"] ?? null), "Start", (S["value"] ?? null), "End", (S["value"] ?? null), "Prefix", null]));
                     }
                 }
-                if (!hit2) {
-                    R.ln = F + 50;
-                    for (const it7 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                        R.ln = F + 50;
+                if (!hit3) {
+                    R.ln = F + 76;
+                    for (const it8 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+                        R.ln = F + 76;
                         R.e(O, (S["_"] ?? null));
                     })], R.cmd(S, "Get-Child", [(S["record"] ?? null), "firewallRules"], null)))) {
-                        S["rule"] = it7;
-                        R.ln = F + 50;
+                        S["rule"] = it8;
+                        R.ln = F + 76;
                         R.e(O, R.pso(["Name", R.m((S["rule"] ?? null), "name"), "Start", R.m(R.m((S["rule"] ?? null), "properties"), "startIpAddress"), "End", R.m(R.m((S["rule"] ?? null), "properties"), "endIpAddress"), "Prefix", null]));
                     }
-                    R.ln = F + 52;
-                    for (const it8 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                        R.ln = F + 52;
+                    R.ln = F + 78;
+                    for (const it9 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+                        R.ln = F + 78;
                         R.e(O, (S["_"] ?? null));
                     })], R.cmd(S, "Get-Child", [(S["record"] ?? null), "ipv6FirewallRules"], null)))) {
-                        S["rule"] = it8;
-                        R.ln = F + 53;
+                        S["rule"] = it9;
+                        R.ln = F + 79;
                         R.e(O, R.pso(["Name", R.m((S["rule"] ?? null), "name"), "Start", null, "End", null, "Prefix", ("" + R.str(R.u(R.pi(R.m(R.m((S["rule"] ?? null), "properties"), "startIPv6Address")))) + "-" + R.str(R.u(R.pi(R.m(R.m((S["rule"] ?? null), "properties"), "endIPv6Address")))))]));
                     }
                 }
             }
-        } finally { if (had4) { S['_'] = prev3; } else { delete S['_']; } }
+        } finally { if (had5) { S['_'] = prev4; } else { delete S['_']; } }
     });
-    R.ln = F + 59;
+    R.ln = F + 85;
     R.def(S, "Test-IPv6RuleWide", { params: [{ n: "Rule", t: null, pos: null }], adv: 0, h: "886754af0a9ab494" }, (S, O) => {
-        R.ln = F + 62;
+        R.ln = F + 88;
         if (!R.t(R.m((S["rule"] ?? null), "Prefix"))) {
-            R.ln = F + 62;
+            R.ln = F + 88;
             R.e(O, false);
             return;
         }
-        R.ln = F + 63;
-        (((m9) => { S["start"] = m9[0]; S["end"] = m9[1]; })(R.mi((R.split(R.m((S["rule"] ?? null), "Prefix"), "-")), 2)));
-        R.ln = F + 64;
+        R.ln = F + 89;
+        (((m10) => { S["start"] = m10[0]; S["end"] = m10[1]; })(R.mi((R.split(R.m((S["rule"] ?? null), "Prefix"), "-")), 2)));
+        R.ln = F + 90;
         if ((!R.t((S["start"] ?? null)) || !R.t((S["end"] ?? null)))) {
-            R.ln = F + 64;
+            R.ln = F + 90;
             R.e(O, false);
             return;
         }
-        R.ln = F + 65;
+        R.ln = F + 91;
         S["from"] = null;
-        R.ln = F + 65;
+        R.ln = F + 91;
         S["to"] = null;
-        R.ln = F + 66;
+        R.ln = F + 92;
         if ((!R.t(R.sc("System.Net.IPAddress", "TryParse", [(S["start"] ?? null), R.ref(() => (S["from"] ?? null), x => { S["from"] = x; })])) || !R.t(R.sc("System.Net.IPAddress", "TryParse", [(S["end"] ?? null), R.ref(() => (S["to"] ?? null), x => { S["to"] = x; })])))) {
-            R.ln = F + 66;
+            R.ln = F + 92;
             R.e(O, false);
             return;
         }
-        R.ln = F + 67;
+        R.ln = F + 93;
         if ((R.t(R.ne(R.m((S["from"] ?? null), "AddressFamily"), "InterNetworkV6")) || R.t(R.ne(R.m((S["to"] ?? null), "AddressFamily"), "InterNetworkV6")))) {
-            R.ln = F + 67;
+            R.ln = F + 93;
             R.e(O, false);
             return;
         }
-        R.ln = F + 69;
+        R.ln = F + 95;
         S["a"] = R.im((S["from"] ?? null), "GetAddressBytes", []);
-        R.ln = F + 69;
+        R.ln = F + 95;
         S["b"] = R.im((S["to"] ?? null), "GetAddressBytes", []);
-        R.ln = F + 70;
+        R.ln = F + 96;
         for (S["i"] = 0; R.t(R.lt((S["i"] ?? null), 8)); R.incv(S, "i", 1, true)) {
-            R.ln = F + 70;
+            R.ln = F + 96;
             if (R.t(R.ne(R.i((S["a"] ?? null), (S["i"] ?? null)), R.i((S["b"] ?? null), (S["i"] ?? null))))) {
-                R.ln = F + 70;
+                R.ln = F + 96;
                 R.e(O, true);
                 return;
             }
         }
-        R.ln = F + 71;
+        R.ln = F + 97;
         R.e(O, false);
         return;
     });
-    R.ln = F + 74;
-    R.def(S, "Test-PublicNetworkDisabled", { params: [{ n: "Record", t: null, pos: null }], adv: 0, h: "fcb7581c1446f6f0" }, (S, O) => {
-        R.ln = F + 76;
-        S["p"] = R.m(R.m((S["record"] ?? null), "resource"), "properties");
-        R.ln = F + 77;
-        R.e(O, ((R.t(R.eq(R.m((S["p"] ?? null), "publicNetworkAccess"), "Disabled")) || R.t(R.eq(R.m(R.m((S["p"] ?? null), "network"), "publicNetworkAccess"), "Disabled")))));
-        return;
-    });
-    R.ln = F + 80;
-    S["firewalltypes"] = R.a([R.v("Microsoft.Sql/servers"), R.v("Microsoft.Synapse/workspaces"), R.v("Microsoft.DBforPostgreSQL/flexibleServers"), R.v("Microsoft.DBforMySQL/flexibleServers"), R.v("Microsoft.DBforPostgreSQL/servers"), R.v("Microsoft.DBforMySQL/servers"), R.v("Microsoft.Cache/Redis"), R.v("Microsoft.DocumentDB/databaseAccounts")]);
-    R.ln = F + 82;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-DB-001", "Version", 2, "Title", "Database firewalls do not allow access from the entire Internet", "Category", "Network security", "Service", "Databases", "Severity", "Critical", "Description", "Finds IPv4 and IPv6 firewall rules on SQL servers, Synapse workspaces, PostgreSQL and MySQL servers, Redis caches and Cosmos DB accounts that cover 0.0.0.0-255.255.255.255 or at least a /8 range (IPv6: wider than a /64), while public network access is enabled.", "Rationale", "Such rules expose the database endpoint to every attacker on the Internet, leaving authentication as the only control against brute force and credential stuffing.", "Remediation", "Delete the rule and allow only specific client addresses, or better, disable public network access and use private endpoints.", "References", R.a("https://learn.microsoft.com/azure/azure-sql/database/firewall-configure"), "ResourceTypes", (S["firewalltypes"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (Test-PublicNetworkDisabled $Record) { return New-Pass 'Public network access disabled, firewall rules do not apply' }\n        if (-not (Test-DatabaseFirewallCollected $Record)) { return New-Unknown 'Firewall rules could not be read' }\n        $rules = @(Get-DatabaseFirewallRules $Record)\n        $wide = @($rules | Where-Object {\n                if ($_.Prefix) { return (Test-IPv6RuleWide $_) }\n                $start = ConvertTo-IPv4Number $_.Start\n                $end = ConvertTo-IPv4Number $_.End\n                $null -ne $start -and $null -ne $end -and ($end - $start + 1) -ge 16777216\n            } | ForEach-Object { \"$($_.Name) ($(if ($_.Prefix) { $_.Prefix } else { \"$($_.Start)-$($_.End)\" }))\" })\n        $evidence = [ordered]@{ firewallRules = $rules.Count; wideRules = $wide }\n        if ($wide) { return New-Fail \"Internet wide rule(s): $($wide -join ', ')\" $evidence }\n        New-Pass 'No Internet wide firewall rules' $evidence\n    " }, (S, O) => {
-        R.ln = F + 96;
-        if (R.t(R.u(R.cmd(S, "Test-PublicNetworkDisabled", [(S["record"] ?? null)], null)))) {
-            R.ln = F + 96;
-            R.pa(O, R.cmd(S, "New-Pass", ["Public network access disabled, firewall rules do not apply"], null));
-            return;
-        }
-        R.ln = F + 97;
-        if (!R.t(R.u(R.cmd(S, "Test-DatabaseFirewallCollected", [(S["record"] ?? null)], null)))) {
-            R.ln = F + 97;
-            R.pa(O, R.cmd(S, "New-Unknown", ["Firewall rules could not be read"], null));
-            return;
-        }
-        R.ln = F + 98;
-        S["rules"] = R.cmd(S, "Get-DatabaseFirewallRules", [(S["record"] ?? null)], null);
-        R.ln = F + 99;
-        S["wide"] = R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " \"$($_.Name) ($(if ($_.Prefix) { $_.Prefix } else { \"$($_.Start)-$($_.End)\" }))\" " }, (S, O) => {
-            R.ln = F + 104;
+    R.ln = F + 100;
+    R.def(S, "Get-WideFirewallRules", { params: [{ n: "Rules", t: null, pos: null }], adv: 0, h: "de44ece028af997d" }, (S, O) => {
+        R.ln = F + 103;
+        R.pa(O, R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " \"$($_.Name) ($(if ($_.Prefix) { $_.Prefix } else { \"$($_.Start)-$($_.End)\" }))\" " }, (S, O) => {
+            R.ln = F + 108;
             R.e(O, ("" + R.str(R.u(R.pi(R.m((S["_"] ?? null), "Name")))) + " (" + R.str((() => {
-                const v10 = [];
-                R.ln = F + 104;
+                const v11 = [];
+                R.ln = F + 108;
                 if (R.t(R.m((S["_"] ?? null), "Prefix"))) {
-                    R.ln = F + 104;
-                    R.e(v10, R.m((S["_"] ?? null), "Prefix"));
+                    R.ln = F + 108;
+                    R.e(v11, R.m((S["_"] ?? null), "Prefix"));
                 } else {
-                    R.ln = F + 104;
-                    R.e(v10, ("" + R.str(R.u(R.pi(R.m((S["_"] ?? null), "Start")))) + "-" + R.str(R.u(R.pi(R.m((S["_"] ?? null), "End"))))));
+                    R.ln = F + 108;
+                    R.e(v11, ("" + R.str(R.u(R.pi(R.m((S["_"] ?? null), "Start")))) + "-" + R.str(R.u(R.pi(R.m((S["_"] ?? null), "End"))))));
                 }
-                return R.u(v10);
+                return R.u(v11);
             })()) + ")"));
-        })], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: "\n                if ($_.Prefix) { return (Test-IPv6RuleWide $_) }\n                $start = ConvertTo-IPv4Number $_.Start\n                $end = ConvertTo-IPv4Number $_.End\n                $null -ne $start -and $null -ne $end -and ($end - $start + 1) -ge 16777216\n            " }, (S, O) => {
-            R.ln = F + 100;
+        })], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: "\n        if ($_.Prefix) { return (Test-IPv6RuleWide $_) }\n        $start = ConvertTo-IPv4Number $_.Start\n        $end = ConvertTo-IPv4Number $_.End\n        $null -ne $start -and $null -ne $end -and ($end - $start + 1) -ge 16777216\n    " }, (S, O) => {
+            R.ln = F + 104;
             if (R.t(R.m((S["_"] ?? null), "Prefix"))) {
-                R.ln = F + 100;
+                R.ln = F + 104;
                 R.e(O, R.u(R.cmd(S, "Test-IPv6RuleWide", [(S["_"] ?? null)], null)));
                 return;
             }
-            R.ln = F + 101;
+            R.ln = F + 105;
             S["start"] = R.u(R.cmd(S, "ConvertTo-IPv4Number", [R.m((S["_"] ?? null), "Start")], null));
-            R.ln = F + 102;
-            S["end"] = R.u(R.cmd(S, "ConvertTo-IPv4Number", [R.m((S["_"] ?? null), "End")], null));
-            R.ln = F + 103;
-            R.e(O, ((R.t(R.ne(null, (S["start"] ?? null))) && R.t(R.ne(null, (S["end"] ?? null)))) && R.t(R.ge((R.add(R.sub((S["end"] ?? null), (S["start"] ?? null)), 1)), 16777216))));
-        })], R.pi((S["rules"] ?? null))));
-        R.ln = F + 105;
-        S["evidence"] = R.ht(["firewallRules", R.m((S["rules"] ?? null), "Count"), "wideRules", (S["wide"] ?? null)], true);
-        R.ln = F + 106;
-        if (R.t((S["wide"] ?? null))) {
             R.ln = F + 106;
-            R.pa(O, R.cmd(S, "New-Fail", [("Internet wide rule(s): " + R.str(R.u(R.pi(R.join((S["wide"] ?? null), ", "))))), (S["evidence"] ?? null)], null));
-            return;
-        }
-        R.ln = F + 107;
-        R.pa(O, R.cmd(S, "New-Pass", ["No Internet wide firewall rules", (S["evidence"] ?? null)], null));
-    })], false)], null));
+            S["end"] = R.u(R.cmd(S, "ConvertTo-IPv4Number", [R.m((S["_"] ?? null), "End")], null));
+            R.ln = F + 107;
+            R.e(O, ((R.t(R.ne(null, (S["start"] ?? null))) && R.t(R.ne(null, (S["end"] ?? null)))) && R.t(R.ge((R.add(R.sub((S["end"] ?? null), (S["start"] ?? null)), 1)), 16777216))));
+        })], R.pi((S["rules"] ?? null)))));
+    });
     R.ln = F + 111;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-DB-002", "Version", 2, "Title", "Database firewalls do not allow all Azure services", "Category", "Network security", "Service", "Databases", "Severity", "Medium", "Description", "Finds the 'Allow Azure services and resources to access this server' rule (0.0.0.0) on SQL servers, Synapse workspaces, PostgreSQL and MySQL servers, and the 0.0.0.0 rule on Cosmos DB accounts.", "Rationale", "The rule admits connections from any Azure resource of any customer, not just your own, so anyone can host a client in Azure and reach the database endpoint.", "Remediation", "Remove the rule and use private endpoints, virtual network rules or managed identity based access for your Azure workloads.", "References", R.a("https://learn.microsoft.com/azure/azure-sql/database/firewall-configure"), "ResourceTypes", (S["firewalltypes"] ?? null), "Filter", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) $Record.type -ne 'Microsoft.Cache/Redis' " }, (S, O) => {
-        R.ln = F + 123;
-        R.e(O, R.ne(R.m((S["record"] ?? null), "type"), "Microsoft.Cache/Redis"));
-    }), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (Test-PublicNetworkDisabled $Record) { return New-Pass 'Public network access disabled, firewall rules do not apply' }\n        if (-not (Test-DatabaseFirewallCollected $Record)) { return New-Unknown 'Firewall rules could not be read' }\n        $azure = @(Get-DatabaseFirewallRules $Record | Where-Object { $_.Start -eq '0.0.0.0' -and $_.End -eq '0.0.0.0' } | ForEach-Object Name)\n        $evidence = [ordered]@{ allowAzureRules = $azure }\n        if ($azure) { return New-Fail \"All Azure services allowed ($($azure -join ', '))\" $evidence }\n        New-Pass 'Azure services are not allowed wholesale' $evidence\n    " }, (S, O) => {
-        R.ln = F + 126;
+    R.def(S, "Test-PublicNetworkDisabled", { params: [{ n: "Record", t: null, pos: null }], adv: 0, h: "fcb7581c1446f6f0" }, (S, O) => {
+        R.ln = F + 113;
+        S["p"] = R.m(R.m((S["record"] ?? null), "resource"), "properties");
+        R.ln = F + 114;
+        R.e(O, ((R.t(R.eq(R.m((S["p"] ?? null), "publicNetworkAccess"), "Disabled")) || R.t(R.eq(R.m(R.m((S["p"] ?? null), "network"), "publicNetworkAccess"), "Disabled")))));
+        return;
+    });
+    R.ln = F + 118;
+    S["firewalltypes"] = R.a([R.v("Microsoft.Synapse/workspaces"), R.v("Microsoft.DBforPostgreSQL/flexibleServers"), R.v("Microsoft.DBforMySQL/flexibleServers"), R.v("Microsoft.DBforPostgreSQL/servers"), R.v("Microsoft.DBforMySQL/servers"), R.v("Microsoft.Cache/Redis"), R.v("Microsoft.DocumentDB/databaseAccounts")]);
+    R.ln = F + 120;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-DB-001", "Version", 3, "Title", "Database firewalls do not allow access from the entire Internet", "Category", "Network security", "Service", "Databases", "Severity", "Critical", "Description", "Finds IPv4 and IPv6 firewall rules on Synapse workspaces, PostgreSQL and MySQL servers, Redis caches and Cosmos DB accounts that cover 0.0.0.0-255.255.255.255 or at least a /8 range (IPv6: wider than a /64), while public network access is enabled. SQL servers: AZ-SQL-012.", "Rationale", "Such rules expose the database endpoint to every attacker on the Internet, leaving authentication as the only control against brute force and credential stuffing.", "Remediation", "Delete the rule and allow only specific client addresses, or better, disable public network access and use private endpoints.", "References", R.a("https://learn.microsoft.com/azure/azure-sql/database/firewall-configure"), "ResourceTypes", (S["firewalltypes"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (Test-PublicNetworkDisabled $Record) { return New-Pass 'Public network access disabled, firewall rules do not apply' }\n        if (-not (Test-DatabaseFirewallCollected $Record)) { return New-Unknown 'Firewall rules could not be read' }\n        $rules = @(Get-DatabaseFirewallRules $Record)\n        $wide = @(Get-WideFirewallRules $rules)\n        $evidence = [ordered]@{ firewallRules = $rules.Count; wideRules = $wide }\n        if ($wide) { return New-Fail \"Internet wide rule(s): $($wide -join ', ')\" $evidence }\n        New-Pass 'No Internet wide firewall rules' $evidence\n    " }, (S, O) => {
+        R.ln = F + 134;
         if (R.t(R.u(R.cmd(S, "Test-PublicNetworkDisabled", [(S["record"] ?? null)], null)))) {
-            R.ln = F + 126;
+            R.ln = F + 134;
             R.pa(O, R.cmd(S, "New-Pass", ["Public network access disabled, firewall rules do not apply"], null));
             return;
         }
-        R.ln = F + 127;
+        R.ln = F + 135;
         if (!R.t(R.u(R.cmd(S, "Test-DatabaseFirewallCollected", [(S["record"] ?? null)], null)))) {
-            R.ln = F + 127;
+            R.ln = F + 135;
             R.pa(O, R.cmd(S, "New-Unknown", ["Firewall rules could not be read"], null));
             return;
         }
-        R.ln = F + 128;
+        R.ln = F + 136;
+        S["rules"] = R.cmd(S, "Get-DatabaseFirewallRules", [(S["record"] ?? null)], null);
+        R.ln = F + 137;
+        S["wide"] = R.cmd(S, "Get-WideFirewallRules", [(S["rules"] ?? null)], null);
+        R.ln = F + 138;
+        S["evidence"] = R.ht(["firewallRules", R.m((S["rules"] ?? null), "Count"), "wideRules", (S["wide"] ?? null)], true);
+        R.ln = F + 139;
+        if (R.t((S["wide"] ?? null))) {
+            R.ln = F + 139;
+            R.pa(O, R.cmd(S, "New-Fail", [("Internet wide rule(s): " + R.str(R.u(R.pi(R.join((S["wide"] ?? null), ", "))))), (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 140;
+        R.pa(O, R.cmd(S, "New-Pass", ["No Internet wide firewall rules", (S["evidence"] ?? null)], null));
+    })], false)], null));
+    R.ln = F + 144;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-DB-002", "Version", 3, "Title", "Database firewalls do not allow all Azure services", "Category", "Network security", "Service", "Databases", "Severity", "Medium", "Description", "Finds the 'Allow Azure services and resources to access this server' rule (0.0.0.0) on Synapse workspaces and PostgreSQL and MySQL servers. SQL servers: AZ-SQL-013; Cosmos DB: AZ-COS-005.", "Rationale", "The rule admits connections from any Azure resource of any customer, not just your own, so anyone can host a client in Azure and reach the database endpoint.", "Remediation", "Remove the rule and use private endpoints, virtual network rules or managed identity based access for your Azure workloads.", "References", R.a("https://learn.microsoft.com/azure/azure-sql/database/firewall-configure"), "ResourceTypes", (S["firewalltypes"] ?? null), "Filter", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) $Record.type -notin 'Microsoft.Cache/Redis', 'Microsoft.DocumentDB/databaseAccounts' " }, (S, O) => {
+        R.ln = F + 156;
+        R.e(O, R.nin(R.m((S["record"] ?? null), "type"), [R.v("Microsoft.Cache/Redis"), R.v("Microsoft.DocumentDB/databaseAccounts")]));
+    }), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (Test-PublicNetworkDisabled $Record) { return New-Pass 'Public network access disabled, firewall rules do not apply' }\n        if (-not (Test-DatabaseFirewallCollected $Record)) { return New-Unknown 'Firewall rules could not be read' }\n        $azure = @(Get-DatabaseFirewallRules $Record | Where-Object { $_.Start -eq '0.0.0.0' -and $_.End -eq '0.0.0.0' } | ForEach-Object Name)\n        $evidence = [ordered]@{ allowAzureRules = $azure }\n        if ($azure) { return New-Fail \"All Azure services allowed ($($azure -join ', '))\" $evidence }\n        New-Pass 'Azure services are not allowed wholesale' $evidence\n    " }, (S, O) => {
+        R.ln = F + 159;
+        if (R.t(R.u(R.cmd(S, "Test-PublicNetworkDisabled", [(S["record"] ?? null)], null)))) {
+            R.ln = F + 159;
+            R.pa(O, R.cmd(S, "New-Pass", ["Public network access disabled, firewall rules do not apply"], null));
+            return;
+        }
+        R.ln = F + 160;
+        if (!R.t(R.u(R.cmd(S, "Test-DatabaseFirewallCollected", [(S["record"] ?? null)], null)))) {
+            R.ln = F + 160;
+            R.pa(O, R.cmd(S, "New-Unknown", ["Firewall rules could not be read"], null));
+            return;
+        }
+        R.ln = F + 161;
         S["azure"] = R.cmd(S, "ForEach-Object", ["Name"], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.Start -eq '0.0.0.0' -and $_.End -eq '0.0.0.0' " }, (S, O) => {
-            R.ln = F + 128;
+            R.ln = F + 161;
             R.e(O, (R.t(R.eq(R.m((S["_"] ?? null), "Start"), "0.0.0.0")) && R.t(R.eq(R.m((S["_"] ?? null), "End"), "0.0.0.0"))));
         })], R.cmd(S, "Get-DatabaseFirewallRules", [(S["record"] ?? null)], null)));
-        R.ln = F + 129;
+        R.ln = F + 162;
         S["evidence"] = R.ht(["allowAzureRules", (S["azure"] ?? null)], true);
-        R.ln = F + 130;
+        R.ln = F + 163;
         if (R.t((S["azure"] ?? null))) {
-            R.ln = F + 130;
+            R.ln = F + 163;
             R.pa(O, R.cmd(S, "New-Fail", [("All Azure services allowed (" + R.str(R.u(R.pi(R.join((S["azure"] ?? null), ", ")))) + ")"), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 131;
+        R.ln = F + 164;
         R.pa(O, R.cmd(S, "New-Pass", ["Azure services are not allowed wholesale", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 135;
+    R.ln = F + 168;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-SQL-001", "Title", "Auditing is enabled on SQL servers", "Category", "Logging and threat detection", "Service", "Azure SQL", "Severity", "High", "Description", "Checks that server level auditing is enabled on Azure SQL logical servers.", "Rationale", "SQL auditing records logins, queries and permission changes. Without it, data theft and misuse of database access cannot be detected or investigated.", "Remediation", "Enable server auditing to a Log Analytics workspace (az sql server audit-policy update --state Enabled --lats Enabled --lawri <workspace id> ...).", "References", R.a("https://learn.microsoft.com/azure/azure-sql/database/auditing-overview"), "Policy", R.ht(["a6fb4358-5bf4-4ad7-ba82-2cd2f41ce5e9", "Auditing on SQL server should be enabled"], false), "ResourceTypes", R.a("Microsoft.Sql/servers"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not (Test-ChildCollected $Record 'auditingSettings')) { return New-Unknown 'Auditing settings could not be read' }\n        $settings = @(Get-Child $Record 'auditingSettings') + @(Get-Child $Record 'extendedAuditingSettings') | Where-Object { $_ }\n        $enabled = @($settings | Where-Object { $_.properties.state -eq 'Enabled' })\n        $evidence = [ordered]@{ state = @($settings | ForEach-Object { $_.properties.state } | Sort-Object -Unique); logAnalytics = [bool]($enabled | Where-Object { $_.properties.isAzureMonitorTargetEnabled }); storage = [bool]($enabled | Where-Object { $_.properties.storageEndpoint }) }\n        if ($enabled) { return New-Pass 'Server auditing enabled' $evidence }\n        New-Fail 'Server auditing disabled' $evidence\n    " }, (S, O) => {
-        R.ln = F + 149;
+        R.ln = F + 182;
         if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "auditingSettings"], null)))) {
-            R.ln = F + 149;
+            R.ln = F + 182;
             R.pa(O, R.cmd(S, "New-Unknown", ["Auditing settings could not be read"], null));
             return;
         }
-        R.ln = F + 150;
+        R.ln = F + 183;
         S["settings"] = R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 150;
+            R.ln = F + 183;
             R.e(O, (S["_"] ?? null));
         })], R.pi(R.add(R.cmd(S, "Get-Child", [(S["record"] ?? null), "auditingSettings"], null), R.cmd(S, "Get-Child", [(S["record"] ?? null), "extendedAuditingSettings"], null)))));
-        R.ln = F + 151;
+        R.ln = F + 184;
         S["enabled"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.properties.state -eq 'Enabled' " }, (S, O) => {
-            R.ln = F + 151;
+            R.ln = F + 184;
             R.e(O, R.eq(R.m(R.m((S["_"] ?? null), "properties"), "state"), "Enabled"));
         })], R.pi((S["settings"] ?? null)));
-        R.ln = F + 152;
+        R.ln = F + 185;
         S["evidence"] = R.ht(["state", R.cmd(S, "Sort-Object", [R.np("Unique")], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " $_.properties.state " }, (S, O) => {
-            R.ln = F + 152;
+            R.ln = F + 185;
             R.e(O, R.m(R.m((S["_"] ?? null), "properties"), "state"));
         })], R.pi((S["settings"] ?? null)))), "logAnalytics", R.c("bool", R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.properties.isAzureMonitorTargetEnabled " }, (S, O) => {
-            R.ln = F + 152;
+            R.ln = F + 185;
             R.e(O, R.m(R.m((S["_"] ?? null), "properties"), "isAzureMonitorTargetEnabled"));
         })], R.pi((S["enabled"] ?? null))))), "storage", R.c("bool", R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.properties.storageEndpoint " }, (S, O) => {
-            R.ln = F + 152;
+            R.ln = F + 185;
             R.e(O, R.m(R.m((S["_"] ?? null), "properties"), "storageEndpoint"));
         })], R.pi((S["enabled"] ?? null)))))], true);
-        R.ln = F + 153;
+        R.ln = F + 186;
         if (R.t((S["enabled"] ?? null))) {
-            R.ln = F + 153;
+            R.ln = F + 186;
             R.pa(O, R.cmd(S, "New-Pass", ["Server auditing enabled", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 154;
+        R.ln = F + 187;
         R.pa(O, R.cmd(S, "New-Fail", ["Server auditing disabled", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 158;
+    R.ln = F + 191;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-SQL-002", "Version", 2, "Title", "SQL auditing to storage retains logs for at least 90 days", "Category", "Logging and threat detection", "Service", "Azure SQL", "Severity", "Low", "Description", "Checks the retention of server auditing that writes to a storage account (0 means unlimited).", "Rationale", "Database access logs are needed for investigations that start long after the activity.", "Remediation", "Set the audit retention to 90 days or more, or 0 for unlimited (az sql server audit-policy update --retention-days 90 ...).", "References", R.a("https://learn.microsoft.com/azure/azure-sql/database/auditing-overview"), "Policy", R.ht(["89099bee-89e0-4b26-a5f4-165451757743", "SQL servers with auditing to storage account destination should be configured with 90 days retention or higher"], false), "ResourceTypes", R.a("Microsoft.Sql/servers"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not (Test-ChildCollected $Record 'auditingSettings')) { return New-Unknown 'Auditing settings could not be read' }\n        $storage = @(Get-Child $Record 'auditingSettings') | Where-Object { $_ -and $_.properties.state -eq 'Enabled' -and $_.properties.storageEndpoint } | Select-Object -First 1\n        if (-not $storage) { return New-NotApplicable 'No auditing to a storage account' }\n        $days = [int]$storage.properties.retentionDays\n        $evidence = [ordered]@{ retentionDays = $days }\n        if ($days -eq 0 -or $days -ge 90) { return New-Pass $(if ($days -eq 0) { 'Unlimited retention' } else { \"$days days retention\" }) $evidence }\n        New-Fail \"$days days retention\" $evidence\n    " }, (S, O) => {
-        R.ln = F + 173;
+        R.ln = F + 206;
         if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "auditingSettings"], null)))) {
-            R.ln = F + 173;
+            R.ln = F + 206;
             R.pa(O, R.cmd(S, "New-Unknown", ["Auditing settings could not be read"], null));
             return;
         }
-        R.ln = F + 174;
+        R.ln = F + 207;
         S["storage"] = R.u(R.cmd(S, "Select-Object", [R.np("First"), 1], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.properties.state -eq 'Enabled' -and $_.properties.storageEndpoint " }, (S, O) => {
-            R.ln = F + 174;
+            R.ln = F + 207;
             R.e(O, ((R.t((S["_"] ?? null)) && R.t(R.eq(R.m(R.m((S["_"] ?? null), "properties"), "state"), "Enabled"))) && R.t(R.m(R.m((S["_"] ?? null), "properties"), "storageEndpoint"))));
         })], R.pi(R.cmd(S, "Get-Child", [(S["record"] ?? null), "auditingSettings"], null)))));
-        R.ln = F + 175;
+        R.ln = F + 208;
         if (!R.t((S["storage"] ?? null))) {
-            R.ln = F + 175;
+            R.ln = F + 208;
             R.pa(O, R.cmd(S, "New-NotApplicable", ["No auditing to a storage account"], null));
             return;
         }
-        R.ln = F + 176;
+        R.ln = F + 209;
         S["days"] = R.c("int", R.m(R.m((S["storage"] ?? null), "properties"), "retentionDays"));
-        R.ln = F + 177;
+        R.ln = F + 210;
         S["evidence"] = R.ht(["retentionDays", (S["days"] ?? null)], true);
-        R.ln = F + 178;
+        R.ln = F + 211;
         if ((R.t(R.eq((S["days"] ?? null), 0)) || R.t(R.ge((S["days"] ?? null), 90)))) {
-            R.ln = F + 178;
+            R.ln = F + 211;
             R.pa(O, R.cmd(S, "New-Pass", [(() => {
-                const v11 = [];
-                R.ln = F + 178;
+                const v12 = [];
+                R.ln = F + 211;
                 if (R.t(R.eq((S["days"] ?? null), 0))) {
-                    R.ln = F + 178;
-                    R.e(v11, "Unlimited retention");
+                    R.ln = F + 211;
+                    R.e(v12, "Unlimited retention");
                 } else {
-                    R.ln = F + 178;
-                    R.e(v11, ("" + R.str((S["days"] ?? null)) + " days retention"));
+                    R.ln = F + 211;
+                    R.e(v12, ("" + R.str((S["days"] ?? null)) + " days retention"));
                 }
-                return R.u(v11);
+                return R.u(v12);
             })(), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 179;
+        R.ln = F + 212;
         R.pa(O, R.cmd(S, "New-Fail", [("" + R.str((S["days"] ?? null)) + " days retention"), (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 183;
+    R.ln = F + 216;
     R.def(S, "Get-SqlEntraAdmin", { params: [{ n: "Record", t: null, pos: null }], adv: 0, h: "7a9891ce4542b41e" }, (S, O) => {
-        R.ln = F + 186;
-        const had15 = Object.prototype.hasOwnProperty.call(S, '_'), prev14 = S['_'];
+        R.ln = F + 219;
+        const had16 = Object.prototype.hasOwnProperty.call(S, '_'), prev15 = S['_'];
         try {
-            for (const sw12 of R.pi(R.m((S["record"] ?? null), "type"))) {
-                S['_'] = sw12;
-                let hit13 = false;
-                if (R.t(R.eq(sw12, "Microsoft.Synapse/workspaces", false))) {
-                    hit13 = true;
-                    R.ln = F + 188;
+            for (const sw13 of R.pi(R.m((S["record"] ?? null), "type"))) {
+                S['_'] = sw13;
+                let hit14 = false;
+                if (R.t(R.eq(sw13, "Microsoft.Synapse/workspaces", false))) {
+                    hit14 = true;
+                    R.ln = F + 221;
                     if ((!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "sqlAdministrators/activeDirectory"], null))) && !R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "administrators/activeDirectory"], null))))) {
-                        R.ln = F + 188;
+                        R.ln = F + 221;
                         R.e(O, false);
                         return;
                     }
-                    R.ln = F + 189;
+                    R.ln = F + 222;
                     S["admin"] = R.u(R.cmd(S, "Get-Child", [(S["record"] ?? null), "sqlAdministrators/activeDirectory"], null));
-                    R.ln = F + 190;
+                    R.ln = F + 223;
                     if (!R.t((S["admin"] ?? null))) {
-                        R.ln = F + 190;
+                        R.ln = F + 223;
                         S["admin"] = R.u(R.cmd(S, "Get-Child", [(S["record"] ?? null), "administrators/activeDirectory"], null));
                     }
-                    R.ln = F + 191;
+                    R.ln = F + 224;
                     R.e(O, R.m(R.m((S["admin"] ?? null), "properties"), "login"));
                     return;
                 }
-                if (!hit13) {
-                    R.ln = F + 194;
+                if (!hit14) {
+                    R.ln = F + 227;
                     if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "administrators"], null)))) {
-                        R.ln = F + 194;
+                        R.ln = F + 227;
                         R.e(O, false);
                         return;
                     }
-                    R.ln = F + 195;
+                    R.ln = F + 228;
                     R.e(O, R.m(R.m(R.u(R.cmd(S, "Select-Object", [R.np("First"), 1], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                        R.ln = F + 195;
+                        R.ln = F + 228;
                         R.e(O, (S["_"] ?? null));
                     })], R.pi(R.cmd(S, "Get-Child", [(S["record"] ?? null), "administrators"], null))))), "properties"), "login"));
                     return;
                 }
             }
-        } finally { if (had15) { S['_'] = prev14; } else { delete S['_']; } }
+        } finally { if (had16) { S['_'] = prev15; } else { delete S['_']; } }
     });
-    R.ln = F + 200;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-SQL-003", "Title", "A Microsoft Entra administrator is configured for SQL", "Category", "Identity management", "Service", "Azure SQL", "Severity", "Medium", "Description", "Checks SQL logical servers, managed instances and Synapse workspaces for a Microsoft Entra administrator.", "Rationale", "Entra authentication enables MFA, Conditional Access, managed identities and central account lifecycle for database access; it requires an Entra administrator.", "Remediation", "Set an Entra group as administrator (az sql server ad-admin create --display-name <group> --object-id <id> ...).", "References", R.a("https://learn.microsoft.com/azure/azure-sql/database/authentication-aad-configure"), "Policy", R.ht(["1f314764-cb73-4fc9-b863-8eca98ac36e9", "An Azure Active Directory administrator should be provisioned for SQL servers"], false), "ResourceTypes", R.a([R.v("Microsoft.Sql/servers"), R.v("Microsoft.Sql/managedInstances"), R.v("Microsoft.Synapse/workspaces")]), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $admin = Get-SqlEntraAdmin $Record\n        if ($admin -eq $false) { return New-Unknown 'Administrators could not be read' }\n        $evidence = [ordered]@{ entraAdministrator = $admin }\n        if ($admin) { return New-Pass \"Entra administrator $admin\" $evidence }\n        New-Fail 'No Entra administrator' $evidence\n    " }, (S, O) => {
-        R.ln = F + 214;
+    R.ln = F + 233;
+    S["sqlentraadmincheck"] = R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n    param($Record)\n    $admin = Get-SqlEntraAdmin $Record\n    if ($admin -eq $false) { return New-Unknown 'Administrators could not be read' }\n    $evidence = [ordered]@{ entraAdministrator = $admin }\n    if ($admin) { return New-Pass \"Entra administrator $admin\" $evidence }\n    New-Fail 'No Entra administrator' $evidence\n" }, (S, O) => {
+        R.ln = F + 235;
         S["admin"] = R.u(R.cmd(S, "Get-SqlEntraAdmin", [(S["record"] ?? null)], null));
-        R.ln = F + 215;
+        R.ln = F + 236;
         if (R.t(R.eq((S["admin"] ?? null), false))) {
-            R.ln = F + 215;
+            R.ln = F + 236;
             R.pa(O, R.cmd(S, "New-Unknown", ["Administrators could not be read"], null));
             return;
         }
-        R.ln = F + 216;
+        R.ln = F + 237;
         S["evidence"] = R.ht(["entraAdministrator", (S["admin"] ?? null)], true);
-        R.ln = F + 217;
+        R.ln = F + 238;
         if (R.t((S["admin"] ?? null))) {
-            R.ln = F + 217;
+            R.ln = F + 238;
             R.pa(O, R.cmd(S, "New-Pass", [("Entra administrator " + R.str((S["admin"] ?? null))), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 218;
+        R.ln = F + 239;
         R.pa(O, R.cmd(S, "New-Fail", ["No Entra administrator", (S["evidence"] ?? null)], null));
-    })], false)], null));
-    R.ln = F + 222;
+    });
+    R.ln = F + 242;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-SQL-003", "Version", 2, "Title", "A Microsoft Entra administrator is configured for SQL servers", "Category", "Identity management", "Service", "Azure SQL", "Severity", "Medium", "Description", "Checks SQL logical servers for a Microsoft Entra administrator. Managed instances and Synapse workspaces: AZ-SQL-014.", "Rationale", "Entra authentication enables MFA, Conditional Access, managed identities and central account lifecycle for database access; it requires an Entra administrator.", "Remediation", "Set an Entra group as administrator (az sql server ad-admin create --display-name <group> --object-id <id> ...).", "References", R.a("https://learn.microsoft.com/azure/azure-sql/database/authentication-aad-configure"), "Policy", R.ht(["1f314764-cb73-4fc9-b863-8eca98ac36e9", "An Azure Active Directory administrator should be provisioned for SQL servers"], false), "ResourceTypes", R.a("Microsoft.Sql/servers"), "Evaluate", (S["sqlentraadmincheck"] ?? null)], false)], null));
+    R.ln = F + 258;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-SQL-014", "Title", "A Microsoft Entra administrator is configured for SQL managed instances and Synapse workspaces", "Category", "Identity management", "Service", "Azure SQL", "Severity", "Medium", "Description", "Checks SQL managed instances and Synapse workspaces for a Microsoft Entra administrator.", "Rationale", "Entra authentication enables MFA, Conditional Access, managed identities and central account lifecycle for database access; it requires an Entra administrator.", "Remediation", "Set an Entra group as administrator (az sql mi ad-admin create ..., az synapse sql ad-admin create ...).", "References", R.a("https://learn.microsoft.com/azure/azure-sql/database/authentication-aad-configure"), "ResourceTypes", R.a([R.v("Microsoft.Sql/managedInstances"), R.v("Microsoft.Synapse/workspaces")]), "Evaluate", (S["sqlentraadmincheck"] ?? null)], false)], null));
+    R.ln = F + 272;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-SQL-004", "Title", "SQL uses Microsoft Entra-only authentication", "Category", "Identity management", "Service", "Azure SQL", "Severity", "Medium", "Description", "Checks that SQL authentication is disabled (Entra-only authentication) on SQL logical servers, managed instances and Synapse workspaces.", "Rationale", "SQL logins are passwords without MFA, lockout policies or central lifecycle management and are a common brute force target, including the server administrator login.", "Remediation", "Move applications to Entra authentication (managed identities), then enable Entra-only authentication (az sql server ad-only-auth enable ...).", "References", R.a("https://learn.microsoft.com/azure/azure-sql/database/authentication-azure-ad-only-authentication"), "Policy", R.ht(["abda6d70-9778-44e7-84a8-06713e6db027", "Azure SQL logical servers should have Microsoft Entra-only authentication enabled during creation", "78215662-041e-49ed-a9dd-5385911b3a1f", "Azure SQL Managed Instances should have Microsoft Entra-only authentication enabled during creation"], false), "ResourceTypes", R.a([R.v("Microsoft.Sql/servers"), R.v("Microsoft.Sql/managedInstances"), R.v("Microsoft.Synapse/workspaces")]), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not (Test-ChildCollected $Record 'azureADOnlyAuthentications')) { return New-Unknown 'Entra-only authentication setting could not be read' }\n        $setting = @(Get-Child $Record 'azureADOnlyAuthentications') | Where-Object { $_ } | Select-Object -First 1\n        $evidence = [ordered]@{ azureADOnlyAuthentication = $setting.properties.azureADOnlyAuthentication }\n        if ($setting.properties.azureADOnlyAuthentication -eq $true) { return New-Pass 'Entra-only authentication enabled' $evidence }\n        New-Fail 'SQL authentication is allowed' $evidence\n    " }, (S, O) => {
-        R.ln = F + 236;
+        R.ln = F + 286;
         if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "azureADOnlyAuthentications"], null)))) {
-            R.ln = F + 236;
+            R.ln = F + 286;
             R.pa(O, R.cmd(S, "New-Unknown", ["Entra-only authentication setting could not be read"], null));
             return;
         }
-        R.ln = F + 237;
+        R.ln = F + 287;
         S["setting"] = R.u(R.cmd(S, "Select-Object", [R.np("First"), 1], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 237;
+            R.ln = F + 287;
             R.e(O, (S["_"] ?? null));
         })], R.pi(R.cmd(S, "Get-Child", [(S["record"] ?? null), "azureADOnlyAuthentications"], null)))));
-        R.ln = F + 238;
+        R.ln = F + 288;
         S["evidence"] = R.ht(["azureADOnlyAuthentication", R.m(R.m((S["setting"] ?? null), "properties"), "azureADOnlyAuthentication")], true);
-        R.ln = F + 239;
+        R.ln = F + 289;
         if (R.t(R.eq(R.m(R.m((S["setting"] ?? null), "properties"), "azureADOnlyAuthentication"), true))) {
-            R.ln = F + 239;
+            R.ln = F + 289;
             R.pa(O, R.cmd(S, "New-Pass", ["Entra-only authentication enabled", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 240;
+        R.ln = F + 290;
         R.pa(O, R.cmd(S, "New-Fail", ["SQL authentication is allowed", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 244;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-SQL-005", "Title", "SQL servers and managed instances disable public network access", "Category", "Network security", "Service", "Azure SQL", "Severity", "Medium", "Description", "Checks public network access on SQL logical servers and the public data endpoint on managed instances.", "Rationale", "A public endpoint depends solely on firewall rules and authentication; private endpoints remove Internet exposure entirely.", "Remediation", "Create private endpoints and set public network access to Disabled (az sql server update --enable-public-network false ...); disable the public data endpoint on managed instances.", "References", R.a("https://learn.microsoft.com/azure/azure-sql/database/connectivity-settings"), "Policy", R.ht(["1b8ca024-1d5c-4dec-8995-b1a932b41780", "Public network access on Azure SQL Database should be disabled", "9dfea752-dd46-4766-aed1-c355fa93fb91", "Azure SQL Managed Instances should disable public network access"], false), "ResourceTypes", R.a([R.v("Microsoft.Sql/servers"), R.v("Microsoft.Sql/managedInstances")]), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $p = $Record.resource.properties\n        if ($Record.type -eq 'Microsoft.Sql/managedInstances') {\n            $evidence = [ordered]@{ publicDataEndpointEnabled = [bool]$p.publicDataEndpointEnabled }\n            if ($p.publicDataEndpointEnabled) { return New-Fail 'Public data endpoint enabled' $evidence }\n            return New-Pass 'Public data endpoint disabled' $evidence\n        }\n        $evidence = [ordered]@{ publicNetworkAccess = $p.publicNetworkAccess }\n        if ($p.publicNetworkAccess -eq 'Disabled') { return New-Pass 'Public network access disabled' $evidence }\n        New-Fail 'Public network access enabled' $evidence\n    " }, (S, O) => {
-        R.ln = F + 258;
-        S["p"] = R.m(R.m((S["record"] ?? null), "resource"), "properties");
-        R.ln = F + 259;
-        if (R.t(R.eq(R.m((S["record"] ?? null), "type"), "Microsoft.Sql/managedInstances"))) {
-            R.ln = F + 260;
-            S["evidence"] = R.ht(["publicDataEndpointEnabled", R.c("bool", R.m((S["p"] ?? null), "publicDataEndpointEnabled"))], true);
-            R.ln = F + 261;
-            if (R.t(R.m((S["p"] ?? null), "publicDataEndpointEnabled"))) {
-                R.ln = F + 261;
-                R.pa(O, R.cmd(S, "New-Fail", ["Public data endpoint enabled", (S["evidence"] ?? null)], null));
-                return;
-            }
-            R.ln = F + 262;
-            R.pa(O, R.cmd(S, "New-Pass", ["Public data endpoint disabled", (S["evidence"] ?? null)], null));
-            return;
-        }
-        R.ln = F + 264;
-        S["evidence"] = R.ht(["publicNetworkAccess", R.m((S["p"] ?? null), "publicNetworkAccess")], true);
-        R.ln = F + 265;
-        if (R.t(R.eq(R.m((S["p"] ?? null), "publicNetworkAccess"), "Disabled"))) {
-            R.ln = F + 265;
+    R.ln = F + 294;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-SQL-005", "Version", 2, "Title", "SQL servers disable public network access", "Category", "Network security", "Service", "Azure SQL", "Severity", "Medium", "Description", "Checks that public network access of SQL logical servers is Disabled. Managed instances: AZ-SQL-011.", "Rationale", "A public endpoint depends solely on firewall rules and authentication; private endpoints remove Internet exposure entirely.", "Remediation", "Create private endpoints and set public network access to Disabled (az sql server update --enable-public-network false ...).", "References", R.a("https://learn.microsoft.com/azure/azure-sql/database/connectivity-settings"), "Policy", R.ht(["1b8ca024-1d5c-4dec-8995-b1a932b41780", "Public network access on Azure SQL Database should be disabled"], false), "ResourceTypes", R.a("Microsoft.Sql/servers"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $value = $Record.resource.properties.publicNetworkAccess\n        $evidence = [ordered]@{ publicNetworkAccess = $value }\n        if ($value -eq 'Disabled') { return New-Pass 'Public network access disabled' $evidence }\n        New-Fail \"Public network access $(if ($value) { $value } else { 'not set' })\" $evidence\n    " }, (S, O) => {
+        R.ln = F + 309;
+        S["value"] = R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "publicNetworkAccess");
+        R.ln = F + 310;
+        S["evidence"] = R.ht(["publicNetworkAccess", (S["value"] ?? null)], true);
+        R.ln = F + 311;
+        if (R.t(R.eq((S["value"] ?? null), "Disabled"))) {
+            R.ln = F + 311;
             R.pa(O, R.cmd(S, "New-Pass", ["Public network access disabled", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 266;
-        R.pa(O, R.cmd(S, "New-Fail", ["Public network access enabled", (S["evidence"] ?? null)], null));
-    })], false)], null));
-    R.ln = F + 270;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-SQL-006", "Title", "SQL requires TLS 1.2 or higher", "Category", "Data protection", "Service", "Azure SQL", "Severity", "Medium", "Description", "Checks the minimal TLS version of SQL logical servers and managed instances.", "Rationale", "Older TLS versions have known weaknesses. From 31 July 2026 Azure SQL requires TLS 1.2 for all connections; the setting should state it explicitly.", "Remediation", "Set the minimal TLS version to 1.2 (az sql server update --minimal-tls-version 1.2 ...).", "References", R.a("https://learn.microsoft.com/azure/azure-sql/database/connectivity-settings"), "Policy", R.ht(["32e6bbec-16b6-44c2-be37-c5b672d103cf", "Azure SQL Database should be running TLS version 1.2 or newer"], false), "ResourceTypes", R.a([R.v("Microsoft.Sql/servers"), R.v("Microsoft.Sql/managedInstances")]), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $value = $Record.resource.properties.minimalTlsVersion\n        $evidence = [ordered]@{ minimalTlsVersion = $value }\n        if (Test-VersionAtLeast $value '1.2') { return New-Pass \"Minimal TLS $value\" $evidence }\n        New-Fail \"Minimal TLS $(if ($value) { $value } else { 'not set' })\" $evidence\n    " }, (S, O) => {
-        R.ln = F + 284;
-        S["value"] = R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "minimalTlsVersion");
-        R.ln = F + 285;
-        S["evidence"] = R.ht(["minimalTlsVersion", (S["value"] ?? null)], true);
-        R.ln = F + 286;
-        if (R.t(R.u(R.cmd(S, "Test-VersionAtLeast", [(S["value"] ?? null), "1.2"], null)))) {
-            R.ln = F + 286;
-            R.pa(O, R.cmd(S, "New-Pass", [("Minimal TLS " + R.str((S["value"] ?? null))), (S["evidence"] ?? null)], null));
-            return;
-        }
-        R.ln = F + 287;
-        R.pa(O, R.cmd(S, "New-Fail", [("Minimal TLS " + R.str((() => {
-            const v16 = [];
-            R.ln = F + 287;
+        R.ln = F + 312;
+        R.pa(O, R.cmd(S, "New-Fail", [("Public network access " + R.str((() => {
+            const v17 = [];
+            R.ln = F + 312;
             if (R.t((S["value"] ?? null))) {
-                R.ln = F + 287;
-                R.e(v16, (S["value"] ?? null));
+                R.ln = F + 312;
+                R.e(v17, (S["value"] ?? null));
             } else {
-                R.ln = F + 287;
-                R.e(v16, "not set");
+                R.ln = F + 312;
+                R.e(v17, "not set");
             }
-            return R.u(v16);
+            return R.u(v17);
         })())), (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 291;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-SQL-007", "Title", "Transparent data encryption is enabled on SQL databases", "Category", "Data protection", "Service", "Azure SQL", "Severity", "High", "Description", "Checks the transparent data encryption state of user databases.", "Rationale", "TDE encrypts database files, backups and logs at rest, protecting data against theft of storage media and backup copies.", "Remediation", "Enable TDE (az sql db tde set --status Enabled ...).", "References", R.a("https://learn.microsoft.com/azure/azure-sql/database/transparent-data-encryption-tde-overview"), "Policy", R.ht(["17k78e20-9358-41c9-923c-fb736d382a12", "Transparent Data Encryption on SQL databases should be enabled"], false), "ResourceTypes", R.a([R.v("Microsoft.Sql/servers/databases"), R.v("Microsoft.Sql/managedInstances/databases")]), "Filter", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) $Record.resource.name -ne 'master' -and [string]$Record.resource.kind -notmatch 'system' " }, (S, O) => {
-        R.ln = F + 303;
-        R.e(O, (R.t(R.ne(R.m(R.m((S["record"] ?? null), "resource"), "name"), "master")) && R.t(R.nmatch(S, R.c("string", R.m(R.m((S["record"] ?? null), "resource"), "kind")), "system"))));
-    }), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not (Test-ChildCollected $Record 'transparentDataEncryption')) { return New-Unknown 'TDE state could not be read' }\n        $state = (@(Get-Child $Record 'transparentDataEncryption') | Where-Object { $_ } | Select-Object -First 1).properties.state\n        $evidence = [ordered]@{ state = $state }\n        if ($state -eq 'Enabled') { return New-Pass 'TDE enabled' $evidence }\n        New-Fail 'TDE disabled' $evidence\n    " }, (S, O) => {
-        R.ln = F + 306;
-        if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "transparentDataEncryption"], null)))) {
-            R.ln = F + 306;
-            R.pa(O, R.cmd(S, "New-Unknown", ["TDE state could not be read"], null));
-            return;
-        }
-        R.ln = F + 307;
-        S["state"] = R.m(R.m(R.u(R.cmd(S, "Select-Object", [R.np("First"), 1], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 307;
-            R.e(O, (S["_"] ?? null));
-        })], R.pi(R.cmd(S, "Get-Child", [(S["record"] ?? null), "transparentDataEncryption"], null))))), "properties"), "state");
-        R.ln = F + 308;
-        S["evidence"] = R.ht(["state", (S["state"] ?? null)], true);
-        R.ln = F + 309;
-        if (R.t(R.eq((S["state"] ?? null), "Enabled"))) {
-            R.ln = F + 309;
-            R.pa(O, R.cmd(S, "New-Pass", ["TDE enabled", (S["evidence"] ?? null)], null));
-            return;
-        }
-        R.ln = F + 310;
-        R.pa(O, R.cmd(S, "New-Fail", ["TDE disabled", (S["evidence"] ?? null)], null));
-    })], false)], null));
-    R.ln = F + 314;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-SQL-008", "Title", "SQL TDE uses a customer-managed key (when required)", "Category", "Data protection", "Service", "Azure SQL", "Severity", "Informational", "Description", "Checks whether the TDE protector of SQL servers and managed instances is a customer-managed key in Key Vault.", "Rationale", "A customer-managed TDE protector gives control over key rotation and revocation; only required where data classification or regulation demands it.", "Remediation", "Configure a Key Vault key as TDE protector with auto-rotation (az sql server tde-key set --server-key-type AzureKeyVault ...).", "References", R.a("https://learn.microsoft.com/azure/azure-sql/database/transparent-data-encryption-byok-overview"), "Policy", R.ht(["0a370ff3-6cab-4e85-8995-295fd854c5b8", "SQL servers should use customer-managed keys to encrypt data at rest"], false), "ResourceTypes", R.a([R.v("Microsoft.Sql/servers"), R.v("Microsoft.Sql/managedInstances")]), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not (Test-ChildCollected $Record 'encryptionProtector')) { return New-Unknown 'Encryption protector could not be read' }\n        $protector = @(Get-Child $Record 'encryptionProtector') | Where-Object { $_ } | Select-Object -First 1\n        $evidence = [ordered]@{ serverKeyType = $protector.properties.serverKeyType; autoRotationEnabled = $protector.properties.autoRotationEnabled }\n        if ($protector.properties.serverKeyType -eq 'AzureKeyVault') { return New-Pass 'Customer-managed TDE protector' $evidence }\n        New-Fail 'Service-managed TDE protector' $evidence\n    " }, (S, O) => {
-        R.ln = F + 328;
-        if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "encryptionProtector"], null)))) {
-            R.ln = F + 328;
-            R.pa(O, R.cmd(S, "New-Unknown", ["Encryption protector could not be read"], null));
-            return;
-        }
-        R.ln = F + 329;
-        S["protector"] = R.u(R.cmd(S, "Select-Object", [R.np("First"), 1], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 329;
-            R.e(O, (S["_"] ?? null));
-        })], R.pi(R.cmd(S, "Get-Child", [(S["record"] ?? null), "encryptionProtector"], null)))));
+    R.ln = F + 316;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-SQL-011", "Title", "SQL managed instances disable the public data endpoint", "Category", "Network security", "Service", "Azure SQL", "Severity", "Medium", "Description", "Checks the public data endpoint of SQL managed instances.", "Rationale", "The public data endpoint exposes the instance to the Internet, protected only by network security group rules and authentication.", "Remediation", "Disable the public data endpoint (az sql mi update --public-data-endpoint-enabled false ...) and connect through the virtual network or private endpoints.", "References", R.a("https://learn.microsoft.com/azure/azure-sql/managed-instance/public-endpoint-overview"), "Policy", R.ht(["9dfea752-dd46-4766-aed1-c355fa93fb91", "Azure SQL Managed Instances should disable public network access"], false), "ResourceTypes", R.a("Microsoft.Sql/managedInstances"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $evidence = [ordered]@{ publicDataEndpointEnabled = [bool]$Record.resource.properties.publicDataEndpointEnabled }\n        if ($Record.resource.properties.publicDataEndpointEnabled) { return New-Fail 'Public data endpoint enabled' $evidence }\n        New-Pass 'Public data endpoint disabled' $evidence\n    " }, (S, O) => {
         R.ln = F + 330;
-        S["evidence"] = R.ht(["serverKeyType", R.m(R.m((S["protector"] ?? null), "properties"), "serverKeyType"), "autoRotationEnabled", R.m(R.m((S["protector"] ?? null), "properties"), "autoRotationEnabled")], true);
+        S["evidence"] = R.ht(["publicDataEndpointEnabled", R.c("bool", R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "publicDataEndpointEnabled"))], true);
         R.ln = F + 331;
-        if (R.t(R.eq(R.m(R.m((S["protector"] ?? null), "properties"), "serverKeyType"), "AzureKeyVault"))) {
+        if (R.t(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "publicDataEndpointEnabled"))) {
             R.ln = F + 331;
-            R.pa(O, R.cmd(S, "New-Pass", ["Customer-managed TDE protector", (S["evidence"] ?? null)], null));
+            R.pa(O, R.cmd(S, "New-Fail", ["Public data endpoint enabled", (S["evidence"] ?? null)], null));
             return;
         }
         R.ln = F + 332;
-        R.pa(O, R.cmd(S, "New-Fail", ["Service-managed TDE protector", (S["evidence"] ?? null)], null));
+        R.pa(O, R.cmd(S, "New-Pass", ["Public data endpoint disabled", (S["evidence"] ?? null)], null));
     })], false)], null));
     R.ln = F + 336;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-SQL-009", "Title", "Vulnerability assessment is enabled on SQL servers", "Category", "Posture and vulnerability management", "Service", "Azure SQL", "Severity", "Medium", "Description", "Checks SQL logical servers and managed instances for SQL vulnerability assessment (express or classic with recurring scans).", "Rationale", "Vulnerability assessment finds misconfigurations, excessive permissions and unprotected sensitive data in databases, and tracks drift from a baseline.", "Remediation", "Enable Microsoft Defender for SQL, which turns on the express vulnerability assessment configuration.", "References", R.a("https://learn.microsoft.com/azure/defender-for-cloud/sql-azure-vulnerability-assessment-overview"), "Policy", R.ht(["ef2a8f2a-b3d9-49cd-a8a8-9a3aaaf647d9", "Vulnerability assessment should be enabled on your SQL servers"], false), "ResourceTypes", R.a([R.v("Microsoft.Sql/servers"), R.v("Microsoft.Sql/managedInstances")]), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $express = @(Get-Child $Record 'sqlVulnerabilityAssessments') | Where-Object { $_ -and $_.properties.state -eq 'Enabled' }\n        $classic = @(Get-Child $Record 'vulnerabilityAssessments') | Where-Object { $_ -and $_.properties.recurringScans.isEnabled -and $_.properties.storageContainerPath }\n        $evidence = [ordered]@{ express = [bool]$express; classicRecurringScans = [bool]$classic }\n        if ($express -or $classic) { return New-Pass 'Vulnerability assessment enabled' $evidence }\n        if (-not (Test-ChildCollected $Record 'sqlVulnerabilityAssessments') -and -not (Test-ChildCollected $Record 'vulnerabilityAssessments')) { return New-Unknown 'Vulnerability assessment settings could not be read' }\n        New-Fail 'Vulnerability assessment disabled' $evidence\n    " }, (S, O) => {
-        R.ln = F + 350;
-        S["express"] = R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.properties.state -eq 'Enabled' " }, (S, O) => {
-            R.ln = F + 350;
-            R.e(O, (R.t((S["_"] ?? null)) && R.t(R.eq(R.m(R.m((S["_"] ?? null), "properties"), "state"), "Enabled"))));
-        })], R.pi(R.cmd(S, "Get-Child", [(S["record"] ?? null), "sqlVulnerabilityAssessments"], null))));
-        R.ln = F + 351;
-        S["classic"] = R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.properties.recurringScans.isEnabled -and $_.properties.storageContainerPath " }, (S, O) => {
-            R.ln = F + 351;
-            R.e(O, ((R.t((S["_"] ?? null)) && R.t(R.m(R.m(R.m((S["_"] ?? null), "properties"), "recurringScans"), "isEnabled"))) && R.t(R.m(R.m((S["_"] ?? null), "properties"), "storageContainerPath"))));
-        })], R.pi(R.cmd(S, "Get-Child", [(S["record"] ?? null), "vulnerabilityAssessments"], null))));
-        R.ln = F + 352;
-        S["evidence"] = R.ht(["express", R.c("bool", (S["express"] ?? null)), "classicRecurringScans", R.c("bool", (S["classic"] ?? null))], true);
-        R.ln = F + 353;
-        if ((R.t((S["express"] ?? null)) || R.t((S["classic"] ?? null)))) {
-            R.ln = F + 353;
-            R.pa(O, R.cmd(S, "New-Pass", ["Vulnerability assessment enabled", (S["evidence"] ?? null)], null));
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-SQL-012", "Title", "SQL server firewalls do not allow access from the entire Internet", "Category", "Network security", "Service", "Azure SQL", "Severity", "Critical", "Description", "Finds IPv4 and IPv6 firewall rules on SQL logical servers that cover 0.0.0.0-255.255.255.255 or at least a /8 range (IPv6: wider than a /64), while public network access is enabled. Database level rules (T-SQL only) are not read.", "Rationale", "Such rules expose the database endpoint to every attacker on the Internet, leaving authentication as the only control against brute force and credential stuffing.", "Remediation", "Delete the rule and allow only specific client addresses, or better, disable public network access and use private endpoints.", "References", R.a("https://learn.microsoft.com/azure/azure-sql/database/firewall-configure"), "ResourceTypes", R.a("Microsoft.Sql/servers"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (Test-PublicNetworkDisabled $Record) { return New-Pass 'Public network access disabled, firewall rules do not apply' }\n        if (-not (Test-ChildCollected $Record 'firewallRules')) { return New-Unknown 'Firewall rules could not be read' }\n        $rules = @(Get-DatabaseFirewallRules $Record)\n        $wide = @(Get-WideFirewallRules $rules)\n        $evidence = [ordered]@{ firewallRules = $rules.Count; wideRules = $wide }\n        if ($wide) { return New-Fail \"Internet wide rule(s): $($wide -join ', ')\" $evidence }\n        New-Pass 'No Internet wide firewall rules' $evidence\n    " }, (S, O) => {
+        R.ln = F + 349;
+        if (R.t(R.u(R.cmd(S, "Test-PublicNetworkDisabled", [(S["record"] ?? null)], null)))) {
+            R.ln = F + 349;
+            R.pa(O, R.cmd(S, "New-Pass", ["Public network access disabled, firewall rules do not apply"], null));
             return;
         }
+        R.ln = F + 350;
+        if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "firewallRules"], null)))) {
+            R.ln = F + 350;
+            R.pa(O, R.cmd(S, "New-Unknown", ["Firewall rules could not be read"], null));
+            return;
+        }
+        R.ln = F + 351;
+        S["rules"] = R.cmd(S, "Get-DatabaseFirewallRules", [(S["record"] ?? null)], null);
+        R.ln = F + 352;
+        S["wide"] = R.cmd(S, "Get-WideFirewallRules", [(S["rules"] ?? null)], null);
+        R.ln = F + 353;
+        S["evidence"] = R.ht(["firewallRules", R.m((S["rules"] ?? null), "Count"), "wideRules", (S["wide"] ?? null)], true);
         R.ln = F + 354;
-        if ((!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "sqlVulnerabilityAssessments"], null))) && !R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "vulnerabilityAssessments"], null))))) {
+        if (R.t((S["wide"] ?? null))) {
             R.ln = F + 354;
-            R.pa(O, R.cmd(S, "New-Unknown", ["Vulnerability assessment settings could not be read"], null));
+            R.pa(O, R.cmd(S, "New-Fail", [("Internet wide rule(s): " + R.str(R.u(R.pi(R.join((S["wide"] ?? null), ", "))))), (S["evidence"] ?? null)], null));
             return;
         }
         R.ln = F + 355;
-        R.pa(O, R.cmd(S, "New-Fail", ["Vulnerability assessment disabled", (S["evidence"] ?? null)], null));
+        R.pa(O, R.cmd(S, "New-Pass", ["No Internet wide firewall rules", (S["evidence"] ?? null)], null));
     })], false)], null));
     R.ln = F + 359;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-SQL-010", "Title", "Columns classified as sensitive are masked", "Category", "Data protection", "Service", "Azure SQL", "Severity", "Low", "Description", "For SQL databases with data classification, checks that every column labeled with rank Medium or higher (Confidential and up in the default policy) has an enabled dynamic data masking rule. Databases without such columns are not applicable.", "Rationale", "Dynamic data masking hides sensitive values from users and applications that do not need them, without changing the data. The classification already names the columns that hold such data; masking them limits exposure through reporting tools, support staff and compromised low privileged accounts.", "Remediation", "Add masking rules for the classified columns (database > Dynamic Data Masking) and grant the UNMASK permission only to the principals that need the real values. Administrators always see unmasked data.", "References", R.a([R.v("https://learn.microsoft.com/azure/azure-sql/database/dynamic-data-masking-overview"), R.v("https://learn.microsoft.com/azure/azure-sql/database/data-discovery-and-classification-overview")]), "ResourceTypes", R.a("Microsoft.Sql/servers/databases"), "Filter", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) $Record.resource.name -ne 'master' -and [string]$Record.resource.kind -notmatch '(?i)system' " }, (S, O) => {
-        R.ln = F + 370;
-        R.e(O, (R.t(R.ne(R.m(R.m((S["record"] ?? null), "resource"), "name"), "master")) && R.t(R.nmatch(S, R.c("string", R.m(R.m((S["record"] ?? null), "resource"), "kind")), "(?i)system"))));
-    }), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not (Test-ChildCollected $Record 'currentSensitivityLabels')) { return New-Unknown 'The data classification could not be read' }\n        $classified = @(Get-Child $Record 'currentSensitivityLabels' | Where-Object { $_ -and -not $_.properties.isDisabled -and $_.properties.rank -in 'Medium', 'High', 'Critical' } | ForEach-Object { \"$($_.properties.schemaName).$($_.properties.tableName).$($_.properties.columnName)\" } | Sort-Object -Unique)\n        if (-not $classified) { return New-NotApplicable 'No columns are classified with rank Medium or higher' }\n        if (-not (Test-ChildCollected $Record 'dataMaskingPolicies/Default/rules')) { return New-Unknown 'The masking rules could not be read' ([ordered]@{ classifiedColumns = $classified }) }\n        $masked = @(Get-Child $Record 'dataMaskingPolicies/Default/rules' | Where-Object { $_ -and $_.properties.ruleState -ne 'Disabled' } | ForEach-Object { \"$($_.properties.schemaName).$($_.properties.tableName).$($_.properties.columnName)\" })\n        $unmasked = @($classified | Where-Object { $_ -notin $masked })\n        $evidence = [ordered]@{ classifiedColumns = $classified; unmaskedColumns = $unmasked }\n        if ($unmasked) { return New-Fail \"$($unmasked.Count) of $($classified.Count) classified column(s) are not masked\" $evidence }\n        New-Pass \"All $($classified.Count) classified column(s) are masked\" $evidence\n    " }, (S, O) => {
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-SQL-013", "Title", "SQL server firewalls have no rules starting at 0.0.0.0", "Category", "Network security", "Service", "Azure SQL", "Severity", "Medium", "Description", "Finds firewall rules on SQL logical servers whose start address is 0.0.0.0, including the 'Allow Azure services and resources to access this server' rule (0.0.0.0-0.0.0.0), while public network access is enabled.", "Rationale", "The 0.0.0.0 rule admits connections from any Azure resource of any customer, and a range starting at 0.0.0.0 admits a large part of the Internet.", "Remediation", "Remove the rule and use private endpoints, virtual network rules or specific client addresses.", "References", R.a("https://learn.microsoft.com/azure/azure-sql/database/firewall-configure"), "ResourceTypes", R.a("Microsoft.Sql/servers"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (Test-PublicNetworkDisabled $Record) { return New-Pass 'Public network access disabled, firewall rules do not apply' }\n        if (-not (Test-ChildCollected $Record 'firewallRules')) { return New-Unknown 'Firewall rules could not be read' }\n        $zero = @(Get-DatabaseFirewallRules $Record | Where-Object { $_.Start -eq '0.0.0.0' } | ForEach-Object { \"$($_.Name) ($($_.Start)-$($_.End))\" })\n        $evidence = [ordered]@{ rulesFrom0000 = $zero }\n        if ($zero) { return New-Fail \"Rule(s) starting at 0.0.0.0: $($zero -join ', ')\" $evidence }\n        New-Pass 'No rule starts at 0.0.0.0' $evidence\n    " }, (S, O) => {
+        R.ln = F + 372;
+        if (R.t(R.u(R.cmd(S, "Test-PublicNetworkDisabled", [(S["record"] ?? null)], null)))) {
+            R.ln = F + 372;
+            R.pa(O, R.cmd(S, "New-Pass", ["Public network access disabled, firewall rules do not apply"], null));
+            return;
+        }
         R.ln = F + 373;
-        if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "currentSensitivityLabels"], null)))) {
+        if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "firewallRules"], null)))) {
             R.ln = F + 373;
-            R.pa(O, R.cmd(S, "New-Unknown", ["The data classification could not be read"], null));
+            R.pa(O, R.cmd(S, "New-Unknown", ["Firewall rules could not be read"], null));
             return;
         }
         R.ln = F + 374;
-        S["classified"] = R.cmd(S, "Sort-Object", [R.np("Unique")], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " \"$($_.properties.schemaName).$($_.properties.tableName).$($_.properties.columnName)\" " }, (S, O) => {
+        S["zero"] = R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " \"$($_.Name) ($($_.Start)-$($_.End))\" " }, (S, O) => {
             R.ln = F + 374;
-            R.e(O, ("" + R.str(R.u(R.pi(R.m(R.m((S["_"] ?? null), "properties"), "schemaName")))) + "." + R.str(R.u(R.pi(R.m(R.m((S["_"] ?? null), "properties"), "tableName")))) + "." + R.str(R.u(R.pi(R.m(R.m((S["_"] ?? null), "properties"), "columnName"))))));
-        })], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and -not $_.properties.isDisabled -and $_.properties.rank -in 'Medium', 'High', 'Critical' " }, (S, O) => {
+            R.e(O, ("" + R.str(R.u(R.pi(R.m((S["_"] ?? null), "Name")))) + " (" + R.str(R.u(R.pi(R.m((S["_"] ?? null), "Start")))) + "-" + R.str(R.u(R.pi(R.m((S["_"] ?? null), "End")))) + ")"));
+        })], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.Start -eq '0.0.0.0' " }, (S, O) => {
             R.ln = F + 374;
-            R.e(O, ((R.t((S["_"] ?? null)) && !R.t(R.m(R.m((S["_"] ?? null), "properties"), "isDisabled"))) && R.t(R.in(R.m(R.m((S["_"] ?? null), "properties"), "rank"), [R.v("Medium"), R.v("High"), R.v("Critical")]))));
-        })], R.cmd(S, "Get-Child", [(S["record"] ?? null), "currentSensitivityLabels"], null))));
+            R.e(O, R.eq(R.m((S["_"] ?? null), "Start"), "0.0.0.0"));
+        })], R.cmd(S, "Get-DatabaseFirewallRules", [(S["record"] ?? null)], null)));
         R.ln = F + 375;
-        if (!R.t((S["classified"] ?? null))) {
-            R.ln = F + 375;
-            R.pa(O, R.cmd(S, "New-NotApplicable", ["No columns are classified with rank Medium or higher"], null));
-            return;
-        }
+        S["evidence"] = R.ht(["rulesFrom0000", (S["zero"] ?? null)], true);
         R.ln = F + 376;
-        if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "dataMaskingPolicies/Default/rules"], null)))) {
+        if (R.t((S["zero"] ?? null))) {
             R.ln = F + 376;
-            R.pa(O, R.cmd(S, "New-Unknown", ["The masking rules could not be read", (R.ht(["classifiedColumns", (S["classified"] ?? null)], true))], null));
+            R.pa(O, R.cmd(S, "New-Fail", [("Rule(s) starting at 0.0.0.0: " + R.str(R.u(R.pi(R.join((S["zero"] ?? null), ", "))))), (S["evidence"] ?? null)], null));
             return;
         }
         R.ln = F + 377;
-        S["masked"] = R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " \"$($_.properties.schemaName).$($_.properties.tableName).$($_.properties.columnName)\" " }, (S, O) => {
-            R.ln = F + 377;
-            R.e(O, ("" + R.str(R.u(R.pi(R.m(R.m((S["_"] ?? null), "properties"), "schemaName")))) + "." + R.str(R.u(R.pi(R.m(R.m((S["_"] ?? null), "properties"), "tableName")))) + "." + R.str(R.u(R.pi(R.m(R.m((S["_"] ?? null), "properties"), "columnName"))))));
-        })], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.properties.ruleState -ne 'Disabled' " }, (S, O) => {
-            R.ln = F + 377;
-            R.e(O, (R.t((S["_"] ?? null)) && R.t(R.ne(R.m(R.m((S["_"] ?? null), "properties"), "ruleState"), "Disabled"))));
-        })], R.cmd(S, "Get-Child", [(S["record"] ?? null), "dataMaskingPolicies/Default/rules"], null)));
-        R.ln = F + 378;
-        S["unmasked"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -notin $masked " }, (S, O) => {
-            R.ln = F + 378;
-            R.e(O, R.nin((S["_"] ?? null), (S["masked"] ?? null)));
-        })], R.pi((S["classified"] ?? null)));
-        R.ln = F + 379;
-        S["evidence"] = R.ht(["classifiedColumns", (S["classified"] ?? null), "unmaskedColumns", (S["unmasked"] ?? null)], true);
-        R.ln = F + 380;
-        if (R.t((S["unmasked"] ?? null))) {
-            R.ln = F + 380;
-            R.pa(O, R.cmd(S, "New-Fail", [("" + R.str(R.u(R.pi(R.m((S["unmasked"] ?? null), "Count")))) + " of " + R.str(R.u(R.pi(R.m((S["classified"] ?? null), "Count")))) + " classified column(s) are not masked"), (S["evidence"] ?? null)], null));
-            return;
-        }
-        R.ln = F + 381;
-        R.pa(O, R.cmd(S, "New-Pass", [("All " + R.str(R.u(R.pi(R.m((S["classified"] ?? null), "Count")))) + " classified column(s) are masked"), (S["evidence"] ?? null)], null));
+        R.pa(O, R.cmd(S, "New-Pass", ["No rule starts at 0.0.0.0", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 385;
-    S["postgrestype"] = R.a("Microsoft.DBforPostgreSQL/flexibleServers");
-    R.ln = F + 386;
-    S["mysqltype"] = R.a("Microsoft.DBforMySQL/flexibleServers");
-    R.ln = F + 388;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-PG-001", "Title", "PostgreSQL flexible servers require encrypted connections with TLS 1.2 or higher", "Category", "Data protection", "Service", "Azure Database for PostgreSQL", "Severity", "High", "Description", "Checks the require_secure_transport and ssl_min_protocol_version server parameters.", "Rationale", "Unencrypted or weakly encrypted database connections expose credentials and data on the network.", "Remediation", "Set require_secure_transport to ON and ssl_min_protocol_version to TLSv1.2 or TLSv1.3 (az postgres flexible-server parameter set ...).", "References", R.a("https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-networking-ssl-tls"), "Policy", R.ht(["c29c38cb-74a7-4505-9a06-e588ab86620a", "Enforce SSL connection should be enabled for PostgreSQL flexible servers", "a43d5475-c569-45ce-a268-28fa79f4e87a", "PostgreSQL flexible servers should be running TLS version 1.2 or newer"], false), "ResourceTypes", (S["postgrestype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not (Test-ChildCollected $Record 'configurations')) { return New-Unknown 'Server parameters could not be read' }\n        $secure = Get-ServerParameter $Record 'require_secure_transport'\n        $minimum = Get-ServerParameter $Record 'ssl_min_protocol_version'\n        $evidence = [ordered]@{ require_secure_transport = $secure; ssl_min_protocol_version = $minimum }\n        $problems = @()\n        if ($secure -ne 'on') { $problems += 'unencrypted connections allowed' }\n        if (-not (Test-VersionAtLeast ($minimum -replace '^TLSv', '') '1.2')) { $problems += \"minimum protocol $minimum\" }\n        if ($problems) { return New-Fail ($problems -join ', ') $evidence }\n        New-Pass \"Encrypted connections with $minimum or higher\" $evidence\n    " }, (S, O) => {
-        R.ln = F + 402;
-        if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "configurations"], null)))) {
-            R.ln = F + 402;
-            R.pa(O, R.cmd(S, "New-Unknown", ["Server parameters could not be read"], null));
+    R.ln = F + 381;
+    S["sqltlscheck"] = R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n    param($Record)\n    $value = $Record.resource.properties.minimalTlsVersion\n    $evidence = [ordered]@{ minimalTlsVersion = $value }\n    if (Test-VersionAtLeast $value '1.2') { return New-Pass \"Minimal TLS $value\" $evidence }\n    New-Fail \"Minimal TLS $(if ($value) { $value } else { 'not set' })\" $evidence\n" }, (S, O) => {
+        R.ln = F + 383;
+        S["value"] = R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "minimalTlsVersion");
+        R.ln = F + 384;
+        S["evidence"] = R.ht(["minimalTlsVersion", (S["value"] ?? null)], true);
+        R.ln = F + 385;
+        if (R.t(R.u(R.cmd(S, "Test-VersionAtLeast", [(S["value"] ?? null), "1.2"], null)))) {
+            R.ln = F + 385;
+            R.pa(O, R.cmd(S, "New-Pass", [("Minimal TLS " + R.str((S["value"] ?? null))), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 403;
-        S["secure"] = R.u(R.cmd(S, "Get-ServerParameter", [(S["record"] ?? null), "require_secure_transport"], null));
-        R.ln = F + 404;
-        S["minimum"] = R.u(R.cmd(S, "Get-ServerParameter", [(S["record"] ?? null), "ssl_min_protocol_version"], null));
-        R.ln = F + 405;
-        S["evidence"] = R.ht(["require_secure_transport", (S["secure"] ?? null), "ssl_min_protocol_version", (S["minimum"] ?? null)], true);
-        R.ln = F + 406;
-        S["problems"] = [];
-        R.ln = F + 407;
-        if (R.t(R.ne((S["secure"] ?? null), "on"))) {
-            R.ln = F + 407;
-            S["problems"] = R.add(S["problems"] ?? null, "unencrypted connections allowed");
-        }
-        R.ln = F + 408;
-        if (!R.t(R.u(R.cmd(S, "Test-VersionAtLeast", [(R.rep((S["minimum"] ?? null), [R.v("^TLSv"), R.v("")])), "1.2"], null)))) {
-            R.ln = F + 408;
-            S["problems"] = R.add(S["problems"] ?? null, ("minimum protocol " + R.str((S["minimum"] ?? null))));
-        }
-        R.ln = F + 409;
-        if (R.t((S["problems"] ?? null))) {
-            R.ln = F + 409;
-            R.pa(O, R.cmd(S, "New-Fail", [(R.join((S["problems"] ?? null), ", ")), (S["evidence"] ?? null)], null));
+        R.ln = F + 386;
+        R.pa(O, R.cmd(S, "New-Fail", [("Minimal TLS " + R.str((() => {
+            const v18 = [];
+            R.ln = F + 386;
+            if (R.t((S["value"] ?? null))) {
+                R.ln = F + 386;
+                R.e(v18, (S["value"] ?? null));
+            } else {
+                R.ln = F + 386;
+                R.e(v18, "not set");
+            }
+            return R.u(v18);
+        })())), (S["evidence"] ?? null)], null));
+    });
+    R.ln = F + 389;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-SQL-006", "Version", 2, "Title", "SQL servers require TLS 1.2 or higher", "Category", "Data protection", "Service", "Azure SQL", "Severity", "Medium", "Description", "Checks the minimal TLS version of SQL logical servers. Managed instances: AZ-SQL-016.", "Rationale", "Older TLS versions have known weaknesses. From 31 July 2026 Azure SQL requires TLS 1.2 for all connections; the setting should state it explicitly.", "Remediation", "Set the minimal TLS version to 1.2 (az sql server update --minimal-tls-version 1.2 ...).", "References", R.a("https://learn.microsoft.com/azure/azure-sql/database/connectivity-settings"), "Policy", R.ht(["32e6bbec-16b6-44c2-be37-c5b672d103cf", "Azure SQL Database should be running TLS version 1.2 or newer"], false), "ResourceTypes", R.a("Microsoft.Sql/servers"), "Evaluate", (S["sqltlscheck"] ?? null)], false)], null));
+    R.ln = F + 405;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-SQL-016", "Title", "SQL managed instances require TLS 1.2 or higher", "Category", "Data protection", "Service", "Azure SQL", "Severity", "Medium", "Description", "Checks the minimal TLS version of SQL managed instances.", "Rationale", "Older TLS versions have known weaknesses; the minimal version should be set to 1.2 or higher.", "Remediation", "Set the minimal TLS version to 1.2 (az sql mi update --minimal-tls-version 1.2 ...).", "References", R.a("https://learn.microsoft.com/azure/azure-sql/managed-instance/minimal-tls-version-configure"), "Policy", R.ht(["a8793640-60f7-487c-b5c3-1d37215905c4", "SQL Managed Instance should have the minimal TLS version of 1.2"], false), "ResourceTypes", R.a("Microsoft.Sql/managedInstances"), "Evaluate", (S["sqltlscheck"] ?? null)], false)], null));
+    R.ln = F + 420;
+    S["sqltdecheck"] = R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n    param($Record)\n    if (-not (Test-ChildCollected $Record 'transparentDataEncryption')) { return New-Unknown 'TDE state could not be read' }\n    $state = (@(Get-Child $Record 'transparentDataEncryption') | Where-Object { $_ } | Select-Object -First 1).properties.state\n    $evidence = [ordered]@{ state = $state }\n    if ($state -eq 'Enabled') { return New-Pass 'TDE enabled' $evidence }\n    New-Fail 'TDE disabled' $evidence\n" }, (S, O) => {
+        R.ln = F + 422;
+        if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "transparentDataEncryption"], null)))) {
+            R.ln = F + 422;
+            R.pa(O, R.cmd(S, "New-Unknown", ["TDE state could not be read"], null));
             return;
         }
-        R.ln = F + 410;
-        R.pa(O, R.cmd(S, "New-Pass", [("Encrypted connections with " + R.str((S["minimum"] ?? null)) + " or higher"), (S["evidence"] ?? null)], null));
-    })], false)], null));
-    R.ln = F + 414;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-PG-002", "Title", "PostgreSQL flexible servers log connections and checkpoints", "Category", "Logging and threat detection", "Service", "Azure Database for PostgreSQL", "Severity", "Medium", "Description", "Checks the log_connections, log_disconnections and log_checkpoints server parameters.", "Rationale", "Connection logs show who connected from where and when; they are needed to detect brute force and unauthorized access.", "Remediation", "Set log_connections, log_disconnections and log_checkpoints to on and send PostgreSQL logs to Log Analytics.", "References", R.a("https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-logging"), "ResourceTypes", (S["postgrestype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not (Test-ChildCollected $Record 'configurations')) { return New-Unknown 'Server parameters could not be read' }\n        $values = [ordered]@{}\n        foreach ($name in 'log_connections', 'log_disconnections', 'log_checkpoints') { $values[$name] = Get-ServerParameter $Record $name }\n        $off = @($values.Keys | Where-Object { $values[$_] -ne 'on' })\n        if ($off) { return New-Fail \"Not enabled: $($off -join ', ')\" $values }\n        New-Pass 'Connection and checkpoint logging enabled' $values\n    " }, (S, O) => {
-        R.ln = F + 427;
-        if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "configurations"], null)))) {
-            R.ln = F + 427;
-            R.pa(O, R.cmd(S, "New-Unknown", ["Server parameters could not be read"], null));
+        R.ln = F + 423;
+        S["state"] = R.m(R.m(R.u(R.cmd(S, "Select-Object", [R.np("First"), 1], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+            R.ln = F + 423;
+            R.e(O, (S["_"] ?? null));
+        })], R.pi(R.cmd(S, "Get-Child", [(S["record"] ?? null), "transparentDataEncryption"], null))))), "properties"), "state");
+        R.ln = F + 424;
+        S["evidence"] = R.ht(["state", (S["state"] ?? null)], true);
+        R.ln = F + 425;
+        if (R.t(R.eq((S["state"] ?? null), "Enabled"))) {
+            R.ln = F + 425;
+            R.pa(O, R.cmd(S, "New-Pass", ["TDE enabled", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 428;
-        S["values"] = R.ht([], true);
-        R.ln = F + 429;
-        for (const it17 of R.fi([R.v("log_connections"), R.v("log_disconnections"), R.v("log_checkpoints")])) {
-            S["name"] = it17;
-            R.ln = F + 429;
-            R.si((S["values"] ?? null), (S["name"] ?? null), R.u(R.cmd(S, "Get-ServerParameter", [(S["record"] ?? null), (S["name"] ?? null)], null)));
-        }
-        R.ln = F + 430;
-        S["off"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $values[$_] -ne 'on' " }, (S, O) => {
-            R.ln = F + 430;
-            R.e(O, R.ne(R.i((S["values"] ?? null), (S["_"] ?? null)), "on"));
-        })], R.pi(R.m((S["values"] ?? null), "Keys")));
-        R.ln = F + 431;
-        if (R.t((S["off"] ?? null))) {
-            R.ln = F + 431;
-            R.pa(O, R.cmd(S, "New-Fail", [("Not enabled: " + R.str(R.u(R.pi(R.join((S["off"] ?? null), ", "))))), (S["values"] ?? null)], null));
-            return;
-        }
-        R.ln = F + 432;
-        R.pa(O, R.cmd(S, "New-Pass", ["Connection and checkpoint logging enabled", (S["values"] ?? null)], null));
-    })], false)], null));
-    R.ln = F + 436;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-PG-003", "Title", "PostgreSQL flexible servers audit with pgAudit", "Category", "Logging and threat detection", "Service", "Azure Database for PostgreSQL", "Severity", "Low", "Description", "Checks that the pgaudit extension is loaded and pgaudit.log is not none.", "Rationale", "pgAudit records DDL, role changes and data access statements, which standard PostgreSQL logging does not capture reliably.", "Remediation", "Add pgaudit to shared_preload_libraries, restart, create the extension and set pgaudit.log (for example 'ddl,role,write').", "References", R.a("https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-audit"), "Policy", R.ht(["4eb5e667-e871-4292-9c5d-8bbb94e0c908", "Auditing with PgAudit should be enabled for PostgreSQL flexible servers"], false), "ResourceTypes", (S["postgrestype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not (Test-ChildCollected $Record 'configurations')) { return New-Unknown 'Server parameters could not be read' }\n        $libraries = Get-ServerParameter $Record 'shared_preload_libraries'\n        $log = Get-ServerParameter $Record 'pgaudit.log'\n        $evidence = [ordered]@{ shared_preload_libraries = $libraries; 'pgaudit.log' = $log }\n        if ($libraries -match 'pgaudit' -and $log -and $log -ne 'none') { return New-Pass \"pgAudit logging $log\" $evidence }\n        New-Fail 'pgAudit is not enabled' $evidence\n    " }, (S, O) => {
-        R.ln = F + 450;
-        if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "configurations"], null)))) {
-            R.ln = F + 450;
-            R.pa(O, R.cmd(S, "New-Unknown", ["Server parameters could not be read"], null));
-            return;
-        }
-        R.ln = F + 451;
-        S["libraries"] = R.u(R.cmd(S, "Get-ServerParameter", [(S["record"] ?? null), "shared_preload_libraries"], null));
-        R.ln = F + 452;
-        S["log"] = R.u(R.cmd(S, "Get-ServerParameter", [(S["record"] ?? null), "pgaudit.log"], null));
-        R.ln = F + 453;
-        S["evidence"] = R.ht(["shared_preload_libraries", (S["libraries"] ?? null), "pgaudit.log", (S["log"] ?? null)], true);
-        R.ln = F + 454;
-        if (((R.t(R.match(S, (S["libraries"] ?? null), "pgaudit")) && R.t((S["log"] ?? null))) && R.t(R.ne((S["log"] ?? null), "none")))) {
-            R.ln = F + 454;
-            R.pa(O, R.cmd(S, "New-Pass", [("pgAudit logging " + R.str((S["log"] ?? null))), (S["evidence"] ?? null)], null));
-            return;
-        }
-        R.ln = F + 455;
-        R.pa(O, R.cmd(S, "New-Fail", ["pgAudit is not enabled", (S["evidence"] ?? null)], null));
-    })], false)], null));
-    R.ln = F + 459;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-PG-004", "Version", 2, "Title", "PostgreSQL flexible servers use Microsoft Entra authentication only", "Category", "Identity management", "Service", "Azure Database for PostgreSQL", "Severity", "Medium", "Description", "Checks that Entra authentication is enabled with at least one Entra administrator and that password authentication is disabled.", "Rationale", "Database passwords lack MFA and central lifecycle management and are the main brute force target of Internet reachable servers.", "Remediation", "Add an Entra administrator group, move clients to Entra tokens (managed identities), then disable password authentication.", "References", R.a("https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-azure-ad-authentication"), "Policy", R.ht(["fa498b91-8a7e-4710-9578-da944c68d1fe", "[Preview]: Azure PostgreSQL flexible server should have Microsoft Entra Only Authentication enabled", "ce39a96d-bf09-4b60-8c32-e85d52abea0f", "A Microsoft Entra administrator should be provisioned for PostgreSQL flexible servers"], false), "ResourceTypes", (S["postgrestype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not (Test-ChildCollected $Record 'administrators')) { return New-Unknown 'Entra administrators could not be read' }\n        $auth = $Record.resource.properties.authConfig\n        $admins = @(Get-Child $Record 'administrators' | Where-Object { $_ })\n        $evidence = [ordered]@{ activeDirectoryAuth = $auth.activeDirectoryAuth; passwordAuth = $auth.passwordAuth; entraAdministrators = $admins.Count }\n        if ($auth.activeDirectoryAuth -eq 'Enabled' -and $auth.passwordAuth -eq 'Disabled' -and $admins) { return New-Pass 'Entra-only authentication' $evidence }\n        New-Fail $(if ($auth.activeDirectoryAuth -ne 'Enabled') { 'Entra authentication disabled' } elseif (-not $admins) { 'No Entra administrator' } else { 'Password authentication enabled' }) $evidence\n    " }, (S, O) => {
-        R.ln = F + 474;
-        if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "administrators"], null)))) {
-            R.ln = F + 474;
-            R.pa(O, R.cmd(S, "New-Unknown", ["Entra administrators could not be read"], null));
-            return;
-        }
+        R.ln = F + 426;
+        R.pa(O, R.cmd(S, "New-Fail", ["TDE disabled", (S["evidence"] ?? null)], null));
+    });
+    R.ln = F + 429;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-SQL-007", "Version", 2, "Title", "Transparent data encryption is enabled on SQL databases", "Category", "Data protection", "Service", "Azure SQL", "Severity", "High", "Description", "Checks the transparent data encryption state of user databases on SQL logical servers. Managed instance databases: AZ-SQL-015.", "Rationale", "TDE encrypts database files, backups and logs at rest, protecting data against theft of storage media and backup copies.", "Remediation", "Enable TDE (az sql db tde set --status Enabled ...).", "References", R.a("https://learn.microsoft.com/azure/azure-sql/database/transparent-data-encryption-tde-overview"), "Policy", R.ht(["17k78e20-9358-41c9-923c-fb736d382a12", "Transparent Data Encryption on SQL databases should be enabled"], false), "ResourceTypes", R.a("Microsoft.Sql/servers/databases"), "Filter", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) $Record.resource.name -ne 'master' -and [string]$Record.resource.kind -notmatch 'system' " }, (S, O) => {
+        R.ln = F + 442;
+        R.e(O, (R.t(R.ne(R.m(R.m((S["record"] ?? null), "resource"), "name"), "master")) && R.t(R.nmatch(S, R.c("string", R.m(R.m((S["record"] ?? null), "resource"), "kind")), "system"))));
+    }), "Evaluate", (S["sqltdecheck"] ?? null)], false)], null));
+    R.ln = F + 446;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-SQL-015", "Title", "Transparent data encryption is enabled on SQL managed instance databases", "Category", "Data protection", "Service", "Azure SQL", "Severity", "High", "Description", "Checks the transparent data encryption state of user databases on SQL managed instances.", "Rationale", "TDE encrypts database files, backups and logs at rest, protecting data against theft of storage media and backup copies.", "Remediation", "Enable TDE on the database (ALTER DATABASE <name> SET ENCRYPTION ON).", "References", R.a("https://learn.microsoft.com/azure/azure-sql/database/transparent-data-encryption-tde-overview"), "ResourceTypes", R.a("Microsoft.Sql/managedInstances/databases"), "Filter", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) $Record.resource.name -notin 'master', 'model', 'msdb', 'tempdb' -and [string]$Record.resource.kind -notmatch 'system' " }, (S, O) => {
+        R.ln = F + 457;
+        R.e(O, (R.t(R.nin(R.m(R.m((S["record"] ?? null), "resource"), "name"), [R.v("master"), R.v("model"), R.v("msdb"), R.v("tempdb")])) && R.t(R.nmatch(S, R.c("string", R.m(R.m((S["record"] ?? null), "resource"), "kind")), "system"))));
+    }), "Evaluate", (S["sqltdecheck"] ?? null)], false)], null));
+    R.ln = F + 461;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-SQL-008", "Title", "SQL TDE uses a customer-managed key (when required)", "Category", "Data protection", "Service", "Azure SQL", "Severity", "Informational", "Description", "Checks whether the TDE protector of SQL servers and managed instances is a customer-managed key in Key Vault.", "Rationale", "A customer-managed TDE protector gives control over key rotation and revocation; only required where data classification or regulation demands it.", "Remediation", "Configure a Key Vault key as TDE protector with auto-rotation (az sql server tde-key set --server-key-type AzureKeyVault ...).", "References", R.a("https://learn.microsoft.com/azure/azure-sql/database/transparent-data-encryption-byok-overview"), "Policy", R.ht(["0a370ff3-6cab-4e85-8995-295fd854c5b8", "SQL servers should use customer-managed keys to encrypt data at rest", "ac01ad65-10e5-46df-bdd9-6b0cad13e1d2", "SQL managed instances should use customer-managed keys to encrypt data at rest"], false), "ResourceTypes", R.a([R.v("Microsoft.Sql/servers"), R.v("Microsoft.Sql/managedInstances")]), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not (Test-ChildCollected $Record 'encryptionProtector')) { return New-Unknown 'Encryption protector could not be read' }\n        $protector = @(Get-Child $Record 'encryptionProtector') | Where-Object { $_ } | Select-Object -First 1\n        $evidence = [ordered]@{ serverKeyType = $protector.properties.serverKeyType; autoRotationEnabled = $protector.properties.autoRotationEnabled }\n        if ($protector.properties.serverKeyType -eq 'AzureKeyVault') { return New-Pass 'Customer-managed TDE protector' $evidence }\n        New-Fail 'Service-managed TDE protector' $evidence\n    " }, (S, O) => {
         R.ln = F + 475;
-        S["auth"] = R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "authConfig");
+        if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "encryptionProtector"], null)))) {
+            R.ln = F + 475;
+            R.pa(O, R.cmd(S, "New-Unknown", ["Encryption protector could not be read"], null));
+            return;
+        }
         R.ln = F + 476;
-        S["admins"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+        S["protector"] = R.u(R.cmd(S, "Select-Object", [R.np("First"), 1], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
             R.ln = F + 476;
             R.e(O, (S["_"] ?? null));
-        })], R.cmd(S, "Get-Child", [(S["record"] ?? null), "administrators"], null));
+        })], R.pi(R.cmd(S, "Get-Child", [(S["record"] ?? null), "encryptionProtector"], null)))));
         R.ln = F + 477;
-        S["evidence"] = R.ht(["activeDirectoryAuth", R.m((S["auth"] ?? null), "activeDirectoryAuth"), "passwordAuth", R.m((S["auth"] ?? null), "passwordAuth"), "entraAdministrators", R.m((S["admins"] ?? null), "Count")], true);
+        S["evidence"] = R.ht(["serverKeyType", R.m(R.m((S["protector"] ?? null), "properties"), "serverKeyType"), "autoRotationEnabled", R.m(R.m((S["protector"] ?? null), "properties"), "autoRotationEnabled")], true);
         R.ln = F + 478;
-        if (((R.t(R.eq(R.m((S["auth"] ?? null), "activeDirectoryAuth"), "Enabled")) && R.t(R.eq(R.m((S["auth"] ?? null), "passwordAuth"), "Disabled"))) && R.t((S["admins"] ?? null)))) {
+        if (R.t(R.eq(R.m(R.m((S["protector"] ?? null), "properties"), "serverKeyType"), "AzureKeyVault"))) {
             R.ln = F + 478;
-            R.pa(O, R.cmd(S, "New-Pass", ["Entra-only authentication", (S["evidence"] ?? null)], null));
+            R.pa(O, R.cmd(S, "New-Pass", ["Customer-managed TDE protector", (S["evidence"] ?? null)], null));
             return;
         }
         R.ln = F + 479;
-        R.pa(O, R.cmd(S, "New-Fail", [(() => {
-            const v18 = [];
-            R.ln = F + 479;
-            if (R.t(R.ne(R.m((S["auth"] ?? null), "activeDirectoryAuth"), "Enabled"))) {
-                R.ln = F + 479;
-                R.e(v18, "Entra authentication disabled");
-            } else if (!R.t((S["admins"] ?? null))) {
-                R.ln = F + 479;
-                R.e(v18, "No Entra administrator");
-            } else {
-                R.ln = F + 479;
-                R.e(v18, "Password authentication enabled");
-            }
-            return R.u(v18);
-        })(), (S["evidence"] ?? null)], null));
+        R.pa(O, R.cmd(S, "New-Fail", ["Service-managed TDE protector", (S["evidence"] ?? null)], null));
     })], false)], null));
     R.ln = F + 483;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-MY-001", "Title", "MySQL flexible servers require encrypted connections with TLS 1.2 or higher", "Category", "Data protection", "Service", "Azure Database for MySQL", "Severity", "High", "Description", "Checks the require_secure_transport and tls_version server parameters.", "Rationale", "Unencrypted or weakly encrypted database connections expose credentials and data on the network.", "Remediation", "Set require_secure_transport to ON and tls_version to TLSv1.2,TLSv1.3 (az mysql flexible-server parameter set ...).", "References", R.a("https://learn.microsoft.com/azure/mysql/flexible-server/concepts-networking#tls-and-ssl"), "ResourceTypes", (S["mysqltype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not (Test-ChildCollected $Record 'configurations')) { return New-Unknown 'Server parameters could not be read' }\n        $secure = Get-ServerParameter $Record 'require_secure_transport'\n        $versions = @((Get-ServerParameter $Record 'tls_version') -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ })\n        $weak = @($versions | Where-Object { $_ -in 'TLSv1', 'TLSv1.1' })\n        $evidence = [ordered]@{ require_secure_transport = $secure; tls_version = $versions }\n        $problems = @()\n        if ($secure -ne 'ON') { $problems += 'unencrypted connections allowed' }\n        if ($weak) { $problems += \"weak TLS versions allowed: $($weak -join ', ')\" }\n        if ($problems) { return New-Fail ($problems -join ', ') $evidence }\n        New-Pass 'Encrypted connections with TLS 1.2 or higher' $evidence\n    " }, (S, O) => {
-        R.ln = F + 496;
-        if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "configurations"], null)))) {
-            R.ln = F + 496;
-            R.pa(O, R.cmd(S, "New-Unknown", ["Server parameters could not be read"], null));
-            return;
-        }
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-SQL-009", "Title", "Vulnerability assessment is enabled on SQL servers", "Category", "Posture and vulnerability management", "Service", "Azure SQL", "Severity", "Medium", "Description", "Checks SQL logical servers and managed instances for SQL vulnerability assessment (express or classic with recurring scans).", "Rationale", "Vulnerability assessment finds misconfigurations, excessive permissions and unprotected sensitive data in databases, and tracks drift from a baseline.", "Remediation", "Enable Microsoft Defender for SQL, which turns on the express vulnerability assessment configuration.", "References", R.a("https://learn.microsoft.com/azure/defender-for-cloud/sql-azure-vulnerability-assessment-overview"), "Policy", R.ht(["ef2a8f2a-b3d9-49cd-a8a8-9a3aaaf647d9", "Vulnerability assessment should be enabled on your SQL servers"], false), "ResourceTypes", R.a([R.v("Microsoft.Sql/servers"), R.v("Microsoft.Sql/managedInstances")]), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $express = @(Get-Child $Record 'sqlVulnerabilityAssessments') | Where-Object { $_ -and $_.properties.state -eq 'Enabled' }\n        $classic = @(Get-Child $Record 'vulnerabilityAssessments') | Where-Object { $_ -and $_.properties.recurringScans.isEnabled -and $_.properties.storageContainerPath }\n        $evidence = [ordered]@{ express = [bool]$express; classicRecurringScans = [bool]$classic }\n        if ($express -or $classic) { return New-Pass 'Vulnerability assessment enabled' $evidence }\n        if (-not (Test-ChildCollected $Record 'sqlVulnerabilityAssessments') -and -not (Test-ChildCollected $Record 'vulnerabilityAssessments')) { return New-Unknown 'Vulnerability assessment settings could not be read' }\n        New-Fail 'Vulnerability assessment disabled' $evidence\n    " }, (S, O) => {
         R.ln = F + 497;
-        S["secure"] = R.u(R.cmd(S, "Get-ServerParameter", [(S["record"] ?? null), "require_secure_transport"], null));
+        S["express"] = R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.properties.state -eq 'Enabled' " }, (S, O) => {
+            R.ln = F + 497;
+            R.e(O, (R.t((S["_"] ?? null)) && R.t(R.eq(R.m(R.m((S["_"] ?? null), "properties"), "state"), "Enabled"))));
+        })], R.pi(R.cmd(S, "Get-Child", [(S["record"] ?? null), "sqlVulnerabilityAssessments"], null))));
         R.ln = F + 498;
-        S["versions"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+        S["classic"] = R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.properties.recurringScans.isEnabled -and $_.properties.storageContainerPath " }, (S, O) => {
             R.ln = F + 498;
-            R.e(O, (S["_"] ?? null));
-        })], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " $_.Trim() " }, (S, O) => {
-            R.ln = F + 498;
-            R.e(O, R.im((S["_"] ?? null), "Trim", []));
-        })], R.pi(R.split(R.u(R.cmd(S, "Get-ServerParameter", [(S["record"] ?? null), "tls_version"], null)), ","))));
+            R.e(O, ((R.t((S["_"] ?? null)) && R.t(R.m(R.m(R.m((S["_"] ?? null), "properties"), "recurringScans"), "isEnabled"))) && R.t(R.m(R.m((S["_"] ?? null), "properties"), "storageContainerPath"))));
+        })], R.pi(R.cmd(S, "Get-Child", [(S["record"] ?? null), "vulnerabilityAssessments"], null))));
         R.ln = F + 499;
-        S["weak"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -in 'TLSv1', 'TLSv1.1' " }, (S, O) => {
-            R.ln = F + 499;
-            R.e(O, R.in((S["_"] ?? null), [R.v("TLSv1"), R.v("TLSv1.1")]));
-        })], R.pi((S["versions"] ?? null)));
+        S["evidence"] = R.ht(["express", R.c("bool", (S["express"] ?? null)), "classicRecurringScans", R.c("bool", (S["classic"] ?? null))], true);
         R.ln = F + 500;
-        S["evidence"] = R.ht(["require_secure_transport", (S["secure"] ?? null), "tls_version", (S["versions"] ?? null)], true);
-        R.ln = F + 501;
-        S["problems"] = [];
-        R.ln = F + 502;
-        if (R.t(R.ne((S["secure"] ?? null), "ON"))) {
-            R.ln = F + 502;
-            S["problems"] = R.add(S["problems"] ?? null, "unencrypted connections allowed");
-        }
-        R.ln = F + 503;
-        if (R.t((S["weak"] ?? null))) {
-            R.ln = F + 503;
-            S["problems"] = R.add(S["problems"] ?? null, ("weak TLS versions allowed: " + R.str(R.u(R.pi(R.join((S["weak"] ?? null), ", "))))));
-        }
-        R.ln = F + 504;
-        if (R.t((S["problems"] ?? null))) {
-            R.ln = F + 504;
-            R.pa(O, R.cmd(S, "New-Fail", [(R.join((S["problems"] ?? null), ", ")), (S["evidence"] ?? null)], null));
+        if ((R.t((S["express"] ?? null)) || R.t((S["classic"] ?? null)))) {
+            R.ln = F + 500;
+            R.pa(O, R.cmd(S, "New-Pass", ["Vulnerability assessment enabled", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 505;
-        R.pa(O, R.cmd(S, "New-Pass", ["Encrypted connections with TLS 1.2 or higher", (S["evidence"] ?? null)], null));
+        R.ln = F + 501;
+        if ((!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "sqlVulnerabilityAssessments"], null))) && !R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "vulnerabilityAssessments"], null))))) {
+            R.ln = F + 501;
+            R.pa(O, R.cmd(S, "New-Unknown", ["Vulnerability assessment settings could not be read"], null));
+            return;
+        }
+        R.ln = F + 502;
+        R.pa(O, R.cmd(S, "New-Fail", ["Vulnerability assessment disabled", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 509;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-MY-002", "Title", "MySQL flexible servers have audit logging enabled", "Category", "Logging and threat detection", "Service", "Azure Database for MySQL", "Severity", "Medium", "Description", "Checks the audit_log_enabled server parameter and that connection events are audited.", "Rationale", "Audit logs record connections and statements and are needed to detect and investigate unauthorized database access.", "Remediation", "Set audit_log_enabled to ON with audit_log_events including CONNECTION, and send the MySqlAuditLogs category to Log Analytics.", "References", R.a("https://learn.microsoft.com/azure/mysql/flexible-server/concepts-audit-logs"), "ResourceTypes", (S["mysqltype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not (Test-ChildCollected $Record 'configurations')) { return New-Unknown 'Server parameters could not be read' }\n        $enabled = Get-ServerParameter $Record 'audit_log_enabled'\n        $events = Get-ServerParameter $Record 'audit_log_events'\n        $evidence = [ordered]@{ audit_log_enabled = $enabled; audit_log_events = $events }\n        if ($enabled -eq 'ON' -and $events -match 'CONNECTION') { return New-Pass 'Audit logging enabled including connections' $evidence }\n        New-Fail $(if ($enabled -ne 'ON') { 'Audit logging disabled' } else { 'Connection events are not audited' }) $evidence\n    " }, (S, O) => {
+    R.ln = F + 506;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-SQL-010", "Title", "Columns classified as sensitive are masked", "Category", "Data protection", "Service", "Azure SQL", "Severity", "Low", "Description", "For SQL databases with data classification, checks that every column labeled with rank Medium or higher (Confidential and up in the default policy) has an enabled dynamic data masking rule. Databases without such columns are not applicable.", "Rationale", "Dynamic data masking hides sensitive values from users and applications that do not need them, without changing the data. The classification already names the columns that hold such data; masking them limits exposure through reporting tools, support staff and compromised low privileged accounts.", "Remediation", "Add masking rules for the classified columns (database > Dynamic Data Masking) and grant the UNMASK permission only to the principals that need the real values. Administrators always see unmasked data.", "References", R.a([R.v("https://learn.microsoft.com/azure/azure-sql/database/dynamic-data-masking-overview"), R.v("https://learn.microsoft.com/azure/azure-sql/database/data-discovery-and-classification-overview")]), "ResourceTypes", R.a("Microsoft.Sql/servers/databases"), "Filter", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) $Record.resource.name -ne 'master' -and [string]$Record.resource.kind -notmatch '(?i)system' " }, (S, O) => {
+        R.ln = F + 517;
+        R.e(O, (R.t(R.ne(R.m(R.m((S["record"] ?? null), "resource"), "name"), "master")) && R.t(R.nmatch(S, R.c("string", R.m(R.m((S["record"] ?? null), "resource"), "kind")), "(?i)system"))));
+    }), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not (Test-ChildCollected $Record 'currentSensitivityLabels')) { return New-Unknown 'The data classification could not be read' }\n        $classified = @(Get-Child $Record 'currentSensitivityLabels' | Where-Object { $_ -and -not $_.properties.isDisabled -and $_.properties.rank -in 'Medium', 'High', 'Critical' } | ForEach-Object { \"$($_.properties.schemaName).$($_.properties.tableName).$($_.properties.columnName)\" } | Sort-Object -Unique)\n        if (-not $classified) { return New-NotApplicable 'No columns are classified with rank Medium or higher' }\n        if (-not (Test-ChildCollected $Record 'dataMaskingPolicies/Default/rules')) { return New-Unknown 'The masking rules could not be read' ([ordered]@{ classifiedColumns = $classified }) }\n        $masked = @(Get-Child $Record 'dataMaskingPolicies/Default/rules' | Where-Object { $_ -and $_.properties.ruleState -ne 'Disabled' } | ForEach-Object { \"$($_.properties.schemaName).$($_.properties.tableName).$($_.properties.columnName)\" })\n        $unmasked = @($classified | Where-Object { $_ -notin $masked })\n        $evidence = [ordered]@{ classifiedColumns = $classified; unmaskedColumns = $unmasked }\n        if ($unmasked) { return New-Fail \"$($unmasked.Count) of $($classified.Count) classified column(s) are not masked\" $evidence }\n        New-Pass \"All $($classified.Count) classified column(s) are masked\" $evidence\n    " }, (S, O) => {
+        R.ln = F + 520;
+        if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "currentSensitivityLabels"], null)))) {
+            R.ln = F + 520;
+            R.pa(O, R.cmd(S, "New-Unknown", ["The data classification could not be read"], null));
+            return;
+        }
+        R.ln = F + 521;
+        S["classified"] = R.cmd(S, "Sort-Object", [R.np("Unique")], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " \"$($_.properties.schemaName).$($_.properties.tableName).$($_.properties.columnName)\" " }, (S, O) => {
+            R.ln = F + 521;
+            R.e(O, ("" + R.str(R.u(R.pi(R.m(R.m((S["_"] ?? null), "properties"), "schemaName")))) + "." + R.str(R.u(R.pi(R.m(R.m((S["_"] ?? null), "properties"), "tableName")))) + "." + R.str(R.u(R.pi(R.m(R.m((S["_"] ?? null), "properties"), "columnName"))))));
+        })], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and -not $_.properties.isDisabled -and $_.properties.rank -in 'Medium', 'High', 'Critical' " }, (S, O) => {
+            R.ln = F + 521;
+            R.e(O, ((R.t((S["_"] ?? null)) && !R.t(R.m(R.m((S["_"] ?? null), "properties"), "isDisabled"))) && R.t(R.in(R.m(R.m((S["_"] ?? null), "properties"), "rank"), [R.v("Medium"), R.v("High"), R.v("Critical")]))));
+        })], R.cmd(S, "Get-Child", [(S["record"] ?? null), "currentSensitivityLabels"], null))));
         R.ln = F + 522;
-        if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "configurations"], null)))) {
+        if (!R.t((S["classified"] ?? null))) {
             R.ln = F + 522;
-            R.pa(O, R.cmd(S, "New-Unknown", ["Server parameters could not be read"], null));
+            R.pa(O, R.cmd(S, "New-NotApplicable", ["No columns are classified with rank Medium or higher"], null));
             return;
         }
         R.ln = F + 523;
-        S["enabled"] = R.u(R.cmd(S, "Get-ServerParameter", [(S["record"] ?? null), "audit_log_enabled"], null));
-        R.ln = F + 524;
-        S["events"] = R.u(R.cmd(S, "Get-ServerParameter", [(S["record"] ?? null), "audit_log_events"], null));
-        R.ln = F + 525;
-        S["evidence"] = R.ht(["audit_log_enabled", (S["enabled"] ?? null), "audit_log_events", (S["events"] ?? null)], true);
-        R.ln = F + 526;
-        if ((R.t(R.eq((S["enabled"] ?? null), "ON")) && R.t(R.match(S, (S["events"] ?? null), "CONNECTION")))) {
-            R.ln = F + 526;
-            R.pa(O, R.cmd(S, "New-Pass", ["Audit logging enabled including connections", (S["evidence"] ?? null)], null));
+        if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "dataMaskingPolicies/Default/rules"], null)))) {
+            R.ln = F + 523;
+            R.pa(O, R.cmd(S, "New-Unknown", ["The masking rules could not be read", (R.ht(["classifiedColumns", (S["classified"] ?? null)], true))], null));
             return;
         }
+        R.ln = F + 524;
+        S["masked"] = R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " \"$($_.properties.schemaName).$($_.properties.tableName).$($_.properties.columnName)\" " }, (S, O) => {
+            R.ln = F + 524;
+            R.e(O, ("" + R.str(R.u(R.pi(R.m(R.m((S["_"] ?? null), "properties"), "schemaName")))) + "." + R.str(R.u(R.pi(R.m(R.m((S["_"] ?? null), "properties"), "tableName")))) + "." + R.str(R.u(R.pi(R.m(R.m((S["_"] ?? null), "properties"), "columnName"))))));
+        })], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.properties.ruleState -ne 'Disabled' " }, (S, O) => {
+            R.ln = F + 524;
+            R.e(O, (R.t((S["_"] ?? null)) && R.t(R.ne(R.m(R.m((S["_"] ?? null), "properties"), "ruleState"), "Disabled"))));
+        })], R.cmd(S, "Get-Child", [(S["record"] ?? null), "dataMaskingPolicies/Default/rules"], null)));
+        R.ln = F + 525;
+        S["unmasked"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -notin $masked " }, (S, O) => {
+            R.ln = F + 525;
+            R.e(O, R.nin((S["_"] ?? null), (S["masked"] ?? null)));
+        })], R.pi((S["classified"] ?? null)));
+        R.ln = F + 526;
+        S["evidence"] = R.ht(["classifiedColumns", (S["classified"] ?? null), "unmaskedColumns", (S["unmasked"] ?? null)], true);
         R.ln = F + 527;
-        R.pa(O, R.cmd(S, "New-Fail", [(() => {
-            const v19 = [];
+        if (R.t((S["unmasked"] ?? null))) {
             R.ln = F + 527;
-            if (R.t(R.ne((S["enabled"] ?? null), "ON"))) {
-                R.ln = F + 527;
-                R.e(v19, "Audit logging disabled");
+            R.pa(O, R.cmd(S, "New-Fail", [("" + R.str(R.u(R.pi(R.m((S["unmasked"] ?? null), "Count")))) + " of " + R.str(R.u(R.pi(R.m((S["classified"] ?? null), "Count")))) + " classified column(s) are not masked"), (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 528;
+        R.pa(O, R.cmd(S, "New-Pass", [("All " + R.str(R.u(R.pi(R.m((S["classified"] ?? null), "Count")))) + " classified column(s) are masked"), (S["evidence"] ?? null)], null));
+    })], false)], null));
+    R.ln = F + 532;
+    S["postgrestype"] = R.a("Microsoft.DBforPostgreSQL/flexibleServers");
+    R.ln = F + 533;
+    S["mysqltype"] = R.a("Microsoft.DBforMySQL/flexibleServers");
+    R.ln = F + 536;
+    S["flexiblepublicaccesscheck"] = R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n    param($Record)\n    $network = $Record.resource.properties.network\n    $value = $network.publicNetworkAccess\n    $evidence = [ordered]@{ publicNetworkAccess = $value; virtualNetworkIntegrated = [bool]$network.delegatedSubnetResourceId }\n    if ($null -eq $value) { return New-Unknown 'The public network access setting was not returned' $evidence }\n    if ($value -eq 'Disabled') { return New-Pass 'Public network access disabled' $evidence }\n    New-Fail \"Public network access $value\" $evidence\n" }, (S, O) => {
+        R.ln = F + 538;
+        S["network"] = R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "network");
+        R.ln = F + 539;
+        S["value"] = R.m((S["network"] ?? null), "publicNetworkAccess");
+        R.ln = F + 540;
+        S["evidence"] = R.ht(["publicNetworkAccess", (S["value"] ?? null), "virtualNetworkIntegrated", R.c("bool", R.m((S["network"] ?? null), "delegatedSubnetResourceId"))], true);
+        R.ln = F + 541;
+        if (R.t(R.eq(null, (S["value"] ?? null)))) {
+            R.ln = F + 541;
+            R.pa(O, R.cmd(S, "New-Unknown", ["The public network access setting was not returned", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 542;
+        if (R.t(R.eq((S["value"] ?? null), "Disabled"))) {
+            R.ln = F + 542;
+            R.pa(O, R.cmd(S, "New-Pass", ["Public network access disabled", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 543;
+        R.pa(O, R.cmd(S, "New-Fail", [("Public network access " + R.str((S["value"] ?? null))), (S["evidence"] ?? null)], null));
+    });
+    R.ln = F + 545;
+    S["flexibleprivateendpointcheck"] = R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n    param($Record)\n    if (-not (Test-PrivateEndpointsCollected $Record)) { return New-Unknown 'Private endpoint connections could not be read' }\n    $count = Get-ApprovedPrivateEndpointCount $Record\n    $subnet = $Record.resource.properties.network.delegatedSubnetResourceId\n    $evidence = [ordered]@{ approvedPrivateEndpoints = $count; delegatedSubnetResourceId = $subnet }\n    if ($count) { return New-Pass \"$count approved private endpoint(s)\" $evidence }\n    if ($subnet) { return New-Fail 'No private endpoint: the server is integrated in a virtual network, which does not support private endpoints' $evidence }\n    New-Fail 'No approved private endpoint' $evidence\n" }, (S, O) => {
+        R.ln = F + 547;
+        if (!R.t(R.u(R.cmd(S, "Test-PrivateEndpointsCollected", [(S["record"] ?? null)], null)))) {
+            R.ln = F + 547;
+            R.pa(O, R.cmd(S, "New-Unknown", ["Private endpoint connections could not be read"], null));
+            return;
+        }
+        R.ln = F + 548;
+        S["count"] = R.u(R.cmd(S, "Get-ApprovedPrivateEndpointCount", [(S["record"] ?? null)], null));
+        R.ln = F + 549;
+        S["subnet"] = R.m(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "network"), "delegatedSubnetResourceId");
+        R.ln = F + 550;
+        S["evidence"] = R.ht(["approvedPrivateEndpoints", (S["count"] ?? null), "delegatedSubnetResourceId", (S["subnet"] ?? null)], true);
+        R.ln = F + 551;
+        if (R.t((S["count"] ?? null))) {
+            R.ln = F + 551;
+            R.pa(O, R.cmd(S, "New-Pass", [("" + R.str((S["count"] ?? null)) + " approved private endpoint(s)"), (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 552;
+        if (R.t((S["subnet"] ?? null))) {
+            R.ln = F + 552;
+            R.pa(O, R.cmd(S, "New-Fail", ["No private endpoint: the server is integrated in a virtual network, which does not support private endpoints", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 553;
+        R.pa(O, R.cmd(S, "New-Fail", ["No approved private endpoint", (S["evidence"] ?? null)], null));
+    });
+    R.ln = F + 555;
+    S["flexiblecmkcheck"] = R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n    param($Record)\n    $encryption = $Record.resource.properties.dataEncryption\n    $evidence = [ordered]@{ type = $encryption.type; primaryKeyURI = [bool]$encryption.primaryKeyURI }\n    if ($null -eq $encryption) { return New-Unknown 'The data encryption setting was not returned' }\n    if ($encryption.type -eq 'AzureKeyVault' -and $encryption.primaryKeyURI) { return New-Pass 'Customer-managed key' $evidence }\n    New-Fail 'Service-managed key' $evidence\n" }, (S, O) => {
+        R.ln = F + 557;
+        S["encryption"] = R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "dataEncryption");
+        R.ln = F + 558;
+        S["evidence"] = R.ht(["type", R.m((S["encryption"] ?? null), "type"), "primaryKeyURI", R.c("bool", R.m((S["encryption"] ?? null), "primaryKeyURI"))], true);
+        R.ln = F + 559;
+        if (R.t(R.eq(null, (S["encryption"] ?? null)))) {
+            R.ln = F + 559;
+            R.pa(O, R.cmd(S, "New-Unknown", ["The data encryption setting was not returned"], null));
+            return;
+        }
+        R.ln = F + 560;
+        if ((R.t(R.eq(R.m((S["encryption"] ?? null), "type"), "AzureKeyVault")) && R.t(R.m((S["encryption"] ?? null), "primaryKeyURI")))) {
+            R.ln = F + 560;
+            R.pa(O, R.cmd(S, "New-Pass", ["Customer-managed key", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 561;
+        R.pa(O, R.cmd(S, "New-Fail", ["Service-managed key", (S["evidence"] ?? null)], null));
+    });
+    R.ln = F + 564;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-PG-001", "Version", 2, "Title", "PostgreSQL flexible servers require encrypted connections", "Category", "Data protection", "Service", "Azure Database for PostgreSQL", "Severity", "High", "Description", "Checks that the require_secure_transport server parameter is on. Minimum TLS version: AZ-PG-011.", "Rationale", "Unencrypted database connections expose credentials and data on the network.", "Remediation", "Set require_secure_transport to ON (az postgres flexible-server parameter set --name require_secure_transport --value on ...).", "References", R.a("https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-networking-ssl-tls"), "Policy", R.ht(["c29c38cb-74a7-4505-9a06-e588ab86620a", "Enforce SSL connection should be enabled for PostgreSQL flexible servers"], false), "ResourceTypes", (S["postgrestype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) Get-ServerParameterResult $Record 'require_secure_transport' 'on' " }, (S, O) => {
+        R.ln = F + 577;
+        R.pa(O, R.cmd(S, "Get-ServerParameterResult", [(S["record"] ?? null), "require_secure_transport", "on"], null));
+    })], false)], null));
+    R.ln = F + 580;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-PG-011", "Title", "PostgreSQL flexible servers require TLS 1.2 or higher", "Category", "Data protection", "Service", "Azure Database for PostgreSQL", "Severity", "High", "Description", "Checks that the ssl_min_protocol_version server parameter is TLSv1.2 or higher.", "Rationale", "TLS 1.0 and 1.1 have known weaknesses and are no longer considered secure.", "Remediation", "Set ssl_min_protocol_version to TLSv1.2 or TLSv1.3 (az postgres flexible-server parameter set --name ssl_min_protocol_version --value TLSv1.2 ...).", "References", R.a("https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-networking-ssl-tls"), "Policy", R.ht(["a43d5475-c569-45ce-a268-28fa79f4e87a", "PostgreSQL flexible servers should be running TLS version 1.2 or newer"], false), "ResourceTypes", (S["postgrestype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not (Test-ChildCollected $Record 'configurations')) { return New-Unknown 'Server parameters could not be read' }\n        $minimum = Get-ServerParameter $Record 'ssl_min_protocol_version'\n        $evidence = [ordered]@{ ssl_min_protocol_version = $minimum }\n        if ($null -eq $minimum) { return New-Unknown 'Server parameter ssl_min_protocol_version was not returned' $evidence }\n        if (Test-VersionAtLeast ($minimum -replace '(?i)^TLSv', '') '1.2') { return New-Pass \"Minimum protocol $minimum\" $evidence }\n        New-Fail \"Minimum protocol $(if ($minimum) { $minimum } else { 'not set' })\" $evidence\n    " }, (S, O) => {
+        R.ln = F + 594;
+        if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "configurations"], null)))) {
+            R.ln = F + 594;
+            R.pa(O, R.cmd(S, "New-Unknown", ["Server parameters could not be read"], null));
+            return;
+        }
+        R.ln = F + 595;
+        S["minimum"] = R.u(R.cmd(S, "Get-ServerParameter", [(S["record"] ?? null), "ssl_min_protocol_version"], null));
+        R.ln = F + 596;
+        S["evidence"] = R.ht(["ssl_min_protocol_version", (S["minimum"] ?? null)], true);
+        R.ln = F + 597;
+        if (R.t(R.eq(null, (S["minimum"] ?? null)))) {
+            R.ln = F + 597;
+            R.pa(O, R.cmd(S, "New-Unknown", ["Server parameter ssl_min_protocol_version was not returned", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 598;
+        if (R.t(R.u(R.cmd(S, "Test-VersionAtLeast", [(R.rep((S["minimum"] ?? null), [R.v("(?i)^TLSv"), R.v("")])), "1.2"], null)))) {
+            R.ln = F + 598;
+            R.pa(O, R.cmd(S, "New-Pass", [("Minimum protocol " + R.str((S["minimum"] ?? null))), (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 599;
+        R.pa(O, R.cmd(S, "New-Fail", [("Minimum protocol " + R.str((() => {
+            const v19 = [];
+            R.ln = F + 599;
+            if (R.t((S["minimum"] ?? null))) {
+                R.ln = F + 599;
+                R.e(v19, (S["minimum"] ?? null));
             } else {
-                R.ln = F + 527;
-                R.e(v19, "Connection events are not audited");
+                R.ln = F + 599;
+                R.e(v19, "not set");
             }
             return R.u(v19);
-        })(), (S["evidence"] ?? null)], null));
+        })())), (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 531;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-MY-003", "Version", 2, "Title", "MySQL flexible servers use Microsoft Entra authentication only", "Category", "Identity management", "Service", "Azure Database for MySQL", "Severity", "Medium", "Description", "Checks for a Microsoft Entra administrator and the aad_auth_only server parameter.", "Rationale", "Database passwords lack MFA and central lifecycle management and are the main brute force target of Internet reachable servers.", "Remediation", "Configure an Entra administrator with a user-assigned identity, move clients to Entra tokens and set aad_auth_only to ON.", "References", R.a("https://learn.microsoft.com/azure/mysql/flexible-server/concepts-azure-ad-authentication"), "Policy", R.ht(["40e85574-ef33-47e8-a854-7a65c7500560", "Azure MySQL flexible server should have Microsoft Entra Only Authentication enabled", "146412e9-005c-472b-9e48-c87b72ac229e", "A Microsoft Entra administrator should be provisioned for MySQL servers"], false), "ResourceTypes", (S["mysqltype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not (Test-ChildCollected $Record 'administrators')) { return New-Unknown 'Entra administrators could not be read' }\n        $admins = @(Get-Child $Record 'administrators' | Where-Object { $_ })\n        $only = Get-ServerParameter $Record 'aad_auth_only'\n        $evidence = [ordered]@{ entraAdministrators = $admins.Count; aad_auth_only = $only }\n        if ($admins -and $only -eq 'ON') { return New-Pass 'Entra-only authentication' $evidence }\n        New-Fail $(if (-not $admins) { 'No Entra administrator' } else { 'Password authentication allowed' }) $evidence\n    " }, (S, O) => {
-        R.ln = F + 546;
-        if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "administrators"], null)))) {
-            R.ln = F + 546;
-            R.pa(O, R.cmd(S, "New-Unknown", ["Entra administrators could not be read"], null));
+    R.ln = F + 603;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-PG-002", "Version", 2, "Title", "PostgreSQL flexible servers log connections", "Category", "Logging and threat detection", "Service", "Azure Database for PostgreSQL", "Severity", "Medium", "Description", "Checks that the log_connections server parameter is on. Disconnections: AZ-PG-010; checkpoints: AZ-PG-009.", "Rationale", "Connection logs show who connected from where and when; they are needed to detect brute force and unauthorized access.", "Remediation", "Set log_connections to on and send the PostgreSQL logs to Log Analytics.", "References", R.a("https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-logging"), "Policy", R.ht(["086709ac-11b5-478d-a893-9567a16d2ae3", "Log connections should be enabled for PostgreSQL flexible servers"], false), "ResourceTypes", (S["postgrestype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) Get-ServerParameterResult $Record 'log_connections' 'on' " }, (S, O) => {
+        R.ln = F + 616;
+        R.pa(O, R.cmd(S, "Get-ServerParameterResult", [(S["record"] ?? null), "log_connections", "on"], null));
+    })], false)], null));
+    R.ln = F + 619;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-PG-010", "Title", "PostgreSQL flexible servers log disconnections", "Category", "Logging and threat detection", "Service", "Azure Database for PostgreSQL", "Severity", "Medium", "Description", "Checks that the log_disconnections server parameter is on.", "Rationale", "Disconnection logs record the end and duration of each session, which completes the connection trail of an investigation.", "Remediation", "Set log_disconnections to on and send the PostgreSQL logs to Log Analytics.", "References", R.a("https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-logging"), "Policy", R.ht(["1d14b021-1bae-4f93-b36b-69695e14984a", "Disconnections should be logged for PostgreSQL flexible servers"], false), "ResourceTypes", (S["postgrestype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) Get-ServerParameterResult $Record 'log_disconnections' 'on' " }, (S, O) => {
+        R.ln = F + 631;
+        R.pa(O, R.cmd(S, "Get-ServerParameterResult", [(S["record"] ?? null), "log_disconnections", "on"], null));
+    })], false)], null));
+    R.ln = F + 634;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-PG-009", "Title", "PostgreSQL flexible servers log checkpoints", "Category", "Logging and threat detection", "Service", "Azure Database for PostgreSQL", "Severity", "Low", "Description", "Checks that the log_checkpoints server parameter is on.", "Rationale", "Checkpoint logs help to diagnose performance problems and unexpected restarts of the server.", "Remediation", "Set log_checkpoints to on.", "References", R.a("https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-logging"), "Policy", R.ht(["70be9e12-c935-49ac-9bd8-fd64b85c1f87", "Log checkpoints should be enabled for PostgreSQL flexible servers"], false), "ResourceTypes", (S["postgrestype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) Get-ServerParameterResult $Record 'log_checkpoints' 'on' " }, (S, O) => {
+        R.ln = F + 646;
+        R.pa(O, R.cmd(S, "Get-ServerParameterResult", [(S["record"] ?? null), "log_checkpoints", "on"], null));
+    })], false)], null));
+    R.ln = F + 649;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-PG-007", "Title", "PostgreSQL flexible servers throttle connections", "Category", "Logging and threat detection", "Service", "Azure Database for PostgreSQL", "Severity", "Low", "Description", "Checks that the connection_throttle.enable server parameter is on. Servers whose version does not offer the parameter are Unknown.", "Rationale", "Connection throttling slows down repeated failed logins from the same address and logs them, which limits brute force and connection exhaustion.", "Remediation", "Set connection_throttle.enable to on (az postgres flexible-server parameter set --name connection_throttle.enable --value on ...).", "References", R.a("https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-server-parameters"), "ResourceTypes", (S["postgrestype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) Get-ServerParameterResult $Record 'connection_throttle.enable' 'on' " }, (S, O) => {
+        R.ln = F + 660;
+        R.pa(O, R.cmd(S, "Get-ServerParameterResult", [(S["record"] ?? null), "connection_throttle.enable", "on"], null));
+    })], false)], null));
+    R.ln = F + 663;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-PG-008", "Title", "PostgreSQL flexible servers keep log files for more than 3 days", "Category", "Logging and threat detection", "Service", "Azure Database for PostgreSQL", "Severity", "Low", "Description", "Checks that the logfiles.retention_days server parameter is greater than 3.", "Rationale", "Server logs are needed to investigate errors and suspicious activity; the default of 3 days is often too short to start an investigation.", "Remediation", "Set logfiles.retention_days to a value from 4 to 7, and send the logs to Log Analytics for longer retention.", "References", R.a("https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-server-parameters"), "ResourceTypes", (S["postgrestype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not (Test-ChildCollected $Record 'configurations')) { return New-Unknown 'Server parameters could not be read' }\n        $value = Get-ServerParameter $Record 'logfiles.retention_days'\n        $evidence = [ordered]@{ 'logfiles.retention_days' = $value }\n        if ($null -eq $value) { return New-Unknown 'Server parameter logfiles.retention_days was not returned' $evidence }\n        if ($value -notmatch '^\\d+$') { return New-Unknown \"Unexpected value $value\" $evidence }\n        if ([int]$value -gt 3) { return New-Pass \"$value days\" $evidence }\n        New-Fail \"$value days\" $evidence\n    " }, (S, O) => {
+        R.ln = F + 676;
+        if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "configurations"], null)))) {
+            R.ln = F + 676;
+            R.pa(O, R.cmd(S, "New-Unknown", ["Server parameters could not be read"], null));
             return;
         }
-        R.ln = F + 547;
-        S["admins"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 547;
-            R.e(O, (S["_"] ?? null));
-        })], R.cmd(S, "Get-Child", [(S["record"] ?? null), "administrators"], null));
-        R.ln = F + 548;
-        S["only"] = R.u(R.cmd(S, "Get-ServerParameter", [(S["record"] ?? null), "aad_auth_only"], null));
-        R.ln = F + 549;
-        S["evidence"] = R.ht(["entraAdministrators", R.m((S["admins"] ?? null), "Count"), "aad_auth_only", (S["only"] ?? null)], true);
-        R.ln = F + 550;
-        if ((R.t((S["admins"] ?? null)) && R.t(R.eq((S["only"] ?? null), "ON")))) {
-            R.ln = F + 550;
+        R.ln = F + 677;
+        S["value"] = R.u(R.cmd(S, "Get-ServerParameter", [(S["record"] ?? null), "logfiles.retention_days"], null));
+        R.ln = F + 678;
+        S["evidence"] = R.ht(["logfiles.retention_days", (S["value"] ?? null)], true);
+        R.ln = F + 679;
+        if (R.t(R.eq(null, (S["value"] ?? null)))) {
+            R.ln = F + 679;
+            R.pa(O, R.cmd(S, "New-Unknown", ["Server parameter logfiles.retention_days was not returned", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 680;
+        if (R.t(R.nmatch(S, (S["value"] ?? null), "^\\d+$"))) {
+            R.ln = F + 680;
+            R.pa(O, R.cmd(S, "New-Unknown", [("Unexpected value " + R.str((S["value"] ?? null))), (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 681;
+        if (R.t(R.gt(R.c("int", (S["value"] ?? null)), 3))) {
+            R.ln = F + 681;
+            R.pa(O, R.cmd(S, "New-Pass", [("" + R.str((S["value"] ?? null)) + " days"), (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 682;
+        R.pa(O, R.cmd(S, "New-Fail", [("" + R.str((S["value"] ?? null)) + " days"), (S["evidence"] ?? null)], null));
+    })], false)], null));
+    R.ln = F + 686;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-PG-003", "Version", 2, "Title", "PostgreSQL flexible servers audit with pgAudit", "Category", "Logging and threat detection", "Service", "Azure Database for PostgreSQL", "Severity", "Low", "Description", "Checks that the pgaudit extension is loaded and pgaudit.log is not none.", "Rationale", "pgAudit records DDL, role changes and data access statements, which standard PostgreSQL logging does not capture reliably.", "Remediation", "Add pgaudit to shared_preload_libraries, restart, create the extension and set pgaudit.log (for example 'ddl,role,write').", "References", R.a("https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-audit"), "Policy", R.ht(["4eb5e667-e871-4292-9c5d-8bbb94e0c908", "Auditing with PgAudit should be enabled for PostgreSQL flexible servers"], false), "ResourceTypes", (S["postgrestype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not (Test-ChildCollected $Record 'configurations')) { return New-Unknown 'Server parameters could not be read' }\n        $libraries = Get-ServerParameter $Record 'shared_preload_libraries'\n        $log = Get-ServerParameter $Record 'pgaudit.log'\n        $evidence = [ordered]@{ shared_preload_libraries = $libraries; 'pgaudit.log' = $log }\n        if ($null -eq $libraries) { return New-Unknown 'Server parameter shared_preload_libraries was not returned' $evidence }\n        if ($libraries -notmatch 'pgaudit') { return New-Fail 'pgAudit is not loaded' $evidence }\n        if ($null -eq $log) { return New-Unknown 'Server parameter pgaudit.log was not returned' $evidence }\n        if ($log -and $log -ne 'none') { return New-Pass \"pgAudit logging $log\" $evidence }\n        New-Fail 'pgAudit logs nothing' $evidence\n    " }, (S, O) => {
+        R.ln = F + 701;
+        if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "configurations"], null)))) {
+            R.ln = F + 701;
+            R.pa(O, R.cmd(S, "New-Unknown", ["Server parameters could not be read"], null));
+            return;
+        }
+        R.ln = F + 702;
+        S["libraries"] = R.u(R.cmd(S, "Get-ServerParameter", [(S["record"] ?? null), "shared_preload_libraries"], null));
+        R.ln = F + 703;
+        S["log"] = R.u(R.cmd(S, "Get-ServerParameter", [(S["record"] ?? null), "pgaudit.log"], null));
+        R.ln = F + 704;
+        S["evidence"] = R.ht(["shared_preload_libraries", (S["libraries"] ?? null), "pgaudit.log", (S["log"] ?? null)], true);
+        R.ln = F + 705;
+        if (R.t(R.eq(null, (S["libraries"] ?? null)))) {
+            R.ln = F + 705;
+            R.pa(O, R.cmd(S, "New-Unknown", ["Server parameter shared_preload_libraries was not returned", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 706;
+        if (R.t(R.nmatch(S, (S["libraries"] ?? null), "pgaudit"))) {
+            R.ln = F + 706;
+            R.pa(O, R.cmd(S, "New-Fail", ["pgAudit is not loaded", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 707;
+        if (R.t(R.eq(null, (S["log"] ?? null)))) {
+            R.ln = F + 707;
+            R.pa(O, R.cmd(S, "New-Unknown", ["Server parameter pgaudit.log was not returned", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 708;
+        if ((R.t((S["log"] ?? null)) && R.t(R.ne((S["log"] ?? null), "none")))) {
+            R.ln = F + 708;
+            R.pa(O, R.cmd(S, "New-Pass", [("pgAudit logging " + R.str((S["log"] ?? null))), (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 709;
+        R.pa(O, R.cmd(S, "New-Fail", ["pgAudit logs nothing", (S["evidence"] ?? null)], null));
+    })], false)], null));
+    R.ln = F + 713;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-PG-004", "Version", 3, "Title", "PostgreSQL flexible servers use Microsoft Entra authentication only", "Category", "Identity management", "Service", "Azure Database for PostgreSQL", "Severity", "Medium", "Description", "Checks that Entra authentication is enabled and password authentication is disabled.", "Rationale", "Database passwords lack MFA and central lifecycle management and are the main brute force target of Internet reachable servers.", "Remediation", "Add an Entra administrator group, move clients to Entra tokens (managed identities), then set the authentication method to Microsoft Entra authentication only.", "References", R.a("https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-azure-ad-authentication"), "Policy", R.ht(["fa498b91-8a7e-4710-9578-da944c68d1fe", "[Preview]: Azure PostgreSQL flexible server should have Microsoft Entra Only Authentication enabled"], false), "ResourceTypes", (S["postgrestype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $auth = $Record.resource.properties.authConfig\n        if ($null -eq $auth) { return New-Unknown 'The authentication settings were not returned' }\n        $evidence = [ordered]@{ activeDirectoryAuth = $auth.activeDirectoryAuth; passwordAuth = $auth.passwordAuth }\n        if ($auth.activeDirectoryAuth -eq 'Enabled' -and $auth.passwordAuth -eq 'Disabled') { return New-Pass 'Entra-only authentication' $evidence }\n        New-Fail $(if ($auth.activeDirectoryAuth -ne 'Enabled') { 'Entra authentication disabled' } else { 'Password authentication enabled' }) $evidence\n    " }, (S, O) => {
+        R.ln = F + 728;
+        S["auth"] = R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "authConfig");
+        R.ln = F + 729;
+        if (R.t(R.eq(null, (S["auth"] ?? null)))) {
+            R.ln = F + 729;
+            R.pa(O, R.cmd(S, "New-Unknown", ["The authentication settings were not returned"], null));
+            return;
+        }
+        R.ln = F + 730;
+        S["evidence"] = R.ht(["activeDirectoryAuth", R.m((S["auth"] ?? null), "activeDirectoryAuth"), "passwordAuth", R.m((S["auth"] ?? null), "passwordAuth")], true);
+        R.ln = F + 731;
+        if ((R.t(R.eq(R.m((S["auth"] ?? null), "activeDirectoryAuth"), "Enabled")) && R.t(R.eq(R.m((S["auth"] ?? null), "passwordAuth"), "Disabled")))) {
+            R.ln = F + 731;
             R.pa(O, R.cmd(S, "New-Pass", ["Entra-only authentication", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 551;
+        R.ln = F + 732;
         R.pa(O, R.cmd(S, "New-Fail", [(() => {
             const v20 = [];
-            R.ln = F + 551;
-            if (!R.t((S["admins"] ?? null))) {
-                R.ln = F + 551;
-                R.e(v20, "No Entra administrator");
+            R.ln = F + 732;
+            if (R.t(R.ne(R.m((S["auth"] ?? null), "activeDirectoryAuth"), "Enabled"))) {
+                R.ln = F + 732;
+                R.e(v20, "Entra authentication disabled");
             } else {
-                R.ln = F + 551;
-                R.e(v20, "Password authentication allowed");
+                R.ln = F + 732;
+                R.e(v20, "Password authentication enabled");
             }
             return R.u(v20);
         })(), (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 555;
+    R.ln = F + 736;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-PG-005", "Title", "PostgreSQL flexible servers disable public network access", "Category", "Network security", "Service", "Azure Database for PostgreSQL", "Severity", "Medium", "Description", "Checks that public network access of PostgreSQL flexible servers is Disabled (servers integrated in a virtual network report Disabled).", "Rationale", "A public endpoint depends solely on firewall rules and authentication; private endpoints or virtual network integration remove Internet exposure.", "Remediation", "Create a private endpoint, then disable public access on the Networking page of the server.", "References", R.a("https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-networking-private-link"), "Policy", R.ht(["5e1de0e3-42cb-4ebc-a86d-61d0c619ca48", "Public network access should be disabled for PostgreSQL flexible servers"], false), "ResourceTypes", (S["postgrestype"] ?? null), "Evaluate", (S["flexiblepublicaccesscheck"] ?? null)], false)], null));
+    R.ln = F + 751;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-PG-006", "Title", "PostgreSQL flexible servers are accessed through private endpoints", "Category", "Network security", "Service", "Azure Database for PostgreSQL", "Severity", "Low", "Description", "Checks PostgreSQL flexible servers for an approved private endpoint connection. Servers integrated in a virtual network cannot have private endpoints and fail.", "Rationale", "Private endpoints keep database traffic on private networks and allow public access to be disabled.", "Remediation", "Create a private endpoint for the server; a server integrated in a virtual network has to be redeployed with public access networking first.", "References", R.a("https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-networking-private-link"), "Policy", R.ht(["5375a5bb-22c6-46d7-8a43-83417cfb4460", "Private endpoint should be enabled for PostgreSQL flexible servers"], false), "ResourceTypes", (S["postgrestype"] ?? null), "Evaluate", (S["flexibleprivateendpointcheck"] ?? null)], false)], null));
+    R.ln = F + 766;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-PG-012", "Title", "PostgreSQL flexible servers encrypt data with a customer-managed key (when required)", "Category", "Data protection", "Service", "Azure Database for PostgreSQL", "Severity", "Informational", "Description", "Checks whether the data encryption of PostgreSQL flexible servers uses a customer-managed key in Key Vault.", "Rationale", "A customer-managed key gives control over key rotation and revocation; only required where data classification or regulation demands it.", "Remediation", "Configure data encryption with a Key Vault key and a user-assigned identity (only possible when the server is created).", "References", R.a("https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-data-encryption"), "Policy", R.ht(["12c74c95-0efd-48da-b8d9-2a7d68470c92", "PostgreSQL flexible servers should use customer-managed keys to encrypt data at rest"], false), "ResourceTypes", (S["postgrestype"] ?? null), "Evaluate", (S["flexiblecmkcheck"] ?? null)], false)], null));
+    R.ln = F + 781;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-MY-001", "Version", 2, "Title", "MySQL flexible servers require encrypted connections", "Category", "Data protection", "Service", "Azure Database for MySQL", "Severity", "High", "Description", "Checks that the require_secure_transport server parameter is ON. Allowed TLS versions: AZ-MY-007.", "Rationale", "Unencrypted database connections expose credentials and data on the network.", "Remediation", "Set require_secure_transport to ON (az mysql flexible-server parameter set --name require_secure_transport --value ON ...).", "References", R.a("https://learn.microsoft.com/azure/mysql/flexible-server/concepts-networking#tls-and-ssl"), "ResourceTypes", (S["mysqltype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) Get-ServerParameterResult $Record 'require_secure_transport' 'ON' " }, (S, O) => {
+        R.ln = F + 793;
+        R.pa(O, R.cmd(S, "Get-ServerParameterResult", [(S["record"] ?? null), "require_secure_transport", "ON"], null));
+    })], false)], null));
+    R.ln = F + 796;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-MY-007", "Title", "MySQL flexible servers allow only TLS 1.2 or higher", "Category", "Data protection", "Service", "Azure Database for MySQL", "Severity", "High", "Description", "Checks that the tls_version server parameter contains TLSv1.2 or higher and no older version.", "Rationale", "TLS 1.0 and 1.1 have known weaknesses and are no longer considered secure.", "Remediation", "Set tls_version to TLSv1.2 or TLSv1.2,TLSv1.3 (az mysql flexible-server parameter set --name tls_version --value TLSv1.2 ...).", "References", R.a("https://learn.microsoft.com/azure/mysql/flexible-server/concepts-networking#tls-and-ssl"), "ResourceTypes", (S["mysqltype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not (Test-ChildCollected $Record 'configurations')) { return New-Unknown 'Server parameters could not be read' }\n        $value = Get-ServerParameter $Record 'tls_version'\n        if ($null -eq $value) { return New-Unknown 'Server parameter tls_version was not returned' }\n        $versions = @($value -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ })\n        $weak = @($versions | Where-Object { -not (Test-VersionAtLeast $_ '1.2') })\n        $strong = @($versions | Where-Object { Test-VersionAtLeast $_ '1.2' })\n        $evidence = [ordered]@{ tls_version = $versions }\n        if ($weak) { return New-Fail \"Older TLS versions allowed: $($weak -join ', ')\" $evidence }\n        if (-not $strong) { return New-Fail 'TLS 1.2 or higher is not allowed' $evidence }\n        New-Pass \"Allowed: $($strong -join ', ')\" $evidence\n    " }, (S, O) => {
+        R.ln = F + 809;
+        if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "configurations"], null)))) {
+            R.ln = F + 809;
+            R.pa(O, R.cmd(S, "New-Unknown", ["Server parameters could not be read"], null));
+            return;
+        }
+        R.ln = F + 810;
+        S["value"] = R.u(R.cmd(S, "Get-ServerParameter", [(S["record"] ?? null), "tls_version"], null));
+        R.ln = F + 811;
+        if (R.t(R.eq(null, (S["value"] ?? null)))) {
+            R.ln = F + 811;
+            R.pa(O, R.cmd(S, "New-Unknown", ["Server parameter tls_version was not returned"], null));
+            return;
+        }
+        R.ln = F + 812;
+        S["versions"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+            R.ln = F + 812;
+            R.e(O, (S["_"] ?? null));
+        })], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " $_.Trim() " }, (S, O) => {
+            R.ln = F + 812;
+            R.e(O, R.im((S["_"] ?? null), "Trim", []));
+        })], R.pi(R.split((S["value"] ?? null), ","))));
+        R.ln = F + 813;
+        S["weak"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " -not (Test-VersionAtLeast $_ '1.2') " }, (S, O) => {
+            R.ln = F + 813;
+            R.e(O, !R.t(R.u(R.cmd(S, "Test-VersionAtLeast", [(S["_"] ?? null), "1.2"], null))));
+        })], R.pi((S["versions"] ?? null)));
+        R.ln = F + 814;
+        S["strong"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " Test-VersionAtLeast $_ '1.2' " }, (S, O) => {
+            R.ln = F + 814;
+            R.pa(O, R.cmd(S, "Test-VersionAtLeast", [(S["_"] ?? null), "1.2"], null));
+        })], R.pi((S["versions"] ?? null)));
+        R.ln = F + 815;
+        S["evidence"] = R.ht(["tls_version", (S["versions"] ?? null)], true);
+        R.ln = F + 816;
+        if (R.t((S["weak"] ?? null))) {
+            R.ln = F + 816;
+            R.pa(O, R.cmd(S, "New-Fail", [("Older TLS versions allowed: " + R.str(R.u(R.pi(R.join((S["weak"] ?? null), ", "))))), (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 817;
+        if (!R.t((S["strong"] ?? null))) {
+            R.ln = F + 817;
+            R.pa(O, R.cmd(S, "New-Fail", ["TLS 1.2 or higher is not allowed", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 818;
+        R.pa(O, R.cmd(S, "New-Pass", [("Allowed: " + R.str(R.u(R.pi(R.join((S["strong"] ?? null), ", "))))), (S["evidence"] ?? null)], null));
+    })], false)], null));
+    R.ln = F + 822;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-MY-006", "Title", "MySQL flexible servers have audit logging enabled", "Category", "Logging and threat detection", "Service", "Azure Database for MySQL", "Severity", "Medium", "Description", "Checks that the audit_log_enabled server parameter is ON.", "Rationale", "Audit logs record connections and statements and are needed to detect and investigate unauthorized database access.", "Remediation", "Set audit_log_enabled to ON and send the MySqlAuditLogs category to Log Analytics.", "References", R.a("https://learn.microsoft.com/azure/mysql/flexible-server/concepts-audit-logs"), "ResourceTypes", (S["mysqltype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) Get-ServerParameterResult $Record 'audit_log_enabled' 'ON' " }, (S, O) => {
+        R.ln = F + 833;
+        R.pa(O, R.cmd(S, "Get-ServerParameterResult", [(S["record"] ?? null), "audit_log_enabled", "ON"], null));
+    })], false)], null));
+    R.ln = F + 836;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-MY-002", "Version", 2, "Title", "MySQL flexible servers audit connection events", "Category", "Logging and threat detection", "Service", "Azure Database for MySQL", "Severity", "Medium", "Description", "Checks that audit_log_enabled is ON and audit_log_events contains CONNECTION.", "Rationale", "Connection events show successful and failed logins, which are needed to detect brute force and unauthorized access.", "Remediation", "Set audit_log_enabled to ON, add CONNECTION to audit_log_events, and send the MySqlAuditLogs category to Log Analytics.", "References", R.a("https://learn.microsoft.com/azure/mysql/flexible-server/concepts-audit-logs"), "ResourceTypes", (S["mysqltype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not (Test-ChildCollected $Record 'configurations')) { return New-Unknown 'Server parameters could not be read' }\n        $enabled = Get-ServerParameter $Record 'audit_log_enabled'\n        $events = Get-ServerParameter $Record 'audit_log_events'\n        $evidence = [ordered]@{ audit_log_enabled = $enabled; audit_log_events = $events }\n        if ($null -eq $enabled -or $null -eq $events) { return New-Unknown 'Server parameter audit_log_enabled or audit_log_events was not returned' $evidence }\n        $tokens = @($events -split ',' | ForEach-Object { $_.Trim() })\n        if ($enabled -eq 'ON' -and $tokens -contains 'CONNECTION') { return New-Pass 'Audit logging enabled including connections' $evidence }\n        New-Fail $(if ($enabled -ne 'ON') { 'Audit logging disabled' } else { 'Connection events are not audited' }) $evidence\n    " }, (S, O) => {
+        R.ln = F + 850;
+        if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "configurations"], null)))) {
+            R.ln = F + 850;
+            R.pa(O, R.cmd(S, "New-Unknown", ["Server parameters could not be read"], null));
+            return;
+        }
+        R.ln = F + 851;
+        S["enabled"] = R.u(R.cmd(S, "Get-ServerParameter", [(S["record"] ?? null), "audit_log_enabled"], null));
+        R.ln = F + 852;
+        S["events"] = R.u(R.cmd(S, "Get-ServerParameter", [(S["record"] ?? null), "audit_log_events"], null));
+        R.ln = F + 853;
+        S["evidence"] = R.ht(["audit_log_enabled", (S["enabled"] ?? null), "audit_log_events", (S["events"] ?? null)], true);
+        R.ln = F + 854;
+        if ((R.t(R.eq(null, (S["enabled"] ?? null))) || R.t(R.eq(null, (S["events"] ?? null))))) {
+            R.ln = F + 854;
+            R.pa(O, R.cmd(S, "New-Unknown", ["Server parameter audit_log_enabled or audit_log_events was not returned", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 855;
+        S["tokens"] = R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " $_.Trim() " }, (S, O) => {
+            R.ln = F + 855;
+            R.e(O, R.im((S["_"] ?? null), "Trim", []));
+        })], R.pi(R.split((S["events"] ?? null), ",")));
+        R.ln = F + 856;
+        if ((R.t(R.eq((S["enabled"] ?? null), "ON")) && R.t(R.cont((S["tokens"] ?? null), "CONNECTION")))) {
+            R.ln = F + 856;
+            R.pa(O, R.cmd(S, "New-Pass", ["Audit logging enabled including connections", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 857;
+        R.pa(O, R.cmd(S, "New-Fail", [(() => {
+            const v21 = [];
+            R.ln = F + 857;
+            if (R.t(R.ne((S["enabled"] ?? null), "ON"))) {
+                R.ln = F + 857;
+                R.e(v21, "Audit logging disabled");
+            } else {
+                R.ln = F + 857;
+                R.e(v21, "Connection events are not audited");
+            }
+            return R.u(v21);
+        })(), (S["evidence"] ?? null)], null));
+    })], false)], null));
+    R.ln = F + 861;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-MY-009", "Title", "MySQL flexible servers write the error log", "Category", "Logging and threat detection", "Service", "Azure Database for MySQL", "Severity", "Low", "Description", "Checks that the error_server_log_file server parameter is ON.", "Rationale", "The error log records startup, shutdown and error events of the server, which are needed to investigate failures and attacks.", "Remediation", "Set error_server_log_file to ON and send the logs to Log Analytics.", "References", R.a("https://learn.microsoft.com/azure/mysql/flexible-server/concepts-error-logs"), "ResourceTypes", (S["mysqltype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) Get-ServerParameterResult $Record 'error_server_log_file' 'ON' " }, (S, O) => {
+        R.ln = F + 872;
+        R.pa(O, R.cmd(S, "Get-ServerParameterResult", [(S["record"] ?? null), "error_server_log_file", "ON"], null));
+    })], false)], null));
+    R.ln = F + 875;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-MY-003", "Version", 3, "Title", "MySQL flexible servers use Microsoft Entra authentication only", "Category", "Identity management", "Service", "Azure Database for MySQL", "Severity", "Medium", "Description", "Checks that the aad_auth_only server parameter is ON (Microsoft Entra authentication only).", "Rationale", "Database passwords lack MFA and central lifecycle management and are the main brute force target of Internet reachable servers.", "Remediation", "Configure an Entra administrator with a user-assigned identity, move clients to Entra tokens and set aad_auth_only to ON.", "References", R.a("https://learn.microsoft.com/azure/mysql/flexible-server/concepts-azure-ad-authentication"), "Policy", R.ht(["40e85574-ef33-47e8-a854-7a65c7500560", "Azure MySQL flexible server should have Microsoft Entra Only Authentication enabled"], false), "ResourceTypes", (S["mysqltype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) Get-ServerParameterResult $Record 'aad_auth_only' 'ON' " }, (S, O) => {
+        R.ln = F + 888;
+        R.pa(O, R.cmd(S, "Get-ServerParameterResult", [(S["record"] ?? null), "aad_auth_only", "ON"], null));
+    })], false)], null));
+    R.ln = F + 891;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-MY-004", "Title", "MySQL flexible servers disable public network access", "Category", "Network security", "Service", "Azure Database for MySQL", "Severity", "Medium", "Description", "Checks that public network access of MySQL flexible servers is Disabled (servers integrated in a virtual network report Disabled).", "Rationale", "A public endpoint depends solely on firewall rules and authentication; private endpoints or virtual network integration remove Internet exposure.", "Remediation", "Create a private endpoint, then disable public access on the Networking page of the server.", "References", R.a("https://learn.microsoft.com/azure/mysql/flexible-server/how-to-networking-private-link-deny-public-access"), "Policy", R.ht(["c9299215-ae47-4f50-9c54-8a392f68a052", "Public network access should be disabled for MySQL flexible servers"], false), "ResourceTypes", (S["mysqltype"] ?? null), "Evaluate", (S["flexiblepublicaccesscheck"] ?? null)], false)], null));
+    R.ln = F + 906;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-MY-005", "Title", "MySQL flexible servers are accessed through private endpoints", "Category", "Network security", "Service", "Azure Database for MySQL", "Severity", "Low", "Description", "Checks MySQL flexible servers for an approved private endpoint connection. Servers integrated in a virtual network cannot have private endpoints and fail.", "Rationale", "Private endpoints keep database traffic on private networks and allow public access to be disabled.", "Remediation", "Create a private endpoint for the server; a server integrated in a virtual network has to be redeployed with public access networking first.", "References", R.a("https://learn.microsoft.com/azure/mysql/flexible-server/concepts-networking-private-link"), "ResourceTypes", (S["mysqltype"] ?? null), "Evaluate", (S["flexibleprivateendpointcheck"] ?? null)], false)], null));
+    R.ln = F + 920;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-MY-008", "Title", "MySQL flexible servers encrypt data with a customer-managed key (when required)", "Category", "Data protection", "Service", "Azure Database for MySQL", "Severity", "Informational", "Description", "Checks whether the data encryption of MySQL flexible servers uses a customer-managed key in Key Vault.", "Rationale", "A customer-managed key gives control over key rotation and revocation; only required where data classification or regulation demands it.", "Remediation", "Configure data encryption with a Key Vault key and a user-assigned identity on the Data encryption page of the server.", "References", R.a("https://learn.microsoft.com/azure/mysql/flexible-server/concepts-customer-managed-key"), "ResourceTypes", (S["mysqltype"] ?? null), "Evaluate", (S["flexiblecmkcheck"] ?? null)], false)], null));
+    R.ln = F + 934;
     S["cosmostype"] = R.a("Microsoft.DocumentDB/databaseAccounts");
-    R.ln = F + 557;
+    R.ln = F + 936;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-COS-001", "Title", "Cosmos DB accounts disable key based (local) authentication", "Category", "Identity management", "Service", "Cosmos DB", "Severity", "Medium", "Description", "Checks the disableLocalAuth setting of Cosmos DB accounts.", "Rationale", "Account keys give full data access, are shared secrets without identity and bypass data plane RBAC and its audit trail.", "Remediation", "Move clients to Entra ID with Cosmos DB data plane RBAC, then set disableLocalAuth to true.", "References", R.a("https://learn.microsoft.com/azure/cosmos-db/how-to-setup-rbac#disable-local-auth"), "Policy", R.ht(["5450f5bd-9c72-4390-a9c4-a7aba4edfdd2", "Cosmos DB database accounts should have local authentication methods disabled"], false), "ResourceTypes", (S["cosmostype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $value = $Record.resource.properties.disableLocalAuth\n        if ($value -eq $true) { return New-Pass 'Key based authentication disabled' ([ordered]@{ disableLocalAuth = $true }) }\n        New-Fail 'Key based authentication allowed' ([ordered]@{ disableLocalAuth = $value })\n    " }, (S, O) => {
-        R.ln = F + 571;
+        R.ln = F + 950;
         S["value"] = R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "disableLocalAuth");
-        R.ln = F + 572;
+        R.ln = F + 951;
         if (R.t(R.eq((S["value"] ?? null), true))) {
-            R.ln = F + 572;
+            R.ln = F + 951;
             R.pa(O, R.cmd(S, "New-Pass", ["Key based authentication disabled", (R.ht(["disableLocalAuth", true], true))], null));
             return;
         }
-        R.ln = F + 573;
+        R.ln = F + 952;
         R.pa(O, R.cmd(S, "New-Fail", ["Key based authentication allowed", (R.ht(["disableLocalAuth", (S["value"] ?? null)], true))], null));
     })], false)], null));
-    R.ln = F + 577;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-COS-002", "Title", "Cosmos DB accounts restrict network access", "Category", "Network security", "Service", "Cosmos DB", "Severity", "High", "Description", "Checks that Cosmos DB accounts disable public network access or restrict it with IP or virtual network rules.", "Rationale", "Without network restrictions the account endpoint accepts connections from the whole Internet, leaving keys and tokens as the only control.", "Remediation", "Use private endpoints and disable public network access, or configure IP and virtual network rules.", "References", R.a("https://learn.microsoft.com/azure/cosmos-db/how-to-configure-firewall"), "Policy", R.ht(["862e97cf-49fc-4a5c-9de4-40d4e2e7c8eb", "Azure Cosmos DB accounts should have firewall rules", "797b37f7-06b8-444c-b1ad-fc62867f335a", "Azure Cosmos DB should disable public network access"], false), "ResourceTypes", (S["cosmostype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $p = $Record.resource.properties\n        $evidence = [ordered]@{ publicNetworkAccess = $p.publicNetworkAccess; ipRules = @($p.ipRules).Count; virtualNetworkFilter = [bool]$p.isVirtualNetworkFilterEnabled }\n        if ($p.publicNetworkAccess -eq 'Disabled') { return New-Pass 'Public network access disabled' $evidence }\n        if (@($p.ipRules | Where-Object { $_ }).Count -or $p.isVirtualNetworkFilterEnabled) { return New-Pass 'Public access restricted by firewall rules' $evidence }\n        New-Fail 'Open to all networks' $evidence\n    " }, (S, O) => {
-        R.ln = F + 591;
+    R.ln = F + 956;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-COS-002", "Title", "Cosmos DB accounts restrict network access", "Category", "Network security", "Service", "Cosmos DB", "Severity", "High", "Description", "Checks that Cosmos DB accounts disable public network access or restrict it with IP or virtual network rules.", "Rationale", "Without network restrictions the account endpoint accepts connections from the whole Internet, leaving keys and tokens as the only control.", "Remediation", "Use private endpoints and disable public network access, or configure IP and virtual network rules.", "References", R.a("https://learn.microsoft.com/azure/cosmos-db/how-to-configure-firewall"), "Policy", R.ht(["862e97cf-49fc-4a5c-9de4-40d4e2e7c8eb", "Azure Cosmos DB accounts should have firewall rules"], false), "ResourceTypes", (S["cosmostype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $p = $Record.resource.properties\n        $evidence = [ordered]@{ publicNetworkAccess = $p.publicNetworkAccess; ipRules = @($p.ipRules).Count; virtualNetworkFilter = [bool]$p.isVirtualNetworkFilterEnabled }\n        if ($p.publicNetworkAccess -eq 'Disabled') { return New-Pass 'Public network access disabled' $evidence }\n        if (@($p.ipRules | Where-Object { $_ }).Count -or $p.isVirtualNetworkFilterEnabled) { return New-Pass 'Public access restricted by firewall rules' $evidence }\n        New-Fail 'Open to all networks' $evidence\n    " }, (S, O) => {
+        R.ln = F + 970;
         S["p"] = R.m(R.m((S["record"] ?? null), "resource"), "properties");
-        R.ln = F + 592;
+        R.ln = F + 971;
         S["evidence"] = R.ht(["publicNetworkAccess", R.m((S["p"] ?? null), "publicNetworkAccess"), "ipRules", R.m(R.a(R.m((S["p"] ?? null), "ipRules")), "Count"), "virtualNetworkFilter", R.c("bool", R.m((S["p"] ?? null), "isVirtualNetworkFilterEnabled"))], true);
-        R.ln = F + 593;
+        R.ln = F + 972;
         if (R.t(R.eq(R.m((S["p"] ?? null), "publicNetworkAccess"), "Disabled"))) {
-            R.ln = F + 593;
+            R.ln = F + 972;
             R.pa(O, R.cmd(S, "New-Pass", ["Public network access disabled", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 594;
+        R.ln = F + 973;
         if ((R.t(R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 594;
+            R.ln = F + 973;
             R.e(O, (S["_"] ?? null));
         })], R.pi(R.m((S["p"] ?? null), "ipRules"))), "Count")) || R.t(R.m((S["p"] ?? null), "isVirtualNetworkFilterEnabled")))) {
-            R.ln = F + 594;
+            R.ln = F + 973;
             R.pa(O, R.cmd(S, "New-Pass", ["Public access restricted by firewall rules", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 595;
+        R.ln = F + 974;
         R.pa(O, R.cmd(S, "New-Fail", ["Open to all networks", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 599;
+    R.ln = F + 978;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-COS-006", "Title", "Cosmos DB accounts disable public network access", "Category", "Network security", "Service", "Cosmos DB", "Severity", "Medium", "Description", "Checks that public network access of Cosmos DB accounts is Disabled.", "Rationale", "A public endpoint, even behind firewall rules, can be reached from the Internet; private endpoints remove that exposure.", "Remediation", "Create private endpoints, then set public network access to Disabled (az cosmosdb update --public-network-access Disabled ...).", "References", R.a("https://learn.microsoft.com/azure/cosmos-db/how-to-configure-firewall"), "Policy", R.ht(["797b37f7-06b8-444c-b1ad-fc62867f335a", "Azure Cosmos DB should disable public network access"], false), "ResourceTypes", (S["cosmostype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $value = $Record.resource.properties.publicNetworkAccess\n        $evidence = [ordered]@{ publicNetworkAccess = $value }\n        if ($value -eq 'Disabled') { return New-Pass 'Public network access disabled' $evidence }\n        New-Fail \"Public network access $(if ($value) { $value } else { 'Enabled (default)' })\" $evidence\n    " }, (S, O) => {
+        R.ln = F + 992;
+        S["value"] = R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "publicNetworkAccess");
+        R.ln = F + 993;
+        S["evidence"] = R.ht(["publicNetworkAccess", (S["value"] ?? null)], true);
+        R.ln = F + 994;
+        if (R.t(R.eq((S["value"] ?? null), "Disabled"))) {
+            R.ln = F + 994;
+            R.pa(O, R.cmd(S, "New-Pass", ["Public network access disabled", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 995;
+        R.pa(O, R.cmd(S, "New-Fail", [("Public network access " + R.str((() => {
+            const v22 = [];
+            R.ln = F + 995;
+            if (R.t((S["value"] ?? null))) {
+                R.ln = F + 995;
+                R.e(v22, (S["value"] ?? null));
+            } else {
+                R.ln = F + 995;
+                R.e(v22, "Enabled (default)");
+            }
+            return R.u(v22);
+        })())), (S["evidence"] ?? null)], null));
+    })], false)], null));
+    R.ln = F + 999;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-COS-004", "Title", "Cosmos DB accounts are accessed through private endpoints", "Category", "Network security", "Service", "Cosmos DB", "Severity", "Low", "Description", "Checks Cosmos DB accounts for an approved private endpoint connection.", "Rationale", "Private endpoints keep database traffic on private networks and allow public access to be disabled.", "Remediation", "Create a private endpoint for the account (Networking > Private access).", "References", R.a("https://learn.microsoft.com/azure/cosmos-db/how-to-configure-private-endpoints"), "Policy", R.ht(["58440f8a-10c5-4151-bdce-dfbaad4a20b7", "CosmosDB accounts should use private link"], false), "ResourceTypes", (S["cosmostype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not (Test-PrivateEndpointsCollected $Record)) { return New-Unknown 'Private endpoint connections could not be read' }\n        $count = Get-ApprovedPrivateEndpointCount $Record\n        $evidence = [ordered]@{ approvedPrivateEndpoints = $count }\n        if ($count) { return New-Pass \"$count approved private endpoint(s)\" $evidence }\n        New-Fail 'No approved private endpoint' $evidence\n    " }, (S, O) => {
+        R.ln = F + 1013;
+        if (!R.t(R.u(R.cmd(S, "Test-PrivateEndpointsCollected", [(S["record"] ?? null)], null)))) {
+            R.ln = F + 1013;
+            R.pa(O, R.cmd(S, "New-Unknown", ["Private endpoint connections could not be read"], null));
+            return;
+        }
+        R.ln = F + 1014;
+        S["count"] = R.u(R.cmd(S, "Get-ApprovedPrivateEndpointCount", [(S["record"] ?? null)], null));
+        R.ln = F + 1015;
+        S["evidence"] = R.ht(["approvedPrivateEndpoints", (S["count"] ?? null)], true);
+        R.ln = F + 1016;
+        if (R.t((S["count"] ?? null))) {
+            R.ln = F + 1016;
+            R.pa(O, R.cmd(S, "New-Pass", [("" + R.str((S["count"] ?? null)) + " approved private endpoint(s)"), (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 1017;
+        R.pa(O, R.cmd(S, "New-Fail", ["No approved private endpoint", (S["evidence"] ?? null)], null));
+    })], false)], null));
+    R.ln = F + 1021;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-COS-005", "Title", "Cosmos DB firewalls do not accept connections from all Azure datacenters", "Category", "Network security", "Service", "Cosmos DB", "Severity", "Medium", "Description", "Finds the 0.0.0.0 IP rule (accept connections from within public Azure datacenters) on Cosmos DB accounts with public network access enabled.", "Rationale", "The rule admits connections from any Azure resource of any customer, not just your own, so anyone can host a client in Azure and reach the account.", "Remediation", "Remove 0.0.0.0 from the IP rules and use private endpoints or virtual network rules for your Azure workloads.", "References", R.a("https://learn.microsoft.com/azure/cosmos-db/how-to-configure-firewall#allow-requests-from-global-azure-datacenters-or-other-sources-within-azure"), "Policy", R.ht(["12339a85-a25c-4f17-9f82-4766f13f5c4c", "Azure Cosmos DB accounts should not allow traffic from all Azure data centers"], false), "ResourceTypes", (S["cosmostype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $p = $Record.resource.properties\n        if ($p.publicNetworkAccess -eq 'Disabled') { return New-Pass 'Public network access disabled, IP rules do not apply' }\n        $rules = @(@($p.ipRules | Where-Object { $_ } | ForEach-Object { [string]$_.ipAddressOrRange }) + @(([string]$p.ipRangeFilter -split ',') | ForEach-Object { $_.Trim() }) | Where-Object { $_ } | Sort-Object -Unique)\n        $azure = @($rules | Where-Object { $_ -eq '0.0.0.0' -or $_.StartsWith('0.0.0.0/') })\n        $evidence = [ordered]@{ ipRules = $rules.Count; allowAzureRules = $azure }\n        if ($azure) { return New-Fail \"All Azure datacenters allowed ($($azure -join ', '))\" $evidence }\n        New-Pass 'Azure datacenters are not allowed wholesale' $evidence\n    " }, (S, O) => {
+        R.ln = F + 1035;
+        S["p"] = R.m(R.m((S["record"] ?? null), "resource"), "properties");
+        R.ln = F + 1036;
+        if (R.t(R.eq(R.m((S["p"] ?? null), "publicNetworkAccess"), "Disabled"))) {
+            R.ln = F + 1036;
+            R.pa(O, R.cmd(S, "New-Pass", ["Public network access disabled, IP rules do not apply"], null));
+            return;
+        }
+        R.ln = F + 1037;
+        S["rules"] = R.cmd(S, "Sort-Object", [R.np("Unique")], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+            R.ln = F + 1037;
+            R.e(O, (S["_"] ?? null));
+        })], R.pi(R.add(R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " [string]$_.ipAddressOrRange " }, (S, O) => {
+            R.ln = F + 1037;
+            R.e(O, R.c("string", R.m((S["_"] ?? null), "ipAddressOrRange")));
+        })], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+            R.ln = F + 1037;
+            R.e(O, (S["_"] ?? null));
+        })], R.pi(R.m((S["p"] ?? null), "ipRules")))), R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " $_.Trim() " }, (S, O) => {
+            R.ln = F + 1037;
+            R.e(O, R.im((S["_"] ?? null), "Trim", []));
+        })], R.pi((R.split(R.c("string", R.m((S["p"] ?? null), "ipRangeFilter")), ","))))))));
+        R.ln = F + 1038;
+        S["azure"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -eq '0.0.0.0' -or $_.StartsWith('0.0.0.0/') " }, (S, O) => {
+            R.ln = F + 1038;
+            R.e(O, (R.t(R.eq((S["_"] ?? null), "0.0.0.0")) || R.t(R.im((S["_"] ?? null), "StartsWith", ["0.0.0.0/"]))));
+        })], R.pi((S["rules"] ?? null)));
+        R.ln = F + 1039;
+        S["evidence"] = R.ht(["ipRules", R.m((S["rules"] ?? null), "Count"), "allowAzureRules", (S["azure"] ?? null)], true);
+        R.ln = F + 1040;
+        if (R.t((S["azure"] ?? null))) {
+            R.ln = F + 1040;
+            R.pa(O, R.cmd(S, "New-Fail", [("All Azure datacenters allowed (" + R.str(R.u(R.pi(R.join((S["azure"] ?? null), ", ")))) + ")"), (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 1041;
+        R.pa(O, R.cmd(S, "New-Pass", ["Azure datacenters are not allowed wholesale", (S["evidence"] ?? null)], null));
+    })], false)], null));
+    R.ln = F + 1045;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-COS-003", "Title", "Cosmos DB accounts disable key based metadata write access", "Category", "Privileged access", "Service", "Cosmos DB", "Severity", "Low", "Description", "Checks disableKeyBasedMetadataWriteAccess, which prevents account keys from changing databases, containers and throughput.", "Rationale", "With the setting enabled, resource changes must go through Azure Resource Manager and are subject to RBAC, locks, policy and the activity log.", "Remediation", "Set disableKeyBasedMetadataWriteAccess to true (az cosmosdb update --disable-key-based-metadata-write-access true ...).", "References", R.a("https://learn.microsoft.com/azure/cosmos-db/audit-control-plane-logs"), "Policy", R.ht(["4750c32b-89c0-46af-bfcb-2e4541a818d5", "Azure Cosmos DB key based metadata write access should be disabled"], false), "ResourceTypes", (S["cosmostype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $value = $Record.resource.properties.disableKeyBasedMetadataWriteAccess\n        if ($value -eq $true) { return New-Pass 'Metadata writes through keys disabled' ([ordered]@{ disableKeyBasedMetadataWriteAccess = $true }) }\n        New-Fail 'Keys can change databases and containers' ([ordered]@{ disableKeyBasedMetadataWriteAccess = $value })\n    " }, (S, O) => {
-        R.ln = F + 613;
+        R.ln = F + 1059;
         S["value"] = R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "disableKeyBasedMetadataWriteAccess");
-        R.ln = F + 614;
+        R.ln = F + 1060;
         if (R.t(R.eq((S["value"] ?? null), true))) {
-            R.ln = F + 614;
+            R.ln = F + 1060;
             R.pa(O, R.cmd(S, "New-Pass", ["Metadata writes through keys disabled", (R.ht(["disableKeyBasedMetadataWriteAccess", true], true))], null));
             return;
         }
-        R.ln = F + 615;
+        R.ln = F + 1061;
         R.pa(O, R.cmd(S, "New-Fail", ["Keys can change databases and containers", (R.ht(["disableKeyBasedMetadataWriteAccess", (S["value"] ?? null)], true))], null));
     })], false)], null));
-    R.ln = F + 619;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-RED-001", "Title", "Azure Cache for Redis only accepts TLS connections", "Category", "Data protection", "Service", "Azure Cache for Redis", "Severity", "High", "Description", "Checks that the non-TLS port (6379) is disabled.", "Rationale", "The non-TLS port transfers the access key and all cached data in clear text.", "Remediation", "Disable the non-TLS port (az redis update --set enableNonSslPort=false ...).", "References", R.a("https://learn.microsoft.com/azure/azure-cache-for-redis/cache-remove-tls-10-11"), "Policy", R.ht(["22bee202-a82f-4305-9a2a-6d7f44d4dedb", "Only secure connections to your Azure Cache for Redis should be enabled"], false), "ResourceTypes", R.a("Microsoft.Cache/Redis"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $value = [bool]$Record.resource.properties.enableNonSslPort\n        if ($value) { return New-Fail 'Non-TLS port enabled' ([ordered]@{ enableNonSslPort = $true }) }\n        New-Pass 'Non-TLS port disabled' ([ordered]@{ enableNonSslPort = $false })\n    " }, (S, O) => {
-        R.ln = F + 633;
+    R.ln = F + 1065;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-COS-007", "Title", "Cosmos DB accounts encrypt data with a customer-managed key (when required)", "Category", "Data protection", "Service", "Cosmos DB", "Severity", "Informational", "Description", "Checks whether Cosmos DB accounts encrypt data with a customer-managed key (keyVaultKeyUri).", "Rationale", "A customer-managed key gives control over key rotation and revocation; only required where data classification or regulation demands it.", "Remediation", "Configure a Key Vault key as the encryption key of the account (Settings > Data Encryption).", "References", R.a("https://learn.microsoft.com/azure/cosmos-db/how-to-setup-customer-managed-keys"), "Policy", R.ht(["1f905d99-2ab7-462c-a6b0-f709acca6c8f", "Azure Cosmos DB accounts should use customer-managed keys to encrypt data at rest"], false), "ResourceTypes", (S["cosmostype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $uri = $Record.resource.properties.keyVaultKeyUri\n        $evidence = [ordered]@{ keyVaultKeyUri = [bool]$uri }\n        if ($uri) { return New-Pass 'Customer-managed key' $evidence }\n        New-Fail 'Service-managed key' $evidence\n    " }, (S, O) => {
+        R.ln = F + 1079;
+        S["uri"] = R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "keyVaultKeyUri");
+        R.ln = F + 1080;
+        S["evidence"] = R.ht(["keyVaultKeyUri", R.c("bool", (S["uri"] ?? null))], true);
+        R.ln = F + 1081;
+        if (R.t((S["uri"] ?? null))) {
+            R.ln = F + 1081;
+            R.pa(O, R.cmd(S, "New-Pass", ["Customer-managed key", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 1082;
+        R.pa(O, R.cmd(S, "New-Fail", ["Service-managed key", (S["evidence"] ?? null)], null));
+    })], false)], null));
+    R.ln = F + 1086;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-COS-008", "Title", "Cosmos DB accounts send all resource logs to a destination", "Category", "Logging and threat detection", "Service", "Cosmos DB", "Severity", "Medium", "Description", "Checks Cosmos DB accounts for a diagnostic setting that sends the allLogs category group to a destination.", "Rationale", "Cosmos DB resource logs record data plane and control plane requests; they are needed to detect and investigate misuse of the account.", "Remediation", "Create a diagnostic setting with the allLogs category group to a Log Analytics workspace.", "References", R.a("https://learn.microsoft.com/azure/cosmos-db/monitor-resource-logs"), "ResourceTypes", (S["cosmostype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if ($null -eq $Record.diagnosticSettings) { return New-Unknown 'Diagnostic settings could not be read' }\n        $complete = @($Record.diagnosticSettings | Where-Object {\n                $_ -and ($_.properties.workspaceId -or $_.properties.storageAccountId -or $_.properties.eventHubAuthorizationRuleId -or $_.properties.marketplacePartnerId) -and\n                @($_.properties.logs | Where-Object { $_.enabled -and $_.categoryGroup -eq 'allLogs' }).Count\n            } | ForEach-Object name | Sort-Object)\n        $evidence = [ordered]@{ diagnosticSettings = @($Record.diagnosticSettings | ForEach-Object name | Sort-Object); withAllLogs = $complete }\n        if ($complete) { return New-Pass \"All logs exported ($($complete -join ', '))\" $evidence }\n        New-Fail 'No diagnostic setting exports the allLogs category group' $evidence\n    " }, (S, O) => {
+        R.ln = F + 1099;
+        if (R.t(R.eq(null, R.m((S["record"] ?? null), "diagnosticSettings")))) {
+            R.ln = F + 1099;
+            R.pa(O, R.cmd(S, "New-Unknown", ["Diagnostic settings could not be read"], null));
+            return;
+        }
+        R.ln = F + 1100;
+        S["complete"] = R.cmd(S, "Sort-Object", [], R.cmd(S, "ForEach-Object", ["name"], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: "\n                $_ -and ($_.properties.workspaceId -or $_.properties.storageAccountId -or $_.properties.eventHubAuthorizationRuleId -or $_.properties.marketplacePartnerId) -and\n                @($_.properties.logs | Where-Object { $_.enabled -and $_.categoryGroup -eq 'allLogs' }).Count\n            " }, (S, O) => {
+            R.ln = F + 1101;
+            R.e(O, ((R.t((S["_"] ?? null)) && (((R.t(R.m(R.m((S["_"] ?? null), "properties"), "workspaceId")) || R.t(R.m(R.m((S["_"] ?? null), "properties"), "storageAccountId"))) || R.t(R.m(R.m((S["_"] ?? null), "properties"), "eventHubAuthorizationRuleId"))) || R.t(R.m(R.m((S["_"] ?? null), "properties"), "marketplacePartnerId")))) && R.t(R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.enabled -and $_.categoryGroup -eq 'allLogs' " }, (S, O) => {
+                R.ln = F + 1102;
+                R.e(O, (R.t(R.m((S["_"] ?? null), "enabled")) && R.t(R.eq(R.m((S["_"] ?? null), "categoryGroup"), "allLogs"))));
+            })], R.pi(R.m(R.m((S["_"] ?? null), "properties"), "logs"))), "Count"))));
+        })], R.pi(R.m((S["record"] ?? null), "diagnosticSettings")))));
+        R.ln = F + 1104;
+        S["evidence"] = R.ht(["diagnosticSettings", R.cmd(S, "Sort-Object", [], R.cmd(S, "ForEach-Object", ["name"], R.pi(R.m((S["record"] ?? null), "diagnosticSettings")))), "withAllLogs", (S["complete"] ?? null)], true);
+        R.ln = F + 1105;
+        if (R.t((S["complete"] ?? null))) {
+            R.ln = F + 1105;
+            R.pa(O, R.cmd(S, "New-Pass", [("All logs exported (" + R.str(R.u(R.pi(R.join((S["complete"] ?? null), ", ")))) + ")"), (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 1106;
+        R.pa(O, R.cmd(S, "New-Fail", ["No diagnostic setting exports the allLogs category group", (S["evidence"] ?? null)], null));
+    })], false)], null));
+    R.ln = F + 1110;
+    S["redistype"] = R.a("Microsoft.Cache/Redis");
+    R.ln = F + 1112;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-RED-001", "Title", "Azure Cache for Redis only accepts TLS connections", "Category", "Data protection", "Service", "Azure Cache for Redis", "Severity", "High", "Description", "Checks that the non-TLS port (6379) is disabled.", "Rationale", "The non-TLS port transfers the access key and all cached data in clear text.", "Remediation", "Disable the non-TLS port (az redis update --set enableNonSslPort=false ...).", "References", R.a("https://learn.microsoft.com/azure/azure-cache-for-redis/cache-remove-tls-10-11"), "Policy", R.ht(["22bee202-a82f-4305-9a2a-6d7f44d4dedb", "Only secure connections to your Azure Cache for Redis should be enabled"], false), "ResourceTypes", (S["redistype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $value = [bool]$Record.resource.properties.enableNonSslPort\n        if ($value) { return New-Fail 'Non-TLS port enabled' ([ordered]@{ enableNonSslPort = $true }) }\n        New-Pass 'Non-TLS port disabled' ([ordered]@{ enableNonSslPort = $false })\n    " }, (S, O) => {
+        R.ln = F + 1126;
         S["value"] = R.c("bool", R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "enableNonSslPort"));
-        R.ln = F + 634;
+        R.ln = F + 1127;
         if (R.t((S["value"] ?? null))) {
-            R.ln = F + 634;
+            R.ln = F + 1127;
             R.pa(O, R.cmd(S, "New-Fail", ["Non-TLS port enabled", (R.ht(["enableNonSslPort", true], true))], null));
             return;
         }
-        R.ln = F + 635;
+        R.ln = F + 1128;
         R.pa(O, R.cmd(S, "New-Pass", ["Non-TLS port disabled", (R.ht(["enableNonSslPort", false], true))], null));
     })], false)], null));
-    R.ln = F + 639;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-RED-002", "Title", "Azure Cache for Redis disables access key authentication", "Category", "Identity management", "Service", "Azure Cache for Redis", "Severity", "Medium", "Description", "Checks disableAccessKeyAuthentication, which enforces Microsoft Entra authentication.", "Rationale", "The access key is a shared secret with full access that is not tied to an identity.", "Remediation", "Enable Microsoft Entra authentication, grant data access policies to identities, then disable access key authentication.", "References", R.a("https://learn.microsoft.com/azure/azure-cache-for-redis/cache-azure-active-directory-for-authentication"), "Policy", R.ht(["3827af20-8f80-4b15-8300-6db0873ec901", "Azure Cache for Redis should not use access keys for authentication"], false), "ResourceTypes", R.a("Microsoft.Cache/Redis"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $value = $Record.resource.properties.disableAccessKeyAuthentication\n        if ($value -eq $true) { return New-Pass 'Access key authentication disabled' ([ordered]@{ disableAccessKeyAuthentication = $true }) }\n        New-Fail 'Access key authentication enabled' ([ordered]@{ disableAccessKeyAuthentication = $value })\n    " }, (S, O) => {
-        R.ln = F + 653;
+    R.ln = F + 1132;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-RED-004", "Title", "Azure Cache for Redis requires TLS 1.2 or higher", "Category", "Data protection", "Service", "Azure Cache for Redis", "Severity", "Medium", "Description", "Checks the minimum TLS version of Azure Cache for Redis.", "Rationale", "TLS 1.0 and 1.1 have known weaknesses and are no longer considered secure.", "Remediation", "Set the minimum TLS version to 1.2 (az redis update --set minimumTlsVersion=1.2 ...).", "References", R.a("https://learn.microsoft.com/azure/azure-cache-for-redis/cache-remove-tls-10-11"), "Policy", R.ht(["f38646be-b908-491a-bc9b-fd507154f709", "Azure Cache for Redis should be running TLS version 1.2 or newer"], false), "ResourceTypes", (S["redistype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $value = $Record.resource.properties.minimumTlsVersion\n        $evidence = [ordered]@{ minimumTlsVersion = $value }\n        if (-not $value) { return New-Unknown 'The minimum TLS version was not returned' $evidence }\n        if (Test-VersionAtLeast $value '1.2') { return New-Pass \"Minimum TLS $value\" $evidence }\n        New-Fail \"Minimum TLS $value\" $evidence\n    " }, (S, O) => {
+        R.ln = F + 1146;
+        S["value"] = R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "minimumTlsVersion");
+        R.ln = F + 1147;
+        S["evidence"] = R.ht(["minimumTlsVersion", (S["value"] ?? null)], true);
+        R.ln = F + 1148;
+        if (!R.t((S["value"] ?? null))) {
+            R.ln = F + 1148;
+            R.pa(O, R.cmd(S, "New-Unknown", ["The minimum TLS version was not returned", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 1149;
+        if (R.t(R.u(R.cmd(S, "Test-VersionAtLeast", [(S["value"] ?? null), "1.2"], null)))) {
+            R.ln = F + 1149;
+            R.pa(O, R.cmd(S, "New-Pass", [("Minimum TLS " + R.str((S["value"] ?? null))), (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 1150;
+        R.pa(O, R.cmd(S, "New-Fail", [("Minimum TLS " + R.str((S["value"] ?? null))), (S["evidence"] ?? null)], null));
+    })], false)], null));
+    R.ln = F + 1154;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-RED-002", "Title", "Azure Cache for Redis disables access key authentication", "Category", "Identity management", "Service", "Azure Cache for Redis", "Severity", "Medium", "Description", "Checks disableAccessKeyAuthentication, which enforces Microsoft Entra authentication.", "Rationale", "The access key is a shared secret with full access that is not tied to an identity.", "Remediation", "Enable Microsoft Entra authentication, grant data access policies to identities, then disable access key authentication.", "References", R.a("https://learn.microsoft.com/azure/azure-cache-for-redis/cache-azure-active-directory-for-authentication"), "Policy", R.ht(["3827af20-8f80-4b15-8300-6db0873ec901", "Azure Cache for Redis should not use access keys for authentication"], false), "ResourceTypes", (S["redistype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $value = $Record.resource.properties.disableAccessKeyAuthentication\n        if ($value -eq $true) { return New-Pass 'Access key authentication disabled' ([ordered]@{ disableAccessKeyAuthentication = $true }) }\n        New-Fail 'Access key authentication enabled' ([ordered]@{ disableAccessKeyAuthentication = $value })\n    " }, (S, O) => {
+        R.ln = F + 1168;
         S["value"] = R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "disableAccessKeyAuthentication");
-        R.ln = F + 654;
+        R.ln = F + 1169;
         if (R.t(R.eq((S["value"] ?? null), true))) {
-            R.ln = F + 654;
+            R.ln = F + 1169;
             R.pa(O, R.cmd(S, "New-Pass", ["Access key authentication disabled", (R.ht(["disableAccessKeyAuthentication", true], true))], null));
             return;
         }
-        R.ln = F + 655;
+        R.ln = F + 1170;
         R.pa(O, R.cmd(S, "New-Fail", ["Access key authentication enabled", (R.ht(["disableAccessKeyAuthentication", (S["value"] ?? null)], true))], null));
+    })], false)], null));
+    R.ln = F + 1174;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-RED-007", "Title", "Azure Cache for Redis enables Microsoft Entra authentication", "Category", "Identity management", "Service", "Azure Cache for Redis", "Severity", "Medium", "Description", "Checks the aad-enabled setting of the Redis configuration.", "Rationale", "Entra authentication ties cache access to identities with central lifecycle management, instead of a shared access key.", "Remediation", "Enable Microsoft Entra authentication on the Authentication page of the cache.", "References", R.a("https://learn.microsoft.com/azure/azure-cache-for-redis/cache-azure-active-directory-for-authentication"), "ResourceTypes", (S["redistype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $value = [string](Get-Prop $Record.resource.properties.redisConfiguration 'aad-enabled')\n        $evidence = [ordered]@{ 'aad-enabled' = $value }\n        if ($value -eq 'true') { return New-Pass 'Entra authentication enabled' $evidence }\n        New-Fail 'Entra authentication disabled' $evidence\n    " }, (S, O) => {
+        R.ln = F + 1187;
+        S["value"] = R.c("string", R.u(R.cmd(S, "Get-Prop", [R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "redisConfiguration"), "aad-enabled"], null)));
+        R.ln = F + 1188;
+        S["evidence"] = R.ht(["aad-enabled", (S["value"] ?? null)], true);
+        R.ln = F + 1189;
+        if (R.t(R.eq((S["value"] ?? null), "true"))) {
+            R.ln = F + 1189;
+            R.pa(O, R.cmd(S, "New-Pass", ["Entra authentication enabled", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 1190;
+        R.pa(O, R.cmd(S, "New-Fail", ["Entra authentication disabled", (S["evidence"] ?? null)], null));
+    })], false)], null));
+    R.ln = F + 1194;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-RED-008", "Title", "Azure Cache for Redis has a system-assigned managed identity", "Category", "Identity management", "Service", "Azure Cache for Redis", "Severity", "Low", "Description", "Checks Azure Cache for Redis for a system-assigned managed identity.", "Rationale", "A managed identity lets the cache reach storage (import, export, persistence) through RBAC instead of stored keys.", "Remediation", "Turn on the system-assigned identity on the Identity page of the cache.", "References", R.a("https://learn.microsoft.com/azure/azure-cache-for-redis/cache-managed-identity"), "ResourceTypes", (S["redistype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $identity = $Record.resource.identity\n        $evidence = [ordered]@{ identityType = $identity.type }\n        if ([string]$identity.type -match 'SystemAssigned' -and $identity.principalId) { return New-Pass 'System-assigned identity' $evidence }\n        New-Fail 'No system-assigned identity' $evidence\n    " }, (S, O) => {
+        R.ln = F + 1207;
+        S["identity"] = R.m(R.m((S["record"] ?? null), "resource"), "identity");
+        R.ln = F + 1208;
+        S["evidence"] = R.ht(["identityType", R.m((S["identity"] ?? null), "type")], true);
+        R.ln = F + 1209;
+        if ((R.t(R.match(S, R.c("string", R.m((S["identity"] ?? null), "type")), "SystemAssigned")) && R.t(R.m((S["identity"] ?? null), "principalId")))) {
+            R.ln = F + 1209;
+            R.pa(O, R.cmd(S, "New-Pass", ["System-assigned identity", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 1210;
+        R.pa(O, R.cmd(S, "New-Fail", ["No system-assigned identity", (S["evidence"] ?? null)], null));
+    })], false)], null));
+    R.ln = F + 1214;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-RED-005", "Title", "Azure Cache for Redis disables public network access", "Category", "Network security", "Service", "Azure Cache for Redis", "Severity", "Medium", "Description", "Checks that public network access of Azure Cache for Redis is Disabled. Caches injected in a virtual network, where the setting cannot be changed, are not applicable.", "Rationale", "A public cache endpoint can be reached from the Internet with a stolen key or token; private endpoints remove that exposure.", "Remediation", "Create a private endpoint, then disable public network access on the Private Endpoint page of the cache.", "References", R.a("https://learn.microsoft.com/azure/azure-cache-for-redis/cache-private-link"), "Policy", R.ht(["470baccb-7e51-4549-8b1a-3e5be069f663", "Azure Cache for Redis should disable public network access"], false), "ResourceTypes", (S["redistype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $p = $Record.resource.properties\n        $evidence = [ordered]@{ publicNetworkAccess = $p.publicNetworkAccess; subnetId = $p.subnetId }\n        if ($p.subnetId) { return New-NotApplicable 'Injected in a virtual network, public network access cannot be disabled' $evidence }\n        if ($p.publicNetworkAccess -eq 'Disabled') { return New-Pass 'Public network access disabled' $evidence }\n        New-Fail \"Public network access $(if ($p.publicNetworkAccess) { $p.publicNetworkAccess } else { 'Enabled (default)' })\" $evidence\n    " }, (S, O) => {
+        R.ln = F + 1228;
+        S["p"] = R.m(R.m((S["record"] ?? null), "resource"), "properties");
+        R.ln = F + 1229;
+        S["evidence"] = R.ht(["publicNetworkAccess", R.m((S["p"] ?? null), "publicNetworkAccess"), "subnetId", R.m((S["p"] ?? null), "subnetId")], true);
+        R.ln = F + 1230;
+        if (R.t(R.m((S["p"] ?? null), "subnetId"))) {
+            R.ln = F + 1230;
+            R.pa(O, R.cmd(S, "New-NotApplicable", ["Injected in a virtual network, public network access cannot be disabled", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 1231;
+        if (R.t(R.eq(R.m((S["p"] ?? null), "publicNetworkAccess"), "Disabled"))) {
+            R.ln = F + 1231;
+            R.pa(O, R.cmd(S, "New-Pass", ["Public network access disabled", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 1232;
+        R.pa(O, R.cmd(S, "New-Fail", [("Public network access " + R.str((() => {
+            const v23 = [];
+            R.ln = F + 1232;
+            if (R.t(R.m((S["p"] ?? null), "publicNetworkAccess"))) {
+                R.ln = F + 1232;
+                R.e(v23, R.m((S["p"] ?? null), "publicNetworkAccess"));
+            } else {
+                R.ln = F + 1232;
+                R.e(v23, "Enabled (default)");
+            }
+            return R.u(v23);
+        })())), (S["evidence"] ?? null)], null));
+    })], false)], null));
+    R.ln = F + 1236;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-RED-006", "Title", "Azure Cache for Redis is accessed through private endpoints", "Category", "Network security", "Service", "Azure Cache for Redis", "Severity", "Low", "Description", "Checks Azure Cache for Redis for an approved private endpoint connection. Caches injected in a virtual network cannot have private endpoints and fail.", "Rationale", "Private endpoints keep cache traffic on private networks and allow public access to be disabled.", "Remediation", "Create a private endpoint for the cache; a cache injected in a virtual network has to be recreated first.", "References", R.a("https://learn.microsoft.com/azure/azure-cache-for-redis/cache-private-link"), "Policy", R.ht(["7803067c-7d34-46e3-8c79-0ca68fc4036d", "Azure Cache for Redis should use private link"], false), "ResourceTypes", (S["redistype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not (Test-PrivateEndpointsCollected $Record)) { return New-Unknown 'Private endpoint connections could not be read' }\n        $count = Get-ApprovedPrivateEndpointCount $Record\n        $subnet = $Record.resource.properties.subnetId\n        $evidence = [ordered]@{ approvedPrivateEndpoints = $count; subnetId = $subnet }\n        if ($count) { return New-Pass \"$count approved private endpoint(s)\" $evidence }\n        if ($subnet) { return New-Fail 'No private endpoint: the cache is injected in a virtual network, which does not support private endpoints' $evidence }\n        New-Fail 'No approved private endpoint' $evidence\n    " }, (S, O) => {
+        R.ln = F + 1250;
+        if (!R.t(R.u(R.cmd(S, "Test-PrivateEndpointsCollected", [(S["record"] ?? null)], null)))) {
+            R.ln = F + 1250;
+            R.pa(O, R.cmd(S, "New-Unknown", ["Private endpoint connections could not be read"], null));
+            return;
+        }
+        R.ln = F + 1251;
+        S["count"] = R.u(R.cmd(S, "Get-ApprovedPrivateEndpointCount", [(S["record"] ?? null)], null));
+        R.ln = F + 1252;
+        S["subnet"] = R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "subnetId");
+        R.ln = F + 1253;
+        S["evidence"] = R.ht(["approvedPrivateEndpoints", (S["count"] ?? null), "subnetId", (S["subnet"] ?? null)], true);
+        R.ln = F + 1254;
+        if (R.t((S["count"] ?? null))) {
+            R.ln = F + 1254;
+            R.pa(O, R.cmd(S, "New-Pass", [("" + R.str((S["count"] ?? null)) + " approved private endpoint(s)"), (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 1255;
+        if (R.t((S["subnet"] ?? null))) {
+            R.ln = F + 1255;
+            R.pa(O, R.cmd(S, "New-Fail", ["No private endpoint: the cache is injected in a virtual network, which does not support private endpoints", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 1256;
+        R.pa(O, R.cmd(S, "New-Fail", ["No approved private endpoint", (S["evidence"] ?? null)], null));
+    })], false)], null));
+    R.ln = F + 1260;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-RED-003", "Title", "Azure Cache for Redis uses the Stable update channel", "Category", "Posture and vulnerability management", "Service", "Azure Cache for Redis", "Severity", "Low", "Description", "Checks the update channel of Azure Cache for Redis.", "Rationale", "The Preview channel installs Redis updates before they are generally released, with a higher risk of defects.", "Remediation", "Set the update channel to Stable (az redis update --set updateChannel=Stable ...).", "References", R.a("https://learn.microsoft.com/azure/azure-cache-for-redis/cache-administration#update-channel-and-schedule-updates"), "ResourceTypes", (S["redistype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $value = $Record.resource.properties.updateChannel\n        $evidence = [ordered]@{ updateChannel = $value }\n        if (-not $value) { return New-Unknown 'The update channel was not returned' $evidence }\n        if ($value -eq 'Stable') { return New-Pass 'Stable update channel' $evidence }\n        New-Fail \"Update channel $value\" $evidence\n    " }, (S, O) => {
+        R.ln = F + 1273;
+        S["value"] = R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "updateChannel");
+        R.ln = F + 1274;
+        S["evidence"] = R.ht(["updateChannel", (S["value"] ?? null)], true);
+        R.ln = F + 1275;
+        if (!R.t((S["value"] ?? null))) {
+            R.ln = F + 1275;
+            R.pa(O, R.cmd(S, "New-Unknown", ["The update channel was not returned", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 1276;
+        if (R.t(R.eq((S["value"] ?? null), "Stable"))) {
+            R.ln = F + 1276;
+            R.pa(O, R.cmd(S, "New-Pass", ["Stable update channel", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 1277;
+        R.pa(O, R.cmd(S, "New-Fail", [("Update channel " + R.str((S["value"] ?? null))), (S["evidence"] ?? null)], null));
+    })], false)], null));
+    R.ln = F + 1281;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-RED-009", "Title", "Azure Cache for Redis Enterprise encrypts disks with a customer-managed key (when required)", "Category", "Data protection", "Service", "Azure Cache for Redis", "Severity", "Informational", "Description", "Checks whether Redis Enterprise clusters encrypt disk data with a customer-managed key.", "Rationale", "A customer-managed key gives control over key rotation and revocation; only required where data classification or regulation demands it.", "Remediation", "Configure a Key Vault key and a user-assigned identity on the Encryption page of the cluster.", "References", R.a("https://learn.microsoft.com/azure/azure-cache-for-redis/cache-how-to-encryption"), "Policy", R.ht(["09aa11bb-87ec-409f-bf0b-49b7c1561a87", "Azure Cache for Redis Enterprise should use customer-managed keys for encrypting disk data"], false), "ResourceTypes", R.a("Microsoft.Cache/redisEnterprise"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $key = $Record.resource.properties.encryption.customerManagedKeyEncryption.keyEncryptionKeyUrl\n        $evidence = [ordered]@{ customerManagedKey = [bool]$key }\n        if ($key) { return New-Pass 'Customer-managed key' $evidence }\n        New-Fail 'Microsoft-managed key' $evidence\n    " }, (S, O) => {
+        R.ln = F + 1295;
+        S["key"] = R.m(R.m(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "encryption"), "customerManagedKeyEncryption"), "keyEncryptionKeyUrl");
+        R.ln = F + 1296;
+        S["evidence"] = R.ht(["customerManagedKey", R.c("bool", (S["key"] ?? null))], true);
+        R.ln = F + 1297;
+        if (R.t((S["key"] ?? null))) {
+            R.ln = F + 1297;
+            R.pa(O, R.cmd(S, "New-Pass", ["Customer-managed key", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 1298;
+        R.pa(O, R.cmd(S, "New-Fail", ["Microsoft-managed key", (S["evidence"] ?? null)], null));
     })], false)], null));
 });

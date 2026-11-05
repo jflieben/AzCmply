@@ -157,100 +157,243 @@ export default R.script("/app/Analyze/tests/16-DataAnalytics.ps1", { params: [],
         })(), (S["evidence"] ?? null)], null));
     })], false)], null));
     R.ln = F + 155;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-ADF-001", "Title", "Data Factory linked services keep secrets in Key Vault", "Category", "Identity management", "Service", "Data Factory", "Severity", "Medium", "Description", "Finds linked services that store credentials in the factory (SecureString) instead of referencing Key Vault or using managed identity.", "Rationale", "Credentials stored in Data Factory are not centrally rotated or audited and are available to every factory contributor through the linked service.", "Remediation", "Use managed identity authentication where the connector supports it, otherwise store the secret in Key Vault and reference it with an AzureKeyVaultSecret.", "References", R.a("https://learn.microsoft.com/azure/data-factory/store-credentials-in-key-vault"), "Policy", R.ht(["127ef6d7-242f-43b3-9eef-947faf1725d0", "Azure Data Factory linked services should use Key Vault for storing secrets"], false), "ResourceTypes", R.a("Microsoft.DataFactory/factories"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not (Test-ChildCollected $Record 'linkedservices')) { return New-Unknown 'Linked services could not be listed' }\n        $stored = @(Get-Child $Record 'linkedservices' | Where-Object { $_ -and (($_.properties.typeProperties | ConvertTo-Json -Depth 20 -Compress) -match '\"type\":\"SecureString\"') } | ForEach-Object name | Sort-Object)\n        $evidence = [ordered]@{ linkedServicesWithStoredSecrets = $stored }\n        if ($stored) { return New-Fail \"Linked service(s) with stored secrets: $($stored -join ', ')\" $evidence }\n        New-Pass 'No secrets stored in linked services' $evidence\n    " }, (S, O) => {
-        R.ln = F + 169;
+    R.def(S, "Test-LinkedServiceStoresSecret", { params: [{ n: "LinkedService", t: null, pos: null }], adv: 0, h: "e906fb1e8106bf2f" }, (S, O) => {
+        R.ln = F + 158;
+        S["typeproperties"] = R.m(R.m((S["linkedservice"] ?? null), "properties"), "typeProperties");
+        R.ln = F + 159;
+        if (R.t(R.eq(null, (S["typeproperties"] ?? null)))) {
+            R.ln = F + 159;
+            R.e(O, false);
+            return;
+        }
+        R.ln = F + 160;
+        if (R.t(R.match(S, R.u(R.cmd(S, "ConvertTo-Json", [R.np("Depth"), 20, R.np("Compress")], R.pi((S["typeproperties"] ?? null)))), "\"type\":\"SecureString\""))) {
+            R.ln = F + 160;
+            R.e(O, true);
+            return;
+        }
+        R.ln = F + 161;
+        if (R.t(R.m((S["typeproperties"] ?? null), "encryptedCredential"))) {
+            R.ln = F + 161;
+            R.e(O, true);
+            return;
+        }
+        R.ln = F + 162;
+        S["connection"] = R.m((S["typeproperties"] ?? null), "connectionString");
+        R.ln = F + 163;
+        if ((R.t(R.is((S["connection"] ?? null), R.ty("string"))) && R.t(R.match(S, (S["connection"] ?? null), "(?i)(AccountKey|PWD|Password|CredString)=")))) {
+            R.ln = F + 163;
+            R.e(O, true);
+            return;
+        }
+        R.ln = F + 164;
+        if (((R.t(R.in(R.m(R.m((S["linkedservice"] ?? null), "properties"), "type"), [R.v("MongoDbAtlas"), R.v("MongoDbV2")])) && R.t(R.ne(null, (S["connection"] ?? null)))) && R.t(R.ne(R.m((S["connection"] ?? null), "type"), "AzureKeyVaultSecret")))) {
+            R.ln = F + 164;
+            R.e(O, true);
+            return;
+        }
+        R.ln = F + 165;
+        for (const it2 of R.fi([R.v("password"), R.v("sasUri"), R.v("accountKey"), R.v("servicePrincipalKey")])) {
+            S["name"] = it2;
+            R.ln = F + 166;
+            if (R.t(R.is(R.m((S["typeproperties"] ?? null), R.str((S["name"] ?? null))), R.ty("string")))) {
+                R.ln = F + 166;
+                R.e(O, true);
+                return;
+            }
+        }
+        R.ln = F + 168;
+        R.e(O, false);
+        return;
+    });
+    R.ln = F + 171;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-ADF-001", "Version", 2, "Title", "Data Factory linked services keep secrets in Key Vault", "Category", "Identity management", "Service", "Data Factory", "Severity", "Medium", "Description", "Finds linked services that store credentials in the factory instead of referencing Key Vault: SecureString values, credentials encrypted for a self-hosted integration runtime, connection strings with AccountKey, PWD, Password or CredString, and passwords, SAS URIs, account keys and service principal keys in plain text.", "Rationale", "Credentials stored in Data Factory are not centrally rotated or audited and are available to every factory contributor through the linked service.", "Remediation", "Use managed identity authentication where the connector supports it, otherwise store the secret in Key Vault and reference it with an AzureKeyVaultSecret.", "References", R.a("https://learn.microsoft.com/azure/data-factory/store-credentials-in-key-vault"), "Policy", R.ht(["127ef6d7-242f-43b3-9eef-947faf1725d0", "Azure Data Factory linked services should use Key Vault for storing secrets"], false), "ResourceTypes", R.a("Microsoft.DataFactory/factories"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not (Test-ChildCollected $Record 'linkedservices')) { return New-Unknown 'Linked services could not be listed' }\n        $stored = @(Get-Child $Record 'linkedservices' | Where-Object { $_ -and (Test-LinkedServiceStoresSecret $_) } | ForEach-Object name | Sort-Object)\n        $evidence = [ordered]@{ linkedServicesWithStoredSecrets = $stored }\n        if ($stored) { return New-Fail \"Linked service(s) with stored secrets: $($stored -join ', ')\" $evidence }\n        New-Pass 'No secrets stored in linked services' $evidence\n    " }, (S, O) => {
+        R.ln = F + 186;
         if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "linkedservices"], null)))) {
-            R.ln = F + 169;
+            R.ln = F + 186;
             R.pa(O, R.cmd(S, "New-Unknown", ["Linked services could not be listed"], null));
             return;
         }
-        R.ln = F + 170;
-        S["stored"] = R.cmd(S, "Sort-Object", [], R.cmd(S, "ForEach-Object", ["name"], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and (($_.properties.typeProperties | ConvertTo-Json -Depth 20 -Compress) -match '\"type\":\"SecureString\"') " }, (S, O) => {
-            R.ln = F + 170;
-            R.e(O, (R.t((S["_"] ?? null)) && R.t(R.match(S, R.u(R.cmd(S, "ConvertTo-Json", [R.np("Depth"), 20, R.np("Compress")], R.pi(R.m(R.m((S["_"] ?? null), "properties"), "typeProperties")))), "\"type\":\"SecureString\""))));
+        R.ln = F + 187;
+        S["stored"] = R.cmd(S, "Sort-Object", [], R.cmd(S, "ForEach-Object", ["name"], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and (Test-LinkedServiceStoresSecret $_) " }, (S, O) => {
+            R.ln = F + 187;
+            R.e(O, (R.t((S["_"] ?? null)) && R.t(R.u(R.cmd(S, "Test-LinkedServiceStoresSecret", [(S["_"] ?? null)], null)))));
         })], R.cmd(S, "Get-Child", [(S["record"] ?? null), "linkedservices"], null))));
-        R.ln = F + 171;
+        R.ln = F + 188;
         S["evidence"] = R.ht(["linkedServicesWithStoredSecrets", (S["stored"] ?? null)], true);
-        R.ln = F + 172;
+        R.ln = F + 189;
         if (R.t((S["stored"] ?? null))) {
-            R.ln = F + 172;
+            R.ln = F + 189;
             R.pa(O, R.cmd(S, "New-Fail", [("Linked service(s) with stored secrets: " + R.str(R.u(R.pi(R.join((S["stored"] ?? null), ", "))))), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 173;
+        R.ln = F + 190;
         R.pa(O, R.cmd(S, "New-Pass", ["No secrets stored in linked services", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 177;
+    R.ln = F + 195;
+    S["managedidentitylinkedservicetypes"] = R.a([R.v("AzureSqlDatabase"), R.v("AzureSqlMI"), R.v("AzureSqlDW"), R.v("AzureBlobFS"), R.v("AdlsGen2CosmosStructuredStream"), R.v("AzureDataLakeStore"), R.v("AzureDataLakeStoreCosmosStructuredStream"), R.v("AzureBlobStorage"), R.v("AzureDatabricks")]);
+    R.ln = F + 197;
+    R.def(S, "Test-LinkedServiceUsesKey", { params: [{ n: "LinkedService", t: null, pos: null }], adv: 0, h: "5cf56263250021a3" }, (S, O) => {
+        R.ln = F + 200;
+        S["typeproperties"] = R.m(R.m((S["linkedservice"] ?? null), "properties"), "typeProperties");
+        R.ln = F + 201;
+        if (R.t(R.eq(null, (S["typeproperties"] ?? null)))) {
+            R.ln = F + 201;
+            R.e(O, false);
+            return;
+        }
+        R.ln = F + 202;
+        S["connection"] = R.m((S["typeproperties"] ?? null), "connectionString");
+        R.ln = F + 203;
+        if ((R.t(R.is((S["connection"] ?? null), R.ty("string"))) && R.t(R.match(S, (S["connection"] ?? null), "(?i)(User ID|AccountKey)=")))) {
+            R.ln = F + 203;
+            R.e(O, true);
+            return;
+        }
+        R.ln = F + 204;
+        for (const it3 of R.fi([R.v("servicePrincipalKey"), R.v("servicePrincipalCredential"), R.v("accountKey"), R.v("sasUri"), R.v("accessToken"), R.v("encryptedCredential")])) {
+            S["name"] = it3;
+            R.ln = F + 205;
+            if (R.t(R.ne(null, R.m((S["typeproperties"] ?? null), R.str((S["name"] ?? null)))))) {
+                R.ln = F + 205;
+                R.e(O, true);
+                return;
+            }
+        }
+        R.ln = F + 207;
+        R.e(O, false);
+        return;
+    });
+    R.ln = F + 210;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-ADF-003", "Title", "Data factories have a managed identity", "Category", "Identity management", "Service", "Data Factory", "Severity", "Low", "Description", "Checks data factories for a system-assigned or user-assigned managed identity.", "Rationale", "A managed identity lets the factory reach data stores and Key Vault through RBAC, without credentials stored in linked services.", "Remediation", "Turn on the system-assigned identity or assign a user-assigned identity on the Managed identities page of the factory.", "References", R.a("https://learn.microsoft.com/azure/data-factory/data-factory-service-identity"), "ResourceTypes", R.a("Microsoft.DataFactory/factories"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $type = [string]$Record.resource.identity.type\n        $evidence = [ordered]@{ identityType = $type }\n        if ($type -match 'SystemAssigned|UserAssigned') { return New-Pass \"Managed identity ($type)\" $evidence }\n        New-Fail 'No managed identity' $evidence\n    " }, (S, O) => {
+        R.ln = F + 223;
+        S["type"] = R.c("string", R.m(R.m(R.m((S["record"] ?? null), "resource"), "identity"), "type"));
+        R.ln = F + 224;
+        S["evidence"] = R.ht(["identityType", (S["type"] ?? null)], true);
+        R.ln = F + 225;
+        if (R.t(R.match(S, (S["type"] ?? null), "SystemAssigned|UserAssigned"))) {
+            R.ln = F + 225;
+            R.pa(O, R.cmd(S, "New-Pass", [("Managed identity (" + R.str((S["type"] ?? null)) + ")"), (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 226;
+        R.pa(O, R.cmd(S, "New-Fail", ["No managed identity", (S["evidence"] ?? null)], null));
+    })], false)], null));
+    R.ln = F + 230;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-ADF-005", "Title", "Data Factory linked services authenticate with managed identity where supported", "Category", "Identity management", "Service", "Data Factory", "Severity", "Medium", "Description", "Finds linked services to Azure SQL, Synapse, Azure Storage, Data Lake and Databricks that authenticate with an account key, SQL login, SAS URI, access token, service principal secret or encrypted credential instead of a managed identity. User-assigned identity credentials are accepted.", "Rationale", "Keys and passwords in linked services are long lived secrets; managed identity authentication removes them and ties data access to RBAC.", "Remediation", "Switch the authentication type of the linked service to system-assigned or user-assigned managed identity and grant the identity a data role on the store.", "References", R.a("https://learn.microsoft.com/azure/data-factory/data-factory-service-identity"), "Policy", R.ht(["f78ccdb4-7bf4-4106-8647-270491d2978a", "Azure Data Factory linked services should use system-assigned managed identity authentication when it is supported"], false), "ResourceTypes", R.a("Microsoft.DataFactory/factories"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not (Test-ChildCollected $Record 'linkedservices')) { return New-Unknown 'Linked services could not be listed' }\n        $supported = @(Get-Child $Record 'linkedservices' | Where-Object { $_ -and $_.properties.type -in $managedIdentityLinkedServiceTypes })\n        $keyed = @($supported | Where-Object { Test-LinkedServiceUsesKey $_ } | ForEach-Object name | Sort-Object)\n        $evidence = [ordered]@{ linkedServicesSupportingManagedIdentity = $supported.Count; linkedServicesUsingKeys = $keyed }\n        if ($keyed) { return New-Fail \"Linked service(s) authenticating without managed identity: $($keyed -join ', ')\" $evidence }\n        New-Pass 'No linked service that supports managed identity uses a key' $evidence\n    " }, (S, O) => {
+        R.ln = F + 244;
+        if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "linkedservices"], null)))) {
+            R.ln = F + 244;
+            R.pa(O, R.cmd(S, "New-Unknown", ["Linked services could not be listed"], null));
+            return;
+        }
+        R.ln = F + 245;
+        S["supported"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.properties.type -in $managedIdentityLinkedServiceTypes " }, (S, O) => {
+            R.ln = F + 245;
+            R.e(O, (R.t((S["_"] ?? null)) && R.t(R.in(R.m(R.m((S["_"] ?? null), "properties"), "type"), (S["managedidentitylinkedservicetypes"] ?? null)))));
+        })], R.cmd(S, "Get-Child", [(S["record"] ?? null), "linkedservices"], null));
+        R.ln = F + 246;
+        S["keyed"] = R.cmd(S, "Sort-Object", [], R.cmd(S, "ForEach-Object", ["name"], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " Test-LinkedServiceUsesKey $_ " }, (S, O) => {
+            R.ln = F + 246;
+            R.pa(O, R.cmd(S, "Test-LinkedServiceUsesKey", [(S["_"] ?? null)], null));
+        })], R.pi((S["supported"] ?? null)))));
+        R.ln = F + 247;
+        S["evidence"] = R.ht(["linkedServicesSupportingManagedIdentity", R.m((S["supported"] ?? null), "Count"), "linkedServicesUsingKeys", (S["keyed"] ?? null)], true);
+        R.ln = F + 248;
+        if (R.t((S["keyed"] ?? null))) {
+            R.ln = F + 248;
+            R.pa(O, R.cmd(S, "New-Fail", [("Linked service(s) authenticating without managed identity: " + R.str(R.u(R.pi(R.join((S["keyed"] ?? null), ", "))))), (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 249;
+        R.pa(O, R.cmd(S, "New-Pass", ["No linked service that supports managed identity uses a key", (S["evidence"] ?? null)], null));
+    })], false)], null));
+    R.ln = F + 253;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-ADF-004", "Title", "Data factories are encrypted with a customer-managed key (when required)", "Category", "Data protection", "Service", "Data Factory", "Severity", "Informational", "Description", "Checks whether data factories encrypt their metadata with a customer-managed key in Key Vault.", "Rationale", "A customer-managed key gives control over key rotation and revocation; only required where data classification or regulation demands it.", "Remediation", "Add a Key Vault key under Manage > Customer managed key in Data Factory Studio (only possible on an empty factory).", "References", R.a("https://learn.microsoft.com/azure/data-factory/enable-customer-managed-key"), "Policy", R.ht(["4ec52d6d-beb7-40c4-9a9e-fe753254690e", "Azure data factories should be encrypted with a customer-managed key"], false), "ResourceTypes", R.a("Microsoft.DataFactory/factories"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $encryption = $Record.resource.properties.encryption\n        $evidence = [ordered]@{ vaultBaseUrl = [bool]$encryption.vaultBaseUrl; keyName = $encryption.keyName }\n        if ($encryption.vaultBaseUrl -and $encryption.keyName) { return New-Pass 'Customer-managed key' $evidence }\n        New-Fail 'Microsoft-managed key' $evidence\n    " }, (S, O) => {
+        R.ln = F + 267;
+        S["encryption"] = R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "encryption");
+        R.ln = F + 268;
+        S["evidence"] = R.ht(["vaultBaseUrl", R.c("bool", R.m((S["encryption"] ?? null), "vaultBaseUrl")), "keyName", R.m((S["encryption"] ?? null), "keyName")], true);
+        R.ln = F + 269;
+        if ((R.t(R.m((S["encryption"] ?? null), "vaultBaseUrl")) && R.t(R.m((S["encryption"] ?? null), "keyName")))) {
+            R.ln = F + 269;
+            R.pa(O, R.cmd(S, "New-Pass", ["Customer-managed key", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 270;
+        R.pa(O, R.cmd(S, "New-Fail", ["Microsoft-managed key", (S["evidence"] ?? null)], null));
+    })], false)], null));
+    R.ln = F + 274;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-ADF-002", "Title", "Data Factory uses Git integration", "Category", "Posture and vulnerability management", "Service", "Data Factory", "Severity", "Low", "Description", "Checks for a Git repository configuration on data factories.", "Rationale", "Git integration gives version history, review and controlled promotion of pipeline changes, instead of direct live edits that are hard to audit.", "Remediation", "Connect the development factory to Azure DevOps or GitHub and deploy to production through CI/CD.", "References", R.a("https://learn.microsoft.com/azure/data-factory/source-control"), "Policy", R.ht(["77d40665-3120-4348-b539-3192ec808307", "Azure Data Factory should use a Git repository for source control"], false), "ResourceTypes", R.a("Microsoft.DataFactory/factories"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $repo = $Record.resource.properties.repoConfiguration\n        if ($repo) { return New-Pass \"Git integration ($($repo.type))\" ([ordered]@{ repositoryType = $repo.type }) }\n        New-Fail 'No Git integration' ([ordered]@{ repositoryType = $null })\n    " }, (S, O) => {
-        R.ln = F + 191;
+        R.ln = F + 288;
         S["repo"] = R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "repoConfiguration");
-        R.ln = F + 192;
+        R.ln = F + 289;
         if (R.t((S["repo"] ?? null))) {
-            R.ln = F + 192;
+            R.ln = F + 289;
             R.pa(O, R.cmd(S, "New-Pass", [("Git integration (" + R.str(R.u(R.pi(R.m((S["repo"] ?? null), "type")))) + ")"), (R.ht(["repositoryType", R.m((S["repo"] ?? null), "type")], true))], null));
             return;
         }
-        R.ln = F + 193;
+        R.ln = F + 290;
         R.pa(O, R.cmd(S, "New-Fail", ["No Git integration", (R.ht(["repositoryType", null], true))], null));
     })], false)], null));
-    R.ln = F + 197;
+    R.ln = F + 294;
     S["kustotype"] = R.a("Microsoft.Kusto/clusters");
-    R.ln = F + 199;
+    R.ln = F + 296;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-ADX-001", "Title", "Azure Data Explorer clusters disable public network access", "Category", "Network security", "Service", "Azure Data Explorer", "Severity", "Medium", "Description", "Checks Azure Data Explorer clusters for disabled public network access and a SKU that supports private endpoints.", "Rationale", "A public cluster endpoint accepts queries and ingestion from anywhere on the Internet, protected by authentication alone. Private endpoints keep analytics data and queries on private networks.", "Remediation", "Create a private endpoint for the cluster (Standard or Basic tier), then set public network access to Disabled.", "References", R.a("https://learn.microsoft.com/azure/data-explorer/security-network-private-endpoint"), "ResourceTypes", (S["kustotype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $p = $Record.resource.properties\n        $evidence = [ordered]@{ publicNetworkAccess = $p.publicNetworkAccess; skuTier = $Record.resource.sku.tier }\n        if ([string]$Record.resource.sku.tier -notin 'Standard', 'Basic') { return New-Fail \"SKU tier $($Record.resource.sku.tier) does not support private endpoints\" $evidence }\n        if ($p.publicNetworkAccess -eq 'Disabled') { return New-Pass 'Public network access disabled' $evidence }\n        New-Fail \"Public network access $(if ($p.publicNetworkAccess) { $p.publicNetworkAccess } else { 'Enabled (default)' })\" $evidence\n    " }, (S, O) => {
-        R.ln = F + 212;
+        R.ln = F + 309;
         S["p"] = R.m(R.m((S["record"] ?? null), "resource"), "properties");
-        R.ln = F + 213;
+        R.ln = F + 310;
         S["evidence"] = R.ht(["publicNetworkAccess", R.m((S["p"] ?? null), "publicNetworkAccess"), "skuTier", R.m(R.m(R.m((S["record"] ?? null), "resource"), "sku"), "tier")], true);
-        R.ln = F + 214;
+        R.ln = F + 311;
         if (R.t(R.nin(R.c("string", R.m(R.m(R.m((S["record"] ?? null), "resource"), "sku"), "tier")), [R.v("Standard"), R.v("Basic")]))) {
-            R.ln = F + 214;
+            R.ln = F + 311;
             R.pa(O, R.cmd(S, "New-Fail", [("SKU tier " + R.str(R.u(R.pi(R.m(R.m(R.m((S["record"] ?? null), "resource"), "sku"), "tier")))) + " does not support private endpoints"), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 215;
+        R.ln = F + 312;
         if (R.t(R.eq(R.m((S["p"] ?? null), "publicNetworkAccess"), "Disabled"))) {
-            R.ln = F + 215;
+            R.ln = F + 312;
             R.pa(O, R.cmd(S, "New-Pass", ["Public network access disabled", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 216;
+        R.ln = F + 313;
         R.pa(O, R.cmd(S, "New-Fail", [("Public network access " + R.str((() => {
-            const v2 = [];
-            R.ln = F + 216;
+            const v4 = [];
+            R.ln = F + 313;
             if (R.t(R.m((S["p"] ?? null), "publicNetworkAccess"))) {
-                R.ln = F + 216;
-                R.e(v2, R.m((S["p"] ?? null), "publicNetworkAccess"));
+                R.ln = F + 313;
+                R.e(v4, R.m((S["p"] ?? null), "publicNetworkAccess"));
             } else {
-                R.ln = F + 216;
-                R.e(v2, "Enabled (default)");
+                R.ln = F + 313;
+                R.e(v4, "Enabled (default)");
             }
-            return R.u(v2);
+            return R.u(v4);
         })())), (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 220;
+    R.ln = F + 317;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-ADX-002", "Title", "Azure Data Explorer clusters encrypt their disks", "Category", "Data protection", "Service", "Azure Data Explorer", "Severity", "Medium", "Description", "Checks Azure Data Explorer clusters for disk encryption, which encrypts the operating system and data disks (including the hot cache) of the cluster nodes.", "Rationale", "Storage encryption covers the persisted data only. The node disks hold the hot cache, a copy of the most queried data, and are not encrypted unless disk encryption is on.", "Remediation", "Enable disk encryption on the cluster (Security > Disk encryption).", "References", R.a("https://learn.microsoft.com/azure/data-explorer/cluster-encryption-disk"), "ResourceTypes", (S["kustotype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $evidence = [ordered]@{ enableDiskEncryption = $Record.resource.properties.enableDiskEncryption }\n        if ($Record.resource.properties.enableDiskEncryption -eq $true) { return New-Pass 'Disk encryption enabled' $evidence }\n        New-Fail 'Disk encryption disabled' $evidence\n    " }, (S, O) => {
-        R.ln = F + 233;
+        R.ln = F + 330;
         S["evidence"] = R.ht(["enableDiskEncryption", R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "enableDiskEncryption")], true);
-        R.ln = F + 234;
+        R.ln = F + 331;
         if (R.t(R.eq(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "enableDiskEncryption"), true))) {
-            R.ln = F + 234;
+            R.ln = F + 331;
             R.pa(O, R.cmd(S, "New-Pass", ["Disk encryption enabled", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 235;
+        R.ln = F + 332;
         R.pa(O, R.cmd(S, "New-Fail", ["Disk encryption disabled", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 239;
+    R.ln = F + 336;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-ADX-003", "Title", "Azure Data Explorer clusters use double encryption", "Category", "Data protection", "Service", "Azure Data Explorer", "Severity", "Low", "Description", "Checks Azure Data Explorer clusters for double encryption, which adds infrastructure encryption with a second algorithm and key under the service level encryption.", "Rationale", "Two independent layers of encryption protect the data if one encryption algorithm or key is compromised.", "Remediation", "Double encryption can only be enabled when a cluster is created: create a new cluster with double encryption and move the databases to it.", "References", R.a("https://learn.microsoft.com/azure/data-explorer/cluster-encryption-double"), "ResourceTypes", (S["kustotype"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $evidence = [ordered]@{ enableDoubleEncryption = $Record.resource.properties.enableDoubleEncryption }\n        if ($Record.resource.properties.enableDoubleEncryption -eq $true) { return New-Pass 'Double encryption enabled' $evidence }\n        New-Fail 'Double encryption disabled' $evidence\n    " }, (S, O) => {
-        R.ln = F + 252;
+        R.ln = F + 349;
         S["evidence"] = R.ht(["enableDoubleEncryption", R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "enableDoubleEncryption")], true);
-        R.ln = F + 253;
+        R.ln = F + 350;
         if (R.t(R.eq(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "enableDoubleEncryption"), true))) {
-            R.ln = F + 253;
+            R.ln = F + 350;
             R.pa(O, R.cmd(S, "New-Pass", ["Double encryption enabled", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 254;
+        R.ln = F + 351;
         R.pa(O, R.cmd(S, "New-Fail", ["Double encryption disabled", (S["evidence"] ?? null)], null));
     })], false)], null));
 });

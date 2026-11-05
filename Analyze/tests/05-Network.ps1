@@ -7,11 +7,13 @@ function Get-NsgAssociation {
 
 function Test-NsgPorts {
     #evaluates a list of TCP ports on an NSG; returns a result with the exposed ports and allowing rules
-    param($Record, [int[]]$Ports, [string]$Label)
+    param($Record, [int[]]$Ports, [string]$Label, [string[]]$Protocols = @('Tcp'))
     $exposed = [ordered]@{}
     foreach ($port in $Ports) {
-        $rule = Get-NsgInternetExposure -Nsg $Record.resource -Port $port -Protocol Tcp
-        if ($rule) { $exposed["$port"] = $rule.name }
+        foreach ($protocol in $Protocols) {
+            $rule = Get-NsgInternetExposure -Nsg $Record.resource -Port $port -Protocol $protocol
+            if ($rule -and -not $exposed.Contains("$port")) { $exposed["$port"] = $rule.name }
+        }
     }
     $evidence = Get-NsgAssociation $Record.resource
     $evidence.exposedPorts = @($exposed.Keys)
@@ -108,6 +110,33 @@ Add-AzTest @{
     Evaluate      = { param($Record) Test-NsgPorts -Record $Record -Ports 20, 21, 23, 135, 139, 389, 445, 636, 1433, 1434, 1521, 3306, 5432, 5985, 5986, 6379, 9200, 9300, 11211, 27017 -Label 'High risk ports' }
 }
 
+Add-AzTest @{
+    Id            = 'AZ-NET-029'
+    Title         = 'WinRM (5985, 5986) is not open to the Internet'
+    Category      = 'Network security'
+    Service       = 'Network security groups'
+    Severity      = 'High'
+    Description   = 'Evaluates the inbound rules of each network security group in priority order for TCP 5985 and 5986 from any source (*, Internet, 0.0.0.0/0, ::/0).'
+    Rationale     = 'WinRM runs PowerShell Remoting. Exposed to the Internet it invites password spraying, and a valid credential gives remote command execution on the machine.'
+    Remediation   = 'Remove or restrict the rule to known source addresses, and administer machines through Azure Bastion, just-in-time VM access or a VPN.'
+    References    = @('https://learn.microsoft.com/windows/win32/winrm/installation-and-configuration-for-windows-remote-management')
+    ResourceTypes = @('Microsoft.Network/networkSecurityGroups')
+    Evaluate      = { param($Record) Test-NsgPorts -Record $Record -Ports 5985, 5986 -Label 'WinRM' }
+}
+
+Add-AzTest @{
+    Id            = 'AZ-NET-030'
+    Title         = 'Database ports are not open to the Internet'
+    Category      = 'Network security'
+    Service       = 'Network security groups'
+    Severity      = 'High'
+    Description   = 'Evaluates the inbound rules of each network security group in priority order for the default ports of SQL Server (1433, 1434), Oracle (1521), MySQL (3306), PostgreSQL (5432), Redis (6379) and MongoDB (27017), over TCP and UDP, from any source (*, Internet, 0.0.0.0/0, ::/0).'
+    Rationale     = 'A database port reachable from the Internet exposes the authentication of the engine to password guessing and its vulnerabilities to anyone. Exposed databases are found by scanners within minutes.'
+    Remediation   = 'Remove or restrict the rule; reach databases on virtual machines through private networking, a VPN or Bastion.'
+    ResourceTypes = @('Microsoft.Network/networkSecurityGroups')
+    Evaluate      = { param($Record) Test-NsgPorts -Record $Record -Ports 1433, 1434, 1521, 3306, 5432, 6379, 27017 -Protocols 'Tcp', 'Udp' -Label 'Database ports' }
+}
+
 #subnets that do not support or need an NSG
 $nsgExemptSubnets = @('GatewaySubnet', 'AzureFirewallSubnet', 'AzureFirewallManagementSubnet', 'RouteServerSubnet')
 
@@ -137,18 +166,19 @@ Add-AzTest @{
 
 Add-AzTest @{
     Id          = 'AZ-NET-007'
+    Version     = 2
     Title       = 'Subnets do not use default outbound access'
     Category    = 'Network security'
     Service     = 'Virtual network'
     Severity    = 'Low'
-    Description = 'Checks that subnets are private (defaultOutboundAccess set to false), so virtual machines only reach the Internet through an explicit egress path.'
+    Description = 'Checks that subnets are private (defaultOutboundAccess set to false), so virtual machines only reach the Internet through an explicit egress path. Delegated subnets and GatewaySubnet, AzureFirewallSubnet, AzureFirewallManagementSubnet, RouteServerSubnet and AzureBastionSubnet are left out.'
     Rationale   = 'Default outbound access gives virtual machines an implicit, unmanaged public IP for egress that bypasses egress filtering and logging. Microsoft is retiring it in favor of explicit outbound methods.'
     Remediation = 'Configure an explicit outbound path (Azure Firewall or NAT Gateway) and set defaultOutboundAccess to false on the subnet (az network vnet subnet update --default-outbound-access false ...).'
     References  = @('https://learn.microsoft.com/azure/virtual-network/ip-services/default-outbound-access')
     Policy      = @{ '7bca8353-aa3b-429b-904a-9229c4385837' = 'Subnets should be private' }
     Run         = {
         foreach ($vnet in (Get-AzResourceRecords -Type 'Microsoft.Network/virtualNetworks')) {
-            foreach ($subnet in @($vnet.resource.properties.subnets | Where-Object { $_ -and $_.name -notin ($nsgExemptSubnets + 'AzureBastionSubnet') })) {
+            foreach ($subnet in @($vnet.resource.properties.subnets | Where-Object { $_ -and $_.name -notin ($nsgExemptSubnets + 'AzureBastionSubnet') -and -not @($_.properties.delegations | Where-Object { $_ }).Count })) {
                 $evidence = [ordered]@{ virtualNetwork = $vnet.resource.name; defaultOutboundAccess = $subnet.properties.defaultOutboundAccess; natGateway = $subnet.properties.natGateway.id }
                 $result = if ($subnet.properties.defaultOutboundAccess -eq $false) { New-Pass 'Private subnet' $evidence } else { New-Fail 'Default outbound access is enabled' $evidence }
                 New-Finding -ResourceId $subnet.id -ResourceType 'Microsoft.Network/virtualNetworks/subnets' -ResourceName "$($vnet.resource.name)/$($subnet.name)" -Result $result
@@ -217,6 +247,117 @@ Add-AzTest @{
     }
 }
 
+function Get-AttachedVirtualNetworks {
+    #virtual network ids (lowercase) of the resource a public IP address is attached to, found through the subnet ids in it
+    #(network interfaces behind a load balancer for its frontends); Unread lists what could not be read
+    param($PublicIp)
+    $configuration = [string]$PublicIp.properties.ipConfiguration.id
+    $networks = [System.Collections.Generic.List[string]]::new()
+    $unread = [System.Collections.Generic.List[string]]::new()
+    if ($configuration -notmatch '(?i)^(/subscriptions/[^/]+/resourceGroups/[^/]+/providers/Microsoft\.Network/[^/]+/[^/]+)/') { return [pscustomobject]@{ Networks = @(); Unread = @() } }
+    $parentId = $Matches[1]
+    $parent = Get-ReferencedResourceRecord $parentId
+    if (-not $parent) { return [pscustomobject]@{ Networks = @(); Unread = @(Get-ResourceName $parentId) } }
+    $holders = @($parent)
+    if ($parentId -match '(?i)/loadBalancers/') {
+        $holders = @()
+        foreach ($pool in @($parent.resource.properties.backendAddressPools | Where-Object { $_ })) {
+            foreach ($backend in @($pool.properties.backendIPConfigurations | Where-Object { $_ -and $_.id })) {
+                if ([string]$backend.id -notmatch '(?i)^(.+/networkInterfaces/[^/]+)/') { continue }
+                $nic = Get-ReferencedResourceRecord $Matches[1]
+                if ($nic) { $holders += $nic } else { $unread.Add((Get-ResourceName $Matches[1])) }
+            }
+        }
+    }
+    foreach ($holder in $holders) {
+        foreach ($match in [regex]::Matches(($holder.resource | ConvertTo-Json -Depth 30 -Compress), '(?i)"(/subscriptions/[^"]+?/virtualNetworks/[^/"]+)/subnets/')) { $networks.Add($match.Groups[1].Value.ToLowerInvariant()) }
+    }
+    return [pscustomobject]@{ Networks = @($networks | Sort-Object -Unique); Unread = @($unread | Sort-Object -Unique) }
+}
+
+Add-AzTest @{
+    Id            = 'AZ-NET-032'
+    Title         = 'Network security groups deny all traffic that no rule allows'
+    Category      = 'Network security'
+    Service       = 'Network security groups'
+    Severity      = 'Low'
+    Description   = 'Checks that each network security group has an inbound and an outbound rule that denies any protocol from any source and source port to any destination and port, at a priority evaluated after every allow rule in that direction, so the default AllowVnetInBound and AllowVnetOutBound rules no longer apply. Outbound is not required for groups on subnets of Application Gateway v2 or Microsoft Entra Domain Services, where Microsoft advises against restricting it.'
+    Rationale     = 'The default rules allow all traffic within the virtual network and its peerings, so a compromised workload can reach every other one. An explicit deny-all rule makes each allowed path a deliberate decision.'
+    Remediation   = 'Add rules for each required path, including platform traffic such as load balancer probes, then add a deny-all rule at priority 4096 in both directions.'
+    References    = @('https://learn.microsoft.com/azure/virtual-network/network-security-groups-overview#default-security-rules')
+    ResourceTypes = @('Microsoft.Network/networkSecurityGroups')
+    Evaluate      = {
+        param($Record)
+        $exemptSubnets = @{}
+        foreach ($gateway in (Get-AzResourceRecords -Type 'Microsoft.Network/applicationGateways')) {
+            if ([string]$gateway.resource.properties.sku.tier -notmatch '_v2$') { continue }
+            foreach ($configuration in @($gateway.resource.properties.gatewayIPConfigurations | Where-Object { $_.properties.subnet.id })) { $exemptSubnets[([string]$configuration.properties.subnet.id).ToLowerInvariant()] = "Application Gateway $($gateway.resource.name)" }
+        }
+        foreach ($domain in (Get-AzResourceRecords -Type 'Microsoft.AAD/domainServices')) {
+            foreach ($replica in @($domain.resource.properties.replicaSets | Where-Object { $_.subnetId })) { $exemptSubnets[([string]$replica.subnetId).ToLowerInvariant()] = "Microsoft Entra Domain Services $($domain.resource.name)" }
+        }
+        $outboundExemptBy = @(@($Record.resource.properties.subnets | Where-Object { $_.id } | ForEach-Object { $exemptSubnets[([string]$_.id).ToLowerInvariant()] }) | Where-Object { $_ } | Sort-Object -Unique)
+        $rules = @($Record.resource.properties.securityRules | Where-Object { $_ })
+        $issues = [System.Collections.Generic.List[string]]::new()
+        $evidence = Get-NsgAssociation $Record.resource
+        foreach ($direction in 'Inbound', 'Outbound') {
+            $inDirection = @($rules | Where-Object { $_.properties.direction -eq $direction })
+            $denyAll = @($inDirection | Where-Object {
+                    $r = $_.properties
+                    $r.access -eq 'Deny' -and $r.protocol -eq '*' -and
+                    @(@($r.sourceAddressPrefix) + @($r.sourceAddressPrefixes)) -contains '*' -and @(@($r.destinationAddressPrefix) + @($r.destinationAddressPrefixes)) -contains '*' -and
+                    @(@($r.sourcePortRange) + @($r.sourcePortRanges)) -contains '*' -and @(@($r.destinationPortRange) + @($r.destinationPortRanges)) -contains '*'
+                } | ForEach-Object { [int]$_.properties.priority } | Sort-Object)
+            $lastAllow = @($inDirection | Where-Object { $_.properties.access -eq 'Allow' } | ForEach-Object { [int]$_.properties.priority } | Sort-Object -Descending | Select-Object -First 1)
+            $evidence["$($direction.ToLowerInvariant())DenyAllPriorities"] = $denyAll
+            $evidence["$($direction.ToLowerInvariant())LastAllowPriority"] = if ($lastAllow) { $lastAllow[0] } else { $null }
+            if ($direction -eq 'Outbound' -and $outboundExemptBy) { continue }
+            if (-not $denyAll) { $issues.Add("no $($direction.ToLowerInvariant()) deny-all rule"); continue }
+            if ($lastAllow -and $denyAll[-1] -lt $lastAllow[0]) { $issues.Add("the $($direction.ToLowerInvariant()) deny-all rule (priority $($denyAll[-1])) comes before allow rule priority $($lastAllow[0])") }
+        }
+        if ($outboundExemptBy) { $evidence.outboundNotRequiredFor = $outboundExemptBy }
+        if ($issues.Count) { return New-Fail "Default VirtualNetwork rules still apply: $($issues -join '; ')" $evidence }
+        New-Pass 'Deny-all rules after every allow rule' $evidence
+    }
+}
+
+Add-AzTest @{
+    Id            = 'AZ-NET-033'
+    Title         = 'Public IP addresses are protected by Azure DDoS Protection'
+    Category      = 'Network security'
+    Service       = 'DDoS Protection'
+    Severity      = 'Medium'
+    Description   = 'Checks each public IP address for DDoS IP Protection (protection mode Enabled), or, with mode VirtualNetworkInherited, for DDoS Network Protection on the virtual network of the resource it is attached to (for load balancer frontends, the networks of the backend network interfaces). Addresses on a NAT gateway are out of scope, as DDoS Protection does not support them.'
+    Rationale     = 'Without IP or Network Protection, a public IP address only has DDoS infrastructure protection, whose mitigation thresholds are set for the platform, not for the application, and which gives no attack telemetry or cost protection.'
+    Remediation   = 'Enable DDoS IP Protection on the address, or associate a DDoS protection plan with the virtual network of the resource that uses it.'
+    References    = @('https://learn.microsoft.com/azure/ddos-protection/ddos-protection-sku-comparison')
+    ResourceTypes = @('Microsoft.Network/publicIPAddresses')
+    Evaluate      = {
+        param($Record)
+        $p = $Record.resource.properties
+        $mode = [string]$p.ddosSettings.protectionMode
+        $evidence = [ordered]@{ protectionMode = $mode; attachedTo = $p.ipConfiguration.id; natGateway = $p.natGateway.id }
+        if ($p.natGateway) { return New-NotApplicable 'Attached to a NAT gateway, which DDoS Protection does not support' $evidence }
+        if ($mode -eq 'Enabled') { return New-Pass 'DDoS IP Protection enabled' $evidence }
+        if ($mode -eq 'Disabled') { return New-Fail 'DDoS protection is disabled on the address' $evidence }
+        if (-not $p.ipConfiguration) { return New-Fail 'Not attached to a resource, so no virtual network protection is inherited, and no IP Protection' $evidence }
+        $attached = Get-AttachedVirtualNetworks $Record.resource
+        $evidence.virtualNetworks = @($attached.Networks | ForEach-Object { Get-ResourceName $_ })
+        $unprotected = [System.Collections.Generic.List[string]]::new()
+        $unread = [System.Collections.Generic.List[string]]::new()
+        foreach ($item in $attached.Unread) { $unread.Add($item) }
+        foreach ($networkId in $attached.Networks) {
+            $network = Get-ReferencedResourceRecord $networkId
+            if (-not $network) { $unread.Add((Get-ResourceName $networkId)); continue }
+            if (-not ($network.resource.properties.enableDdosProtection -and $network.resource.properties.ddosProtectionPlan)) { $unprotected.Add($network.resource.name) }
+        }
+        if ($unprotected.Count) { return New-Fail "Inherits from virtual network(s) without DDoS Network Protection: $(@($unprotected | Sort-Object -Unique) -join ', ')" $evidence }
+        if ($unread.Count) { return New-Unknown "Could not read $(@($unread | Sort-Object -Unique) -join ', ') to establish the inherited protection" $evidence }
+        if (-not $attached.Networks.Count) { return New-Unknown 'The virtual network of the attached resource could not be determined' $evidence }
+        New-Pass 'Inherits DDoS Network Protection from its virtual network' $evidence
+    }
+}
+
 Add-AzTest @{
     Id          = 'AZ-NET-011'
     Version     = 2
@@ -277,30 +418,71 @@ Add-AzTest @{
     }
 }
 
+#minimum TLS version of the predefined Application Gateway SSL policies
+$appGatewayPolicyMinimum = @{ AppGwSslPolicy20150501 = 'TLSv1_0'; AppGwSslPolicy20170401 = 'TLSv1_1'; AppGwSslPolicy20170401S = 'TLSv1_2'; AppGwSslPolicy20220101 = 'TLSv1_2'; AppGwSslPolicy20220101S = 'TLSv1_2' }
+
+function Get-AppGatewayTlsMinimums {
+    #the minimum TLS version of the gateway SSL policy and of each SSL profile with its own policy, as 'scope = version'.
+    #A gateway without a policy uses the default, AppGwSslPolicy20220101 since TLS 1.0 and 1.1 were retired
+    param($Record)
+    $p = $Record.resource.properties
+    $entries = [System.Collections.Generic.List[object]]::new()
+    $policies = @([pscustomobject]@{ Scope = 'gateway'; Policy = $p.sslPolicy })
+    foreach ($sslProfile in @($p.sslProfiles | Where-Object { $_ -and $_.properties.sslPolicy })) { $policies += [pscustomobject]@{ Scope = "SSL profile $($sslProfile.name)"; Policy = $sslProfile.properties.sslPolicy } }
+    foreach ($item in $policies) {
+        $policy = $item.Policy
+        $minimum = if ($policy.minProtocolVersion) { [string]$policy.minProtocolVersion } elseif ($policy.policyName) { $appGatewayPolicyMinimum[[string]$policy.policyName] } elseif ($item.Scope -eq 'gateway') { 'TLSv1_2' } else { $null }
+        $label = if ($policy.policyName) { "$($policy.policyName)" } elseif ($policy.policyType) { "$($policy.policyType)" } else { 'default policy' }
+        $entries.Add([pscustomobject]@{ Scope = $item.Scope; Minimum = $minimum; Label = "$($item.Scope): $label, minimum $(if ($minimum) { $minimum } else { 'unknown' })" })
+    }
+    return @($entries)
+}
+
 Add-AzTest @{
     Id            = 'AZ-NET-013'
+    Version       = 2
     Title         = 'Application Gateways require TLS 1.2 or higher'
     Category      = 'Data protection'
     Service       = 'Application Gateway'
     Severity      = 'Medium'
-    Description   = 'Checks the SSL policy of Application Gateways for a minimum protocol version of TLS 1.2.'
-    Rationale     = 'TLS 1.0 and 1.1 have known weaknesses and are retired across Azure; the listener policy should not negotiate them.'
-    Remediation   = 'Set the SSL policy to AppGwSslPolicy20220101 or AppGwSslPolicy20220101S (or CustomV2 with minimum TLSv1_2).'
+    Description   = 'Checks the SSL policy of Application Gateways and of each of their SSL profiles for a minimum protocol version of TLS 1.2 or higher. A gateway without an SSL policy uses the default policy AppGwSslPolicy20220101.'
+    Rationale     = 'TLS 1.0 and 1.1 have known weaknesses and are retired across Azure; no listener policy should negotiate them.'
+    Remediation   = 'Set the SSL policy of the gateway and of each SSL profile to AppGwSslPolicy20220101 or AppGwSslPolicy20220101S (or CustomV2 with minimum TLSv1_2).'
     References    = @('https://learn.microsoft.com/azure/application-gateway/application-gateway-ssl-policy-overview')
     Policy        = @{ '6313cbe8-6fb7-451b-a9e3-3f23b59843ca' = 'Azure Application Gateway should be running TLS version 1.2 or newer' }
     ResourceTypes = @('Microsoft.Network/applicationGateways')
     Evaluate      = {
         param($Record)
-        $policy = $Record.resource.properties.sslPolicy
-        $evidence = [ordered]@{ policyType = $policy.policyType; policyName = $policy.policyName; minProtocolVersion = $policy.minProtocolVersion }
-        $strong = @('AppGwSslPolicy20170401S', 'AppGwSslPolicy20220101', 'AppGwSslPolicy20220101S')
-        if ($policy.minProtocolVersion) {
-            if (Test-VersionAtLeast $policy.minProtocolVersion '1.2') { return New-Pass "Minimum $($policy.minProtocolVersion)" $evidence }
-            return New-Fail "Minimum $($policy.minProtocolVersion)" $evidence
-        }
-        if ($policy.policyName -in $strong) { return New-Pass "Predefined policy $($policy.policyName)" $evidence }
-        if (-not $policy) { return New-Fail 'No SSL policy set; older gateways default to a policy that allows TLS 1.0' $evidence }
-        New-Fail "Policy $($policy.policyName) allows TLS versions below 1.2" $evidence
+        $entries = Get-AppGatewayTlsMinimums $Record
+        $evidence = [ordered]@{ policies = @($entries | ForEach-Object Label) }
+        $weak = @($entries | Where-Object { $_.Minimum -and -not (Test-VersionAtLeast $_.Minimum '1.2') })
+        $unknown = @($entries | Where-Object { -not $_.Minimum })
+        if ($weak) { return New-Fail "Allows TLS below 1.2: $(@($weak | ForEach-Object Label) -join '; ')" $evidence }
+        if ($unknown) { return New-Unknown "Minimum TLS version not known for $(@($unknown | ForEach-Object Label) -join '; ')" $evidence }
+        New-Pass 'TLS 1.2 or higher on the gateway and all SSL profiles' $evidence
+    }
+}
+
+Add-AzTest @{
+    Id            = 'AZ-NET-031'
+    Title         = 'Application Gateways require TLS 1.3'
+    Category      = 'Data protection'
+    Service       = 'Application Gateway'
+    Severity      = 'Low'
+    Description   = 'Checks that the SSL policy of Application Gateways and of each SSL profile with its own policy has a minimum protocol version of TLS 1.3, which only a CustomV2 policy can set. A gateway without an SSL policy uses AppGwSslPolicy20220101, which allows TLS 1.2.'
+    Rationale     = 'TLS 1.3 only offers cipher suites with forward secrecy and authenticated encryption and removes legacy negotiation. Check the Client TLS protocol metric of the gateway before requiring it, so no client that must keep access still uses TLS 1.2.'
+    Remediation   = 'Use a CustomV2 SSL policy with minimum protocol version TLSv1_3 on the gateway and on each SSL profile.'
+    References    = @('https://learn.microsoft.com/azure/application-gateway/application-gateway-ssl-policy-overview')
+    ResourceTypes = @('Microsoft.Network/applicationGateways')
+    Evaluate      = {
+        param($Record)
+        $entries = Get-AppGatewayTlsMinimums $Record
+        $evidence = [ordered]@{ policies = @($entries | ForEach-Object Label) }
+        $lower = @($entries | Where-Object { $_.Minimum -and -not (Test-VersionAtLeast $_.Minimum '1.3') })
+        $unknown = @($entries | Where-Object { -not $_.Minimum })
+        if ($lower) { return New-Fail "Allows TLS below 1.3: $(@($lower | ForEach-Object Label) -join '; ')" $evidence }
+        if ($unknown) { return New-Unknown "Minimum TLS version not known for $(@($unknown | ForEach-Object Label) -join '; ')" $evidence }
+        New-Pass 'TLS 1.3 required on the gateway and all SSL profiles' $evidence
     }
 }
 

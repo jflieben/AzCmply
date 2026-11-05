@@ -1,9 +1,9 @@
 {
   "key": "AzCmplyCustom",
-  "order": 13,
+  "order": 16,
   "name": "AzCmply custom controls",
   "shortName": "AzCmply Custom",
-  "version": "2026.09.4",
+  "version": "2026.11.1",
   "publisher": "JSolve B.V.",
   "type": "custom",
   "url": "https://jsolve.nl",
@@ -25,6 +25,7 @@
     "AZC-12": {"title":"Workflows do not keep failing unnoticed","coverage":"partial","tests":["AZ-LOGIC-009"]},
     "AZC-13": {"title":"Only those who can change a function app can change the storage it runs from","coverage":"partial","tests":["AZ-FUNC-001"]},
     "AZC-14": {"title":"Only the administrators of a machine can change the code that Automation runs on it","coverage":"partial","tests":["AZ-AUTO-004"]},
-    "AZC-15": {"title":"Roles that run code on machines are granted on the machines, not on subscriptions or above","coverage":"full","tests":["AZ-IAM-034"]}
+    "AZC-15": {"title":"Roles that run code on machines are granted on the machines, not on subscriptions or above","coverage":"full","tests":["AZ-IAM-034"]},
+    "AZC-16": {"title":"Role assignments do not repeat access that a broader assignment of the same principal already grants","coverage":"partial","tests":["AZ-IAM-035"]}
   }
 }

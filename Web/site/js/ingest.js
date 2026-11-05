@@ -100,7 +100,8 @@ export async function runIngest(options) {
 
     //what a failed call means, from its status and the registration of the resource provider it went to
     function failureHint(failure) {
-        const namespace = /\/providers\/([^/?]+)\//i.exec(failure.uri ?? '')?.[1];
+        //registration is per subscription, so it says nothing about calls outside it (management groups, tenant)
+        const namespace = /\/subscriptions\/[^/]+\//i.test(failure.uri ?? '') ? /\/providers\/([^/?]+)\//i.exec(failure.uri ?? '')?.[1] : null;
         const state = namespace ? registration[namespace.toLowerCase()] : null;
         if (state && state !== 'Registered') { return `resource provider ${namespace} is ${state} on this subscription`; }
         const code = failure.statusCode;
@@ -693,6 +694,22 @@ export async function runIngest(options) {
         write('identity/users.json', users);
         out.users = { status: 'ok', count: users.length, signInActivity };
 
+        //per-user MFA state of these users (beta authentication/requirements); entries carry an error when it could not be read
+        const mfaRequests = new Map();
+        for (const id of userIdList) { mfaRequests.set(id, `/users/${id}/authentication/requirements`); }
+        const mfaStates = [];
+        let mfaFailed = 0;
+        if (mfaRequests.size) {
+            const mfaResults = await graphBatch(mfaRequests, [404], 'beta');
+            for (const id of userIdList) {
+                const result = mfaResults.get(id);
+                if (result && result.single !== null) { mfaStates.push({ id, perUserMfaState: prop(result.single, 'perUserMfaState') }); }
+                else { mfaFailed++; mfaStates.push({ id, error: `${result?.statusCode ?? ''} ${result?.errorCode ?? ''}`.trim() }); }
+            }
+        }
+        write('identity/userMfaRequirements.json', mfaStates);
+        out.userMfaRequirements = { status: mfaFailed && mfaFailed === userIdList.length ? 'failed' : 'ok', count: mfaStates.length, failed: mfaFailed };
+
         log(`Graph: ${servicePrincipalIds.size} service principals`);
         const tenant = tokenClaims(await getToken('Graph')).tid;
         const spRequests = new Map();
@@ -827,7 +844,8 @@ export async function runIngest(options) {
         log('Subscription settings, RBAC, policy and Defender for Cloud');
         progress({ phase: 'subscription', done: 0, total: plan.subscriptionEndpoints.length });
         let done = 0;
-        for (const [folderPart, name, path, apiVersion, method] of plan.subscriptionEndpoints) {
+        for (const [folderPart, name, template, apiVersion, method] of plan.subscriptionEndpoints) {
+            const path = template.replace('{tenantId}', tenantId);
             const separator = path.includes('?') ? '&' : '?';
             const base = path.startsWith('/') ? path : `/subscriptions/${subscriptionId}/${path}`;
             sections[`${folderPart}/${name}`] = await exportEndpoint(`${base}${separator}api-version=${apiVersion}`, `${folderPart}/${name}.json`, { method: method ?? 'GET', principalTarget: principalIds });
@@ -963,10 +981,13 @@ export async function runIngest(options) {
             const events = [];
             //Write-ActivityLogEvent: the fields of activityLogFields, in that order
             const valueFields = new Set(plan.activityLogValueFields);
+            //case-insensitive like -in in the PowerShell ingestion (Azure returns both message and Message)
+            const lower = names => new Set(names.map(name => name.toLowerCase()));
+            const claims = lower(plan.activityLogClaims), httpRequest = lower(plan.activityLogHttpRequest), dropped = lower(plan.activityLogDroppedProperties);
             const keepKey = {
-                claims: key => plan.activityLogClaims.includes(key),
-                httpRequest: key => plan.activityLogHttpRequest.includes(key),
-                properties: key => !plan.activityLogDroppedProperties.includes(key)
+                claims: key => claims.has(key.toLowerCase()),
+                httpRequest: key => httpRequest.has(key.toLowerCase()),
+                properties: key => !dropped.has(key.toLowerCase())
             };
             const slim = event => {
                 const out = {};

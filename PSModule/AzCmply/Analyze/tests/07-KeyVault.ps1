@@ -1,7 +1,5 @@
 #Key Vault and Managed HSM: deletion protection, access model, network exposure, key/secret/certificate lifecycle
 
-$vaultTypes = @('Microsoft.KeyVault/vaults', 'Microsoft.KeyVault/managedHSMs')
-
 function Get-VaultItems {
     #enabled keys or secrets of a vault, with their attributes
     param($Record, [ValidateSet('keys', 'secrets')][string]$Kind)
@@ -13,19 +11,27 @@ function Test-CertificateSecret {
     return ([string]$Secret.properties.contentType -in 'application/x-pkcs12', 'application/x-pem-file')
 }
 
+$vaultPrivateEndpoints = {
+    param($Record)
+    $approved = @($Record.resource.properties.privateEndpointConnections | Where-Object { $_ -and $_.properties.privateLinkServiceConnectionState.status -eq 'Approved' })
+    if ($approved) { return New-Pass "$($approved.Count) private endpoint(s)" ([ordered]@{ approvedPrivateEndpoints = $approved.Count }) }
+    New-Fail 'No private endpoint' ([ordered]@{ approvedPrivateEndpoints = 0 })
+}
+
 Add-AzTest @{
     Id            = 'AZ-KV-001'
+    Version       = 2
     Title         = 'Key vaults have soft delete and purge protection enabled'
     Category      = 'Data protection'
     Service       = 'Key Vault'
     Severity      = 'High'
-    Description   = 'Checks soft delete and purge protection on key vaults and managed HSMs.'
+    Description   = 'Checks soft delete and purge protection on key vaults. Managed HSMs are AZ-KV-012.'
     Rationale     = 'Without purge protection a deleted vault, key or secret can be permanently purged immediately, by mistake or by an attacker. Losing a key used for encryption at rest makes the data unrecoverable.'
     Remediation   = 'Enable purge protection (az keyvault update --enable-purge-protection true ...). It cannot be disabled afterwards.'
     References    = @('https://learn.microsoft.com/azure/key-vault/general/soft-delete-overview')
-    Defender      = @{ '4ed62ae4-5072-f9e7-8d94-51c76c48159a' = 'Key vaults should have deletion protection enabled'; '78211c00-15a9-336e-17c4-0b48613dadf4' = 'Key vaults should have soft delete enabled'; '7b4f60c5-48fd-b41c-9180-43783796f753' = 'Azure Key Vault Managed HSM should have purge protection enabled' }
-    Policy        = @{ '0b60c0b2-2dc2-4e1c-b5c9-abbed971de53' = 'Key vaults should have deletion protection enabled'; '1e66c121-a66a-4b1f-9b83-0fd99bf0fc2d' = 'Key vaults should have soft delete enabled'; 'c39ba22d-4428-4149-b981-70acb31fc383' = 'Azure Key Vault Managed HSM should have purge protection enabled' }
-    ResourceTypes = $vaultTypes
+    Defender      = @{ '4ed62ae4-5072-f9e7-8d94-51c76c48159a' = 'Key vaults should have deletion protection enabled'; '78211c00-15a9-336e-17c4-0b48613dadf4' = 'Key vaults should have soft delete enabled' }
+    Policy        = @{ '0b60c0b2-2dc2-4e1c-b5c9-abbed971de53' = 'Key vaults should have deletion protection enabled'; '1e66c121-a66a-4b1f-9b83-0fd99bf0fc2d' = 'Key vaults should have soft delete enabled' }
+    ResourceTypes = @('Microsoft.KeyVault/vaults')
     Evaluate      = {
         param($Record)
         $p = $Record.resource.properties
@@ -59,17 +65,18 @@ Add-AzTest @{
 
 Add-AzTest @{
     Id            = 'AZ-KV-003'
+    Version       = 2
     Title         = 'Key vaults disable public network access'
     Category      = 'Network security'
     Service       = 'Key Vault'
     Severity      = 'Medium'
-    Description   = 'Checks that public network access is disabled on key vaults and managed HSMs, so they are only reachable through private endpoints.'
+    Description   = 'Checks that public network access is disabled on key vaults, so they are only reachable through private endpoints. Managed HSMs are AZ-KV-013.'
     Rationale     = 'A public endpoint allows anyone with a stolen token or credential to reach the secrets from any network.'
     Remediation   = 'Create a private endpoint and set public network access to Disabled (az keyvault update --public-network-access Disabled ...).'
     References    = @('https://learn.microsoft.com/azure/key-vault/general/network-security')
     Defender      = @{ '52f7826a-ace7-3107-dd0d-4875853c1576' = 'Firewall should be enabled on Key Vault' }
-    Policy        = @{ '405c5871-3e91-4644-8a63-58e19d68ff5b' = 'Azure Key Vault should disable public network access'; '19ea9d63-adee-4431-a95e-1913c6c1c75f' = '[Preview]: Azure Key Vault Managed HSM should disable public network access' }
-    ResourceTypes = $vaultTypes
+    Policy        = @{ '405c5871-3e91-4644-8a63-58e19d68ff5b' = 'Azure Key Vault should disable public network access' }
+    ResourceTypes = @('Microsoft.KeyVault/vaults')
     Evaluate      = {
         param($Record)
         $p = $Record.resource.properties
@@ -82,26 +89,133 @@ Add-AzTest @{
 
 Add-AzTest @{
     Id            = 'AZ-KV-004'
+    Version       = 2
     Title         = 'Key vaults are accessed through private endpoints'
     Category      = 'Network security'
     Service       = 'Key Vault'
     Severity      = 'Low'
-    Description   = 'Checks key vaults and managed HSMs for at least one approved private endpoint connection.'
+    Description   = 'Checks key vaults for at least one approved private endpoint connection. Managed HSMs are AZ-KV-014.'
     Rationale     = 'Private endpoints keep secret retrieval on private networks and allow the public endpoint to be disabled.'
     Remediation   = 'Create a private endpoint for the vault with privatelink.vaultcore.azure.net DNS integration.'
     References    = @('https://learn.microsoft.com/azure/key-vault/general/private-link-service')
     Defender      = @{ 'f6b59724-4a05-aa38-33e2-25f15eecf00b' = 'Azure Key Vaults should use private link' }
-    Policy        = @{ 'a6abeaec-4d90-4a02-805f-6b26c4d3fbe9' = 'Azure Key Vaults should use private link'; '59fee2f4-d439-4f1b-9b9a-982e1474bfd8' = '[Preview]: Azure Key Vault Managed HSM should use private link' }
-    ResourceTypes = $vaultTypes
+    Policy        = @{ 'a6abeaec-4d90-4a02-805f-6b26c4d3fbe9' = 'Azure Key Vaults should use private link' }
+    ResourceTypes = @('Microsoft.KeyVault/vaults')
+    Evaluate      = $vaultPrivateEndpoints
+}
+
+Add-AzTest @{
+    Id            = 'AZ-KV-012'
+    Title         = 'Managed HSMs have purge protection enabled'
+    Category      = 'Data protection'
+    Service       = 'Key Vault'
+    Severity      = 'High'
+    Description   = 'Checks that purge protection is enabled on Managed HSMs.'
+    Rationale     = 'Without purge protection a Managed HSM Contributor can delete and then purge the HSM or its keys before the retention period ends, which destroys every key in it and the data they encrypt.'
+    Remediation   = 'Enable purge protection (az keyvault update-hsm --hsm-name <name> --enable-purge-protection true). It cannot be disabled afterwards.'
+    References    = @('https://learn.microsoft.com/azure/key-vault/managed-hsm/soft-delete-overview')
+    Defender      = @{ '7b4f60c5-48fd-b41c-9180-43783796f753' = 'Azure Key Vault Managed HSM should have purge protection enabled' }
+    Policy        = @{ 'c39ba22d-4428-4149-b981-70acb31fc383' = 'Azure Key Vault Managed HSM should have purge protection enabled' }
+    ResourceTypes = @('Microsoft.KeyVault/managedHSMs')
     Evaluate      = {
         param($Record)
-        $approved = @($Record.resource.properties.privateEndpointConnections | Where-Object { $_ -and $_.properties.privateLinkServiceConnectionState.status -eq 'Approved' })
-        if ($approved) { return New-Pass "$($approved.Count) private endpoint(s)" ([ordered]@{ approvedPrivateEndpoints = $approved.Count }) }
-        New-Fail 'No private endpoint' ([ordered]@{ approvedPrivateEndpoints = 0 })
+        $p = $Record.resource.properties
+        $evidence = [ordered]@{ enablePurgeProtection = $p.enablePurgeProtection; softDeleteRetentionInDays = $p.softDeleteRetentionInDays }
+        if ($p.enablePurgeProtection -eq $true) { return New-Pass 'Purge protection enabled' $evidence }
+        New-Fail 'Purge protection is not enabled' $evidence
     }
 }
 
-#CIS numbers expiry dates separately for RBAC and access policy vaults (keys 8.3.1 / 8.3.2, secrets 8.3.3 / 8.3.4),
+Add-AzTest @{
+    Id            = 'AZ-KV-013'
+    Title         = 'Managed HSMs disable public network access'
+    Category      = 'Network security'
+    Service       = 'Key Vault'
+    Severity      = 'Medium'
+    Description   = 'Checks that public network access is disabled on Managed HSMs, so they are only reachable through private endpoints and trusted Microsoft services.'
+    Rationale     = 'A public endpoint lets anyone with a stolen token reach the keys of the HSM from any network.'
+    Remediation   = 'Create a private endpoint and set public network access to Disabled (az keyvault update-hsm --hsm-name <name> --public-network-access Disabled).'
+    References    = @('https://learn.microsoft.com/azure/key-vault/managed-hsm/network-security')
+    Policy        = @{ '19ea9d63-adee-4431-a95e-1913c6c1c75f' = '[Preview]: Azure Key Vault Managed HSM should disable public network access' }
+    ResourceTypes = @('Microsoft.KeyVault/managedHSMs')
+    Evaluate      = {
+        param($Record)
+        $p = $Record.resource.properties
+        $evidence = [ordered]@{ publicNetworkAccess = $p.publicNetworkAccess; firewallDefaultAction = $p.networkAcls.defaultAction }
+        if ($p.publicNetworkAccess -eq 'Disabled') { return New-Pass 'Public network access disabled' $evidence }
+        New-Fail "Public network access is $(if ($p.publicNetworkAccess) { $p.publicNetworkAccess } else { 'not set' })" $evidence
+    }
+}
+
+Add-AzTest @{
+    Id            = 'AZ-KV-014'
+    Title         = 'Managed HSMs are accessed through private endpoints'
+    Category      = 'Network security'
+    Service       = 'Key Vault'
+    Severity      = 'Low'
+    Description   = 'Checks Managed HSMs for at least one approved private endpoint connection.'
+    Rationale     = 'Private endpoints keep key operations on private networks and allow the public endpoint to be disabled.'
+    Remediation   = 'Create a private endpoint for the HSM with privatelink.managedhsm.azure.net DNS integration.'
+    References    = @('https://learn.microsoft.com/azure/key-vault/managed-hsm/private-link')
+    Policy        = @{ '59fee2f4-d439-4f1b-9b9a-982e1474bfd8' = '[Preview]: Azure Key Vault Managed HSM should use private link' }
+    ResourceTypes = @('Microsoft.KeyVault/managedHSMs')
+    Evaluate      = $vaultPrivateEndpoints
+}
+
+Add-AzTest @{
+    Id            = 'AZ-KV-015'
+    Title         = 'Key vault firewalls deny access by default'
+    Category      = 'Network security'
+    Service       = 'Key Vault'
+    Severity      = 'Medium'
+    Description   = 'Checks that each key vault either has public network access disabled or a firewall with default action Deny. An empty default action allows all networks.'
+    Rationale     = 'With the default action Allow, the vault accepts requests from every network, so a stolen token works from anywhere.'
+    Remediation   = 'Set the firewall default action to Deny and allow only the required networks (az keyvault update --default-action Deny ...), or disable public network access.'
+    References    = @('https://learn.microsoft.com/azure/key-vault/general/network-security')
+    Policy        = @{ '55615ac9-af46-4a59-874e-391cc3dfb490' = 'Azure Key Vault should have firewall enabled or public network access disabled' }
+    ResourceTypes = @('Microsoft.KeyVault/vaults')
+    Evaluate      = {
+        param($Record)
+        $p = $Record.resource.properties
+        $evidence = [ordered]@{ publicNetworkAccess = $p.publicNetworkAccess; firewallDefaultAction = $p.networkAcls.defaultAction }
+        if ($p.publicNetworkAccess -eq 'Disabled') { return New-Pass 'Public network access disabled' $evidence }
+        if ($p.networkAcls.defaultAction -eq 'Deny') { return New-Pass 'Firewall denies by default' $evidence }
+        New-Fail 'The firewall allows all networks' $evidence
+    }
+}
+
+#key types that a hardware security module protects
+$hsmKeyTypes = @('RSA-HSM', 'EC-HSM', 'oct-HSM')
+
+Add-AzTest @{
+    Id          = 'AZ-KV-016'
+    Title       = 'Keys in Premium key vaults are HSM-protected'
+    Category    = 'Data protection'
+    Service     = 'Key Vault'
+    Severity    = 'Low'
+    Description = 'Checks that every enabled key in key vaults of the Premium tier has an HSM key type (RSA-HSM, EC-HSM or oct-HSM). Keys that back a certificate follow the key type of the certificate and are left out.'
+    Rationale   = 'A software-protected key is processed outside the HSM, so the reason for paying for the Premium tier, keys that never leave a FIPS 140-3 validated module, does not hold for it.'
+    Remediation = 'Create new HSM-protected versions of the keys (az keyvault key create --kty RSA-HSM ...), move the workloads to them and disable the software keys.'
+    References  = @('https://learn.microsoft.com/azure/key-vault/keys/about-keys')
+    Policy      = @{ '587c79fe-dd04-4a5e-9d0b-f89598c7261b' = 'Keys should be backed by a hardware security module (HSM)' }
+    Run         = {
+        foreach ($vault in @(Get-AzResourceRecords -Type 'Microsoft.KeyVault/vaults' | Where-Object { [string]$_.resource.properties.sku.name -eq 'premium' })) {
+            if (-not (Test-ChildCollected $vault 'keys')) { New-Finding -Record $vault -Result (New-Unknown 'Keys could not be listed'); continue }
+            #keys that back certificates share the name of the certificate secret
+            $certificates = @{}
+            if (Test-ChildCollected $vault 'secrets') { foreach ($secret in @(Get-Child $vault 'secrets' | Where-Object { $_ -and (Test-CertificateSecret $_) })) { $certificates[([string]$secret.name).ToLowerInvariant()] = $true } }
+            foreach ($key in (Get-VaultItems $vault 'keys')) {
+                if ($certificates.ContainsKey(([string]$key.name).ToLowerInvariant())) { continue }
+                $type = [string]$key.properties.kty
+                $evidence = [ordered]@{ vault = $vault.resource.name; keyType = $type }
+                $result = if ($type -in $hsmKeyTypes) { New-Pass "Key type $type" $evidence } elseif ($type) { New-Fail "Software-protected key type $type" $evidence } else { New-Unknown 'Key type not returned' $evidence }
+                New-Finding -ResourceId $key.id -ResourceType 'Microsoft.KeyVault/vaults/keys' -ResourceName "$($vault.resource.name)/$($key.name)" -Result $result
+            }
+        }
+    }
+}
+
+#CIS numbers expiry dates separately for RBAC and access policy vaults (keys 8.3.2 / 8.3.3, secrets 8.3.4 / 8.3.5),
 #so each permission model gets its own test and a control is never judged on vaults it does not cover
 $vaultExpiryTests = @(
     @{ Id = 'AZ-KV-005'; Item = 'keys'; Noun = 'key'; Rbac = $true }

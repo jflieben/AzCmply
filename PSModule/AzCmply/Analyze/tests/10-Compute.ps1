@@ -86,7 +86,8 @@ Add-AzTest @{
     Rationale     = 'Secure Boot and a virtual TPM protect against boot kits, rootkits and kernel level malware and enable boot integrity monitoring.'
     Remediation   = 'Enable Trusted Launch with Secure Boot and vTPM (existing Gen2 VMs can be upgraded in place: az vm update --security-type TrustedLaunch --enable-secure-boot true --enable-vtpm true ...).'
     References    = @('https://learn.microsoft.com/azure/virtual-machines/trusted-launch')
-    Policy        = @{ '97566dd7-78ae-4997-8b36-1c7bfe0d8121' = '[Preview]: Secure Boot should be enabled on supported Windows virtual machines'; '1c30f9cd-b84c-49cc-aa2c-9288447cc3b3' = '[Preview]: vTPM should be enabled on supported virtual machines' }
+    Defender      = @{ '69ad830b-d98c-b1cf-2158-9d69d38c7093' = 'Secure Boot should be enabled on supported Windows virtual machines'; '861bbc73-0a55-8d1d-efc6-e92d9e1176e0' = 'vTPM should be enabled on supported virtual machines' }
+    Policy        = @{ '97566dd7-78ae-4997-8b36-1c7bfe0d8121' = 'Secure Boot should be enabled on supported Windows virtual machines'; '1c30f9cd-b84c-49cc-aa2c-9288447cc3b3' = 'vTPM should be enabled on supported virtual machines'; 'c95b54ad-0614-4633-ab29-104b01235cbf' = 'Virtual Machine should have TrustedLaunch enabled' }
     ResourceTypes = @($vmType, $vmssType)
     Evaluate      = {
         param($Record)
@@ -287,11 +288,12 @@ Add-AzTest @{
 
 Add-AzTest @{
     Id            = 'AZ-VM-011'
+    Version       = 2
     Title         = 'Managed disks disable public network access'
     Category      = 'Network security'
     Service       = 'Managed disks'
     Severity      = 'Medium'
-    Description   = 'Checks the network access policy and public network access of managed disks, which control disk export and import over SAS URLs.'
+    Description   = 'Checks the network access policy and public network access of managed disks, which control disk export and import over SAS URLs: public network access has to be Disabled and the network access policy DenyAll or AllowPrivate.'
     Rationale     = "With 'AllowAll' anyone with Contributor rights can generate a SAS URL and download the whole disk (including credentials and data) from the Internet."
     Remediation   = 'Set the network access policy to DenyAll, or AllowPrivate with a disk access resource, and disable public network access (az disk update --network-access-policy DenyAll --public-network-access Disabled ...).'
     References    = @('https://learn.microsoft.com/azure/virtual-machines/disks-enable-private-links-for-import-export-portal')
@@ -302,7 +304,9 @@ Add-AzTest @{
         param($Record)
         $p = $Record.resource.properties
         $evidence = [ordered]@{ networkAccessPolicy = $p.networkAccessPolicy; publicNetworkAccess = $p.publicNetworkAccess }
-        if ($p.networkAccessPolicy -in 'DenyAll', 'AllowPrivate' -or $p.publicNetworkAccess -eq 'Disabled') { return New-Pass "Network access policy $($p.networkAccessPolicy)" $evidence }
+        $policyClosed = $p.networkAccessPolicy -in 'DenyAll', 'AllowPrivate'
+        if ($policyClosed -and $p.publicNetworkAccess -eq 'Disabled') { return New-Pass "Public network access disabled, network access policy $($p.networkAccessPolicy)" $evidence }
+        if ($policyClosed) { return New-Fail "Network access policy $($p.networkAccessPolicy), but public network access is not disabled" $evidence }
         New-Fail 'Disk export over the Internet is allowed' $evidence
     }
 }
@@ -328,6 +332,91 @@ Add-AzTest @{
     }
 }
 
+$customerKeyEncryptionTypes = @('EncryptionAtRestWithCustomerKey', 'EncryptionAtRestWithPlatformAndCustomerKeys')
+
+function Test-DiskCustomerKey {
+    #true when a managed disk is encrypted with a customer-managed key: server side encryption with a disk encryption set,
+    #or Azure Disk Encryption
+    param($Disk)
+    $p = $Disk.resource.properties
+    return ([string]$p.encryption.type -in $customerKeyEncryptionTypes) -or ($p.encryptionSettingsCollection.enabled -eq $true)
+}
+
+Add-AzTest @{
+    Id            = 'AZ-VM-018'
+    Title         = 'Virtual machine OS and data disks are encrypted with a customer-managed key'
+    Category      = 'Data protection'
+    Service       = 'Virtual machines'
+    Severity      = 'Low'
+    Description   = 'Checks the managed OS and data disks of virtual machines for server side encryption with a customer-managed key (disk encryption set) or Azure Disk Encryption. Ephemeral OS disks and unmanaged (VHD) disks are not evaluated.'
+    Rationale     = 'Platform-managed keys are controlled by Microsoft. With a customer-managed key you decide on rotation and can make the disks unreadable by disabling or deleting the key.'
+    Remediation   = 'Create a disk encryption set with a key in Key Vault or Managed HSM and assign it to the disks (deallocate the VM, then az disk update --encryption-type EncryptionAtRestWithCustomerKey --disk-encryption-set ...).'
+    References    = @('https://learn.microsoft.com/azure/virtual-machines/disk-encryption')
+    Policy        = @{ '702dd420-7fcc-42c5-afe8-4026edd20fe0' = 'OS and data disks should be encrypted with a customer-managed key' }
+    ResourceTypes = @($vmType)
+    Evaluate      = {
+        param($Record)
+        $storage = $Record.resource.properties.storageProfile
+        $diskIds = @()
+        if ($storage.osDisk.managedDisk.id -and [string]$storage.osDisk.diffDiskSettings.option -ne 'Local') { $diskIds += [string]$storage.osDisk.managedDisk.id }
+        $diskIds += @($storage.dataDisks | Where-Object { $_ -and $_.managedDisk.id } | ForEach-Object { [string]$_.managedDisk.id })
+        if (-not $diskIds) { return New-NotApplicable 'No managed disks' }
+        $platform = [System.Collections.Generic.List[string]]::new()
+        $unread = [System.Collections.Generic.List[string]]::new()
+        foreach ($diskId in $diskIds) {
+            $disk = Get-AzResourceRecord $diskId
+            $diskName = ($diskId -split '/')[-1]
+            if (-not $disk) { $unread.Add($diskName); continue }
+            if (-not (Test-DiskCustomerKey $disk)) { $platform.Add("$diskName ($(if ($disk.resource.properties.encryption.type) { $disk.resource.properties.encryption.type } else { 'no encryption type' }))") }
+        }
+        $evidence = [ordered]@{ disks = @($diskIds | ForEach-Object { ($_ -split '/')[-1] } | Sort-Object); platformKey = @($platform | Sort-Object); notRead = @($unread | Sort-Object) }
+        if ($platform.Count) { return New-Fail "Not encrypted with a customer-managed key: $($evidence.platformKey -join ', ')" $evidence }
+        if ($unread.Count) { return New-Unknown "Disk(s) not read: $($evidence.notRead -join ', ')" $evidence }
+        New-Pass "$($diskIds.Count) disk(s) encrypted with a customer-managed key" $evidence
+    }
+}
+
+Add-AzTest @{
+    Id            = 'AZ-VM-019'
+    Title         = 'Unattached managed disks are encrypted with a customer-managed key'
+    Category      = 'Data protection'
+    Service       = 'Managed disks'
+    Severity      = 'Low'
+    Description   = 'Checks the encryption type of managed disks that are not attached to a virtual machine (diskState Unattached) for a customer-managed key. Removing unattached disks is AZ-GOV-006.'
+    Rationale     = 'An unattached disk still holds the data of the machine it came from, and anyone who can attach or export it can read it. A customer-managed key lets you make it unreadable by disabling the key.'
+    Remediation   = 'Assign a disk encryption set with a customer-managed key (az disk update --encryption-type EncryptionAtRestWithCustomerKey --disk-encryption-set ...), or delete the disk when it is no longer needed.'
+    References    = @('https://learn.microsoft.com/azure/virtual-machines/disk-encryption')
+    ResourceTypes = @('Microsoft.Compute/disks')
+    Filter        = { param($Record) [string]$Record.resource.properties.diskState -eq 'Unattached' }
+    Evaluate      = {
+        param($Record)
+        $type = [string]$Record.resource.properties.encryption.type
+        $evidence = [ordered]@{ encryptionType = $type; diskEncryptionSet = $Record.resource.properties.encryption.diskEncryptionSetId }
+        if ($type -in $customerKeyEncryptionTypes) { return New-Pass "Encrypted with a customer-managed key ($type)" $evidence }
+        New-Fail "Not encrypted with a customer-managed key ($(if ($type) { $type } else { 'no encryption type' }))" $evidence
+    }
+}
+
+Add-AzTest @{
+    Id            = 'AZ-VM-020'
+    Title         = 'Managed disks require Microsoft Entra authentication for export and upload'
+    Category      = 'Identity management'
+    Service       = 'Managed disks'
+    Severity      = 'Medium'
+    Description   = 'Checks that the data access authentication mode of managed disks is AzureActiveDirectory.'
+    Rationale     = 'Without it, anyone who has the SAS URL of an export or upload can download or overwrite the disk. With it, the caller also needs a Microsoft Entra identity with data access rights on the disk.'
+    Remediation   = "Enable 'Data Access Authentication Mode' on the disk (az disk update --data-access-auth-mode AzureActiveDirectory ...)."
+    References    = @('https://learn.microsoft.com/azure/virtual-machines/windows/download-vhd#secure-downloads-and-uploads-with-microsoft-entra-id')
+    Policy        = @{ 'c3921d55-b741-4d16-8d56-7f16e99e6892' = 'Protect your data with authentication requirements when exporting or uploading to a disk or snapshot.' }
+    ResourceTypes = @('Microsoft.Compute/disks')
+    Evaluate      = {
+        param($Record)
+        $mode = [string]$Record.resource.properties.dataAccessAuthMode
+        $evidence = [ordered]@{ dataAccessAuthMode = $mode }
+        if ($mode -eq 'AzureActiveDirectory') { return New-Pass 'Export and upload require Microsoft Entra authentication' $evidence }
+        New-Fail 'A SAS URL alone is enough to export or upload the disk' $evidence
+    }
+}
 $dataCollectionRuleAssociationsPath = 'providers/Microsoft.Insights/dataCollectionRuleAssociations'
 
 Add-AzTest @{
@@ -713,6 +802,7 @@ function Get-DomainControllerProtection {
         foreach ($instance in @(Get-IngestData 'rbac/roleAssignmentScheduleInstances' | Where-Object { $_ -and $_.properties.originRoleAssignmentId })) { $instances[([string]$instance.properties.originRoleAssignmentId).ToLowerInvariant()] = $instance }
     }
 
+    $policyIdentities = Get-PolicyAssignmentIdentities
     $takeover = [System.Collections.Generic.List[string]]::new()
     $shared = [System.Collections.Generic.List[string]]::new()
     $workload = [System.Collections.Generic.List[string]]::new()
@@ -727,7 +817,7 @@ function Get-DomainControllerProtection {
         $label = "$($definition.properties.roleName) for $(Get-PrincipalLabel $a.principalId) on $(Get-ScopeLabel $a.scope)"
         $takeover.Add("$label ($($candidate.Kind))")
         if ($a.principalType -eq 'ServicePrincipal') {
-            $workload.Add($label)
+            if (-not $policyIdentities.ContainsKey(([string]$a.principalId).ToLowerInvariant())) { $workload.Add($label) }
         } elseif ($a.principalType -eq 'Group') {
             if (Test-GroupMembersComplete $a.principalId) {
                 foreach ($member in @(Get-GroupMembers $a.principalId | Where-Object { (Get-DirectoryObjectType $_) -eq '#microsoft.graph.servicePrincipal' })) { $workload.Add("$label, through $($member.displayName)") }
@@ -772,14 +862,14 @@ function Get-DomainControllerProtection {
 }
 
 $dcDetection = 'A Windows virtual machine is a likely domain controller with an AD DS promotion or two of these signals, a possible one with one: its private address is the DNS server of a virtual network, network interface, Azure Firewall or DNS forwarding rule; a network security group rule allows Kerberos (88, 464), the global catalog (3268, 3269) or AD Web Services (9389) to it; its userData, custom data or extension settings promote it (Install-ADDSForest, CreateADPDC); its name is one (DC01, vm-dc-02).'
-$dcProtection = 'Tier 0 protection: no role that can take the machine over (run command, extensions, changing the machine, disk export, snapshots, restore from its backup vault, or assigning roles) is delegated on a subscription or resource group that also holds other workloads, held by a service principal or managed identity (also through a group), or held permanently by a user or group instead of through PIM. Roles that assign roles are Tier 0 administration of their scope and do not count as delegated; management group and root roles count for the last two checks.'
+$dcProtection = 'Tier 0 protection: no role that can take the machine over (run command, extensions, changing the machine, disk export, snapshots, restore from its backup vault, or assigning roles) is delegated on a subscription or resource group that also holds other workloads, held by a service principal or managed identity (also through a group; the system assigned identity of a policy assignment, which only Azure Policy uses, does not count), or held permanently by a user or group instead of through PIM. Roles that assign roles are Tier 0 administration of their scope and do not count as delegated; management group and root roles count for the last two checks.'
 $dcRationale = 'A domain controller holds the password hashes of every account in the domain. Anyone who can run commands on it, install an extension, change it, copy its disks or restore its backup through Azure controls the domain: Virtual Machine Contributor on a domain controller amounts to Domain Admin. Those rights have to stay with Tier 0 administrators, not with the administrators of other workloads in the same subscription or resource group, not with pipelines and automation that cannot use MFA, and not permanently available to an account that is phished.'
 $dcRemediation = 'Place domain controllers in a subscription or resource group of their own (the identity landing zone) and remove the delegated roles other teams hold there. Grant the remaining roles through PIM eligibility to role-assignable groups, remove workload identities, and alert on run command (AZ-LOG-029).'
 $dcReferences = @('https://learn.microsoft.com/azure/architecture/example-scenario/identity/adds-extend-domain', 'https://learn.microsoft.com/security/privileged-access-workstations/privileged-access-access-model')
 
 Add-AzTest @{
     Id            = 'AZ-VM-015'
-    Version       = 2
+    Version       = 3
     Title         = 'No virtual machine acts as a domain controller without Tier 0 protection'
     Category      = 'Privileged access'
     Service       = 'Virtual machines'
@@ -788,7 +878,7 @@ Add-AzTest @{
     Rationale     = $dcRationale
     Remediation   = $dcRemediation
     References    = $dcReferences
-    Requires      = @('rbac/roleAssignments', 'rbac/roleDefinitions', 'subscription/resources')
+    Requires      = @('rbac/roleAssignments', 'rbac/roleDefinitions', 'subscription/resources', 'policy/policyAssignments')
     ResourceTypes = @($vmType)
     Filter        = { param($Record) (Get-MachineOsType $Record) -eq 'Windows' }
     Evaluate      = {
@@ -801,7 +891,7 @@ Add-AzTest @{
 
 Add-AzTest @{
     Id            = 'AZ-VM-016'
-    Version       = 2
+    Version       = 3
     Title         = 'No virtual machine that may be a domain controller runs without Tier 0 protection'
     Category      = 'Privileged access'
     Service       = 'Virtual machines'
@@ -810,7 +900,7 @@ Add-AzTest @{
     Rationale     = "$dcRationale One signal is not proof: confirm whether the machine is a domain controller."
     Remediation   = "Confirm whether the machine is a domain controller. If it is: $dcRemediation"
     References    = $dcReferences
-    Requires      = @('rbac/roleAssignments', 'rbac/roleDefinitions', 'subscription/resources')
+    Requires      = @('rbac/roleAssignments', 'rbac/roleDefinitions', 'subscription/resources', 'policy/policyAssignments')
     ResourceTypes = @($vmType)
     Filter        = { param($Record) (Get-MachineOsType $Record) -eq 'Windows' }
     Evaluate      = {

@@ -3,387 +3,511 @@ import { R } from "../../../../js/runtime/index.js";
 const F = R.file("Analyze/tests/07-KeyVault.ps1");
 export default R.script("/app/Analyze/tests/07-KeyVault.ps1", { params: [], adv: 0 }, (S, O) => {
     R.ln = F + 3;
-    S["vaulttypes"] = R.a([R.v("Microsoft.KeyVault/vaults"), R.v("Microsoft.KeyVault/managedHSMs")]);
-    R.ln = F + 5;
     R.def(S, "Get-VaultItems", { params: [{ n: "Record", t: null, pos: null }, { n: "Kind", t: "string", pos: null, vs: ["keys", "secrets"] }], adv: 0, h: "631e863d27e4a118" }, (S, O) => {
-        R.ln = F + 8;
+        R.ln = F + 6;
         R.e(O, R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.properties.attributes.enabled -ne $false " }, (S, O) => {
-            R.ln = F + 8;
+            R.ln = F + 6;
             R.e(O, (R.t((S["_"] ?? null)) && R.t(R.ne(R.m(R.m(R.m((S["_"] ?? null), "properties"), "attributes"), "enabled"), false))));
         })], R.cmd(S, "Get-Child", [(S["record"] ?? null), (S["kind"] ?? null)], null)));
     });
-    R.ln = F + 11;
+    R.ln = F + 9;
     R.def(S, "Test-CertificateSecret", { params: [{ n: "Secret", t: null, pos: null }], adv: 0, h: "d3a890ad36ccb8be" }, (S, O) => {
-        R.ln = F + 13;
+        R.ln = F + 11;
         R.e(O, (R.in(R.c("string", R.m(R.m((S["secret"] ?? null), "properties"), "contentType")), [R.v("application/x-pkcs12"), R.v("application/x-pem-file")])));
         return;
     });
-    R.ln = F + 16;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-KV-001", "Title", "Key vaults have soft delete and purge protection enabled", "Category", "Data protection", "Service", "Key Vault", "Severity", "High", "Description", "Checks soft delete and purge protection on key vaults and managed HSMs.", "Rationale", "Without purge protection a deleted vault, key or secret can be permanently purged immediately, by mistake or by an attacker. Losing a key used for encryption at rest makes the data unrecoverable.", "Remediation", "Enable purge protection (az keyvault update --enable-purge-protection true ...). It cannot be disabled afterwards.", "References", R.a("https://learn.microsoft.com/azure/key-vault/general/soft-delete-overview"), "Defender", R.ht(["4ed62ae4-5072-f9e7-8d94-51c76c48159a", "Key vaults should have deletion protection enabled", "78211c00-15a9-336e-17c4-0b48613dadf4", "Key vaults should have soft delete enabled", "7b4f60c5-48fd-b41c-9180-43783796f753", "Azure Key Vault Managed HSM should have purge protection enabled"], false), "Policy", R.ht(["0b60c0b2-2dc2-4e1c-b5c9-abbed971de53", "Key vaults should have deletion protection enabled", "1e66c121-a66a-4b1f-9b83-0fd99bf0fc2d", "Key vaults should have soft delete enabled", "c39ba22d-4428-4149-b981-70acb31fc383", "Azure Key Vault Managed HSM should have purge protection enabled"], false), "ResourceTypes", (S["vaulttypes"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $p = $Record.resource.properties\n        $evidence = [ordered]@{ enableSoftDelete = $p.enableSoftDelete; enablePurgeProtection = $p.enablePurgeProtection; softDeleteRetentionInDays = $p.softDeleteRetentionInDays }\n        if ($p.enableSoftDelete -eq $false) { return New-Fail 'Soft delete is disabled' $evidence }\n        if ($p.enablePurgeProtection -eq $true) { return New-Pass 'Soft delete and purge protection enabled' $evidence }\n        New-Fail 'Purge protection is not enabled' $evidence\n    " }, (S, O) => {
-        R.ln = F + 31;
-        S["p"] = R.m(R.m((S["record"] ?? null), "resource"), "properties");
-        R.ln = F + 32;
-        S["evidence"] = R.ht(["enableSoftDelete", R.m((S["p"] ?? null), "enableSoftDelete"), "enablePurgeProtection", R.m((S["p"] ?? null), "enablePurgeProtection"), "softDeleteRetentionInDays", R.m((S["p"] ?? null), "softDeleteRetentionInDays")], true);
-        R.ln = F + 33;
-        if (R.t(R.eq(R.m((S["p"] ?? null), "enableSoftDelete"), false))) {
-            R.ln = F + 33;
-            R.pa(O, R.cmd(S, "New-Fail", ["Soft delete is disabled", (S["evidence"] ?? null)], null));
-            return;
-        }
-        R.ln = F + 34;
-        if (R.t(R.eq(R.m((S["p"] ?? null), "enablePurgeProtection"), true))) {
-            R.ln = F + 34;
-            R.pa(O, R.cmd(S, "New-Pass", ["Soft delete and purge protection enabled", (S["evidence"] ?? null)], null));
-            return;
-        }
-        R.ln = F + 35;
-        R.pa(O, R.cmd(S, "New-Fail", ["Purge protection is not enabled", (S["evidence"] ?? null)], null));
-    })], false)], null));
-    R.ln = F + 39;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-KV-002", "Title", "Key vaults use the Azure RBAC permission model", "Category", "Privileged access", "Service", "Key Vault", "Severity", "Medium", "Description", "Checks that key vaults use Azure RBAC for data plane authorization instead of vault access policies.", "Rationale", "Access policies cannot be scoped to individual keys or secrets, are not covered by PIM or deny assignments, and anyone with Contributor on the vault can grant themselves access. RBAC is the default from API version 2026-02-01.", "Remediation", "Recreate the access policy permissions as Key Vault RBAC role assignments, then switch the permission model to Azure RBAC (az keyvault update --enable-rbac-authorization true ...).", "References", R.a("https://learn.microsoft.com/azure/key-vault/general/rbac-migration"), "Policy", R.ht(["12d4fa5e-1f9f-4c21-97a9-b99b3c6611b5", "Azure Key Vault should use RBAC permission model"], false), "ResourceTypes", R.a("Microsoft.KeyVault/vaults"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $p = $Record.resource.properties\n        $evidence = [ordered]@{ enableRbacAuthorization = $p.enableRbacAuthorization; accessPolicies = @($p.accessPolicies).Count }\n        if ($p.enableRbacAuthorization -eq $true) { return New-Pass 'Azure RBAC permission model' $evidence }\n        New-Fail 'Vault access policy permission model' $evidence\n    " }, (S, O) => {
-        R.ln = F + 53;
-        S["p"] = R.m(R.m((S["record"] ?? null), "resource"), "properties");
-        R.ln = F + 54;
-        S["evidence"] = R.ht(["enableRbacAuthorization", R.m((S["p"] ?? null), "enableRbacAuthorization"), "accessPolicies", R.m(R.a(R.m((S["p"] ?? null), "accessPolicies")), "Count")], true);
-        R.ln = F + 55;
-        if (R.t(R.eq(R.m((S["p"] ?? null), "enableRbacAuthorization"), true))) {
-            R.ln = F + 55;
-            R.pa(O, R.cmd(S, "New-Pass", ["Azure RBAC permission model", (S["evidence"] ?? null)], null));
-            return;
-        }
-        R.ln = F + 56;
-        R.pa(O, R.cmd(S, "New-Fail", ["Vault access policy permission model", (S["evidence"] ?? null)], null));
-    })], false)], null));
-    R.ln = F + 60;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-KV-003", "Title", "Key vaults disable public network access", "Category", "Network security", "Service", "Key Vault", "Severity", "Medium", "Description", "Checks that public network access is disabled on key vaults and managed HSMs, so they are only reachable through private endpoints.", "Rationale", "A public endpoint allows anyone with a stolen token or credential to reach the secrets from any network.", "Remediation", "Create a private endpoint and set public network access to Disabled (az keyvault update --public-network-access Disabled ...).", "References", R.a("https://learn.microsoft.com/azure/key-vault/general/network-security"), "Defender", R.ht(["52f7826a-ace7-3107-dd0d-4875853c1576", "Firewall should be enabled on Key Vault"], false), "Policy", R.ht(["405c5871-3e91-4644-8a63-58e19d68ff5b", "Azure Key Vault should disable public network access", "19ea9d63-adee-4431-a95e-1913c6c1c75f", "[Preview]: Azure Key Vault Managed HSM should disable public network access"], false), "ResourceTypes", (S["vaulttypes"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $p = $Record.resource.properties\n        $evidence = [ordered]@{ publicNetworkAccess = $p.publicNetworkAccess; firewallDefaultAction = $p.networkAcls.defaultAction }\n        if ($p.publicNetworkAccess -eq 'Disabled') { return New-Pass 'Public network access disabled' $evidence }\n        if ($p.networkAcls.defaultAction -eq 'Deny') { return New-Fail 'Public endpoint enabled, restricted by the firewall' $evidence }\n        New-Fail 'Public endpoint enabled and open to all networks' $evidence\n    " }, (S, O) => {
-        R.ln = F + 75;
-        S["p"] = R.m(R.m((S["record"] ?? null), "resource"), "properties");
-        R.ln = F + 76;
-        S["evidence"] = R.ht(["publicNetworkAccess", R.m((S["p"] ?? null), "publicNetworkAccess"), "firewallDefaultAction", R.m(R.m((S["p"] ?? null), "networkAcls"), "defaultAction")], true);
-        R.ln = F + 77;
-        if (R.t(R.eq(R.m((S["p"] ?? null), "publicNetworkAccess"), "Disabled"))) {
-            R.ln = F + 77;
-            R.pa(O, R.cmd(S, "New-Pass", ["Public network access disabled", (S["evidence"] ?? null)], null));
-            return;
-        }
-        R.ln = F + 78;
-        if (R.t(R.eq(R.m(R.m((S["p"] ?? null), "networkAcls"), "defaultAction"), "Deny"))) {
-            R.ln = F + 78;
-            R.pa(O, R.cmd(S, "New-Fail", ["Public endpoint enabled, restricted by the firewall", (S["evidence"] ?? null)], null));
-            return;
-        }
-        R.ln = F + 79;
-        R.pa(O, R.cmd(S, "New-Fail", ["Public endpoint enabled and open to all networks", (S["evidence"] ?? null)], null));
-    })], false)], null));
-    R.ln = F + 83;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-KV-004", "Title", "Key vaults are accessed through private endpoints", "Category", "Network security", "Service", "Key Vault", "Severity", "Low", "Description", "Checks key vaults and managed HSMs for at least one approved private endpoint connection.", "Rationale", "Private endpoints keep secret retrieval on private networks and allow the public endpoint to be disabled.", "Remediation", "Create a private endpoint for the vault with privatelink.vaultcore.azure.net DNS integration.", "References", R.a("https://learn.microsoft.com/azure/key-vault/general/private-link-service"), "Defender", R.ht(["f6b59724-4a05-aa38-33e2-25f15eecf00b", "Azure Key Vaults should use private link"], false), "Policy", R.ht(["a6abeaec-4d90-4a02-805f-6b26c4d3fbe9", "Azure Key Vaults should use private link", "59fee2f4-d439-4f1b-9b9a-982e1474bfd8", "[Preview]: Azure Key Vault Managed HSM should use private link"], false), "ResourceTypes", (S["vaulttypes"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $approved = @($Record.resource.properties.privateEndpointConnections | Where-Object { $_ -and $_.properties.privateLinkServiceConnectionState.status -eq 'Approved' })\n        if ($approved) { return New-Pass \"$($approved.Count) private endpoint(s)\" ([ordered]@{ approvedPrivateEndpoints = $approved.Count }) }\n        New-Fail 'No private endpoint' ([ordered]@{ approvedPrivateEndpoints = 0 })\n    " }, (S, O) => {
-        R.ln = F + 98;
+    R.ln = F + 14;
+    S["vaultprivateendpoints"] = R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n    param($Record)\n    $approved = @($Record.resource.properties.privateEndpointConnections | Where-Object { $_ -and $_.properties.privateLinkServiceConnectionState.status -eq 'Approved' })\n    if ($approved) { return New-Pass \"$($approved.Count) private endpoint(s)\" ([ordered]@{ approvedPrivateEndpoints = $approved.Count }) }\n    New-Fail 'No private endpoint' ([ordered]@{ approvedPrivateEndpoints = 0 })\n" }, (S, O) => {
+        R.ln = F + 16;
         S["approved"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.properties.privateLinkServiceConnectionState.status -eq 'Approved' " }, (S, O) => {
-            R.ln = F + 98;
+            R.ln = F + 16;
             R.e(O, (R.t((S["_"] ?? null)) && R.t(R.eq(R.m(R.m(R.m((S["_"] ?? null), "properties"), "privateLinkServiceConnectionState"), "status"), "Approved"))));
         })], R.pi(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "privateEndpointConnections")));
-        R.ln = F + 99;
+        R.ln = F + 17;
         if (R.t((S["approved"] ?? null))) {
-            R.ln = F + 99;
+            R.ln = F + 17;
             R.pa(O, R.cmd(S, "New-Pass", [("" + R.str(R.u(R.pi(R.m((S["approved"] ?? null), "Count")))) + " private endpoint(s)"), (R.ht(["approvedPrivateEndpoints", R.m((S["approved"] ?? null), "Count")], true))], null));
             return;
         }
-        R.ln = F + 100;
+        R.ln = F + 18;
         R.pa(O, R.cmd(S, "New-Fail", ["No private endpoint", (R.ht(["approvedPrivateEndpoints", 0], true))], null));
-    })], false)], null));
-    R.ln = F + 106;
-    S["vaultexpirytests"] = (() => {
-        const v1 = [];
-        R.ln = F + 107;
-        R.e(v1, R.ht(["Id", "AZ-KV-005", "Item", "keys", "Noun", "key", "Rbac", true], false));
-        R.ln = F + 108;
-        R.e(v1, R.ht(["Id", "AZ-KV-010", "Item", "keys", "Noun", "key", "Rbac", false], false));
-        R.ln = F + 109;
-        R.e(v1, R.ht(["Id", "AZ-KV-006", "Item", "secrets", "Noun", "secret", "Rbac", true], false));
-        R.ln = F + 110;
-        R.e(v1, R.ht(["Id", "AZ-KV-011", "Item", "secrets", "Noun", "secret", "Rbac", false], false));
-        return v1;
-    })();
-    R.ln = F + 113;
-    for (const it2 of R.fi((S["vaultexpirytests"] ?? null))) {
-        S["expiry"] = it2;
-        R.ln = F + 114;
-        const v3 = [];
-        R.ln = F + 114;
-        if (R.t(R.m((S["expiry"] ?? null), "Rbac"))) {
-            R.ln = F + 114;
-            R.e(v3, "RBAC");
-        } else {
-            R.ln = F + 114;
-            R.e(v3, "access policy");
+    });
+    R.ln = F + 21;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-KV-001", "Version", 2, "Title", "Key vaults have soft delete and purge protection enabled", "Category", "Data protection", "Service", "Key Vault", "Severity", "High", "Description", "Checks soft delete and purge protection on key vaults. Managed HSMs are AZ-KV-012.", "Rationale", "Without purge protection a deleted vault, key or secret can be permanently purged immediately, by mistake or by an attacker. Losing a key used for encryption at rest makes the data unrecoverable.", "Remediation", "Enable purge protection (az keyvault update --enable-purge-protection true ...). It cannot be disabled afterwards.", "References", R.a("https://learn.microsoft.com/azure/key-vault/general/soft-delete-overview"), "Defender", R.ht(["4ed62ae4-5072-f9e7-8d94-51c76c48159a", "Key vaults should have deletion protection enabled", "78211c00-15a9-336e-17c4-0b48613dadf4", "Key vaults should have soft delete enabled"], false), "Policy", R.ht(["0b60c0b2-2dc2-4e1c-b5c9-abbed971de53", "Key vaults should have deletion protection enabled", "1e66c121-a66a-4b1f-9b83-0fd99bf0fc2d", "Key vaults should have soft delete enabled"], false), "ResourceTypes", R.a("Microsoft.KeyVault/vaults"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $p = $Record.resource.properties\n        $evidence = [ordered]@{ enableSoftDelete = $p.enableSoftDelete; enablePurgeProtection = $p.enablePurgeProtection; softDeleteRetentionInDays = $p.softDeleteRetentionInDays }\n        if ($p.enableSoftDelete -eq $false) { return New-Fail 'Soft delete is disabled' $evidence }\n        if ($p.enablePurgeProtection -eq $true) { return New-Pass 'Soft delete and purge protection enabled' $evidence }\n        New-Fail 'Purge protection is not enabled' $evidence\n    " }, (S, O) => {
+        R.ln = F + 37;
+        S["p"] = R.m(R.m((S["record"] ?? null), "resource"), "properties");
+        R.ln = F + 38;
+        S["evidence"] = R.ht(["enableSoftDelete", R.m((S["p"] ?? null), "enableSoftDelete"), "enablePurgeProtection", R.m((S["p"] ?? null), "enablePurgeProtection"), "softDeleteRetentionInDays", R.m((S["p"] ?? null), "softDeleteRetentionInDays")], true);
+        R.ln = F + 39;
+        if (R.t(R.eq(R.m((S["p"] ?? null), "enableSoftDelete"), false))) {
+            R.ln = F + 39;
+            R.pa(O, R.cmd(S, "New-Fail", ["Soft delete is disabled", (S["evidence"] ?? null)], null));
+            return;
         }
-        S["model"] = R.u(v3);
-        R.ln = F + 115;
+        R.ln = F + 40;
+        if (R.t(R.eq(R.m((S["p"] ?? null), "enablePurgeProtection"), true))) {
+            R.ln = F + 40;
+            R.pa(O, R.cmd(S, "New-Pass", ["Soft delete and purge protection enabled", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 41;
+        R.pa(O, R.cmd(S, "New-Fail", ["Purge protection is not enabled", (S["evidence"] ?? null)], null));
+    })], false)], null));
+    R.ln = F + 45;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-KV-002", "Title", "Key vaults use the Azure RBAC permission model", "Category", "Privileged access", "Service", "Key Vault", "Severity", "Medium", "Description", "Checks that key vaults use Azure RBAC for data plane authorization instead of vault access policies.", "Rationale", "Access policies cannot be scoped to individual keys or secrets, are not covered by PIM or deny assignments, and anyone with Contributor on the vault can grant themselves access. RBAC is the default from API version 2026-02-01.", "Remediation", "Recreate the access policy permissions as Key Vault RBAC role assignments, then switch the permission model to Azure RBAC (az keyvault update --enable-rbac-authorization true ...).", "References", R.a("https://learn.microsoft.com/azure/key-vault/general/rbac-migration"), "Policy", R.ht(["12d4fa5e-1f9f-4c21-97a9-b99b3c6611b5", "Azure Key Vault should use RBAC permission model"], false), "ResourceTypes", R.a("Microsoft.KeyVault/vaults"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $p = $Record.resource.properties\n        $evidence = [ordered]@{ enableRbacAuthorization = $p.enableRbacAuthorization; accessPolicies = @($p.accessPolicies).Count }\n        if ($p.enableRbacAuthorization -eq $true) { return New-Pass 'Azure RBAC permission model' $evidence }\n        New-Fail 'Vault access policy permission model' $evidence\n    " }, (S, O) => {
+        R.ln = F + 59;
+        S["p"] = R.m(R.m((S["record"] ?? null), "resource"), "properties");
+        R.ln = F + 60;
+        S["evidence"] = R.ht(["enableRbacAuthorization", R.m((S["p"] ?? null), "enableRbacAuthorization"), "accessPolicies", R.m(R.a(R.m((S["p"] ?? null), "accessPolicies")), "Count")], true);
+        R.ln = F + 61;
+        if (R.t(R.eq(R.m((S["p"] ?? null), "enableRbacAuthorization"), true))) {
+            R.ln = F + 61;
+            R.pa(O, R.cmd(S, "New-Pass", ["Azure RBAC permission model", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 62;
+        R.pa(O, R.cmd(S, "New-Fail", ["Vault access policy permission model", (S["evidence"] ?? null)], null));
+    })], false)], null));
+    R.ln = F + 66;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-KV-003", "Version", 2, "Title", "Key vaults disable public network access", "Category", "Network security", "Service", "Key Vault", "Severity", "Medium", "Description", "Checks that public network access is disabled on key vaults, so they are only reachable through private endpoints. Managed HSMs are AZ-KV-013.", "Rationale", "A public endpoint allows anyone with a stolen token or credential to reach the secrets from any network.", "Remediation", "Create a private endpoint and set public network access to Disabled (az keyvault update --public-network-access Disabled ...).", "References", R.a("https://learn.microsoft.com/azure/key-vault/general/network-security"), "Defender", R.ht(["52f7826a-ace7-3107-dd0d-4875853c1576", "Firewall should be enabled on Key Vault"], false), "Policy", R.ht(["405c5871-3e91-4644-8a63-58e19d68ff5b", "Azure Key Vault should disable public network access"], false), "ResourceTypes", R.a("Microsoft.KeyVault/vaults"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $p = $Record.resource.properties\n        $evidence = [ordered]@{ publicNetworkAccess = $p.publicNetworkAccess; firewallDefaultAction = $p.networkAcls.defaultAction }\n        if ($p.publicNetworkAccess -eq 'Disabled') { return New-Pass 'Public network access disabled' $evidence }\n        if ($p.networkAcls.defaultAction -eq 'Deny') { return New-Fail 'Public endpoint enabled, restricted by the firewall' $evidence }\n        New-Fail 'Public endpoint enabled and open to all networks' $evidence\n    " }, (S, O) => {
+        R.ln = F + 82;
+        S["p"] = R.m(R.m((S["record"] ?? null), "resource"), "properties");
+        R.ln = F + 83;
+        S["evidence"] = R.ht(["publicNetworkAccess", R.m((S["p"] ?? null), "publicNetworkAccess"), "firewallDefaultAction", R.m(R.m((S["p"] ?? null), "networkAcls"), "defaultAction")], true);
+        R.ln = F + 84;
+        if (R.t(R.eq(R.m((S["p"] ?? null), "publicNetworkAccess"), "Disabled"))) {
+            R.ln = F + 84;
+            R.pa(O, R.cmd(S, "New-Pass", ["Public network access disabled", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 85;
+        if (R.t(R.eq(R.m(R.m((S["p"] ?? null), "networkAcls"), "defaultAction"), "Deny"))) {
+            R.ln = F + 85;
+            R.pa(O, R.cmd(S, "New-Fail", ["Public endpoint enabled, restricted by the firewall", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 86;
+        R.pa(O, R.cmd(S, "New-Fail", ["Public endpoint enabled and open to all networks", (S["evidence"] ?? null)], null));
+    })], false)], null));
+    R.ln = F + 90;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-KV-004", "Version", 2, "Title", "Key vaults are accessed through private endpoints", "Category", "Network security", "Service", "Key Vault", "Severity", "Low", "Description", "Checks key vaults for at least one approved private endpoint connection. Managed HSMs are AZ-KV-014.", "Rationale", "Private endpoints keep secret retrieval on private networks and allow the public endpoint to be disabled.", "Remediation", "Create a private endpoint for the vault with privatelink.vaultcore.azure.net DNS integration.", "References", R.a("https://learn.microsoft.com/azure/key-vault/general/private-link-service"), "Defender", R.ht(["f6b59724-4a05-aa38-33e2-25f15eecf00b", "Azure Key Vaults should use private link"], false), "Policy", R.ht(["a6abeaec-4d90-4a02-805f-6b26c4d3fbe9", "Azure Key Vaults should use private link"], false), "ResourceTypes", R.a("Microsoft.KeyVault/vaults"), "Evaluate", (S["vaultprivateendpoints"] ?? null)], false)], null));
+    R.ln = F + 107;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-KV-012", "Title", "Managed HSMs have purge protection enabled", "Category", "Data protection", "Service", "Key Vault", "Severity", "High", "Description", "Checks that purge protection is enabled on Managed HSMs.", "Rationale", "Without purge protection a Managed HSM Contributor can delete and then purge the HSM or its keys before the retention period ends, which destroys every key in it and the data they encrypt.", "Remediation", "Enable purge protection (az keyvault update-hsm --hsm-name <name> --enable-purge-protection true). It cannot be disabled afterwards.", "References", R.a("https://learn.microsoft.com/azure/key-vault/managed-hsm/soft-delete-overview"), "Defender", R.ht(["7b4f60c5-48fd-b41c-9180-43783796f753", "Azure Key Vault Managed HSM should have purge protection enabled"], false), "Policy", R.ht(["c39ba22d-4428-4149-b981-70acb31fc383", "Azure Key Vault Managed HSM should have purge protection enabled"], false), "ResourceTypes", R.a("Microsoft.KeyVault/managedHSMs"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $p = $Record.resource.properties\n        $evidence = [ordered]@{ enablePurgeProtection = $p.enablePurgeProtection; softDeleteRetentionInDays = $p.softDeleteRetentionInDays }\n        if ($p.enablePurgeProtection -eq $true) { return New-Pass 'Purge protection enabled' $evidence }\n        New-Fail 'Purge protection is not enabled' $evidence\n    " }, (S, O) => {
+        R.ln = F + 122;
+        S["p"] = R.m(R.m((S["record"] ?? null), "resource"), "properties");
+        R.ln = F + 123;
+        S["evidence"] = R.ht(["enablePurgeProtection", R.m((S["p"] ?? null), "enablePurgeProtection"), "softDeleteRetentionInDays", R.m((S["p"] ?? null), "softDeleteRetentionInDays")], true);
+        R.ln = F + 124;
+        if (R.t(R.eq(R.m((S["p"] ?? null), "enablePurgeProtection"), true))) {
+            R.ln = F + 124;
+            R.pa(O, R.cmd(S, "New-Pass", ["Purge protection enabled", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 125;
+        R.pa(O, R.cmd(S, "New-Fail", ["Purge protection is not enabled", (S["evidence"] ?? null)], null));
+    })], false)], null));
+    R.ln = F + 129;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-KV-013", "Title", "Managed HSMs disable public network access", "Category", "Network security", "Service", "Key Vault", "Severity", "Medium", "Description", "Checks that public network access is disabled on Managed HSMs, so they are only reachable through private endpoints and trusted Microsoft services.", "Rationale", "A public endpoint lets anyone with a stolen token reach the keys of the HSM from any network.", "Remediation", "Create a private endpoint and set public network access to Disabled (az keyvault update-hsm --hsm-name <name> --public-network-access Disabled).", "References", R.a("https://learn.microsoft.com/azure/key-vault/managed-hsm/network-security"), "Policy", R.ht(["19ea9d63-adee-4431-a95e-1913c6c1c75f", "[Preview]: Azure Key Vault Managed HSM should disable public network access"], false), "ResourceTypes", R.a("Microsoft.KeyVault/managedHSMs"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $p = $Record.resource.properties\n        $evidence = [ordered]@{ publicNetworkAccess = $p.publicNetworkAccess; firewallDefaultAction = $p.networkAcls.defaultAction }\n        if ($p.publicNetworkAccess -eq 'Disabled') { return New-Pass 'Public network access disabled' $evidence }\n        New-Fail \"Public network access is $(if ($p.publicNetworkAccess) { $p.publicNetworkAccess } else { 'not set' })\" $evidence\n    " }, (S, O) => {
+        R.ln = F + 143;
+        S["p"] = R.m(R.m((S["record"] ?? null), "resource"), "properties");
+        R.ln = F + 144;
+        S["evidence"] = R.ht(["publicNetworkAccess", R.m((S["p"] ?? null), "publicNetworkAccess"), "firewallDefaultAction", R.m(R.m((S["p"] ?? null), "networkAcls"), "defaultAction")], true);
+        R.ln = F + 145;
+        if (R.t(R.eq(R.m((S["p"] ?? null), "publicNetworkAccess"), "Disabled"))) {
+            R.ln = F + 145;
+            R.pa(O, R.cmd(S, "New-Pass", ["Public network access disabled", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 146;
+        R.pa(O, R.cmd(S, "New-Fail", [("Public network access is " + R.str((() => {
+            const v1 = [];
+            R.ln = F + 146;
+            if (R.t(R.m((S["p"] ?? null), "publicNetworkAccess"))) {
+                R.ln = F + 146;
+                R.e(v1, R.m((S["p"] ?? null), "publicNetworkAccess"));
+            } else {
+                R.ln = F + 146;
+                R.e(v1, "not set");
+            }
+            return R.u(v1);
+        })())), (S["evidence"] ?? null)], null));
+    })], false)], null));
+    R.ln = F + 150;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-KV-014", "Title", "Managed HSMs are accessed through private endpoints", "Category", "Network security", "Service", "Key Vault", "Severity", "Low", "Description", "Checks Managed HSMs for at least one approved private endpoint connection.", "Rationale", "Private endpoints keep key operations on private networks and allow the public endpoint to be disabled.", "Remediation", "Create a private endpoint for the HSM with privatelink.managedhsm.azure.net DNS integration.", "References", R.a("https://learn.microsoft.com/azure/key-vault/managed-hsm/private-link"), "Policy", R.ht(["59fee2f4-d439-4f1b-9b9a-982e1474bfd8", "[Preview]: Azure Key Vault Managed HSM should use private link"], false), "ResourceTypes", R.a("Microsoft.KeyVault/managedHSMs"), "Evaluate", (S["vaultprivateendpoints"] ?? null)], false)], null));
+    R.ln = F + 165;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-KV-015", "Title", "Key vault firewalls deny access by default", "Category", "Network security", "Service", "Key Vault", "Severity", "Medium", "Description", "Checks that each key vault either has public network access disabled or a firewall with default action Deny. An empty default action allows all networks.", "Rationale", "With the default action Allow, the vault accepts requests from every network, so a stolen token works from anywhere.", "Remediation", "Set the firewall default action to Deny and allow only the required networks (az keyvault update --default-action Deny ...), or disable public network access.", "References", R.a("https://learn.microsoft.com/azure/key-vault/general/network-security"), "Policy", R.ht(["55615ac9-af46-4a59-874e-391cc3dfb490", "Azure Key Vault should have firewall enabled or public network access disabled"], false), "ResourceTypes", R.a("Microsoft.KeyVault/vaults"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $p = $Record.resource.properties\n        $evidence = [ordered]@{ publicNetworkAccess = $p.publicNetworkAccess; firewallDefaultAction = $p.networkAcls.defaultAction }\n        if ($p.publicNetworkAccess -eq 'Disabled') { return New-Pass 'Public network access disabled' $evidence }\n        if ($p.networkAcls.defaultAction -eq 'Deny') { return New-Pass 'Firewall denies by default' $evidence }\n        New-Fail 'The firewall allows all networks' $evidence\n    " }, (S, O) => {
+        R.ln = F + 179;
+        S["p"] = R.m(R.m((S["record"] ?? null), "resource"), "properties");
+        R.ln = F + 180;
+        S["evidence"] = R.ht(["publicNetworkAccess", R.m((S["p"] ?? null), "publicNetworkAccess"), "firewallDefaultAction", R.m(R.m((S["p"] ?? null), "networkAcls"), "defaultAction")], true);
+        R.ln = F + 181;
+        if (R.t(R.eq(R.m((S["p"] ?? null), "publicNetworkAccess"), "Disabled"))) {
+            R.ln = F + 181;
+            R.pa(O, R.cmd(S, "New-Pass", ["Public network access disabled", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 182;
+        if (R.t(R.eq(R.m(R.m((S["p"] ?? null), "networkAcls"), "defaultAction"), "Deny"))) {
+            R.ln = F + 182;
+            R.pa(O, R.cmd(S, "New-Pass", ["Firewall denies by default", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 183;
+        R.pa(O, R.cmd(S, "New-Fail", ["The firewall allows all networks", (S["evidence"] ?? null)], null));
+    })], false)], null));
+    R.ln = F + 188;
+    S["hsmkeytypes"] = R.a([R.v("RSA-HSM"), R.v("EC-HSM"), R.v("oct-HSM")]);
+    R.ln = F + 190;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-KV-016", "Title", "Keys in Premium key vaults are HSM-protected", "Category", "Data protection", "Service", "Key Vault", "Severity", "Low", "Description", "Checks that every enabled key in key vaults of the Premium tier has an HSM key type (RSA-HSM, EC-HSM or oct-HSM). Keys that back a certificate follow the key type of the certificate and are left out.", "Rationale", "A software-protected key is processed outside the HSM, so the reason for paying for the Premium tier, keys that never leave a FIPS 140-3 validated module, does not hold for it.", "Remediation", "Create new HSM-protected versions of the keys (az keyvault key create --kty RSA-HSM ...), move the workloads to them and disable the software keys.", "References", R.a("https://learn.microsoft.com/azure/key-vault/keys/about-keys"), "Policy", R.ht(["587c79fe-dd04-4a5e-9d0b-f89598c7261b", "Keys should be backed by a hardware security module (HSM)"], false), "Run", R.sb({ params: [], adv: 0, text: "\n        foreach ($vault in @(Get-AzResourceRecords -Type 'Microsoft.KeyVault/vaults' | Where-Object { [string]$_.resource.properties.sku.name -eq 'premium' })) {\n            if (-not (Test-ChildCollected $vault 'keys')) { New-Finding -Record $vault -Result (New-Unknown 'Keys could not be listed'); continue }\n            #keys that back certificates share the name of the certificate secret\n            $certificates = @{}\n            if (Test-ChildCollected $vault 'secrets') { foreach ($secret in @(Get-Child $vault 'secrets' | Where-Object { $_ -and (Test-CertificateSecret $_) })) { $certificates[([string]$secret.name).ToLowerInvariant()] = $true } }\n            foreach ($key in (Get-VaultItems $vault 'keys')) {\n                if ($certificates.ContainsKey(([string]$key.name).ToLowerInvariant())) { continue }\n                $type = [string]$key.properties.kty\n                $evidence = [ordered]@{ vault = $vault.resource.name; keyType = $type }\n                $result = if ($type -in $hsmKeyTypes) { New-Pass \"Key type $type\" $evidence } elseif ($type) { New-Fail \"Software-protected key type $type\" $evidence } else { New-Unknown 'Key type not returned' $evidence }\n                New-Finding -ResourceId $key.id -ResourceType 'Microsoft.KeyVault/vaults/keys' -ResourceName \"$($vault.resource.name)/$($key.name)\" -Result $result\n            }\n        }\n    " }, (S, O) => {
+        R.ln = F + 202;
+        for (const it2 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " [string]$_.resource.properties.sku.name -eq 'premium' " }, (S, O) => {
+            R.ln = F + 202;
+            R.e(O, R.eq(R.c("string", R.m(R.m(R.m(R.m((S["_"] ?? null), "resource"), "properties"), "sku"), "name")), "premium"));
+        })], R.cmd(S, "Get-AzResourceRecords", [R.np("Type"), "Microsoft.KeyVault/vaults"], null)))) {
+            S["vault"] = it2;
+            R.ln = F + 203;
+            if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["vault"] ?? null), "keys"], null)))) {
+                R.ln = F + 203;
+                R.pa(O, R.cmd(S, "New-Finding", [R.np("Record"), (S["vault"] ?? null), R.np("Result"), R.u(R.cmd(S, "New-Unknown", ["Keys could not be listed"], null))], null));
+                continue;
+            }
+            R.ln = F + 205;
+            S["certificates"] = R.ht([], false);
+            R.ln = F + 206;
+            if (R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["vault"] ?? null), "secrets"], null)))) {
+                R.ln = F + 206;
+                for (const it3 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and (Test-CertificateSecret $_) " }, (S, O) => {
+                    R.ln = F + 206;
+                    R.e(O, (R.t((S["_"] ?? null)) && R.t(R.u(R.cmd(S, "Test-CertificateSecret", [(S["_"] ?? null)], null)))));
+                })], R.cmd(S, "Get-Child", [(S["vault"] ?? null), "secrets"], null)))) {
+                    S["secret"] = it3;
+                    R.ln = F + 206;
+                    R.si((S["certificates"] ?? null), R.im((R.c("string", R.m((S["secret"] ?? null), "name"))), "ToLowerInvariant", []), true);
+                }
+            }
+            R.ln = F + 207;
+            for (const it4 of R.fi(R.u(R.cmd(S, "Get-VaultItems", [(S["vault"] ?? null), "keys"], null)))) {
+                S["key"] = it4;
+                R.ln = F + 208;
+                if (R.t(R.im((S["certificates"] ?? null), "ContainsKey", [R.im((R.c("string", R.m((S["key"] ?? null), "name"))), "ToLowerInvariant", [])]))) {
+                    continue;
+                }
+                R.ln = F + 209;
+                S["type"] = R.c("string", R.m(R.m((S["key"] ?? null), "properties"), "kty"));
+                R.ln = F + 210;
+                S["evidence"] = R.ht(["vault", R.m(R.m((S["vault"] ?? null), "resource"), "name"), "keyType", (S["type"] ?? null)], true);
+                R.ln = F + 211;
+                const v5 = [];
+                R.ln = F + 211;
+                if (R.t(R.in((S["type"] ?? null), (S["hsmkeytypes"] ?? null)))) {
+                    R.ln = F + 211;
+                    R.pa(v5, R.cmd(S, "New-Pass", [("Key type " + R.str((S["type"] ?? null))), (S["evidence"] ?? null)], null));
+                } else if (R.t((S["type"] ?? null))) {
+                    R.ln = F + 211;
+                    R.pa(v5, R.cmd(S, "New-Fail", [("Software-protected key type " + R.str((S["type"] ?? null))), (S["evidence"] ?? null)], null));
+                } else {
+                    R.ln = F + 211;
+                    R.pa(v5, R.cmd(S, "New-Unknown", ["Key type not returned", (S["evidence"] ?? null)], null));
+                }
+                S["result"] = R.u(v5);
+                R.ln = F + 212;
+                R.pa(O, R.cmd(S, "New-Finding", [R.np("ResourceId"), R.m((S["key"] ?? null), "id"), R.np("ResourceType"), "Microsoft.KeyVault/vaults/keys", R.np("ResourceName"), ("" + R.str(R.u(R.pi(R.m(R.m((S["vault"] ?? null), "resource"), "name")))) + "/" + R.str(R.u(R.pi(R.m((S["key"] ?? null), "name"))))), R.np("Result"), (S["result"] ?? null)], null));
+            }
+        }
+    })], false)], null));
+    R.ln = F + 220;
+    S["vaultexpirytests"] = (() => {
+        const v6 = [];
+        R.ln = F + 221;
+        R.e(v6, R.ht(["Id", "AZ-KV-005", "Item", "keys", "Noun", "key", "Rbac", true], false));
+        R.ln = F + 222;
+        R.e(v6, R.ht(["Id", "AZ-KV-010", "Item", "keys", "Noun", "key", "Rbac", false], false));
+        R.ln = F + 223;
+        R.e(v6, R.ht(["Id", "AZ-KV-006", "Item", "secrets", "Noun", "secret", "Rbac", true], false));
+        R.ln = F + 224;
+        R.e(v6, R.ht(["Id", "AZ-KV-011", "Item", "secrets", "Noun", "secret", "Rbac", false], false));
+        return v6;
+    })();
+    R.ln = F + 227;
+    for (const it7 of R.fi((S["vaultexpirytests"] ?? null))) {
+        S["expiry"] = it7;
+        R.ln = F + 228;
+        const v8 = [];
+        R.ln = F + 228;
+        if (R.t(R.m((S["expiry"] ?? null), "Rbac"))) {
+            R.ln = F + 228;
+            R.e(v8, "RBAC");
+        } else {
+            R.ln = F + 228;
+            R.e(v8, "access policy");
+        }
+        S["model"] = R.u(v8);
+        R.ln = F + 229;
         R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", R.m((S["expiry"] ?? null), "Id"), "Version", 2, "Title", ("Key Vault " + R.str(R.u(R.pi(R.m((S["expiry"] ?? null), "Item")))) + " in " + R.str((S["model"] ?? null)) + " vaults have an expiration date"), "Category", "Data protection", "Service", "Key Vault", "Severity", "Medium", "Description", ("Checks every enabled " + R.str(R.u(R.pi(R.m((S["expiry"] ?? null), "Noun")))) + " in key vaults that use the " + R.str((S["model"] ?? null)) + " permission model for an expiration date."), "Rationale", (() => {
-            const v4 = [];
-            R.ln = F + 123;
+            const v9 = [];
+            R.ln = F + 237;
             if (R.t(R.eq(R.m((S["expiry"] ?? null), "Item"), "keys"))) {
-                R.ln = F + 124;
-                R.e(v4, "Keys without an expiration date are never forced through rotation, which extends the impact of a key compromise indefinitely.");
+                R.ln = F + 238;
+                R.e(v9, "Keys without an expiration date are never forced through rotation, which extends the impact of a key compromise indefinitely.");
             } else {
-                R.ln = F + 126;
-                R.e(v4, "Secrets without an expiration date tend never to be rotated, so a leaked secret stays valid indefinitely.");
+                R.ln = F + 240;
+                R.e(v9, "Secrets without an expiration date tend never to be rotated, so a leaked secret stays valid indefinitely.");
             }
-            return R.u(v4);
+            return R.u(v9);
         })(), "Remediation", (() => {
-            const v5 = [];
-            R.ln = F + 128;
+            const v10 = [];
+            R.ln = F + 242;
             if (R.t(R.eq(R.m((S["expiry"] ?? null), "Item"), "keys"))) {
-                R.ln = F + 129;
-                R.e(v5, "Set an expiration date on each key (az keyvault key set-attributes --expires ...) and configure a rotation policy that creates new versions before expiry.");
+                R.ln = F + 243;
+                R.e(v10, "Set an expiration date on each key (az keyvault key set-attributes --expires ...) and configure a rotation policy that creates new versions before expiry.");
             } else {
-                R.ln = F + 131;
-                R.e(v5, "Set an expiration date on each secret (az keyvault secret set-attributes --expires ...) aligned with the rotation of the credential it holds, and monitor near-expiry events.");
+                R.ln = F + 245;
+                R.e(v10, "Set an expiration date on each secret (az keyvault secret set-attributes --expires ...) aligned with the rotation of the credential it holds, and monitor near-expiry events.");
             }
-            return R.u(v5);
+            return R.u(v10);
         })(), "References", (() => {
-            const v6 = [];
-            R.ln = F + 133;
+            const v11 = [];
+            R.ln = F + 247;
             if (R.t(R.eq(R.m((S["expiry"] ?? null), "Item"), "keys"))) {
-                R.ln = F + 134;
-                R.e(v6, R.a("https://learn.microsoft.com/azure/key-vault/keys/how-to-configure-key-rotation"));
+                R.ln = F + 248;
+                R.e(v11, R.a("https://learn.microsoft.com/azure/key-vault/keys/how-to-configure-key-rotation"));
             } else {
-                R.ln = F + 136;
-                R.e(v6, R.a("https://learn.microsoft.com/azure/key-vault/secrets/tutorial-rotation"));
+                R.ln = F + 250;
+                R.e(v11, R.a("https://learn.microsoft.com/azure/key-vault/secrets/tutorial-rotation"));
             }
-            return R.u(v6);
+            return R.u(v11);
         })(), "Defender", (() => {
-            const v7 = [];
-            R.ln = F + 138;
+            const v12 = [];
+            R.ln = F + 252;
             if (R.t(R.eq(R.m((S["expiry"] ?? null), "Item"), "keys"))) {
-                R.ln = F + 138;
-                R.e(v7, R.ht(["1aabfa0d-7585-f9f5-1d92-ecb40291d9f2", "Key Vault keys should have an expiration date"], false));
+                R.ln = F + 252;
+                R.e(v12, R.ht(["1aabfa0d-7585-f9f5-1d92-ecb40291d9f2", "Key Vault keys should have an expiration date"], false));
             } else {
-                R.ln = F + 138;
-                R.e(v7, null);
+                R.ln = F + 252;
+                R.e(v12, null);
             }
-            return R.u(v7);
+            return R.u(v12);
         })(), "Policy", (() => {
-            const v8 = [];
-            R.ln = F + 139;
+            const v13 = [];
+            R.ln = F + 253;
             if (R.t(R.eq(R.m((S["expiry"] ?? null), "Item"), "keys"))) {
-                R.ln = F + 140;
-                R.e(v8, R.ht(["152b15f7-8e1f-4c1f-ab71-8c010ba5dbc0", "Key Vault keys should have an expiration date"], false));
+                R.ln = F + 254;
+                R.e(v13, R.ht(["152b15f7-8e1f-4c1f-ab71-8c010ba5dbc0", "Key Vault keys should have an expiration date"], false));
             } else {
-                R.ln = F + 142;
-                R.e(v8, R.ht(["98728c90-32c7-4049-8429-847dc0f4fe37", "Key Vault secrets should have an expiration date"], false));
+                R.ln = F + 256;
+                R.e(v13, R.ht(["98728c90-32c7-4049-8429-847dc0f4fe37", "Key Vault secrets should have an expiration date"], false));
             }
-            return R.u(v8);
+            return R.u(v13);
         })(), "Config", (S["expiry"] ?? null), "Run", R.sb({ params: [{ n: "Test", t: null, pos: null }], adv: 0, text: "\n            param($Test)\n            $config = $Test.Config\n            $vaults = @(Get-AzResourceRecords -Type 'Microsoft.KeyVault/vaults' | Where-Object { [bool]$_.resource.properties.enableRbacAuthorization -eq $config.Rbac })\n            if (-not $vaults) { return }\n            foreach ($vault in $vaults) {\n                if (-not (Test-ChildCollected $vault $config.Item)) { New-Finding -Record $vault -Result (New-Unknown \"$($config.Item.Substring(0,1).ToUpperInvariant())$($config.Item.Substring(1)) could not be listed\"); continue }\n                foreach ($item in (Get-VaultItems $vault $config.Item)) {\n                    $expires = $item.properties.attributes.exp\n                    $evidence = [ordered]@{ vault = $vault.resource.name; permissionModel = if ($config.Rbac) { 'RBAC' } else { 'access policies' }; expires = Format-UtcDate $expires }\n                    if ($config.Item -eq 'secrets') { $evidence.contentType = $item.properties.contentType }\n                    $result = if ($expires) { New-Pass \"Expires $($evidence.expires)\" $evidence } else { New-Fail 'No expiration date' $evidence }\n                    New-Finding -ResourceId $item.id -ResourceType \"Microsoft.KeyVault/vaults/$($config.Item)\" -ResourceName \"$($vault.resource.name)/$($item.name)\" -Result $result\n                }\n            }\n        " }, (S, O) => {
-            R.ln = F + 147;
+            R.ln = F + 261;
             S["config"] = R.m((S["test"] ?? null), "Config");
-            R.ln = F + 148;
+            R.ln = F + 262;
             S["vaults"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " [bool]$_.resource.properties.enableRbacAuthorization -eq $config.Rbac " }, (S, O) => {
-                R.ln = F + 148;
+                R.ln = F + 262;
                 R.e(O, R.eq(R.c("bool", R.m(R.m(R.m((S["_"] ?? null), "resource"), "properties"), "enableRbacAuthorization")), R.m((S["config"] ?? null), "Rbac")));
             })], R.cmd(S, "Get-AzResourceRecords", [R.np("Type"), "Microsoft.KeyVault/vaults"], null));
-            R.ln = F + 149;
+            R.ln = F + 263;
             if (!R.t((S["vaults"] ?? null))) {
-                R.ln = F + 149;
+                R.ln = F + 263;
                 return;
             }
-            R.ln = F + 150;
-            for (const it9 of R.fi((S["vaults"] ?? null))) {
-                S["vault"] = it9;
-                R.ln = F + 151;
+            R.ln = F + 264;
+            for (const it14 of R.fi((S["vaults"] ?? null))) {
+                S["vault"] = it14;
+                R.ln = F + 265;
                 if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["vault"] ?? null), R.m((S["config"] ?? null), "Item")], null)))) {
-                    R.ln = F + 151;
+                    R.ln = F + 265;
                     R.pa(O, R.cmd(S, "New-Finding", [R.np("Record"), (S["vault"] ?? null), R.np("Result"), R.u(R.cmd(S, "New-Unknown", [("" + R.str(R.u(R.pi(R.im(R.im(R.m((S["config"] ?? null), "Item"), "Substring", [0, 1]), "ToUpperInvariant", [])))) + R.str(R.u(R.pi(R.im(R.m((S["config"] ?? null), "Item"), "Substring", [1])))) + " could not be listed")], null))], null));
                     continue;
                 }
-                R.ln = F + 152;
-                for (const it10 of R.fi(R.u(R.cmd(S, "Get-VaultItems", [(S["vault"] ?? null), R.m((S["config"] ?? null), "Item")], null)))) {
-                    S["item"] = it10;
-                    R.ln = F + 153;
+                R.ln = F + 266;
+                for (const it15 of R.fi(R.u(R.cmd(S, "Get-VaultItems", [(S["vault"] ?? null), R.m((S["config"] ?? null), "Item")], null)))) {
+                    S["item"] = it15;
+                    R.ln = F + 267;
                     S["expires"] = R.m(R.m(R.m((S["item"] ?? null), "properties"), "attributes"), "exp");
-                    R.ln = F + 154;
+                    R.ln = F + 268;
                     S["evidence"] = R.ht(["vault", R.m(R.m((S["vault"] ?? null), "resource"), "name"), "permissionModel", (() => {
-                        const v11 = [];
-                        R.ln = F + 154;
+                        const v16 = [];
+                        R.ln = F + 268;
                         if (R.t(R.m((S["config"] ?? null), "Rbac"))) {
-                            R.ln = F + 154;
-                            R.e(v11, "RBAC");
+                            R.ln = F + 268;
+                            R.e(v16, "RBAC");
                         } else {
-                            R.ln = F + 154;
-                            R.e(v11, "access policies");
+                            R.ln = F + 268;
+                            R.e(v16, "access policies");
                         }
-                        return R.u(v11);
+                        return R.u(v16);
                     })(), "expires", R.u(R.cmd(S, "Format-UtcDate", [(S["expires"] ?? null)], null))], true);
-                    R.ln = F + 155;
+                    R.ln = F + 269;
                     if (R.t(R.eq(R.m((S["config"] ?? null), "Item"), "secrets"))) {
-                        R.ln = F + 155;
+                        R.ln = F + 269;
                         R.sm((S["evidence"] ?? null), "contentType", R.m(R.m((S["item"] ?? null), "properties"), "contentType"));
                     }
-                    R.ln = F + 156;
-                    const v12 = [];
-                    R.ln = F + 156;
+                    R.ln = F + 270;
+                    const v17 = [];
+                    R.ln = F + 270;
                     if (R.t((S["expires"] ?? null))) {
-                        R.ln = F + 156;
-                        R.pa(v12, R.cmd(S, "New-Pass", [("Expires " + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "expires"))))), (S["evidence"] ?? null)], null));
+                        R.ln = F + 270;
+                        R.pa(v17, R.cmd(S, "New-Pass", [("Expires " + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "expires"))))), (S["evidence"] ?? null)], null));
                     } else {
-                        R.ln = F + 156;
-                        R.pa(v12, R.cmd(S, "New-Fail", ["No expiration date", (S["evidence"] ?? null)], null));
+                        R.ln = F + 270;
+                        R.pa(v17, R.cmd(S, "New-Fail", ["No expiration date", (S["evidence"] ?? null)], null));
                     }
-                    S["result"] = R.u(v12);
-                    R.ln = F + 157;
+                    S["result"] = R.u(v17);
+                    R.ln = F + 271;
                     R.pa(O, R.cmd(S, "New-Finding", [R.np("ResourceId"), R.m((S["item"] ?? null), "id"), R.np("ResourceType"), ("Microsoft.KeyVault/vaults/" + R.str(R.u(R.pi(R.m((S["config"] ?? null), "Item"))))), R.np("ResourceName"), ("" + R.str(R.u(R.pi(R.m(R.m((S["vault"] ?? null), "resource"), "name")))) + "/" + R.str(R.u(R.pi(R.m((S["item"] ?? null), "name"))))), R.np("Result"), (S["result"] ?? null)], null));
                 }
             }
         })], false)], null));
     }
-    R.ln = F + 163;
+    R.ln = F + 277;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-KV-007", "Version", 2, "Title", "Key Vault keys have an automatic rotation policy", "Category", "Data protection", "Service", "Key Vault", "Severity", "Low", "Description", "Checks every enabled key for a rotation policy with a Rotate lifetime action. The key of a certificate (a secret of the same name holds the certificate) is renewed with the certificate and has no rotation policy of its own.", "Rationale", "Automatic rotation limits the amount of data protected by a single key version and removes the dependency on manual processes.", "Remediation", "Configure a key rotation policy (az keyvault key rotation-policy update ...) and let dependent services use versionless key URIs.", "References", R.a("https://learn.microsoft.com/azure/key-vault/keys/how-to-configure-key-rotation"), "Policy", R.ht(["d8cf8476-a2ec-4916-896e-992351803c44", "Keys should have a rotation policy ensuring that their rotation is scheduled within the specified number of days after creation."], false), "Run", R.sb({ params: [], adv: 0, text: "\n        foreach ($vault in (Get-AzResourceRecords -Type 'Microsoft.KeyVault/vaults')) {\n            if (-not (Test-ChildCollected $vault 'keys')) { New-Finding -Record $vault -Result (New-Unknown 'Keys could not be listed'); continue }\n            $certificates = @(Get-Child $vault 'secrets' | Where-Object { $_ -and (Test-CertificateSecret $_) } | ForEach-Object { ([string]$_.name).ToLowerInvariant() })\n            foreach ($key in (Get-VaultItems $vault 'keys')) {\n                $policy = $key.properties.rotationPolicy\n                $rotate = @($policy.lifetimeActions | Where-Object { $_ -and $_.action.type -eq 'Rotate' })\n                $evidence = [ordered]@{ vault = $vault.resource.name; rotationPolicyReturned = ($key.properties.PSObject.Properties.Name -contains 'rotationPolicy'); rotateAction = [bool]$rotate }\n                if ($rotate) { $result = New-Pass 'Automatic rotation configured' $evidence }\n                elseif (([string]$key.name).ToLowerInvariant() -in $certificates) { $result = New-NotApplicable 'The key of a certificate, renewed with the certificate' $evidence }\n                elseif (-not $evidence.rotationPolicyReturned) { $result = New-Unknown 'The key listing does not include the rotation policy' $evidence }\n                else { $result = New-Fail 'No automatic rotation' $evidence }\n                New-Finding -ResourceId $key.id -ResourceType 'Microsoft.KeyVault/vaults/keys' -ResourceName \"$($vault.resource.name)/$($key.name)\" -Result $result\n            }\n        }\n    " }, (S, O) => {
-        R.ln = F + 176;
-        for (const it13 of R.fi(R.u(R.cmd(S, "Get-AzResourceRecords", [R.np("Type"), "Microsoft.KeyVault/vaults"], null)))) {
-            S["vault"] = it13;
-            R.ln = F + 177;
+        R.ln = F + 290;
+        for (const it18 of R.fi(R.u(R.cmd(S, "Get-AzResourceRecords", [R.np("Type"), "Microsoft.KeyVault/vaults"], null)))) {
+            S["vault"] = it18;
+            R.ln = F + 291;
             if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["vault"] ?? null), "keys"], null)))) {
-                R.ln = F + 177;
+                R.ln = F + 291;
                 R.pa(O, R.cmd(S, "New-Finding", [R.np("Record"), (S["vault"] ?? null), R.np("Result"), R.u(R.cmd(S, "New-Unknown", ["Keys could not be listed"], null))], null));
                 continue;
             }
-            R.ln = F + 178;
+            R.ln = F + 292;
             S["certificates"] = R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " ([string]$_.name).ToLowerInvariant() " }, (S, O) => {
-                R.ln = F + 178;
+                R.ln = F + 292;
                 R.e(O, R.im((R.c("string", R.m((S["_"] ?? null), "name"))), "ToLowerInvariant", []));
             })], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and (Test-CertificateSecret $_) " }, (S, O) => {
-                R.ln = F + 178;
+                R.ln = F + 292;
                 R.e(O, (R.t((S["_"] ?? null)) && R.t(R.u(R.cmd(S, "Test-CertificateSecret", [(S["_"] ?? null)], null)))));
             })], R.cmd(S, "Get-Child", [(S["vault"] ?? null), "secrets"], null)));
-            R.ln = F + 179;
-            for (const it14 of R.fi(R.u(R.cmd(S, "Get-VaultItems", [(S["vault"] ?? null), "keys"], null)))) {
-                S["key"] = it14;
-                R.ln = F + 180;
+            R.ln = F + 293;
+            for (const it19 of R.fi(R.u(R.cmd(S, "Get-VaultItems", [(S["vault"] ?? null), "keys"], null)))) {
+                S["key"] = it19;
+                R.ln = F + 294;
                 S["policy"] = R.m(R.m((S["key"] ?? null), "properties"), "rotationPolicy");
-                R.ln = F + 181;
+                R.ln = F + 295;
                 S["rotate"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.action.type -eq 'Rotate' " }, (S, O) => {
-                    R.ln = F + 181;
+                    R.ln = F + 295;
                     R.e(O, (R.t((S["_"] ?? null)) && R.t(R.eq(R.m(R.m((S["_"] ?? null), "action"), "type"), "Rotate"))));
                 })], R.pi(R.m((S["policy"] ?? null), "lifetimeActions")));
-                R.ln = F + 182;
+                R.ln = F + 296;
                 S["evidence"] = R.ht(["vault", R.m(R.m((S["vault"] ?? null), "resource"), "name"), "rotationPolicyReturned", (R.cont(R.m(R.m(R.m(R.m((S["key"] ?? null), "properties"), "PSObject"), "Properties"), "Name"), "rotationPolicy")), "rotateAction", R.c("bool", (S["rotate"] ?? null))], true);
-                R.ln = F + 183;
+                R.ln = F + 297;
                 if (R.t((S["rotate"] ?? null))) {
-                    R.ln = F + 183;
+                    R.ln = F + 297;
                     S["result"] = R.u(R.cmd(S, "New-Pass", ["Automatic rotation configured", (S["evidence"] ?? null)], null));
                 } else if (R.t(R.in(R.im((R.c("string", R.m((S["key"] ?? null), "name"))), "ToLowerInvariant", []), (S["certificates"] ?? null)))) {
-                    R.ln = F + 184;
+                    R.ln = F + 298;
                     S["result"] = R.u(R.cmd(S, "New-NotApplicable", ["The key of a certificate, renewed with the certificate", (S["evidence"] ?? null)], null));
                 } else if (!R.t(R.m((S["evidence"] ?? null), "rotationPolicyReturned"))) {
-                    R.ln = F + 185;
+                    R.ln = F + 299;
                     S["result"] = R.u(R.cmd(S, "New-Unknown", ["The key listing does not include the rotation policy", (S["evidence"] ?? null)], null));
                 } else {
-                    R.ln = F + 186;
+                    R.ln = F + 300;
                     S["result"] = R.u(R.cmd(S, "New-Fail", ["No automatic rotation", (S["evidence"] ?? null)], null));
                 }
-                R.ln = F + 187;
+                R.ln = F + 301;
                 R.pa(O, R.cmd(S, "New-Finding", [R.np("ResourceId"), R.m((S["key"] ?? null), "id"), R.np("ResourceType"), "Microsoft.KeyVault/vaults/keys", R.np("ResourceName"), ("" + R.str(R.u(R.pi(R.m(R.m((S["vault"] ?? null), "resource"), "name")))) + "/" + R.str(R.u(R.pi(R.m((S["key"] ?? null), "name"))))), R.np("Result"), (S["result"] ?? null)], null));
             }
         }
     })], false)], null));
-    R.ln = F + 193;
+    R.ln = F + 307;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-KV-008", "Title", "Key Vault certificates are valid for at most 12 months", "Category", "Data protection", "Service", "Key Vault", "Severity", "Medium", "Description", "Checks the validity period of certificates, using the not-before and expiry dates of the certificate backed secrets.", "Rationale", "Long lived certificates increase the window in which a compromised private key can be abused and conflict with the 398 day (and shrinking) CA/Browser Forum limits for public TLS certificates.", "Remediation", "Set the certificate policy validity to 12 months or less (az keyvault certificate set-attributes / policy update) and automate renewal.", "References", R.a("https://learn.microsoft.com/azure/key-vault/certificates/overview-renew-certificate"), "Defender", R.ht(["fc84abc0-eee6-4758-8372-a7681965ca44", "Validity period of certificates stored in Azure Key Vault should not exceed 12 months"], false), "Policy", R.ht(["0a075868-4c26-42ef-914c-5bc007359560", "Certificates should have the specified maximum validity period"], false), "Run", R.sb({ params: [], adv: 0, text: "\n        foreach ($vault in (Get-AzResourceRecords -Type 'Microsoft.KeyVault/vaults')) {\n            if (-not (Test-ChildCollected $vault 'secrets')) { continue }\n            foreach ($secret in @(Get-VaultItems $vault 'secrets' | Where-Object { Test-CertificateSecret $_ })) {\n                $start = ConvertTo-UtcDate $secret.properties.attributes.nbf\n                $end = ConvertTo-UtcDate $secret.properties.attributes.exp\n                $evidence = [ordered]@{ vault = $vault.resource.name; notBefore = Format-UtcDate $start; expires = Format-UtcDate $end }\n                $result = if (-not $start -or -not $end) { New-Unknown 'Validity dates not available' $evidence }\n                else {\n                    $days = [int]($end - $start).TotalDays\n                    $evidence.validityDays = $days\n                    if ($days -le 366) { New-Pass \"Valid for $days days\" $evidence } else { New-Fail \"Valid for $days days\" $evidence }\n                }\n                New-Finding -ResourceId $secret.id -ResourceType 'Microsoft.KeyVault/vaults/certificates' -ResourceName \"$($vault.resource.name)/$($secret.name)\" -Result $result\n            }\n        }\n    " }, (S, O) => {
-        R.ln = F + 206;
-        for (const it15 of R.fi(R.u(R.cmd(S, "Get-AzResourceRecords", [R.np("Type"), "Microsoft.KeyVault/vaults"], null)))) {
-            S["vault"] = it15;
-            R.ln = F + 207;
+        R.ln = F + 320;
+        for (const it20 of R.fi(R.u(R.cmd(S, "Get-AzResourceRecords", [R.np("Type"), "Microsoft.KeyVault/vaults"], null)))) {
+            S["vault"] = it20;
+            R.ln = F + 321;
             if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["vault"] ?? null), "secrets"], null)))) {
                 continue;
             }
-            R.ln = F + 208;
-            for (const it16 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " Test-CertificateSecret $_ " }, (S, O) => {
-                R.ln = F + 208;
+            R.ln = F + 322;
+            for (const it21 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " Test-CertificateSecret $_ " }, (S, O) => {
+                R.ln = F + 322;
                 R.pa(O, R.cmd(S, "Test-CertificateSecret", [(S["_"] ?? null)], null));
             })], R.cmd(S, "Get-VaultItems", [(S["vault"] ?? null), "secrets"], null)))) {
-                S["secret"] = it16;
-                R.ln = F + 209;
+                S["secret"] = it21;
+                R.ln = F + 323;
                 S["start"] = R.u(R.cmd(S, "ConvertTo-UtcDate", [R.m(R.m(R.m((S["secret"] ?? null), "properties"), "attributes"), "nbf")], null));
-                R.ln = F + 210;
+                R.ln = F + 324;
                 S["end"] = R.u(R.cmd(S, "ConvertTo-UtcDate", [R.m(R.m(R.m((S["secret"] ?? null), "properties"), "attributes"), "exp")], null));
-                R.ln = F + 211;
+                R.ln = F + 325;
                 S["evidence"] = R.ht(["vault", R.m(R.m((S["vault"] ?? null), "resource"), "name"), "notBefore", R.u(R.cmd(S, "Format-UtcDate", [(S["start"] ?? null)], null)), "expires", R.u(R.cmd(S, "Format-UtcDate", [(S["end"] ?? null)], null))], true);
-                R.ln = F + 212;
-                const v17 = [];
-                R.ln = F + 212;
+                R.ln = F + 326;
+                const v22 = [];
+                R.ln = F + 326;
                 if ((!R.t((S["start"] ?? null)) || !R.t((S["end"] ?? null)))) {
-                    R.ln = F + 212;
-                    R.pa(v17, R.cmd(S, "New-Unknown", ["Validity dates not available", (S["evidence"] ?? null)], null));
+                    R.ln = F + 326;
+                    R.pa(v22, R.cmd(S, "New-Unknown", ["Validity dates not available", (S["evidence"] ?? null)], null));
                 } else {
-                    R.ln = F + 214;
+                    R.ln = F + 328;
                     S["days"] = R.c("int", R.m((R.sub((S["end"] ?? null), (S["start"] ?? null))), "TotalDays"));
-                    R.ln = F + 215;
+                    R.ln = F + 329;
                     R.sm((S["evidence"] ?? null), "validityDays", (S["days"] ?? null));
-                    R.ln = F + 216;
+                    R.ln = F + 330;
                     if (R.t(R.le((S["days"] ?? null), 366))) {
-                        R.ln = F + 216;
-                        R.pa(v17, R.cmd(S, "New-Pass", [("Valid for " + R.str((S["days"] ?? null)) + " days"), (S["evidence"] ?? null)], null));
+                        R.ln = F + 330;
+                        R.pa(v22, R.cmd(S, "New-Pass", [("Valid for " + R.str((S["days"] ?? null)) + " days"), (S["evidence"] ?? null)], null));
                     } else {
-                        R.ln = F + 216;
-                        R.pa(v17, R.cmd(S, "New-Fail", [("Valid for " + R.str((S["days"] ?? null)) + " days"), (S["evidence"] ?? null)], null));
+                        R.ln = F + 330;
+                        R.pa(v22, R.cmd(S, "New-Fail", [("Valid for " + R.str((S["days"] ?? null)) + " days"), (S["evidence"] ?? null)], null));
                     }
                 }
-                S["result"] = R.u(v17);
-                R.ln = F + 218;
+                S["result"] = R.u(v22);
+                R.ln = F + 332;
                 R.pa(O, R.cmd(S, "New-Finding", [R.np("ResourceId"), R.m((S["secret"] ?? null), "id"), R.np("ResourceType"), "Microsoft.KeyVault/vaults/certificates", R.np("ResourceName"), ("" + R.str(R.u(R.pi(R.m(R.m((S["vault"] ?? null), "resource"), "name")))) + "/" + R.str(R.u(R.pi(R.m((S["secret"] ?? null), "name"))))), R.np("Result"), (S["result"] ?? null)], null));
             }
         }
     })], false)], null));
-    R.ln = F + 224;
+    R.ln = F + 338;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-KV-009", "Title", "Key vault access policies do not grant full or purge permissions", "Category", "Privileged access", "Service", "Key Vault", "Severity", "Medium", "Description", "Checks vaults that use access policies for principals with 'all' or 'purge' permissions on keys, secrets or certificates.", "Rationale", "Full and purge permissions allow reading every secret and permanently destroying keys. Applications need only the individual operations they use.", "Remediation", "Reduce each access policy to the required operations (for example get and list on secrets), or migrate the vault to Azure RBAC with narrowly scoped roles.", "References", R.a("https://learn.microsoft.com/azure/key-vault/general/assign-access-policy"), "ResourceTypes", R.a("Microsoft.KeyVault/vaults"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if ($Record.resource.properties.enableRbacAuthorization -eq $true) { return New-NotApplicable 'The vault uses Azure RBAC' }\n        $broad = foreach ($policy in @($Record.resource.properties.accessPolicies | Where-Object { $_ })) {\n            $grants = @()\n            foreach ($kind in 'keys', 'secrets', 'certificates') {\n                $permissions = @($policy.permissions.$kind | ForEach-Object { ([string]$_).ToLowerInvariant() })\n                if ($permissions -contains 'all') { $grants += \"${kind}:all\" } elseif ($permissions -contains 'purge') { $grants += \"${kind}:purge\" }\n            }\n            if ($grants) { \"$(Get-PrincipalLabel $policy.objectId): $($grants -join ', ')\" }\n        }\n        $evidence = [ordered]@{ accessPolicies = @($Record.resource.properties.accessPolicies).Count; broadGrants = @($broad | Sort-Object) }\n        if ($broad) { return New-Fail \"$(@($broad).Count) access policy(ies) with full or purge permissions\" $evidence }\n        New-Pass 'No full or purge permissions in access policies' $evidence\n    " }, (S, O) => {
-        R.ln = F + 237;
+        R.ln = F + 351;
         if (R.t(R.eq(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "enableRbacAuthorization"), true))) {
-            R.ln = F + 237;
+            R.ln = F + 351;
             R.pa(O, R.cmd(S, "New-NotApplicable", ["The vault uses Azure RBAC"], null));
             return;
         }
-        R.ln = F + 238;
-        const v18 = [];
-        R.ln = F + 238;
-        for (const it19 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 238;
+        R.ln = F + 352;
+        const v23 = [];
+        R.ln = F + 352;
+        for (const it24 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+            R.ln = F + 352;
             R.e(O, (S["_"] ?? null));
         })], R.pi(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "accessPolicies"))))) {
-            S["policy"] = it19;
-            R.ln = F + 239;
+            S["policy"] = it24;
+            R.ln = F + 353;
             S["grants"] = [];
-            R.ln = F + 240;
-            for (const it20 of R.fi([R.v("keys"), R.v("secrets"), R.v("certificates")])) {
-                S["kind"] = it20;
-                R.ln = F + 241;
+            R.ln = F + 354;
+            for (const it25 of R.fi([R.v("keys"), R.v("secrets"), R.v("certificates")])) {
+                S["kind"] = it25;
+                R.ln = F + 355;
                 S["permissions"] = R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " ([string]$_).ToLowerInvariant() " }, (S, O) => {
-                    R.ln = F + 241;
+                    R.ln = F + 355;
                     R.e(O, R.im((R.c("string", (S["_"] ?? null))), "ToLowerInvariant", []));
                 })], R.pi(R.m(R.m((S["policy"] ?? null), "permissions"), R.str((S["kind"] ?? null)))));
-                R.ln = F + 242;
+                R.ln = F + 356;
                 if (R.t(R.cont((S["permissions"] ?? null), "all"))) {
-                    R.ln = F + 242;
+                    R.ln = F + 356;
                     S["grants"] = R.add(S["grants"] ?? null, ("" + R.str((S["kind"] ?? null)) + ":all"));
                 } else if (R.t(R.cont((S["permissions"] ?? null), "purge"))) {
-                    R.ln = F + 242;
+                    R.ln = F + 356;
                     S["grants"] = R.add(S["grants"] ?? null, ("" + R.str((S["kind"] ?? null)) + ":purge"));
                 }
             }
-            R.ln = F + 244;
+            R.ln = F + 358;
             if (R.t((S["grants"] ?? null))) {
-                R.ln = F + 244;
-                R.e(v18, ("" + R.str(R.u(R.cmd(S, "Get-PrincipalLabel", [R.m((S["policy"] ?? null), "objectId")], null))) + ": " + R.str(R.u(R.pi(R.join((S["grants"] ?? null), ", "))))));
+                R.ln = F + 358;
+                R.e(v23, ("" + R.str(R.u(R.cmd(S, "Get-PrincipalLabel", [R.m((S["policy"] ?? null), "objectId")], null))) + ": " + R.str(R.u(R.pi(R.join((S["grants"] ?? null), ", "))))));
             }
         }
-        S["broad"] = R.u(v18);
-        R.ln = F + 246;
+        S["broad"] = R.u(v23);
+        R.ln = F + 360;
         S["evidence"] = R.ht(["accessPolicies", R.m(R.a(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "accessPolicies")), "Count"), "broadGrants", R.cmd(S, "Sort-Object", [], R.pi((S["broad"] ?? null)))], true);
-        R.ln = F + 247;
+        R.ln = F + 361;
         if (R.t((S["broad"] ?? null))) {
-            R.ln = F + 247;
+            R.ln = F + 361;
             R.pa(O, R.cmd(S, "New-Fail", [("" + R.str(R.u(R.pi(R.m(R.a((S["broad"] ?? null)), "Count")))) + " access policy(ies) with full or purge permissions"), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 248;
+        R.ln = F + 362;
         R.pa(O, R.cmd(S, "New-Pass", ["No full or purge permissions in access policies", (S["evidence"] ?? null)], null));
     })], false)], null));
 });

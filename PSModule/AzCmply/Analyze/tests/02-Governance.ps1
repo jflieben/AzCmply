@@ -400,3 +400,55 @@ Add-AzTest @{
     }
 }
 
+function Get-HierarchySettings {
+    #the hierarchy settings of the root management group (the tenant id), or $null when none were saved: then new
+    #subscriptions land in the root group and anyone can create management groups
+    $tenantId = [string]$script:Ingest.Manifest.subscription.tenantId
+    return @(Get-IngestData 'subscription/managementGroupSettings' | Where-Object { $_ -and [string]$_.id -match "(?i)/managementGroups/$([regex]::Escape($tenantId))/settings/" }) | Select-Object -First 1
+}
+
+function New-HierarchySettingsFinding {
+    param($Result)
+    $id = "/providers/Microsoft.Management/managementGroups/$($script:Ingest.Manifest.subscription.tenantId)/settings/default"
+    return New-Finding -ResourceId $id -ResourceType 'Microsoft.Management/managementGroups/settings' -ResourceName 'Tenant Root Group hierarchy settings' -Result $Result
+}
+
+Add-AzTest @{
+    Id          = 'AZ-GOV-015'
+    Title       = 'New subscriptions are not placed in the root management group'
+    Category    = 'Asset management'
+    Service     = 'Management groups'
+    Severity    = 'Medium'
+    Description = 'Checks that the hierarchy settings of the root management group name a default management group for new subscriptions other than the root group itself. Reading them needs Reader (or Hierarchy Settings Administrator) on the root management group.'
+    Rationale   = 'A new subscription lands in the default management group and inherits only the policies and role assignments assigned there. In the root group it misses the guardrails of the landing zone hierarchy until someone moves it.'
+    Remediation = 'Create a management group for new subscriptions (for example a sandbox group with restrictive policies) and select it as the default management group in the settings of the Tenant Root Group.'
+    References  = @('https://learn.microsoft.com/azure/governance/management-groups/how-to/protect-resource-hierarchy#setting-define-the-default-management-group')
+    Requires    = @('subscription/managementGroupSettings')
+    Run         = {
+        $tenantId = [string]$script:Ingest.Manifest.subscription.tenantId
+        $settings = Get-HierarchySettings
+        $default = [string]$settings.properties.defaultManagementGroup
+        $evidence = [ordered]@{ defaultManagementGroup = $default; settingsSaved = [bool]$settings }
+        if ($default -and $default -notmatch "(?i)/managementGroups/$([regex]::Escape($tenantId))$" -and $default -ne $tenantId) { return New-HierarchySettingsFinding (New-Pass "New subscriptions go to $(Get-ResourceName $default)" $evidence) }
+        New-HierarchySettingsFinding (New-Fail 'New subscriptions go to the root management group' $evidence)
+    }
+}
+
+Add-AzTest @{
+    Id          = 'AZ-GOV-016'
+    Title       = 'Creating management groups requires write permission on the root management group'
+    Category    = 'Privileged access'
+    Service     = 'Management groups'
+    Severity    = 'Medium'
+    Description = "Checks that 'Require write permissions for creating new management groups' (requireAuthorizationForGroupCreation) is enabled in the hierarchy settings of the root management group. Reading them needs Reader (or Hierarchy Settings Administrator) on the root management group."
+    Rationale   = 'Without it every user and service principal in the tenant can create management groups under the root group, and becomes Owner of them, which lets them build a hierarchy outside the governance of the platform team.'
+    Remediation = "Enable 'Require write permissions for creating new management groups' in the settings of the Tenant Root Group."
+    References  = @('https://learn.microsoft.com/azure/governance/management-groups/how-to/protect-resource-hierarchy#setting-require-authorization')
+    Requires    = @('subscription/managementGroupSettings')
+    Run         = {
+        $settings = Get-HierarchySettings
+        $evidence = [ordered]@{ requireAuthorizationForGroupCreation = $settings.properties.requireAuthorizationForGroupCreation; settingsSaved = [bool]$settings }
+        if ($settings.properties.requireAuthorizationForGroupCreation -eq $true) { return New-HierarchySettingsFinding (New-Pass 'Creating management groups requires write permission on the root group' $evidence) }
+        New-HierarchySettingsFinding (New-Fail 'Any principal in the tenant can create management groups' $evidence)
+    }
+}

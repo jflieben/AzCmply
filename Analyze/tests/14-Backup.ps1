@@ -6,46 +6,144 @@ $backupVaultTypes = @($rsvType, $backupVaultType)
 
 Add-AzTest @{
     Id            = 'AZ-BCK-001'
+    Version       = 2
+    Title         = 'Recovery Services vaults have soft delete enabled'
+    Category      = 'Backup and recovery'
+    Service       = 'Azure Backup'
+    Severity      = 'High'
+    Description   = 'Checks that soft delete for cloud workloads (softDeleteState) and soft delete and security settings for hybrid workloads (enhancedSecurityState) are Enabled or AlwaysON on Recovery Services vaults, with a retention of 14 to 180 days.'
+    Rationale     = 'Attackers delete backups before encrypting production data. Soft delete keeps deleted backup data recoverable for the retention period; for hybrid workloads the enhanced security settings give the same protection.'
+    Remediation   = 'Enable soft delete for cloud and hybrid workloads with a retention of 14 to 180 days, and make it always-on so it cannot be disabled (vault Properties > Security settings > Soft delete).'
+    References    = @('https://learn.microsoft.com/azure/backup/secure-by-default', 'https://learn.microsoft.com/azure/backup/backup-azure-security-feature-cloud')
+    Policy        = @{ '31b8092a-36b8-434b-9af7-5ec844364148' = 'Soft delete must be enabled for Recovery Services Vaults.' }
+    ResourceTypes = @($rsvType)
+    Evaluate      = {
+        param($Record)
+        $settings = $Record.resource.properties.securitySettings.softDeleteSettings
+        $config = if (Test-ChildCollected $Record 'backupconfig/vaultconfig') { (Get-Child $Record 'backupconfig/vaultconfig').properties } else { $null }
+        $state = if ($settings.softDeleteState) { $settings.softDeleteState } else { $config.softDeleteFeatureState }
+        $enhanced = if ($settings.enhancedSecurityState) { $settings.enhancedSecurityState } else { $config.enhancedSecurityState }
+        $days = if ($null -ne $settings.softDeleteRetentionPeriodInDays) { $settings.softDeleteRetentionPeriodInDays } else { $config.softDeleteRetentionPeriodInDays }
+        $evidence = [ordered]@{ softDeleteState = $state; enhancedSecurityState = $enhanced; retentionDays = $days }
+        $failed = [System.Collections.Generic.List[string]]::new()
+        if ($state -and $state -notin 'Enabled', 'AlwaysON') { $failed.Add("soft delete $state") }
+        if ($enhanced -and $enhanced -notin 'Enabled', 'AlwaysON') { $failed.Add("hybrid security settings $enhanced") }
+        if ($null -ne $days -and ($days -lt 14 -or $days -gt 180)) { $failed.Add("retention $days days") }
+        if ($failed.Count) { return New-Fail "Not compliant: $($failed -join ', ')" $evidence }
+        if (-not $state -or -not $enhanced -or $null -eq $days) { return New-Unknown 'The soft delete settings could not be read completely' $evidence }
+        New-Pass "Soft delete $state, hybrid security settings $enhanced, $days days" $evidence
+    }
+}
+
+Add-AzTest @{
+    Id            = 'AZ-BCK-013'
     Title         = 'Backup vaults have soft delete enabled'
     Category      = 'Backup and recovery'
     Service       = 'Azure Backup'
     Severity      = 'High'
-    Description   = 'Checks soft delete on Recovery Services vaults and Backup vaults (Always-on soft delete is the strongest setting).'
-    Rationale     = 'Attackers delete backups before encrypting production data. Soft delete keeps deleted backup data recoverable for at least 14 days.'
-    Remediation   = 'Enable soft delete and make it always-on so it cannot be disabled (vault Properties > Security settings > Soft delete).'
-    References    = @('https://learn.microsoft.com/azure/backup/secure-by-default')
-    Policy        = @{ '31b8092a-36b8-434b-9af7-5ec844364148' = 'Soft delete must be enabled for Recovery Services Vaults.'; '9798d31d-6028-4dee-8643-46102185c016' = 'Soft delete should be enabled for Backup Vaults' }
-    ResourceTypes = $backupVaultTypes
+    Description   = 'Checks that soft delete of Backup vaults (securitySettings.softDeleteSettings) is On or AlwaysOn with a retention of 14 to 180 days.'
+    Rationale     = 'Attackers delete backups before encrypting production data. Soft delete keeps deleted backup data recoverable for the retention period.'
+    Remediation   = 'Enable soft delete with a retention of 14 to 180 days and make it always-on so it cannot be disabled (vault Properties > Soft delete).'
+    References    = @('https://learn.microsoft.com/azure/backup/backup-vault-overview')
+    Defender      = @{ 'dfb96516-dc26-3ab0-02a9-0232d1dbbe74' = 'Soft delete should be enabled for Backup Vaults' }
+    Policy        = @{ '9798d31d-6028-4dee-8643-46102185c016' = 'Soft delete should be enabled for Backup Vaults' }
+    ResourceTypes = @($backupVaultType)
     Evaluate      = {
         param($Record)
-        $state = $Record.resource.properties.securitySettings.softDeleteSettings.softDeleteState
-        if (-not $state) { $state = $Record.resource.properties.securitySettings.softDeleteSettings.state }
-        if (-not $state -and $Record.type -eq $rsvType) { $state = (Get-Child $Record 'backupconfig/vaultconfig').properties.softDeleteFeatureState }
-        $evidence = [ordered]@{ softDeleteState = $state }
-        if (-not $state) { return New-Unknown 'Soft delete state could not be read' $evidence }
-        if ($state -match '^(Enabled|On|AlwaysOn)$') { return New-Pass "Soft delete $state" $evidence }
-        New-Fail "Soft delete $state" $evidence
+        $settings = $Record.resource.properties.securitySettings.softDeleteSettings
+        $evidence = [ordered]@{ softDeleteState = $settings.state; retentionDays = $settings.retentionDurationInDays }
+        if (-not $settings.state) { return New-Unknown 'The soft delete settings were not returned' $evidence }
+        if ($settings.state -notin 'On', 'AlwaysOn') { return New-Fail "Soft delete $($settings.state)" $evidence }
+        if ($null -eq $settings.retentionDurationInDays) { return New-Unknown 'The soft delete retention was not returned' $evidence }
+        if ($settings.retentionDurationInDays -lt 14 -or $settings.retentionDurationInDays -gt 180) { return New-Fail "Soft delete retention $($settings.retentionDurationInDays) days, outside 14 to 180" $evidence }
+        New-Pass "Soft delete $($settings.state), $($settings.retentionDurationInDays) days" $evidence
     }
 }
 
 Add-AzTest @{
     Id            = 'AZ-BCK-002'
-    Title         = 'Backup vaults have immutability enabled'
+    Version       = 2
+    Title         = 'Recovery Services vaults have immutability enabled'
     Category      = 'Backup and recovery'
     Service       = 'Azure Backup'
     Severity      = 'Medium'
-    Description   = 'Checks the immutability state of Recovery Services vaults and Backup vaults (Locked is irreversible and strongest).'
+    Description   = 'Checks that the immutability state of Recovery Services vaults is Unlocked or Locked (Locked is irreversible and strongest).'
     Rationale     = 'Immutability prevents recovery points from being deleted or their retention reduced before they expire, even by a compromised administrator.'
     Remediation   = 'Enable immutability on the vault and lock it once retention settings are final.'
     References    = @('https://learn.microsoft.com/azure/backup/backup-azure-immutable-vault-concept')
-    Policy        = @{ 'd6f6f560-14b7-49a4-9fc8-d2c3a9807868' = 'Immutability must be enabled for Recovery Services vaults'; '2514263b-bc0d-4b06-ac3e-f262c0979018' = 'Immutability must be enabled for backup vaults' }
-    ResourceTypes = $backupVaultTypes
+    Defender      = @{ '9374cf1d-210d-87e8-30de-b4b7d5c4dc38' = 'Immutability must be enabled for Recovery Services vaults' }
+    Policy        = @{ 'd6f6f560-14b7-49a4-9fc8-d2c3a9807868' = 'Immutability must be enabled for Recovery Services vaults' }
+    ResourceTypes = @($rsvType)
     Evaluate      = {
         param($Record)
         $state = $Record.resource.properties.securitySettings.immutabilitySettings.state
         $evidence = [ordered]@{ immutabilityState = $state }
         if ($state -in 'Locked', 'Unlocked') { return New-Pass "Immutability $state" $evidence }
         New-Fail "Immutability $(if ($state) { $state } else { 'not configured' })" $evidence
+    }
+}
+
+Add-AzTest @{
+    Id            = 'AZ-BCK-014'
+    Title         = 'Backup vaults have immutability enabled'
+    Category      = 'Backup and recovery'
+    Service       = 'Azure Backup'
+    Severity      = 'Medium'
+    Description   = 'Checks that the immutability state of Backup vaults is Unlocked or Locked (Locked is irreversible and strongest).'
+    Rationale     = 'Immutability prevents recovery points from being deleted or their retention reduced before they expire, even by a compromised administrator.'
+    Remediation   = 'Enable immutability on the vault and lock it once retention settings are final.'
+    References    = @('https://learn.microsoft.com/azure/backup/backup-azure-immutable-vault-concept')
+    Defender      = @{ '3fe10c75-f066-c4e3-5941-8b8e6f60a5a0' = 'Immutability must be enabled for backup vaults' }
+    Policy        = @{ '2514263b-bc0d-4b06-ac3e-f262c0979018' = 'Immutability must be enabled for backup vaults' }
+    ResourceTypes = @($backupVaultType)
+    Evaluate      = {
+        param($Record)
+        $state = $Record.resource.properties.securitySettings.immutabilitySettings.state
+        $evidence = [ordered]@{ immutabilityState = $state }
+        if ($state -in 'Locked', 'Unlocked') { return New-Pass "Immutability $state" $evidence }
+        New-Fail "Immutability $(if ($state) { $state } else { 'not configured' })" $evidence
+    }
+}
+
+Add-AzTest @{
+    Id            = 'AZ-BCK-015'
+    Title         = 'Backup vaults encrypt backup data with a customer-managed key (when required)'
+    Category      = 'Data protection'
+    Service       = 'Azure Backup'
+    Severity      = 'Informational'
+    Description   = 'Checks whether Backup vaults encrypt backup data with a customer-managed key (securitySettings.encryptionSettings state Enabled with a key URI).'
+    Rationale     = 'A customer-managed key gives control over key rotation and the ability to revoke access to the backup data. Only required for data whose classification or regulation demands it.'
+    Remediation   = 'Configure encryption with a key in Key Vault and a managed identity on the vault (vault Properties > Encryption settings).'
+    References    = @('https://learn.microsoft.com/azure/backup/encryption-at-rest-with-cmk-for-backup-vault')
+    Policy        = @{ 'd6588149-9f06-462c-a076-56aece45b5ba' = 'Azure Backup Vaults should use customer-managed keys for encrypting backup data. Also an option to enforce Infra Encryption.' }
+    ResourceTypes = @($backupVaultType)
+    Evaluate      = {
+        param($Record)
+        $encryption = $Record.resource.properties.securitySettings.encryptionSettings
+        $evidence = [ordered]@{ encryptionState = $encryption.state; keyUri = $encryption.keyVaultProperties.keyUri }
+        if ($encryption.state -eq 'Enabled' -and $encryption.keyVaultProperties.keyUri) { return New-Pass 'Customer-managed key' $evidence }
+        New-Fail $(if ($encryption.state) { "Customer-managed key encryption $($encryption.state)" } else { 'Microsoft-managed keys' }) $evidence
+    }
+}
+
+Add-AzTest @{
+    Id            = 'AZ-BCK-016'
+    Title         = 'Backup vaults use infrastructure encryption'
+    Category      = 'Data protection'
+    Service       = 'Azure Backup'
+    Severity      = 'Low'
+    Description   = 'Checks that infrastructure (double) encryption of Backup vaults (securitySettings.encryptionSettings.infrastructureEncryption) is Enabled. It is set together with a customer-managed key.'
+    Rationale     = 'A second layer of platform-managed encryption protects backup data if one encryption layer or key is compromised, and is required by some regulations for highly sensitive data.'
+    Remediation   = "Enable 'Use infrastructure encryption for this vault' when configuring the customer-managed key, before the vault protects any item."
+    References    = @('https://learn.microsoft.com/azure/backup/encryption-at-rest-with-cmk-for-backup-vault')
+    Policy        = @{ 'd6588149-9f06-462c-a076-56aece45b5ba' = 'Azure Backup Vaults should use customer-managed keys for encrypting backup data. Also an option to enforce Infra Encryption.' }
+    ResourceTypes = @($backupVaultType)
+    Evaluate      = {
+        param($Record)
+        $value = $Record.resource.properties.securitySettings.encryptionSettings.infrastructureEncryption
+        $evidence = [ordered]@{ infrastructureEncryption = $value }
+        if ($value -eq 'Enabled') { return New-Pass 'Infrastructure encryption enabled' $evidence }
+        New-Fail $(if ($value) { "Infrastructure encryption $value" } else { 'Infrastructure encryption not enabled' }) $evidence
     }
 }
 
@@ -97,20 +195,41 @@ Add-AzTest @{
 
 Add-AzTest @{
     Id            = 'AZ-BCK-005'
+    Version       = 2
+    Title         = 'Recovery Services vaults disable cross subscription restore'
+    Category      = 'Backup and recovery'
+    Service       = 'Azure Backup'
+    Severity      = 'Low'
+    Description   = 'Checks that cross subscription restore of Recovery Services vaults (restoreSettings.crossSubscriptionRestoreSettings) is Disabled or PermanentlyDisabled.'
+    Rationale     = 'Cross subscription restore lets backup data be restored into another subscription, which an attacker with backup operator rights can use to exfiltrate data.'
+    Remediation   = 'Disable cross subscription restore (or disable it permanently) unless it is a documented requirement.'
+    References    = @('https://learn.microsoft.com/azure/backup/backup-azure-arm-restore-vms')
+    Policy        = @{ 'f19b0c83-716f-4b81-85e3-2dbf057c35d6' = 'Disable Cross Subscription Restore for Azure Recovery Services vaults' }
+    ResourceTypes = @($rsvType)
+    Evaluate      = {
+        param($Record)
+        $state = $Record.resource.properties.restoreSettings.crossSubscriptionRestoreSettings.crossSubscriptionRestoreState
+        $evidence = [ordered]@{ crossSubscriptionRestore = $state }
+        if ($state -in 'Disabled', 'PermanentlyDisabled') { return New-Pass "Cross subscription restore $state" $evidence }
+        New-Fail "Cross subscription restore $(if ($state) { $state } else { 'enabled (default)' })" $evidence
+    }
+}
+
+Add-AzTest @{
+    Id            = 'AZ-BCK-018'
     Title         = 'Backup vaults disable cross subscription restore'
     Category      = 'Backup and recovery'
     Service       = 'Azure Backup'
     Severity      = 'Low'
-    Description   = 'Checks the cross subscription restore setting of Recovery Services vaults and Backup vaults.'
+    Description   = 'Checks that cross subscription restore of Backup vaults (featureSettings.crossSubscriptionRestoreSettings) is Disabled or PermanentlyDisabled.'
     Rationale     = 'Cross subscription restore lets backup data be restored into another subscription, which an attacker with backup operator rights can use to exfiltrate data.'
     Remediation   = 'Disable cross subscription restore (or disable it permanently) unless it is a documented requirement.'
-    References    = @('https://learn.microsoft.com/azure/backup/backup-azure-arm-restore-vms')
-    Policy        = @{ 'f19b0c83-716f-4b81-85e3-2dbf057c35d6' = 'Disable Cross Subscription Restore for Azure Recovery Services vaults'; '4d479a11-f2b5-4f0a-bb1e-d2332aa95cda' = 'Disable Cross Subscription Restore for Backup Vaults' }
-    ResourceTypes = $backupVaultTypes
+    References    = @('https://learn.microsoft.com/azure/backup/backup-vault-overview')
+    Policy        = @{ '4d479a11-f2b5-4f0a-bb1e-d2332aa95cda' = 'Disable Cross Subscription Restore for Backup Vaults' }
+    ResourceTypes = @($backupVaultType)
     Evaluate      = {
         param($Record)
-        $p = $Record.resource.properties
-        $state = if ($Record.type -eq $rsvType) { $p.restoreSettings.crossSubscriptionRestoreSettings.crossSubscriptionRestoreState } else { $p.featureSettings.crossSubscriptionRestoreSettings.state }
+        $state = $Record.resource.properties.featureSettings.crossSubscriptionRestoreSettings.state
         $evidence = [ordered]@{ crossSubscriptionRestore = $state }
         if ($state -in 'Disabled', 'PermanentlyDisabled') { return New-Pass "Cross subscription restore $state" $evidence }
         New-Fail "Cross subscription restore $(if ($state) { $state } else { 'enabled (default)' })" $evidence
@@ -214,33 +333,155 @@ Add-AzTest @{
 
 Add-AzTest @{
     Id            = 'AZ-BCK-009'
-    Title         = 'Geo-redundant backup vaults allow cross region restore'
+    Version       = 2
+    Title         = 'Recovery Services vaults allow cross region restore'
     Category      = 'Backup and recovery'
     Service       = 'Azure Backup'
     Severity      = 'Low'
-    Description   = 'Checks that Recovery Services vaults and Backup vaults with geo-redundant storage have cross region restore enabled.'
-    Rationale     = 'Geo-redundant backups can only be restored in the paired region at will when cross region restore is enabled; otherwise a restore after a regional disaster waits until Microsoft declares a failover of the region.'
-    Remediation   = 'Enable cross region restore on the vault (Properties > Backup configuration). It cannot be disabled again once enabled.'
+    Description   = 'Checks that cross region restore (redundancySettings.crossRegionRestore) is Enabled on every Recovery Services vault. It needs geo-redundant storage, so a vault with other storage fails as well.'
+    Rationale     = 'Backups can only be restored in the paired region at will when cross region restore is enabled; otherwise a restore after a regional disaster waits until Microsoft declares a failover of the region, and locally or zone-redundant backups are lost with the region.'
+    Remediation   = 'Use geo-redundant storage and enable cross region restore on the vault (Properties > Backup configuration). Storage redundancy can only be changed before the first item is protected, and cross region restore cannot be disabled once enabled.'
     References    = @('https://learn.microsoft.com/azure/backup/backup-create-recovery-services-vault#set-cross-region-restore')
-    ResourceTypes = $backupVaultTypes
+    ResourceTypes = @($rsvType)
     Evaluate      = {
         param($Record)
         $p = $Record.resource.properties
-        if ($Record.type -eq $rsvType) {
-            $config = if (Test-ChildCollected $Record 'backupstorageconfig/vaultstorageconfig') { (Get-Child $Record 'backupstorageconfig/vaultstorageconfig').properties } else { $null }
-            $redundancy = if ($p.redundancySettings.standardTierStorageRedundancy) { $p.redundancySettings.standardTierStorageRedundancy } elseif ($config.storageModelType) { $config.storageModelType } else { $config.storageType }
-            $enabled = if ($p.redundancySettings.crossRegionRestore) { $p.redundancySettings.crossRegionRestore -eq 'Enabled' } elseif ($config -and $null -ne $config.crossRegionRestoreFlag) { [bool]$config.crossRegionRestoreFlag } else { $null }
-        } else {
-            $redundancy = (@($p.storageSettings) | Select-Object -First 1).type
-            #a Backup vault only reports the setting once it has been changed; absent means disabled
-            $enabled = $p.featureSettings.crossRegionRestoreSettings.state -eq 'Enabled'
-        }
+        $config = if (Test-ChildCollected $Record 'backupstorageconfig/vaultstorageconfig') { (Get-Child $Record 'backupstorageconfig/vaultstorageconfig').properties } else { $null }
+        $redundancy = if ($p.redundancySettings.standardTierStorageRedundancy) { $p.redundancySettings.standardTierStorageRedundancy } elseif ($config.storageModelType) { $config.storageModelType } else { $config.storageType }
+        $enabled = if ($p.redundancySettings.crossRegionRestore) { $p.redundancySettings.crossRegionRestore -eq 'Enabled' } elseif ($config -and $null -ne $config.crossRegionRestoreFlag) { [bool]$config.crossRegionRestoreFlag } else { $null }
         $evidence = [ordered]@{ storageRedundancy = $redundancy; crossRegionRestore = $enabled }
-        if (-not $redundancy) { return New-Unknown 'Storage redundancy could not be read' $evidence }
-        if ($redundancy -ne 'GeoRedundant') { return New-NotApplicable "$redundancy storage (see AZ-BCK-004)" $evidence }
         if ($null -eq $enabled) { return New-Unknown 'The cross region restore setting could not be read' $evidence }
         if ($enabled) { return New-Pass 'Cross region restore enabled' $evidence }
-        New-Fail 'Cross region restore disabled' $evidence
+        New-Fail $(if ($redundancy -and $redundancy -ne 'GeoRedundant') { "Cross region restore disabled ($redundancy storage cannot enable it)" } else { 'Cross region restore disabled' }) $evidence
+    }
+}
+
+Add-AzTest @{
+    Id            = 'AZ-BCK-017'
+    Title         = 'Backup vaults allow cross region restore'
+    Category      = 'Backup and recovery'
+    Service       = 'Azure Backup'
+    Severity      = 'Low'
+    Description   = 'Checks that cross region restore (featureSettings.crossRegionRestoreSettings.state) is Enabled on every Backup vault. It needs geo-redundant storage, so a vault with other storage fails as well.'
+    Rationale     = 'Backups can only be restored in the paired region at will when cross region restore is enabled; otherwise a restore after a regional disaster waits until Microsoft declares a failover of the region, and locally or zone-redundant backups are lost with the region.'
+    Remediation   = 'Use geo-redundant storage and enable cross region restore on the vault (Properties > Vault settings). Cross region restore cannot be disabled once enabled.'
+    References    = @('https://learn.microsoft.com/azure/backup/backup-vault-overview')
+    ResourceTypes = @($backupVaultType)
+    Evaluate      = {
+        param($Record)
+        $p = $Record.resource.properties
+        $redundancy = (@($p.storageSettings) | Select-Object -First 1).type
+        #a Backup vault only reports the setting once it has been changed; absent means disabled
+        $state = $p.featureSettings.crossRegionRestoreSettings.state
+        $evidence = [ordered]@{ storageRedundancy = $redundancy; crossRegionRestore = $state }
+        if ($state -eq 'Enabled') { return New-Pass 'Cross region restore enabled' $evidence }
+        New-Fail $(if ($redundancy -and $redundancy -ne 'GeoRedundant') { "Cross region restore disabled ($redundancy storage cannot enable it)" } else { 'Cross region restore disabled' }) $evidence
+    }
+}
+
+function Get-RsvEncryption {
+    #customer-managed key settings of a Recovery Services vault: the vault properties, and the encryption config child
+    param($Record)
+    $vault = $Record.resource.properties.encryption
+    $config = if (Test-ChildCollected $Record 'backupEncryptionConfigs/backupResourceEncryptionConfig') { (Get-Child $Record 'backupEncryptionConfigs/backupResourceEncryptionConfig').properties } else { $null }
+    $keyUri = if ($vault.keyVaultProperties.keyUri) { [string]$vault.keyVaultProperties.keyUri } elseif ($config.encryptionAtRestType -eq 'CustomerManaged' -and $config.keyUri) { [string]$config.keyUri } else { $null }
+    $infrastructure = if ($vault.infrastructureEncryption) { [string]$vault.infrastructureEncryption } elseif ($config.infrastructureEncryptionState) { [string]$config.infrastructureEncryptionState } else { $null }
+    return [pscustomobject]@{ KeyUri = $keyUri; Infrastructure = $infrastructure; EncryptionAtRestType = $(if ($config) { $config.encryptionAtRestType } else { $null }); ConfigRead = [bool]$config }
+}
+
+Add-AzTest @{
+    Id            = 'AZ-BCK-019'
+    Title         = 'Recovery Services vaults encrypt backup data with a customer-managed key (when required)'
+    Category      = 'Data protection'
+    Service       = 'Azure Backup'
+    Severity      = 'Informational'
+    Description   = 'Checks whether Recovery Services vaults encrypt backup data with a customer-managed key (encryption.keyVaultProperties.keyUri, or encryptionAtRestType CustomerManaged in the vault encryption settings).'
+    Rationale     = 'A customer-managed key gives control over key rotation and the ability to revoke access to the backup data. Only required for data whose classification or regulation demands it.'
+    Remediation   = 'Configure encryption with a key in Key Vault and a managed identity on the vault (Properties > Encryption settings > Use your own key) before protecting items.'
+    References    = @('https://learn.microsoft.com/azure/backup/encryption-at-rest-with-cmk')
+    Defender      = @{ '06bd96e3-0509-1062-3615-821aaa8b515d' = 'Azure Recovery Services vaults should use customer-managed keys for encrypting backup data' }
+    Policy        = @{ '2e94d99a-8a36-4563-bc77-810d8893b671' = 'Azure Recovery Services vaults should use customer-managed keys for encrypting backup data' }
+    ResourceTypes = @($rsvType)
+    Evaluate      = {
+        param($Record)
+        $encryption = Get-RsvEncryption $Record
+        $evidence = [ordered]@{ keyUri = $encryption.KeyUri; encryptionAtRestType = $encryption.EncryptionAtRestType }
+        if ($encryption.KeyUri) { return New-Pass 'Customer-managed key' $evidence }
+        New-Fail 'Microsoft-managed keys' $evidence
+    }
+}
+
+Add-AzTest @{
+    Id            = 'AZ-BCK-020'
+    Title         = 'Recovery Services vaults use infrastructure encryption'
+    Category      = 'Data protection'
+    Service       = 'Azure Backup'
+    Severity      = 'Low'
+    Description   = 'Checks that infrastructure (double) encryption of Recovery Services vaults is Enabled (encryption.infrastructureEncryption, or infrastructureEncryptionState in the vault encryption settings).'
+    Rationale     = 'A second layer of platform-managed encryption protects backup data if one encryption layer or key is compromised, and is required by some regulations for highly sensitive data.'
+    Remediation   = "Enable 'Use infrastructure encryption for this vault' when configuring the customer-managed key, before the vault protects any item."
+    References    = @('https://learn.microsoft.com/azure/backup/encryption-at-rest-with-cmk')
+    ResourceTypes = @($rsvType)
+    Evaluate      = {
+        param($Record)
+        $encryption = Get-RsvEncryption $Record
+        $evidence = [ordered]@{ infrastructureEncryption = $encryption.Infrastructure }
+        if ($encryption.Infrastructure -eq 'Enabled') { return New-Pass 'Infrastructure encryption enabled' $evidence }
+        if ($encryption.Infrastructure) { return New-Fail "Infrastructure encryption $($encryption.Infrastructure)" $evidence }
+        if (-not $encryption.ConfigRead) { return New-Unknown 'The vault encryption settings could not be read' $evidence }
+        New-Fail 'Infrastructure encryption not enabled' $evidence
+    }
+}
+
+Add-AzTest @{
+    Id            = 'AZ-BCK-021'
+    Title         = 'Recovery Services vaults disable public network access'
+    Category      = 'Network security'
+    Service       = 'Azure Backup'
+    Severity      = 'Medium'
+    Description   = 'Checks that public network access of Recovery Services vaults is Disabled.'
+    Rationale     = 'With public network access disabled, backup and restore traffic of protected workloads only reaches the vault through private endpoints, which removes its exposure to other networks.'
+    Remediation   = 'Create private endpoints for the vault, then set public network access to Deny (vault Networking > Public access).'
+    References    = @('https://learn.microsoft.com/azure/backup/private-endpoints')
+    Policy        = @{ '9ebbbba3-4d65-4da9-bb67-b22cfaaff090' = 'Azure Recovery Services vaults should disable public network access' }
+    ResourceTypes = @($rsvType)
+    Evaluate      = {
+        param($Record)
+        $value = $Record.resource.properties.publicNetworkAccess
+        $evidence = [ordered]@{ publicNetworkAccess = $value }
+        if ($value -eq 'Disabled') { return New-Pass 'Public network access disabled' $evidence }
+        New-Fail $(if ($value) { "Public network access $value" } else { 'Public network access not set (enabled)' }) $evidence
+    }
+}
+
+Add-AzTest @{
+    Id            = 'AZ-BCK-022'
+    Title         = 'Recovery Services vaults use a private endpoint for backup'
+    Category      = 'Network security'
+    Service       = 'Azure Backup'
+    Severity      = 'Low'
+    Description   = 'Checks Recovery Services vaults for a private endpoint connection for Azure Backup (an id containing .backup, or group AzureBackup) that is Approved and Succeeded. Connections for Site Recovery do not count.'
+    Rationale     = 'A private endpoint for the AzureBackup sub-resource lets backup agents and workload extensions reach the vault over the virtual network instead of the public endpoint.'
+    Remediation   = 'Create a private endpoint for the AzureBackup sub-resource of the vault, with private DNS zone integration, before protecting items.'
+    References    = @('https://learn.microsoft.com/azure/backup/private-endpoints')
+    Defender      = @{ 'fe3fd28d-e999-24a9-f566-30dbb81dae6c' = 'Azure Recovery Services vaults should use private link for backup' }
+    Policy        = @{ 'deeddb44-9f94-4903-9fa0-081d524406e3' = 'Azure Recovery Services vaults should use private link for backup' }
+    ResourceTypes = @($rsvType)
+    Evaluate      = {
+        param($Record)
+        $listed = $Record.resource.properties.privateEndpointConnections
+        $childRead = Test-ChildCollected $Record 'privateEndpointConnections'
+        #the vault lists its connections and the child call returns them again; keep each id once
+        $byId = @{}
+        foreach ($connection in @(@($listed) + @(Get-Child $Record 'privateEndpointConnections') | Where-Object { $_ -and $_.id })) { $byId[([string]$connection.id).ToLowerInvariant()] = $connection }
+        $connections = @($byId.Keys | Sort-Object | ForEach-Object { $byId[$_] })
+        $backup = @($connections | Where-Object {
+                ([string]$_.id -match '(?i)\.backup' -or @($_.properties.groupIds) -contains 'AzureBackup') -and $_.properties.privateLinkServiceConnectionState.status -eq 'Approved' -and $_.properties.provisioningState -eq 'Succeeded'
+            } | ForEach-Object { Get-ResourceName $_.id })
+        $evidence = [ordered]@{ privateEndpointConnections = @($connections | ForEach-Object { "$(Get-ResourceName $_.id) ($($_.properties.privateLinkServiceConnectionState.status))" }); backupConnections = $backup }
+        if ($backup) { return New-Pass "Private endpoint for backup: $($backup -join ', ')" $evidence }
+        if (-not $childRead -and $null -eq $listed) { return New-Unknown 'The private endpoint connections could not be read' $evidence }
+        New-Fail 'No approved private endpoint for Azure Backup' $evidence
     }
 }
 

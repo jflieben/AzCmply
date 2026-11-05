@@ -60,6 +60,19 @@ function Get-WorstStatus {
     return $worst
 }
 
+function Get-ScopedStatus {
+    #the status of a test counting only its findings in a scope (Test-FindingInScope), as for the test itself
+    param($Result, [string]$Scope)
+    if ($Result.status -eq 'Error') { return 'Error' }
+    $statuses = @($Result.findings | Where-Object { Test-FindingInScope $_ $Scope } | ForEach-Object { $_.status })
+    #a test that could not run (Requires) or only reports for the subscription stays Unknown rather than not applicable
+    if (-not $statuses.Count -and $Result.status -eq 'Unknown') { return 'Unknown' }
+    if ($statuses -contains 'Fail') { return 'Fail' }
+    if ($statuses -contains 'Unknown') { return 'Unknown' }
+    if ($statuses -contains 'Pass') { return 'Pass' }
+    return 'NotApplicable'
+}
+
 function ConvertTo-StableValue {
     #evidence values as JSON friendly, deterministic types
     param($Value)
@@ -194,6 +207,7 @@ try {
             if (-not $entry) { continue }
             $framework, $id, $control = $entry
             $tag = [ordered]@{ id = $id; title = $control.title; coverage = $control.coverage }
+            if ($control.scope) { $tag.scope = $control.scope }
             foreach ($field in 'level', 'criticality', 'url') { if ($control[$field]) { $tag[$field] = $control[$field] } }
             if (-not $frameworkTags.Contains($framework)) { $frameworkTags[$framework] = [System.Collections.Generic.List[object]]::new() }
             $frameworkTags[$framework].Add($tag)
@@ -246,7 +260,8 @@ try {
     #every control of every framework: the worst result of its tests that ran, or NotAssessed. Controls that need manual
     #evidence or do not concern Azure are listed too, so a framework is never reduced to the controls a test covers
     $statusById = @{}
-    foreach ($result in $testResults) { $statusById[$result.id] = $result.status }
+    $resultById = @{}
+    foreach ($result in $testResults) { $statusById[$result.id] = $result.status; $resultById[$result.id] = $result }
     $frameworkRollups = [ordered]@{}
     foreach ($framework in $script:Catalog.Keys) {
         $meta = $script:Catalog[$framework]
@@ -261,7 +276,12 @@ try {
             if ($mappedTests.Count) {
                 $item.applicability = 'automated'
                 $item.coverage = $control.coverage
-                $item.status = if ($ran.Count) { Get-WorstStatus @($ran | ForEach-Object { $statusById[$_] }) } else { 'NotAssessed' }
+                #a control with a scope judges its tests only on the findings of that kind of resource
+                $scope = [string]$control.scope
+                $testStatus = [ordered]@{}
+                foreach ($ranTest in $ran) { $testStatus[$ranTest] = if ($scope) { Get-ScopedStatus $resultById[$ranTest] $scope } else { $statusById[$ranTest] } }
+                $item.status = if ($ran.Count) { Get-WorstStatus @($ran | ForEach-Object { $testStatus[$_] }) } else { 'NotAssessed' }
+                if ($scope) { $item.scope = $scope; $item.testStatus = $testStatus }
                 $count.automated++
                 $count[$control.coverage]++
                 $results[$item.status]++

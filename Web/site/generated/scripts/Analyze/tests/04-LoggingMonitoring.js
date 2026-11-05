@@ -27,885 +27,1007 @@ export default R.script("/app/Analyze/tests/04-LoggingMonitoring.ps1", { params:
         R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Fail", ["The activity log is not exported", (S["evidence"] ?? null)], null))], null));
     })], false)], null));
     R.ln = F + 26;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-LOG-002", "Title", "The activity log export includes the security relevant categories", "Category", "Logging and threat detection", "Service", "Azure Monitor", "Severity", "Medium", "Description", "Checks that a subscription diagnostic setting exports the Administrative, Alert, Policy and Security categories.", "Rationale", "These categories record configuration changes, alerts, policy decisions and Defender for Cloud events, which investigations depend on.", "Remediation", "Edit the subscription diagnostic setting and select at least Administrative, Alert, Policy and Security (or all categories).", "References", R.a("https://learn.microsoft.com/azure/azure-monitor/essentials/activity-log-schema"), "Requires", R.a("subscription/diagnosticSettings"), "Run", R.sb({ params: [], adv: 0, text: "\n        $settings = @(Get-ActivityLogSettings)\n        if (-not $settings) { return New-SubscriptionFinding (New-NotApplicable 'No activity log export (see AZ-LOG-001)') }\n        $required = @('Administrative', 'Alert', 'Policy', 'Security')\n        $best = $null\n        foreach ($setting in $settings) {\n            $enabled = @($setting.properties.logs | Where-Object { $_.enabled } | ForEach-Object { if ($_.category) { $_.category } else { $_.categoryGroup } })\n            $missing = @($required | Where-Object { $_ -notin $enabled -and 'allLogs' -notin $enabled })\n            if (-not $best -or $missing.Count -lt $best.Missing.Count) { $best = [pscustomobject]@{ Name = $setting.name; Missing = $missing; Enabled = $enabled } }\n        }\n        $evidence = [ordered]@{ setting = $best.Name; enabledCategories = @($best.Enabled | Sort-Object); missingCategories = @($best.Missing) }\n        if ($best.Missing) { return New-SubscriptionFinding (New-Fail \"Missing categories: $($best.Missing -join ', ')\" $evidence) }\n        New-SubscriptionFinding (New-Pass 'All required categories are exported' $evidence)\n    " }, (S, O) => {
-        R.ln = F + 38;
-        S["settings"] = R.cmd(S, "Get-ActivityLogSettings", [], null);
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-LOG-002", "Version", 2, "Title", "The activity log export includes the security relevant categories", "Category", "Logging and threat detection", "Service", "Azure Monitor", "Severity", "Medium", "Description", "Checks that the Administrative, Alert, Policy and Security categories are each exported by at least one subscription diagnostic setting with a destination.", "Rationale", "These categories record configuration changes, alerts, policy decisions and Defender for Cloud events, which investigations depend on.", "Remediation", "Edit the subscription diagnostic setting and select at least Administrative, Alert, Policy and Security (or all categories).", "References", R.a("https://learn.microsoft.com/azure/azure-monitor/essentials/activity-log-schema"), "Requires", R.a("subscription/diagnosticSettings"), "Run", R.sb({ params: [], adv: 0, text: "\n        $settings = @(Get-ActivityLogSettings)\n        if (-not $settings) { return New-SubscriptionFinding (New-NotApplicable 'No activity log export (see AZ-LOG-001)') }\n        $required = @('Administrative', 'Alert', 'Policy', 'Security')\n        $exportedBy = [ordered]@{}\n        foreach ($category in $required) { $exportedBy[$category] = [System.Collections.Generic.List[string]]::new() }\n        foreach ($setting in ($settings | Sort-Object name)) {\n            $enabled = @($setting.properties.logs | Where-Object { $_.enabled } | ForEach-Object { if ($_.category) { $_.category } else { $_.categoryGroup } })\n            foreach ($category in $required) { if ($category -in $enabled -or 'allLogs' -in $enabled) { $exportedBy[$category].Add([string]$setting.name) } }\n        }\n        $missing = @($required | Where-Object { -not $exportedBy[$_].Count })\n        $exported = [ordered]@{}\n        foreach ($category in $required) { $exported[$category] = @($exportedBy[$category]) }\n        $evidence = [ordered]@{ settings = @($settings | ForEach-Object name | Sort-Object); exportedBy = $exported; missingCategories = $missing }\n        if ($missing) { return New-SubscriptionFinding (New-Fail \"Missing categories: $($missing -join ', ')\" $evidence) }\n        New-SubscriptionFinding (New-Pass 'All required categories are exported' $evidence)\n    " }, (S, O) => {
         R.ln = F + 39;
+        S["settings"] = R.cmd(S, "Get-ActivityLogSettings", [], null);
+        R.ln = F + 40;
         if (!R.t((S["settings"] ?? null))) {
-            R.ln = F + 39;
+            R.ln = F + 40;
             R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-NotApplicable", ["No activity log export (see AZ-LOG-001)"], null))], null));
             return;
         }
-        R.ln = F + 40;
-        S["required"] = R.a([R.v("Administrative"), R.v("Alert"), R.v("Policy"), R.v("Security")]);
         R.ln = F + 41;
-        S["best"] = null;
+        S["required"] = R.a([R.v("Administrative"), R.v("Alert"), R.v("Policy"), R.v("Security")]);
         R.ln = F + 42;
-        for (const it1 of R.fi((S["settings"] ?? null))) {
-            S["setting"] = it1;
+        S["exportedby"] = R.ht([], true);
+        R.ln = F + 43;
+        for (const it1 of R.fi((S["required"] ?? null))) {
+            S["category"] = it1;
             R.ln = F + 43;
+            R.si((S["exportedby"] ?? null), (S["category"] ?? null), R.sc("System.Collections.Generic.List[string]", "new", []));
+        }
+        R.ln = F + 44;
+        for (const it2 of R.fi(R.u(R.cmd(S, "Sort-Object", ["name"], R.pi((S["settings"] ?? null)))))) {
+            S["setting"] = it2;
+            R.ln = F + 45;
             S["enabled"] = R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " if ($_.category) { $_.category } else { $_.categoryGroup } " }, (S, O) => {
-                R.ln = F + 43;
+                R.ln = F + 45;
                 if (R.t(R.m((S["_"] ?? null), "category"))) {
-                    R.ln = F + 43;
+                    R.ln = F + 45;
                     R.e(O, R.m((S["_"] ?? null), "category"));
                 } else {
-                    R.ln = F + 43;
+                    R.ln = F + 45;
                     R.e(O, R.m((S["_"] ?? null), "categoryGroup"));
                 }
             })], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.enabled " }, (S, O) => {
-                R.ln = F + 43;
+                R.ln = F + 45;
                 R.e(O, R.m((S["_"] ?? null), "enabled"));
             })], R.pi(R.m(R.m((S["setting"] ?? null), "properties"), "logs"))));
-            R.ln = F + 44;
-            S["missing"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -notin $enabled -and 'allLogs' -notin $enabled " }, (S, O) => {
-                R.ln = F + 44;
-                R.e(O, (R.t(R.nin((S["_"] ?? null), (S["enabled"] ?? null))) && R.t(R.nin("allLogs", (S["enabled"] ?? null)))));
-            })], R.pi((S["required"] ?? null)));
-            R.ln = F + 45;
-            if ((!R.t((S["best"] ?? null)) || R.t(R.lt(R.m((S["missing"] ?? null), "Count"), R.m(R.m((S["best"] ?? null), "Missing"), "Count"))))) {
-                R.ln = F + 45;
-                S["best"] = R.pso(["Name", R.m((S["setting"] ?? null), "name"), "Missing", (S["missing"] ?? null), "Enabled", (S["enabled"] ?? null)]);
+            R.ln = F + 46;
+            for (const it3 of R.fi((S["required"] ?? null))) {
+                S["category"] = it3;
+                R.ln = F + 46;
+                if ((R.t(R.in((S["category"] ?? null), (S["enabled"] ?? null))) || R.t(R.in("allLogs", (S["enabled"] ?? null))))) {
+                    R.ln = F + 46;
+                    R.e(O, R.im(R.i((S["exportedby"] ?? null), (S["category"] ?? null)), "Add", [R.c("string", R.m((S["setting"] ?? null), "name"))]));
+                }
             }
         }
-        R.ln = F + 47;
-        S["evidence"] = R.ht(["setting", R.m((S["best"] ?? null), "Name"), "enabledCategories", R.cmd(S, "Sort-Object", [], R.pi(R.m((S["best"] ?? null), "Enabled"))), "missingCategories", R.a(R.m((S["best"] ?? null), "Missing"))], true);
         R.ln = F + 48;
-        if (R.t(R.m((S["best"] ?? null), "Missing"))) {
+        S["missing"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " -not $exportedBy[$_].Count " }, (S, O) => {
             R.ln = F + 48;
-            R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Fail", [("Missing categories: " + R.str(R.u(R.pi(R.join(R.m((S["best"] ?? null), "Missing"), ", "))))), (S["evidence"] ?? null)], null))], null));
+            R.e(O, !R.t(R.m(R.i((S["exportedby"] ?? null), (S["_"] ?? null)), "Count")));
+        })], R.pi((S["required"] ?? null)));
+        R.ln = F + 49;
+        S["exported"] = R.ht([], true);
+        R.ln = F + 50;
+        for (const it4 of R.fi((S["required"] ?? null))) {
+            S["category"] = it4;
+            R.ln = F + 50;
+            R.si((S["exported"] ?? null), (S["category"] ?? null), R.a(R.i((S["exportedby"] ?? null), (S["category"] ?? null))));
+        }
+        R.ln = F + 51;
+        S["evidence"] = R.ht(["settings", R.cmd(S, "Sort-Object", [], R.cmd(S, "ForEach-Object", ["name"], R.pi((S["settings"] ?? null)))), "exportedBy", (S["exported"] ?? null), "missingCategories", (S["missing"] ?? null)], true);
+        R.ln = F + 52;
+        if (R.t((S["missing"] ?? null))) {
+            R.ln = F + 52;
+            R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Fail", [("Missing categories: " + R.str(R.u(R.pi(R.join((S["missing"] ?? null), ", "))))), (S["evidence"] ?? null)], null))], null));
             return;
         }
-        R.ln = F + 49;
+        R.ln = F + 53;
         R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Pass", ["All required categories are exported", (S["evidence"] ?? null)], null))], null));
     })], false)], null));
-    R.ln = F + 53;
+    R.ln = F + 57;
     R.def(S, "Get-ConditionValues", { params: [{ n: "Condition", t: null, pos: null }], adv: 0, h: "66efc47934c2d828" }, (S, O) => {
-        R.ln = F + 56;
+        R.ln = F + 60;
         S["values"] = R.ht([], false);
-        R.ln = F + 57;
+        R.ln = F + 61;
         S["leaves"] = R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 57;
+            R.ln = F + 61;
             R.e(O, (S["_"] ?? null));
         })], R.pi(R.a(R.m((S["condition"] ?? null), "allOf")))));
-        R.ln = F + 58;
-        for (const it2 of R.fi((S["leaves"] ?? null))) {
-            S["leaf"] = it2;
-            R.ln = F + 59;
-            const v3 = [];
-            R.ln = F + 59;
+        R.ln = F + 62;
+        for (const it5 of R.fi((S["leaves"] ?? null))) {
+            S["leaf"] = it5;
+            R.ln = F + 63;
+            const v6 = [];
+            R.ln = F + 63;
             if (R.t(R.m((S["leaf"] ?? null), "anyOf"))) {
-                R.ln = F + 59;
-                R.e(v3, R.a(R.m((S["leaf"] ?? null), "anyOf")));
+                R.ln = F + 63;
+                R.e(v6, R.a(R.m((S["leaf"] ?? null), "anyOf")));
             } else {
-                R.ln = F + 59;
-                R.e(v3, R.a((S["leaf"] ?? null)));
+                R.ln = F + 63;
+                R.e(v6, R.a((S["leaf"] ?? null)));
             }
-            S["items"] = R.u(v3);
-            R.ln = F + 60;
-            for (const it4 of R.fi((S["items"] ?? null))) {
-                S["item"] = it4;
-                R.ln = F + 61;
+            S["items"] = R.u(v6);
+            R.ln = F + 64;
+            for (const it7 of R.fi((S["items"] ?? null))) {
+                S["item"] = it7;
+                R.ln = F + 65;
                 if (!R.t(R.m((S["item"] ?? null), "field"))) {
                     continue;
                 }
-                R.ln = F + 62;
+                R.ln = F + 66;
                 S["key"] = R.im(R.m((S["item"] ?? null), "field"), "ToLowerInvariant", []);
-                R.ln = F + 63;
+                R.ln = F + 67;
                 if (!R.t(R.im((S["values"] ?? null), "ContainsKey", [(S["key"] ?? null)]))) {
-                    R.ln = F + 63;
+                    R.ln = F + 67;
                     R.si((S["values"] ?? null), (S["key"] ?? null), R.sc("System.Collections.Generic.List[string]", "new", []));
                 }
-                R.ln = F + 64;
+                R.ln = F + 68;
                 if (R.t(R.m((S["item"] ?? null), "equals"))) {
-                    R.ln = F + 64;
+                    R.ln = F + 68;
                     R.e(O, R.im(R.i((S["values"] ?? null), (S["key"] ?? null)), "Add", [R.im((R.c("string", R.m((S["item"] ?? null), "equals"))), "ToLowerInvariant", [])]));
                 }
-                R.ln = F + 65;
-                for (const it5 of R.fi(R.a(R.m((S["item"] ?? null), "containsAny")))) {
-                    S["value"] = it5;
-                    R.ln = F + 65;
+                R.ln = F + 69;
+                for (const it8 of R.fi(R.a(R.m((S["item"] ?? null), "containsAny")))) {
+                    S["value"] = it8;
+                    R.ln = F + 69;
                     if (R.t((S["value"] ?? null))) {
-                        R.ln = F + 65;
+                        R.ln = F + 69;
                         R.e(O, R.im(R.i((S["values"] ?? null), (S["key"] ?? null)), "Add", [R.im((R.c("string", (S["value"] ?? null))), "ToLowerInvariant", [])]));
                     }
                 }
             }
         }
-        R.ln = F + 68;
+        R.ln = F + 72;
         R.e(O, (S["values"] ?? null));
         return;
     });
-    R.ln = F + 71;
+    R.ln = F + 75;
     S["activityalerts"] = (() => {
-        const v6 = [];
-        R.ln = F + 72;
-        R.e(v6, R.ht(["Id", "AZ-LOG-003", "Operation", "Microsoft.Authorization/policyAssignments/write", "Label", "Create policy assignment", "Category", "Administrative", "Policy", R.ht(["c5447c04-a4d7-4ba8-a263-c9ee321a6858", "An activity log alert should exist for specific Policy operations"], false)], false));
-        R.ln = F + 73;
-        R.e(v6, R.ht(["Id", "AZ-LOG-004", "Operation", "Microsoft.Authorization/policyAssignments/delete", "Label", "Delete policy assignment", "Category", "Administrative", "Policy", R.ht(["c5447c04-a4d7-4ba8-a263-c9ee321a6858", "An activity log alert should exist for specific Policy operations"], false)], false));
-        R.ln = F + 74;
-        R.e(v6, R.ht(["Id", "AZ-LOG-005", "Operation", "Microsoft.Network/networkSecurityGroups/write", "Label", "Create or update network security group", "Category", "Administrative", "Policy", R.ht(["b954148f-4c11-4c38-8221-be76711e194a", "An activity log alert should exist for specific Administrative operations"], false)], false));
-        R.ln = F + 75;
-        R.e(v6, R.ht(["Id", "AZ-LOG-006", "Operation", "Microsoft.Network/networkSecurityGroups/delete", "Label", "Delete network security group", "Category", "Administrative", "Policy", R.ht(["b954148f-4c11-4c38-8221-be76711e194a", "An activity log alert should exist for specific Administrative operations"], false)], false));
+        const v9 = [];
         R.ln = F + 76;
-        R.e(v6, R.ht(["Id", "AZ-LOG-007", "Operation", "Microsoft.Security/securitySolutions/write", "Label", "Create or update security solution", "Category", "Security", "Policy", R.ht(["3b980d31-7904-4bb7-8575-5665739a8052", "An activity log alert should exist for specific Security operations"], false)], false));
+        R.e(v9, R.ht(["Id", "AZ-LOG-003", "Operation", "Microsoft.Authorization/policyAssignments/write", "Label", "Create policy assignment", "Category", "Administrative", "Policy", R.ht(["c5447c04-a4d7-4ba8-a263-c9ee321a6858", "An activity log alert should exist for specific Policy operations"], false)], false));
         R.ln = F + 77;
-        R.e(v6, R.ht(["Id", "AZ-LOG-008", "Operation", "Microsoft.Security/securitySolutions/delete", "Label", "Delete security solution", "Category", "Security", "Policy", R.ht(["3b980d31-7904-4bb7-8575-5665739a8052", "An activity log alert should exist for specific Security operations"], false)], false));
+        R.e(v9, R.ht(["Id", "AZ-LOG-004", "Operation", "Microsoft.Authorization/policyAssignments/delete", "Label", "Delete policy assignment", "Category", "Administrative", "Policy", R.ht(["c5447c04-a4d7-4ba8-a263-c9ee321a6858", "An activity log alert should exist for specific Policy operations"], false)], false));
         R.ln = F + 78;
-        R.e(v6, R.ht(["Id", "AZ-LOG-009", "Operation", "Microsoft.Sql/servers/firewallRules/write", "Label", "Create or update SQL server firewall rule", "Category", "Administrative", "Policy", R.ht(["b954148f-4c11-4c38-8221-be76711e194a", "An activity log alert should exist for specific Administrative operations"], false)], false));
+        R.e(v9, R.ht(["Id", "AZ-LOG-005", "Operation", "Microsoft.Network/networkSecurityGroups/write", "Label", "Create or update network security group", "Category", "Administrative", "Policy", R.ht(["b954148f-4c11-4c38-8221-be76711e194a", "An activity log alert should exist for specific Administrative operations"], false)], false));
         R.ln = F + 79;
-        R.e(v6, R.ht(["Id", "AZ-LOG-010", "Operation", "Microsoft.Sql/servers/firewallRules/delete", "Label", "Delete SQL server firewall rule", "Category", "Administrative", "Policy", R.ht(["b954148f-4c11-4c38-8221-be76711e194a", "An activity log alert should exist for specific Administrative operations"], false)], false));
+        R.e(v9, R.ht(["Id", "AZ-LOG-006", "Operation", "Microsoft.Network/networkSecurityGroups/delete", "Label", "Delete network security group", "Category", "Administrative", "Policy", R.ht(["b954148f-4c11-4c38-8221-be76711e194a", "An activity log alert should exist for specific Administrative operations"], false)], false));
         R.ln = F + 80;
-        R.e(v6, R.ht(["Id", "AZ-LOG-011", "Operation", "Microsoft.Network/publicIPAddresses/write", "Label", "Create or update public IP address", "Category", "Administrative", "Policy", R.ht(["b954148f-4c11-4c38-8221-be76711e194a", "An activity log alert should exist for specific Administrative operations"], false)], false));
+        R.e(v9, R.ht(["Id", "AZ-LOG-007", "Operation", "Microsoft.Security/securitySolutions/write", "Label", "Create or update security solution", "Category", "Security", "Policy", R.ht(["3b980d31-7904-4bb7-8575-5665739a8052", "An activity log alert should exist for specific Security operations"], false)], false));
         R.ln = F + 81;
-        R.e(v6, R.ht(["Id", "AZ-LOG-012", "Operation", "Microsoft.Network/publicIPAddresses/delete", "Label", "Delete public IP address", "Category", "Administrative", "Policy", R.ht(["b954148f-4c11-4c38-8221-be76711e194a", "An activity log alert should exist for specific Administrative operations"], false)], false));
+        R.e(v9, R.ht(["Id", "AZ-LOG-008", "Operation", "Microsoft.Security/securitySolutions/delete", "Label", "Delete security solution", "Category", "Security", "Policy", R.ht(["3b980d31-7904-4bb7-8575-5665739a8052", "An activity log alert should exist for specific Security operations"], false)], false));
+        R.ln = F + 82;
+        R.e(v9, R.ht(["Id", "AZ-LOG-009", "Operation", "Microsoft.Sql/servers/firewallRules/write", "Label", "Create or update SQL server firewall rule", "Category", "Administrative", "Policy", R.ht(["b954148f-4c11-4c38-8221-be76711e194a", "An activity log alert should exist for specific Administrative operations"], false)], false));
         R.ln = F + 83;
-        R.e(v6, R.ht(["Id", "AZ-LOG-025", "Operation", "Microsoft.Insights/diagnosticSettings/delete", "Label", "Delete diagnostic setting", "Category", "Administrative"], false));
+        R.e(v9, R.ht(["Id", "AZ-LOG-010", "Operation", "Microsoft.Sql/servers/firewallRules/delete", "Label", "Delete SQL server firewall rule", "Category", "Administrative", "Policy", R.ht(["b954148f-4c11-4c38-8221-be76711e194a", "An activity log alert should exist for specific Administrative operations"], false)], false));
+        R.ln = F + 84;
+        R.e(v9, R.ht(["Id", "AZ-LOG-011", "Operation", "Microsoft.Network/publicIPAddresses/write", "Label", "Create or update public IP address", "Category", "Administrative", "Policy", R.ht(["b954148f-4c11-4c38-8221-be76711e194a", "An activity log alert should exist for specific Administrative operations"], false)], false));
         R.ln = F + 85;
-        R.e(v6, R.ht(["Id", "AZ-LOG-027", "Operation", "Microsoft.Authorization/roleAssignments/write", "Label", "Create role assignment", "Category", "Administrative"], false));
+        R.e(v9, R.ht(["Id", "AZ-LOG-012", "Operation", "Microsoft.Network/publicIPAddresses/delete", "Label", "Delete public IP address", "Category", "Administrative", "Policy", R.ht(["b954148f-4c11-4c38-8221-be76711e194a", "An activity log alert should exist for specific Administrative operations"], false)], false));
         R.ln = F + 86;
-        R.e(v6, R.ht(["Id", "AZ-LOG-028", "Operation", "Microsoft.Authorization/locks/delete", "Label", "Delete management lock", "Category", "Administrative"], false));
-        R.ln = F + 87;
-        R.e(v6, R.ht(["Id", "AZ-LOG-029", "Operation", "Microsoft.Compute/virtualMachines/runCommand/action", "Label", "Run command on a virtual machine", "Category", "Administrative"], false));
-        return v6;
+        R.e(v9, R.ht(["Id", "AZ-LOG-025", "Operation", "Microsoft.Insights/diagnosticSettings/delete", "Label", "Delete diagnostic setting", "Category", "Administrative"], false));
+        R.ln = F + 88;
+        R.e(v9, R.ht(["Id", "AZ-LOG-027", "Operation", "Microsoft.Authorization/roleAssignments/write", "Label", "Create role assignment", "Category", "Administrative"], false));
+        R.ln = F + 89;
+        R.e(v9, R.ht(["Id", "AZ-LOG-028", "Operation", "Microsoft.Authorization/locks/delete", "Label", "Delete management lock", "Category", "Administrative"], false));
+        R.ln = F + 90;
+        R.e(v9, R.ht(["Id", "AZ-LOG-029", "Operation", "Microsoft.Compute/virtualMachines/runCommand/action", "Label", "Run command on a virtual machine", "Category", "Administrative"], false));
+        R.ln = F + 91;
+        R.e(v9, R.ht(["Id", "AZ-LOG-030", "Version", 1, "Operation", "Microsoft.Authorization/roleAssignments/delete", "Label", "Delete role assignment", "Category", "Administrative"], false));
+        R.ln = F + 92;
+        R.e(v9, R.ht(["Id", "AZ-LOG-031", "Version", 1, "Operation", "Microsoft.Authorization/policyExemptions/write", "Label", "Create or update policy exemption", "Category", "Administrative"], false));
+        R.ln = F + 93;
+        R.e(v9, R.ht(["Id", "AZ-LOG-032", "Version", 1, "Operation", "Microsoft.KeyVault/vaults/accessPolicies/write", "Label", "Update key vault access policy", "Category", "Administrative"], false));
+        return v9;
     })();
-    R.ln = F + 91;
+    R.ln = F + 97;
     S["actiongroupreceivers"] = R.a([R.v("emailReceivers"), R.v("smsReceivers"), R.v("webhookReceivers"), R.v("itsmReceivers"), R.v("azureAppPushReceivers"), R.v("automationRunbookReceivers"), R.v("voiceReceivers"), R.v("logicAppReceivers"), R.v("azureFunctionReceivers"), R.v("armRoleReceivers"), R.v("eventHubReceivers"), R.v("incidentReceivers")]);
-    R.ln = F + 93;
-    R.def(S, "Test-ActivityAlert", { params: [{ n: "Category", t: "string", pos: null }, { n: "Operation", t: "string", pos: null }], adv: 0, h: "741a3a6453b1a499" }, (S, O) => {
-        R.ln = F + 97;
+    R.ln = F + 99;
+    R.def(S, "Test-ActivityAlert", { params: [{ n: "Category", t: "string", pos: null }, { n: "Operation", t: "string", pos: null }], adv: 0, h: "2d628c7759299705" }, (S, O) => {
+        R.ln = F + 105;
         S["scope"] = R.im(R.u(R.cmd(S, "Get-SubscriptionScope", [], null)), "ToLowerInvariant", []);
-        R.ln = F + 98;
-        for (const it7 of R.fi(R.u(R.cmd(S, "Get-AzResourceRecords", [R.np("Type"), "Microsoft.Insights/activityLogAlerts"], null)))) {
-            S["record"] = it7;
-            R.ln = F + 99;
+        R.ln = F + 106;
+        for (const it10 of R.fi(R.u(R.cmd(S, "Get-AzResourceRecords", [R.np("Type"), "Microsoft.Insights/activityLogAlerts"], null)))) {
+            S["record"] = it10;
+            R.ln = F + 107;
             S["p"] = R.m(R.m((S["record"] ?? null), "resource"), "properties");
-            R.ln = F + 100;
+            R.ln = F + 108;
             if (!R.t(R.m((S["p"] ?? null), "enabled"))) {
                 continue;
             }
-            R.ln = F + 101;
+            R.ln = F + 109;
             if (!R.t(R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.ToLowerInvariant() -eq $scope " }, (S, O) => {
-                R.ln = F + 101;
+                R.ln = F + 109;
                 R.e(O, (R.t((S["_"] ?? null)) && R.t(R.eq(R.im((S["_"] ?? null), "ToLowerInvariant", []), (S["scope"] ?? null)))));
             })], R.pi(R.a(R.m((S["p"] ?? null), "scopes"))))))) {
                 continue;
             }
-            R.ln = F + 102;
+            R.ln = F + 110;
             S["values"] = R.u(R.cmd(S, "Get-ConditionValues", [R.m((S["p"] ?? null), "condition")], null));
-            R.ln = F + 103;
+            R.ln = F + 111;
             if (R.t(R.ncont(R.i((S["values"] ?? null), "category"), R.im((S["category"] ?? null), "ToLowerInvariant", [])))) {
                 continue;
             }
-            R.ln = F + 104;
+            R.ln = F + 112;
             if ((R.t((S["operation"] ?? null)) && R.t(R.ncont(R.i((S["values"] ?? null), "operationname"), R.im((S["operation"] ?? null), "ToLowerInvariant", []))))) {
                 continue;
             }
-            R.ln = F + 105;
+            R.ln = F + 113;
+            const v11 = [];
+            R.ln = F + 113;
+            if (R.t((S["operation"] ?? null))) {
+                R.ln = F + 113;
+                R.e(v11, R.a([R.v("category"), R.v("operationname")]));
+            } else {
+                R.ln = F + 113;
+                R.e(v11, R.a([R.v("category"), R.v("properties.incidenttype")]));
+            }
+            S["allowed"] = R.u(v11);
+            R.ln = F + 114;
+            S["filters"] = R.cmd(S, "Sort-Object", [], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -notin $allowed " }, (S, O) => {
+                R.ln = F + 114;
+                R.e(O, R.nin((S["_"] ?? null), (S["allowed"] ?? null)));
+            })], R.pi(R.m((S["values"] ?? null), "Keys"))));
+            R.ln = F + 115;
             S["notifying"] = R.sc("System.Collections.Generic.List[string]", "new", []);
-            R.ln = F + 106;
+            R.ln = F + 116;
             S["unread"] = R.sc("System.Collections.Generic.List[string]", "new", []);
-            R.ln = F + 107;
-            for (const it8 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.actionGroupId " }, (S, O) => {
-                R.ln = F + 107;
+            R.ln = F + 117;
+            for (const it12 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.actionGroupId " }, (S, O) => {
+                R.ln = F + 117;
                 R.e(O, (R.t((S["_"] ?? null)) && R.t(R.m((S["_"] ?? null), "actionGroupId"))));
             })], R.pi(R.m(R.m((S["p"] ?? null), "actions"), "actionGroups"))))) {
-                S["group"] = it8;
-                R.ln = F + 108;
+                S["group"] = it12;
+                R.ln = F + 118;
                 S["grouprecord"] = R.u(R.cmd(S, "Get-ReferencedResourceRecord", [(R.c("string", R.m((S["group"] ?? null), "actionGroupId")))], null));
-                R.ln = F + 109;
+                R.ln = F + 119;
                 if (!R.t((S["grouprecord"] ?? null))) {
-                    R.ln = F + 109;
+                    R.ln = F + 119;
                     R.e(O, R.im((S["unread"] ?? null), "Add", [R.u(R.cmd(S, "Get-ResourceName", [(R.c("string", R.m((S["group"] ?? null), "actionGroupId")))], null))]));
                     continue;
                 }
-                R.ln = F + 110;
+                R.ln = F + 120;
                 S["g"] = R.m(R.m((S["grouprecord"] ?? null), "resource"), "properties");
-                R.ln = F + 111;
+                R.ln = F + 121;
                 if ((R.t(R.m((S["g"] ?? null), "enabled")) && R.t(R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " @(Get-Prop $g $_ | Where-Object { $_ }).Count " }, (S, O) => {
-                    R.ln = F + 111;
+                    R.ln = F + 121;
                     R.e(O, R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                        R.ln = F + 111;
+                        R.ln = F + 121;
                         R.e(O, (S["_"] ?? null));
                     })], R.cmd(S, "Get-Prop", [(S["g"] ?? null), (S["_"] ?? null)], null)), "Count"));
                 })], R.pi((S["actiongroupreceivers"] ?? null))), "Count")))) {
-                    R.ln = F + 111;
+                    R.ln = F + 121;
                     R.e(O, R.im((S["notifying"] ?? null), "Add", [R.c("string", R.m(R.m((S["grouprecord"] ?? null), "resource"), "name"))]));
                 }
             }
-            R.ln = F + 113;
-            R.e(O, R.pso(["Record", (S["record"] ?? null), "Notifying", R.a((S["notifying"] ?? null)), "Unread", R.a((S["unread"] ?? null))]));
+            R.ln = F + 123;
+            R.e(O, R.pso(["Record", (S["record"] ?? null), "Notifying", R.a((S["notifying"] ?? null)), "Unread", R.a((S["unread"] ?? null)), "Filters", (S["filters"] ?? null)]));
         }
     });
-    R.ln = F + 117;
-    R.def(S, "Get-ActivityAlertResult", { params: [{ n: "AlertRules", t: "object[]", pos: null }, { n: "Missing", t: "string", pos: null }], adv: 0, h: "d80c98315f9a361f" }, (S, O) => {
-        R.ln = F + 121;
-        S["notifying"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.Notifying.Count " }, (S, O) => {
-            R.ln = F + 121;
-            R.e(O, R.m(R.m((S["_"] ?? null), "Notifying"), "Count"));
+    R.ln = F + 127;
+    R.def(S, "Get-ActivityAlertResult", { params: [{ n: "AlertRules", t: "object[]", pos: null }, { n: "Missing", t: "string", pos: null }], adv: 0, h: "2ba473f7e8019aef" }, (S, O) => {
+        R.ln = F + 131;
+        S["filtered"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.Filters.Count " }, (S, O) => {
+            R.ln = F + 131;
+            R.e(O, R.m(R.m((S["_"] ?? null), "Filters"), "Count"));
         })], R.pi((S["alertrules"] ?? null)));
-        R.ln = F + 122;
+        R.ln = F + 132;
+        S["complete"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " -not $_.Filters.Count " }, (S, O) => {
+            R.ln = F + 132;
+            R.e(O, !R.t(R.m(R.m((S["_"] ?? null), "Filters"), "Count")));
+        })], R.pi((S["alertrules"] ?? null)));
+        R.ln = F + 133;
+        S["notifying"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.Notifying.Count " }, (S, O) => {
+            R.ln = F + 133;
+            R.e(O, R.m(R.m((S["_"] ?? null), "Notifying"), "Count"));
+        })], R.pi((S["complete"] ?? null)));
+        R.ln = F + 134;
         S["unread"] = R.cmd(S, "Sort-Object", [R.np("Unique")], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " $_.Unread " }, (S, O) => {
-            R.ln = F + 122;
+            R.ln = F + 134;
             R.e(O, R.m((S["_"] ?? null), "Unread"));
-        })], R.pi((S["alertrules"] ?? null))));
-        R.ln = F + 123;
+        })], R.pi((S["complete"] ?? null))));
+        R.ln = F + 135;
         S["evidence"] = R.ht(["alertRules", R.cmd(S, "Sort-Object", [], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " $_.Record.resource.name " }, (S, O) => {
-            R.ln = F + 123;
+            R.ln = F + 135;
             R.e(O, R.m(R.m(R.m((S["_"] ?? null), "Record"), "resource"), "name"));
         })], R.pi((S["alertrules"] ?? null)))), "notifyingActionGroups", R.cmd(S, "Sort-Object", [R.np("Unique")], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " $_.Notifying " }, (S, O) => {
-            R.ln = F + 123;
+            R.ln = F + 135;
             R.e(O, R.m((S["_"] ?? null), "Notifying"));
         })], R.pi((S["notifying"] ?? null))))], true);
-        R.ln = F + 124;
+        R.ln = F + 136;
+        if (R.t((S["filtered"] ?? null))) {
+            R.ln = F + 136;
+            R.sm((S["evidence"] ?? null), "rulesWithFilters", R.cmd(S, "Sort-Object", [], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " \"$($_.Record.resource.name): $($_.Filters -join ', ')\" " }, (S, O) => {
+                R.ln = F + 136;
+                R.e(O, ("" + R.str(R.u(R.pi(R.m(R.m(R.m((S["_"] ?? null), "Record"), "resource"), "name")))) + ": " + R.str(R.u(R.pi(R.join(R.m((S["_"] ?? null), "Filters"), ", "))))));
+            })], R.pi((S["filtered"] ?? null)))));
+        }
+        R.ln = F + 137;
         if (R.t((S["notifying"] ?? null))) {
-            R.ln = F + 124;
+            R.ln = F + 137;
             R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Pass", [("Alert rule(s): " + R.str(R.u(R.pi(R.join(R.cmd(S, "Sort-Object", [], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " $_.Record.resource.name " }, (S, O) => {
-                R.ln = F + 124;
+                R.ln = F + 137;
                 R.e(O, R.m(R.m(R.m((S["_"] ?? null), "Record"), "resource"), "name"));
             })], R.pi((S["notifying"] ?? null)))), ", "))))), (S["evidence"] ?? null)], null))], null));
             return;
         }
-        R.ln = F + 125;
+        R.ln = F + 138;
         if (R.t((S["unread"] ?? null))) {
-            R.ln = F + 125;
+            R.ln = F + 138;
             R.sm((S["evidence"] ?? null), "unreadActionGroups", (S["unread"] ?? null));
-            R.ln = F + 125;
+            R.ln = F + 138;
             R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Unknown", [("The action group(s) of the alert rule could not be read: " + R.str(R.u(R.pi(R.join((S["unread"] ?? null), ", "))))), (S["evidence"] ?? null)], null))], null));
             return;
         }
-        R.ln = F + 126;
-        if (R.t((S["alertrules"] ?? null))) {
-            R.ln = F + 126;
+        R.ln = F + 139;
+        if (R.t((S["complete"] ?? null))) {
+            R.ln = F + 139;
             R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Fail", ["An alert rule exists, but none of its action groups is enabled with a receiver", (S["evidence"] ?? null)], null))], null));
             return;
         }
-        R.ln = F + 127;
+        R.ln = F + 140;
+        if (R.t((S["filtered"] ?? null))) {
+            R.ln = F + 140;
+            R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Fail", [("Alert rule(s) also filter on " + R.str(R.u(R.pi(R.join(R.cmd(S, "Sort-Object", [R.np("Unique")], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " $_.Filters " }, (S, O) => {
+                R.ln = F + 140;
+                R.e(O, R.m((S["_"] ?? null), "Filters"));
+            })], R.pi((S["filtered"] ?? null)))), ", ")))) + ", so they miss events"), (S["evidence"] ?? null)], null))], null));
+            return;
+        }
+        R.ln = F + 141;
         R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Fail", [(S["missing"] ?? null), (S["evidence"] ?? null)], null))], null));
     });
-    R.ln = F + 130;
-    for (const it9 of R.fi((S["activityalerts"] ?? null))) {
-        S["alert"] = it9;
-        R.ln = F + 131;
-        R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", R.m((S["alert"] ?? null), "Id"), "Version", 2, "Title", ("An activity log alert exists for '" + R.str(R.u(R.pi(R.m((S["alert"] ?? null), "Label")))) + "'"), "Category", "Logging and threat detection", "Service", "Azure Monitor", "Severity", "Low", "Description", ("Checks for an enabled activity log alert on the subscription for operation " + R.str(R.u(R.pi(R.m((S["alert"] ?? null), "Operation")))) + " that notifies an enabled action group with at least one receiver."), "Rationale", "Alerting on security relevant control plane changes shortens the time to detect unauthorized or accidental changes that weaken the security posture.", "Remediation", ("Create an activity log alert on the subscription with category " + R.str(R.u(R.pi(R.m((S["alert"] ?? null), "Category")))) + " and operation name " + R.str(R.u(R.pi(R.m((S["alert"] ?? null), "Operation")))) + ", and attach an action group that reaches the security team."), "References", R.a("https://learn.microsoft.com/azure/azure-monitor/alerts/alerts-create-activity-log-alert-rule"), "Policy", R.m((S["alert"] ?? null), "Policy"), "Config", (S["alert"] ?? null), "Run", R.sb({ params: [{ n: "Test", t: null, pos: null }], adv: 0, text: "\n            param($Test)\n            Get-ActivityAlertResult -AlertRules @(Test-ActivityAlert -Category $Test.Config.Category -Operation $Test.Config.Operation) -Missing \"No enabled activity log alert for $($Test.Config.Operation)\"\n        " }, (S, O) => {
-            R.ln = F + 146;
+    R.ln = F + 144;
+    for (const it13 of R.fi((S["activityalerts"] ?? null))) {
+        S["alert"] = it13;
+        R.ln = F + 145;
+        R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", R.m((S["alert"] ?? null), "Id"), "Version", (() => {
+            const v14 = [];
+            R.ln = F + 147;
+            if (R.t(R.m((S["alert"] ?? null), "Version"))) {
+                R.ln = F + 147;
+                R.e(v14, R.m((S["alert"] ?? null), "Version"));
+            } else {
+                R.ln = F + 147;
+                R.e(v14, 3);
+            }
+            return R.u(v14);
+        })(), "Title", ("An activity log alert exists for '" + R.str(R.u(R.pi(R.m((S["alert"] ?? null), "Label")))) + "'"), "Category", "Logging and threat detection", "Service", "Azure Monitor", "Severity", "Low", "Description", ("Checks for an enabled activity log alert on the subscription for operation " + R.str(R.u(R.pi(R.m((S["alert"] ?? null), "Operation")))) + ", with no condition other than its category and operation name (a filter on level, status or caller misses events), that notifies an enabled action group with at least one receiver."), "Rationale", "Alerting on security relevant control plane changes shortens the time to detect unauthorized or accidental changes that weaken the security posture.", "Remediation", ("Create an activity log alert on the subscription with category " + R.str(R.u(R.pi(R.m((S["alert"] ?? null), "Category")))) + " and operation name " + R.str(R.u(R.pi(R.m((S["alert"] ?? null), "Operation")))) + ", and attach an action group that reaches the security team."), "References", R.a("https://learn.microsoft.com/azure/azure-monitor/alerts/alerts-create-activity-log-alert-rule"), "Policy", R.m((S["alert"] ?? null), "Policy"), "Config", (S["alert"] ?? null), "Run", R.sb({ params: [{ n: "Test", t: null, pos: null }], adv: 0, text: "\n            param($Test)\n            Get-ActivityAlertResult -AlertRules @(Test-ActivityAlert -Category $Test.Config.Category -Operation $Test.Config.Operation) -Missing \"No enabled activity log alert for $($Test.Config.Operation)\"\n        " }, (S, O) => {
+            R.ln = F + 160;
             R.pa(O, R.cmd(S, "Get-ActivityAlertResult", [R.np("AlertRules"), R.cmd(S, "Test-ActivityAlert", [R.np("Category"), R.m(R.m((S["test"] ?? null), "Config"), "Category"), R.np("Operation"), R.m(R.m((S["test"] ?? null), "Config"), "Operation")], null), R.np("Missing"), ("No enabled activity log alert for " + R.str(R.u(R.pi(R.m(R.m((S["test"] ?? null), "Config"), "Operation")))))], null));
         })], false)], null));
     }
-    R.ln = F + 151;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-LOG-013", "Version", 2, "Title", "An activity log alert exists for Service Health", "Category", "Incident response", "Service", "Azure Monitor", "Severity", "Low", "Description", "Checks for an enabled activity log alert on the subscription for the ServiceHealth category that notifies an enabled action group with at least one receiver.", "Rationale", "Service Health notifies about platform incidents, planned maintenance and security advisories (for example about compromised or deprecated components) affecting your resources.", "Remediation", "Create a Service Health alert for the subscription (Service Health > Health alerts) with an action group that reaches the operations and security teams.", "References", R.a("https://learn.microsoft.com/azure/service-health/alerts-activity-log-service-notifications-portal"), "Run", R.sb({ params: [], adv: 0, text: "\n        Get-ActivityAlertResult -AlertRules @(Test-ActivityAlert -Category 'ServiceHealth') -Missing 'No Service Health alert for the subscription'\n    " }, (S, O) => {
-        R.ln = F + 163;
+    R.ln = F + 165;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-LOG-013", "Version", 3, "Title", "An activity log alert exists for Service Health", "Category", "Incident response", "Service", "Azure Monitor", "Severity", "Low", "Description", "Checks for an enabled activity log alert on the subscription for the ServiceHealth category, not limited to some services or regions (a limit on event types is allowed), that notifies an enabled action group with at least one receiver.", "Rationale", "Service Health notifies about platform incidents, planned maintenance and security advisories (for example about compromised or deprecated components) affecting your resources.", "Remediation", "Create a Service Health alert for the subscription (Service Health > Health alerts) with an action group that reaches the operations and security teams.", "References", R.a("https://learn.microsoft.com/azure/service-health/alerts-activity-log-service-notifications-portal"), "Run", R.sb({ params: [], adv: 0, text: "\n        Get-ActivityAlertResult -AlertRules @(Test-ActivityAlert -Category 'ServiceHealth') -Missing 'No Service Health alert for the subscription'\n    " }, (S, O) => {
+        R.ln = F + 177;
         R.pa(O, R.cmd(S, "Get-ActivityAlertResult", [R.np("AlertRules"), R.cmd(S, "Test-ActivityAlert", [R.np("Category"), "ServiceHealth"], null), R.np("Missing"), "No Service Health alert for the subscription"], null));
     })], false)], null));
-    R.ln = F + 167;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-LOG-014", "Title", "Key Vault audit logging is enabled", "Category", "Logging and threat detection", "Service", "Key Vault", "Severity", "High", "Description", "Checks that each key vault and managed HSM has a diagnostic setting that sends the AuditEvent category (or the audit/allLogs group) to a destination.", "Rationale", "Key Vault audit logs record every access to secrets, keys and certificates. Without them, theft of secrets cannot be detected or investigated.", "Remediation", "Add a diagnostic setting with the audit category group to a Log Analytics workspace (az monitor diagnostic-settings create --resource <vault id> --workspace <id> --logs \"[{categoryGroup:audit,enabled:true}]\").", "References", R.a("https://learn.microsoft.com/azure/key-vault/general/logging"), "Policy", R.ht(["cf820ca0-f99e-4f3e-84fb-66e913812d21", "Resource logs in Key Vault should be enabled", "a2a5b911-5617-447e-a49e-59dbe0e0434b", "Resource logs in Azure Key Vault Managed HSM should be enabled"], false), "ResourceTypes", R.a([R.v("Microsoft.KeyVault/vaults"), R.v("Microsoft.KeyVault/managedHSMs")]), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if ($null -eq $Record.diagnosticSettings) { return New-Unknown 'Diagnostic settings could not be read' }\n        $evidence = [ordered]@{ diagnosticSettings = @($Record.diagnosticSettings | ForEach-Object name | Sort-Object) }\n        if (Test-DiagnosticLogsEnabled -Settings $Record.diagnosticSettings -RequiredCategories 'AuditEvent') { return New-Pass 'AuditEvent logs are exported' $evidence }\n        New-Fail 'AuditEvent logs are not exported' $evidence\n    " }, (S, O) => {
-        R.ln = F + 181;
+    R.ln = F + 181;
+    S["keyvaultauditlog"] = R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n    param($Record)\n    if ($null -eq $Record.diagnosticSettings) { return New-Unknown 'Diagnostic settings could not be read' }\n    $evidence = [ordered]@{ diagnosticSettings = @($Record.diagnosticSettings | ForEach-Object name | Sort-Object) }\n    if (Test-DiagnosticLogsEnabled -Settings $Record.diagnosticSettings -RequiredCategories 'AuditEvent') { return New-Pass 'AuditEvent logs are exported' $evidence }\n    New-Fail 'AuditEvent logs are not exported' $evidence\n" }, (S, O) => {
+        R.ln = F + 183;
         if (R.t(R.eq(null, R.m((S["record"] ?? null), "diagnosticSettings")))) {
-            R.ln = F + 181;
+            R.ln = F + 183;
             R.pa(O, R.cmd(S, "New-Unknown", ["Diagnostic settings could not be read"], null));
             return;
         }
-        R.ln = F + 182;
+        R.ln = F + 184;
         S["evidence"] = R.ht(["diagnosticSettings", R.cmd(S, "Sort-Object", [], R.cmd(S, "ForEach-Object", ["name"], R.pi(R.m((S["record"] ?? null), "diagnosticSettings"))))], true);
-        R.ln = F + 183;
+        R.ln = F + 185;
         if (R.t(R.u(R.cmd(S, "Test-DiagnosticLogsEnabled", [R.np("Settings"), R.m((S["record"] ?? null), "diagnosticSettings"), R.np("RequiredCategories"), "AuditEvent"], null)))) {
-            R.ln = F + 183;
+            R.ln = F + 185;
             R.pa(O, R.cmd(S, "New-Pass", ["AuditEvent logs are exported", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 184;
+        R.ln = F + 186;
         R.pa(O, R.cmd(S, "New-Fail", ["AuditEvent logs are not exported", (S["evidence"] ?? null)], null));
-    })], false)], null));
+    });
     R.ln = F + 189;
-    S["resourcelogtypes"] = R.a([R.v("Microsoft.Web/sites"), R.v("Microsoft.Web/sites/slots"), R.v("Microsoft.Sql/servers/databases"), R.v("Microsoft.Sql/managedInstances"), R.v("Microsoft.Network/networkSecurityGroups"), R.v("Microsoft.Network/applicationGateways"), R.v("Microsoft.Network/azureFirewalls"), R.v("Microsoft.Network/bastionHosts"), R.v("Microsoft.Network/publicIPAddresses"), R.v("Microsoft.Network/virtualNetworkGateways"), R.v("Microsoft.Network/frontDoors"), R.v("Microsoft.Cdn/profiles"), R.v("Microsoft.ContainerService/managedClusters"), R.v("Microsoft.ContainerRegistry/registries"), R.v("Microsoft.DocumentDB/databaseAccounts"), R.v("Microsoft.DBforPostgreSQL/flexibleServers"), R.v("Microsoft.DBforMySQL/flexibleServers"), R.v("Microsoft.Cache/redis"), R.v("Microsoft.ServiceBus/namespaces"), R.v("Microsoft.EventHub/namespaces"), R.v("Microsoft.EventGrid/topics"), R.v("Microsoft.EventGrid/domains"), R.v("Microsoft.EventGrid/systemTopics"), R.v("Microsoft.EventGrid/namespaces"), R.v("Microsoft.Logic/workflows"), R.v("Microsoft.ApiManagement/service"), R.v("Microsoft.Automation/automationAccounts"), R.v("Microsoft.CognitiveServices/accounts"), R.v("Microsoft.MachineLearningServices/workspaces"), R.v("Microsoft.Search/searchServices"), R.v("Microsoft.DataFactory/factories"), R.v("Microsoft.Synapse/workspaces"), R.v("Microsoft.Kusto/clusters"), R.v("Microsoft.RecoveryServices/vaults"), R.v("Microsoft.DataProtection/backupVaults"), R.v("Microsoft.AppConfiguration/configurationStores"), R.v("Microsoft.SignalRService/signalR"), R.v("Microsoft.SignalRService/webPubSub"), R.v("Microsoft.Devices/IotHubs"), R.v("Microsoft.Batch/batchAccounts"), R.v("Microsoft.OperationalInsights/workspaces"), R.v("Microsoft.App/managedEnvironments"), R.v("Microsoft.DesktopVirtualization/hostPools"), R.v("Microsoft.DesktopVirtualization/workspaces"), R.v("Microsoft.DesktopVirtualization/applicationGroups"), R.v("Microsoft.Storage/storageAccounts")]);
-    R.ln = F + 203;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-LOG-015", "Title", "Resource logs are enabled for services that support them", "Category", "Logging and threat detection", "Service", "Azure Monitor", "Severity", "Medium", "Description", "Checks that services with security relevant resource logs (web apps, databases, network security and gateways, messaging, AI, data and integration services, storage services) send logs through a diagnostic setting. For storage accounts the blob, file, queue and table services are checked.", "Rationale", "Resource (data plane) logs record who accessed data and how services were used. They are needed to detect abuse and to investigate incidents, and are not collected unless configured.", "Remediation", "Create diagnostic settings with the allLogs or audit category group to a central Log Analytics workspace, preferably enforced with the built-in \"Enable logging by category group\" policy initiatives.", "References", R.a("https://learn.microsoft.com/azure/azure-monitor/essentials/diagnostic-settings"), "ResourceTypes", (S["resourcelogtypes"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if ($Record.type -eq 'Microsoft.Storage/storageAccounts') {\n            $services = [ordered]@{}\n            foreach ($service in 'blobServices', 'fileServices', 'queueServices', 'tableServices') {\n                $path = \"$service/default/providers/Microsoft.Insights/diagnosticSettings\"\n                if (Test-ChildCollected $Record $path) { $services[$service] = Test-DiagnosticLogsEnabled -Settings (Get-Child $Record $path) }\n            }\n            if (-not $services.Count) { return New-Unknown 'Storage service diagnostic settings could not be read' }\n            $missing = @($services.Keys | Where-Object { -not $services[$_] })\n            $evidence = [ordered]@{ servicesWithLogs = @($services.Keys | Where-Object { $services[$_] }); servicesWithoutLogs = $missing }\n            if ($missing) { return New-Fail \"No resource logs for $($missing -join ', ')\" $evidence }\n            return New-Pass 'All storage services send resource logs' $evidence\n        }\n        if ($null -eq $Record.diagnosticSettings) { return New-Unknown 'Diagnostic settings could not be read or are not supported' }\n        $evidence = [ordered]@{ diagnosticSettings = @($Record.diagnosticSettings | ForEach-Object name | Sort-Object) }\n        if (Test-DiagnosticLogsEnabled -Settings $Record.diagnosticSettings) { return New-Pass 'Resource logs are exported' $evidence }\n        New-Fail 'No diagnostic setting exports resource logs' $evidence\n    " }, (S, O) => {
-        R.ln = F + 216;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-LOG-014", "Version", 2, "Title", "Key Vault audit logging is enabled", "Category", "Logging and threat detection", "Service", "Key Vault", "Severity", "High", "Description", "Checks that each key vault has a diagnostic setting that sends the AuditEvent category (or the audit/allLogs group) to a destination. Managed HSMs are AZ-LOG-033.", "Rationale", "Key Vault audit logs record every access to secrets, keys and certificates. Without them, theft of secrets cannot be detected or investigated.", "Remediation", "Add a diagnostic setting with the audit category group to a Log Analytics workspace (az monitor diagnostic-settings create --resource <vault id> --workspace <id> --logs \"[{categoryGroup:audit,enabled:true}]\").", "References", R.a("https://learn.microsoft.com/azure/key-vault/general/logging"), "Policy", R.ht(["cf820ca0-f99e-4f3e-84fb-66e913812d21", "Resource logs in Key Vault should be enabled"], false), "ResourceTypes", R.a("Microsoft.KeyVault/vaults"), "Evaluate", (S["keyvaultauditlog"] ?? null)], false)], null));
+    R.ln = F + 205;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-LOG-033", "Title", "Managed HSM audit logging is enabled", "Category", "Logging and threat detection", "Service", "Key Vault", "Severity", "High", "Description", "Checks that each Managed HSM has a diagnostic setting that sends the AuditEvent category (or the audit/allLogs group) to a destination.", "Rationale", "The AuditEvent log records key operations, local role assignment changes and security domain downloads. Without it, misuse of an HSM key leaves no record to detect or investigate.", "Remediation", "Add a diagnostic setting with the audit category group to a Log Analytics workspace (az monitor diagnostic-settings create --resource <hsm id> --workspace <id> --logs \"[{categoryGroup:audit,enabled:true}]\").", "References", R.a("https://learn.microsoft.com/azure/key-vault/managed-hsm/logging"), "Policy", R.ht(["a2a5b911-5617-447e-a49e-59dbe0e0434b", "Resource logs in Azure Key Vault Managed HSM should be enabled"], false), "ResourceTypes", R.a("Microsoft.KeyVault/managedHSMs"), "Evaluate", (S["keyvaultauditlog"] ?? null)], false)], null));
+    R.ln = F + 220;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-LOG-034", "Title", "Log Analytics workspaces block ingestion and queries from public networks", "Category", "Network security", "Service", "Log Analytics", "Severity", "Low", "Description", "Checks that publicNetworkAccessForIngestion and publicNetworkAccessForQuery are Disabled on each Log Analytics workspace, so it is only reached through an Azure Monitor Private Link Scope.", "Rationale", "A workspace open to public networks accepts forged or flooding log data from anywhere and lets stolen credentials query its logs from any network.", "Remediation", "Link the workspace to an Azure Monitor Private Link Scope with a private endpoint, then set public network access for ingestion and for queries to Disabled.", "References", R.a("https://learn.microsoft.com/azure/azure-monitor/logs/private-link-security"), "Policy", R.ht(["6c53d030-cc64-46f0-906d-2bc061cd1334", "Log Analytics workspaces should block log ingestion and querying from public networks"], false), "ResourceTypes", R.a("Microsoft.OperationalInsights/workspaces"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $p = $Record.resource.properties\n        $evidence = [ordered]@{ publicNetworkAccessForIngestion = $p.publicNetworkAccessForIngestion; publicNetworkAccessForQuery = $p.publicNetworkAccessForQuery }\n        $open = @(foreach ($name in 'publicNetworkAccessForIngestion', 'publicNetworkAccessForQuery') { if ($p.$name -ne 'Disabled') { \"$name is $(if ($p.$name) { $p.$name } else { 'not set' })\" } })\n        if ($open) { return New-Fail ($open -join '; ') $evidence }\n        New-Pass 'Public ingestion and queries disabled' $evidence\n    " }, (S, O) => {
+        R.ln = F + 234;
+        S["p"] = R.m(R.m((S["record"] ?? null), "resource"), "properties");
+        R.ln = F + 235;
+        S["evidence"] = R.ht(["publicNetworkAccessForIngestion", R.m((S["p"] ?? null), "publicNetworkAccessForIngestion"), "publicNetworkAccessForQuery", R.m((S["p"] ?? null), "publicNetworkAccessForQuery")], true);
+        R.ln = F + 236;
+        S["open"] = (() => {
+            const v15 = [];
+            R.ln = F + 236;
+            for (const it16 of R.fi([R.v("publicNetworkAccessForIngestion"), R.v("publicNetworkAccessForQuery")])) {
+                S["name"] = it16;
+                R.ln = F + 236;
+                if (R.t(R.ne(R.m((S["p"] ?? null), R.str((S["name"] ?? null))), "Disabled"))) {
+                    R.ln = F + 236;
+                    R.e(v15, ("" + R.str((S["name"] ?? null)) + " is " + R.str((() => {
+                        const v17 = [];
+                        R.ln = F + 236;
+                        if (R.t(R.m((S["p"] ?? null), R.str((S["name"] ?? null))))) {
+                            R.ln = F + 236;
+                            R.e(v17, R.m((S["p"] ?? null), R.str((S["name"] ?? null))));
+                        } else {
+                            R.ln = F + 236;
+                            R.e(v17, "not set");
+                        }
+                        return R.u(v17);
+                    })())));
+                }
+            }
+            return v15;
+        })();
+        R.ln = F + 237;
+        if (R.t((S["open"] ?? null))) {
+            R.ln = F + 237;
+            R.pa(O, R.cmd(S, "New-Fail", [(R.join((S["open"] ?? null), "; ")), (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 238;
+        R.pa(O, R.cmd(S, "New-Pass", ["Public ingestion and queries disabled", (S["evidence"] ?? null)], null));
+    })], false)], null));
+    R.ln = F + 243;
+    S["resourcelogtypes"] = R.a([R.v("Microsoft.Web/sites"), R.v("Microsoft.Web/sites/slots"), R.v("Microsoft.Sql/servers/databases"), R.v("Microsoft.Sql/managedInstances"), R.v("Microsoft.Network/networkSecurityGroups"), R.v("Microsoft.Network/applicationGateways"), R.v("Microsoft.Network/azureFirewalls"), R.v("Microsoft.Network/bastionHosts"), R.v("Microsoft.Network/publicIPAddresses"), R.v("Microsoft.Network/virtualNetworkGateways"), R.v("Microsoft.Network/frontDoors"), R.v("Microsoft.Cdn/profiles"), R.v("Microsoft.ContainerService/managedClusters"), R.v("Microsoft.ContainerRegistry/registries"), R.v("Microsoft.DBforPostgreSQL/flexibleServers"), R.v("Microsoft.DBforMySQL/flexibleServers"), R.v("Microsoft.Cache/redis"), R.v("Microsoft.ServiceBus/namespaces"), R.v("Microsoft.EventHub/namespaces"), R.v("Microsoft.EventGrid/topics"), R.v("Microsoft.EventGrid/domains"), R.v("Microsoft.EventGrid/systemTopics"), R.v("Microsoft.EventGrid/namespaces"), R.v("Microsoft.Logic/workflows"), R.v("Microsoft.ApiManagement/service"), R.v("Microsoft.Automation/automationAccounts"), R.v("Microsoft.CognitiveServices/accounts"), R.v("Microsoft.MachineLearningServices/workspaces"), R.v("Microsoft.Search/searchServices"), R.v("Microsoft.DataFactory/factories"), R.v("Microsoft.Synapse/workspaces"), R.v("Microsoft.Kusto/clusters"), R.v("Microsoft.RecoveryServices/vaults"), R.v("Microsoft.DataProtection/backupVaults"), R.v("Microsoft.AppConfiguration/configurationStores"), R.v("Microsoft.SignalRService/signalR"), R.v("Microsoft.SignalRService/webPubSub"), R.v("Microsoft.Devices/IotHubs"), R.v("Microsoft.OperationalInsights/workspaces"), R.v("Microsoft.App/managedEnvironments"), R.v("Microsoft.DesktopVirtualization/hostPools"), R.v("Microsoft.DesktopVirtualization/workspaces"), R.v("Microsoft.DesktopVirtualization/applicationGroups"), R.v("Microsoft.Storage/storageAccounts")]);
+    R.ln = F + 257;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-LOG-015", "Version", 2, "Title", "Resource logs are enabled for services that support them", "Category", "Logging and threat detection", "Service", "Azure Monitor", "Severity", "Medium", "Description", "Checks that services with security relevant resource logs (web apps, databases, network security and gateways, messaging, AI, data and integration services, storage services) send logs through a diagnostic setting. For storage accounts the blob, file, queue and table services are checked.", "Rationale", "Resource (data plane) logs record who accessed data and how services were used. They are needed to detect abuse and to investigate incidents, and are not collected unless configured.", "Remediation", "Create diagnostic settings with the allLogs or audit category group to a central Log Analytics workspace, preferably enforced with the built-in \"Enable logging by category group\" policy initiatives.", "References", R.a("https://learn.microsoft.com/azure/azure-monitor/essentials/diagnostic-settings"), "ResourceTypes", (S["resourcelogtypes"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if ($Record.type -eq 'Microsoft.Storage/storageAccounts') {\n            $services = [ordered]@{}\n            foreach ($service in 'blobServices', 'fileServices', 'queueServices', 'tableServices') {\n                $path = \"$service/default/providers/Microsoft.Insights/diagnosticSettings\"\n                if (Test-ChildCollected $Record $path) { $services[$service] = Test-DiagnosticLogsEnabled -Settings (Get-Child $Record $path) }\n            }\n            if (-not $services.Count) { return New-Unknown 'Storage service diagnostic settings could not be read' }\n            $missing = @($services.Keys | Where-Object { -not $services[$_] })\n            $evidence = [ordered]@{ servicesWithLogs = @($services.Keys | Where-Object { $services[$_] }); servicesWithoutLogs = $missing }\n            if ($missing) { return New-Fail \"No resource logs for $($missing -join ', ')\" $evidence }\n            return New-Pass 'All storage services send resource logs' $evidence\n        }\n        if ($null -eq $Record.diagnosticSettings) { return New-Unknown 'Diagnostic settings could not be read or are not supported' }\n        $evidence = [ordered]@{ diagnosticSettings = @($Record.diagnosticSettings | ForEach-Object name | Sort-Object) }\n        if (Test-DiagnosticLogsEnabled -Settings $Record.diagnosticSettings) { return New-Pass 'Resource logs are exported' $evidence }\n        New-Fail 'No diagnostic setting exports resource logs' $evidence\n    " }, (S, O) => {
+        R.ln = F + 271;
         if (R.t(R.eq(R.m((S["record"] ?? null), "type"), "Microsoft.Storage/storageAccounts"))) {
-            R.ln = F + 217;
+            R.ln = F + 272;
             S["services"] = R.ht([], true);
-            R.ln = F + 218;
-            for (const it10 of R.fi([R.v("blobServices"), R.v("fileServices"), R.v("queueServices"), R.v("tableServices")])) {
-                S["service"] = it10;
-                R.ln = F + 219;
+            R.ln = F + 273;
+            for (const it18 of R.fi([R.v("blobServices"), R.v("fileServices"), R.v("queueServices"), R.v("tableServices")])) {
+                S["service"] = it18;
+                R.ln = F + 274;
                 S["path"] = ("" + R.str((S["service"] ?? null)) + "/default/providers/Microsoft.Insights/diagnosticSettings");
-                R.ln = F + 220;
+                R.ln = F + 275;
                 if (R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), (S["path"] ?? null)], null)))) {
-                    R.ln = F + 220;
+                    R.ln = F + 275;
                     R.si((S["services"] ?? null), (S["service"] ?? null), R.u(R.cmd(S, "Test-DiagnosticLogsEnabled", [R.np("Settings"), R.u(R.cmd(S, "Get-Child", [(S["record"] ?? null), (S["path"] ?? null)], null))], null)));
                 }
             }
-            R.ln = F + 222;
+            R.ln = F + 277;
             if (!R.t(R.m((S["services"] ?? null), "Count"))) {
-                R.ln = F + 222;
+                R.ln = F + 277;
                 R.pa(O, R.cmd(S, "New-Unknown", ["Storage service diagnostic settings could not be read"], null));
                 return;
             }
-            R.ln = F + 223;
+            R.ln = F + 278;
             S["missing"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " -not $services[$_] " }, (S, O) => {
-                R.ln = F + 223;
+                R.ln = F + 278;
                 R.e(O, !R.t(R.i((S["services"] ?? null), (S["_"] ?? null))));
             })], R.pi(R.m((S["services"] ?? null), "Keys")));
-            R.ln = F + 224;
+            R.ln = F + 279;
             S["evidence"] = R.ht(["servicesWithLogs", R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $services[$_] " }, (S, O) => {
-                R.ln = F + 224;
+                R.ln = F + 279;
                 R.e(O, R.i((S["services"] ?? null), (S["_"] ?? null)));
             })], R.pi(R.m((S["services"] ?? null), "Keys"))), "servicesWithoutLogs", (S["missing"] ?? null)], true);
-            R.ln = F + 225;
+            R.ln = F + 280;
             if (R.t((S["missing"] ?? null))) {
-                R.ln = F + 225;
+                R.ln = F + 280;
                 R.pa(O, R.cmd(S, "New-Fail", [("No resource logs for " + R.str(R.u(R.pi(R.join((S["missing"] ?? null), ", "))))), (S["evidence"] ?? null)], null));
                 return;
             }
-            R.ln = F + 226;
+            R.ln = F + 281;
             R.pa(O, R.cmd(S, "New-Pass", ["All storage services send resource logs", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 228;
+        R.ln = F + 283;
         if (R.t(R.eq(null, R.m((S["record"] ?? null), "diagnosticSettings")))) {
-            R.ln = F + 228;
+            R.ln = F + 283;
             R.pa(O, R.cmd(S, "New-Unknown", ["Diagnostic settings could not be read or are not supported"], null));
             return;
         }
-        R.ln = F + 229;
+        R.ln = F + 284;
         S["evidence"] = R.ht(["diagnosticSettings", R.cmd(S, "Sort-Object", [], R.cmd(S, "ForEach-Object", ["name"], R.pi(R.m((S["record"] ?? null), "diagnosticSettings"))))], true);
-        R.ln = F + 230;
+        R.ln = F + 285;
         if (R.t(R.u(R.cmd(S, "Test-DiagnosticLogsEnabled", [R.np("Settings"), R.m((S["record"] ?? null), "diagnosticSettings")], null)))) {
-            R.ln = F + 230;
+            R.ln = F + 285;
             R.pa(O, R.cmd(S, "New-Pass", ["Resource logs are exported", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 231;
+        R.ln = F + 286;
         R.pa(O, R.cmd(S, "New-Fail", ["No diagnostic setting exports resource logs", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 235;
+    R.ln = F + 290;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-LOG-021", "Title", "Application Insights is configured for application workloads", "Category", "Logging and threat detection", "Service", "Application Insights", "Severity", "Low", "Description", "Checks that the subscription contains Application Insights components when it hosts App Service or Container Apps workloads.", "Rationale", "Application telemetry (requests, exceptions, dependencies) is needed to detect application layer attacks and to investigate incidents inside the application.", "Remediation", "Create a workspace based Application Insights component and connect the applications to it (preferably with Entra authenticated ingestion).", "References", R.a("https://learn.microsoft.com/azure/azure-monitor/app/app-insights-overview"), "Requires", R.a("subscription/resources"), "Run", R.sb({ params: [], adv: 0, text: "\n        $resources = @(Get-IngestData 'subscription/resources' | Where-Object { $_ })\n        $apps = @($resources | Where-Object { $_.type -in 'Microsoft.Web/sites', 'Microsoft.App/containerApps' })\n        $components = @($resources | Where-Object { $_.type -eq 'Microsoft.Insights/components' } | ForEach-Object name | Sort-Object)\n        $evidence = [ordered]@{ applications = $apps.Count; components = $components }\n        if (-not $apps) { return New-SubscriptionFinding (New-NotApplicable 'No App Service or Container Apps workloads' $evidence) }\n        if ($components) { return New-SubscriptionFinding (New-Pass \"$($components.Count) Application Insights component(s)\" $evidence) }\n        New-SubscriptionFinding (New-Fail 'No Application Insights components' $evidence)\n    " }, (S, O) => {
-        R.ln = F + 247;
+        R.ln = F + 302;
         S["resources"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 247;
+            R.ln = F + 302;
             R.e(O, (S["_"] ?? null));
         })], R.cmd(S, "Get-IngestData", ["subscription/resources"], null));
-        R.ln = F + 248;
+        R.ln = F + 303;
         S["apps"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.type -in 'Microsoft.Web/sites', 'Microsoft.App/containerApps' " }, (S, O) => {
-            R.ln = F + 248;
+            R.ln = F + 303;
             R.e(O, R.in(R.m((S["_"] ?? null), "type"), [R.v("Microsoft.Web/sites"), R.v("Microsoft.App/containerApps")]));
         })], R.pi((S["resources"] ?? null)));
-        R.ln = F + 249;
+        R.ln = F + 304;
         S["components"] = R.cmd(S, "Sort-Object", [], R.cmd(S, "ForEach-Object", ["name"], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.type -eq 'Microsoft.Insights/components' " }, (S, O) => {
-            R.ln = F + 249;
+            R.ln = F + 304;
             R.e(O, R.eq(R.m((S["_"] ?? null), "type"), "Microsoft.Insights/components"));
         })], R.pi((S["resources"] ?? null)))));
-        R.ln = F + 250;
+        R.ln = F + 305;
         S["evidence"] = R.ht(["applications", R.m((S["apps"] ?? null), "Count"), "components", (S["components"] ?? null)], true);
-        R.ln = F + 251;
+        R.ln = F + 306;
         if (!R.t((S["apps"] ?? null))) {
-            R.ln = F + 251;
+            R.ln = F + 306;
             R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-NotApplicable", ["No App Service or Container Apps workloads", (S["evidence"] ?? null)], null))], null));
             return;
         }
-        R.ln = F + 252;
+        R.ln = F + 307;
         if (R.t((S["components"] ?? null))) {
-            R.ln = F + 252;
+            R.ln = F + 307;
             R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Pass", [("" + R.str(R.u(R.pi(R.m((S["components"] ?? null), "Count")))) + " Application Insights component(s)"), (S["evidence"] ?? null)], null))], null));
             return;
         }
-        R.ln = F + 253;
+        R.ln = F + 308;
         R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Fail", ["No Application Insights components", (S["evidence"] ?? null)], null))], null));
     })], false)], null));
-    R.ln = F + 257;
+    R.ln = F + 312;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-LOG-016", "Title", "Log Analytics workspaces retain data for at least 90 days", "Category", "Logging and threat detection", "Service", "Log Analytics", "Severity", "Medium", "Description", "Checks the default interactive retention of Log Analytics workspaces.", "Rationale", "Attacks are often discovered weeks or months after the initial compromise. Short retention removes the evidence needed to scope and investigate them.", "Remediation", "Set workspace retention to at least 90 days (or longer per policy; Microsoft Sentinel workspaces include 90 days), and use table level or long term retention for high value tables.", "References", R.a("https://learn.microsoft.com/azure/azure-monitor/logs/data-retention-configure"), "ResourceTypes", R.a("Microsoft.OperationalInsights/workspaces"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $days = [int]$Record.resource.properties.retentionInDays\n        $evidence = [ordered]@{ retentionInDays = $days; sku = $Record.resource.properties.sku.name }\n        if ($days -ge 90) { return New-Pass \"$days days retention\" $evidence }\n        New-Fail \"$days days retention\" $evidence\n    " }, (S, O) => {
-        R.ln = F + 270;
+        R.ln = F + 325;
         S["days"] = R.c("int", R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "retentionInDays"));
-        R.ln = F + 271;
+        R.ln = F + 326;
         S["evidence"] = R.ht(["retentionInDays", (S["days"] ?? null), "sku", R.m(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "sku"), "name")], true);
-        R.ln = F + 272;
+        R.ln = F + 327;
         if (R.t(R.ge((S["days"] ?? null), 90))) {
-            R.ln = F + 272;
+            R.ln = F + 327;
             R.pa(O, R.cmd(S, "New-Pass", [("" + R.str((S["days"] ?? null)) + " days retention"), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 273;
+        R.ln = F + 328;
         R.pa(O, R.cmd(S, "New-Fail", [("" + R.str((S["days"] ?? null)) + " days retention"), (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 277;
+    R.ln = F + 332;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-LOG-017", "Title", "Network Watcher is enabled in every region in use", "Category", "Logging and threat detection", "Service", "Network Watcher", "Severity", "Low", "Description", "Compares the regions of network resources with the regions that have a Network Watcher.", "Rationale", "Network Watcher provides flow logs, connection troubleshooting and packet capture; it must exist in a region before flow logs can be configured there.", "Remediation", "Enable Network Watcher in the missing regions (az network watcher configure --locations <region> --enabled true --resource-group NetworkWatcherRG).", "References", R.a("https://learn.microsoft.com/azure/network-watcher/network-watcher-create"), "Policy", R.ht(["b6e2945c-0b7b-40f5-9233-7a5323b5cdc6", "Network Watcher should be enabled"], false), "Requires", R.a("subscription/resources"), "Run", R.sb({ params: [], adv: 0, text: "\n        $normalize = { param($l) ([string]$l).ToLowerInvariant() -replace '\\s', '' }\n        $networkTypes = @('microsoft.network/virtualnetworks', 'microsoft.network/networksecuritygroups', 'microsoft.network/networkinterfaces', 'microsoft.network/publicipaddresses')\n        $used = @(Get-IngestData 'subscription/resources' | Where-Object { $_ -and $_.type.ToLowerInvariant() -in $networkTypes } | ForEach-Object { & $normalize $_.location } | Sort-Object -Unique)\n        $watchers = @(Get-IngestData 'subscription/resources' | Where-Object { $_ -and $_.type -eq 'Microsoft.Network/networkWatchers' } | ForEach-Object { & $normalize $_.location } | Sort-Object -Unique)\n        if (-not $used) { return New-SubscriptionFinding (New-NotApplicable 'No network resources') }\n        foreach ($region in $used) {\n            $result = if ($region -in $watchers) { New-Pass \"Network Watcher exists in $region\" } else { New-Fail \"No Network Watcher in $region\" }\n            New-Finding -ResourceId \"$(Get-SubscriptionScope)/locations/$region/networkWatcher\" -ResourceType 'Microsoft.Network/networkWatchers' -ResourceName $region -Result $result\n        }\n    " }, (S, O) => {
-        R.ln = F + 290;
+        R.ln = F + 345;
         S["normalize"] = R.sb({ params: [{ n: "l", t: null, pos: null }], adv: 0, text: " param($l) ([string]$l).ToLowerInvariant() -replace '\\s', '' " }, (S, O) => {
-            R.ln = F + 290;
+            R.ln = F + 345;
             R.e(O, R.rep(R.im((R.c("string", (S["l"] ?? null))), "ToLowerInvariant", []), [R.v("\\s"), R.v("")]));
         });
-        R.ln = F + 291;
+        R.ln = F + 346;
         S["networktypes"] = R.a([R.v("microsoft.network/virtualnetworks"), R.v("microsoft.network/networksecuritygroups"), R.v("microsoft.network/networkinterfaces"), R.v("microsoft.network/publicipaddresses")]);
-        R.ln = F + 292;
+        R.ln = F + 347;
         S["used"] = R.cmd(S, "Sort-Object", [R.np("Unique")], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " & $normalize $_.location " }, (S, O) => {
-            R.ln = F + 292;
+            R.ln = F + 347;
             R.pa(O, R.inv(S, (S["normalize"] ?? null), [R.m((S["_"] ?? null), "location")], null, false));
         })], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.type.ToLowerInvariant() -in $networkTypes " }, (S, O) => {
-            R.ln = F + 292;
+            R.ln = F + 347;
             R.e(O, (R.t((S["_"] ?? null)) && R.t(R.in(R.im(R.m((S["_"] ?? null), "type"), "ToLowerInvariant", []), (S["networktypes"] ?? null)))));
         })], R.cmd(S, "Get-IngestData", ["subscription/resources"], null))));
-        R.ln = F + 293;
+        R.ln = F + 348;
         S["watchers"] = R.cmd(S, "Sort-Object", [R.np("Unique")], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " & $normalize $_.location " }, (S, O) => {
-            R.ln = F + 293;
+            R.ln = F + 348;
             R.pa(O, R.inv(S, (S["normalize"] ?? null), [R.m((S["_"] ?? null), "location")], null, false));
         })], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.type -eq 'Microsoft.Network/networkWatchers' " }, (S, O) => {
-            R.ln = F + 293;
+            R.ln = F + 348;
             R.e(O, (R.t((S["_"] ?? null)) && R.t(R.eq(R.m((S["_"] ?? null), "type"), "Microsoft.Network/networkWatchers"))));
         })], R.cmd(S, "Get-IngestData", ["subscription/resources"], null))));
-        R.ln = F + 294;
+        R.ln = F + 349;
         if (!R.t((S["used"] ?? null))) {
-            R.ln = F + 294;
+            R.ln = F + 349;
             R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-NotApplicable", ["No network resources"], null))], null));
             return;
         }
-        R.ln = F + 295;
-        for (const it11 of R.fi((S["used"] ?? null))) {
-            S["region"] = it11;
-            R.ln = F + 296;
-            const v12 = [];
-            R.ln = F + 296;
+        R.ln = F + 350;
+        for (const it19 of R.fi((S["used"] ?? null))) {
+            S["region"] = it19;
+            R.ln = F + 351;
+            const v20 = [];
+            R.ln = F + 351;
             if (R.t(R.in((S["region"] ?? null), (S["watchers"] ?? null)))) {
-                R.ln = F + 296;
-                R.pa(v12, R.cmd(S, "New-Pass", [("Network Watcher exists in " + R.str((S["region"] ?? null)))], null));
+                R.ln = F + 351;
+                R.pa(v20, R.cmd(S, "New-Pass", [("Network Watcher exists in " + R.str((S["region"] ?? null)))], null));
             } else {
-                R.ln = F + 296;
-                R.pa(v12, R.cmd(S, "New-Fail", [("No Network Watcher in " + R.str((S["region"] ?? null)))], null));
+                R.ln = F + 351;
+                R.pa(v20, R.cmd(S, "New-Fail", [("No Network Watcher in " + R.str((S["region"] ?? null)))], null));
             }
-            S["result"] = R.u(v12);
-            R.ln = F + 297;
+            S["result"] = R.u(v20);
+            R.ln = F + 352;
             R.pa(O, R.cmd(S, "New-Finding", [R.np("ResourceId"), ("" + R.str(R.u(R.cmd(S, "Get-SubscriptionScope", [], null))) + "/locations/" + R.str((S["region"] ?? null)) + "/networkWatcher"), R.np("ResourceType"), "Microsoft.Network/networkWatchers", R.np("ResourceName"), (S["region"] ?? null), R.np("Result"), (S["result"] ?? null)], null));
         }
     })], false)], null));
-    R.ln = F + 302;
+    R.ln = F + 357;
     R.def(S, "Get-FlowLogs", { params: [{ n: "Kind", t: "string", pos: null, vs: ["All", "Nsg", "Vnet"], def: S => "All" }], adv: 0, h: "6b940e114abb4232" }, (S, O) => {
-        R.ln = F + 306;
-        const v13 = [];
-        R.ln = F + 306;
-        for (const it14 of R.fi(R.u(R.cmd(S, "Get-AzResourceRecords", [R.np("Type"), "Microsoft.Network/networkWatchers"], null)))) {
-            S["watcher"] = it14;
-            R.ln = F + 306;
-            R.pa(v13, R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                R.ln = F + 306;
+        R.ln = F + 361;
+        const v21 = [];
+        R.ln = F + 361;
+        for (const it22 of R.fi(R.u(R.cmd(S, "Get-AzResourceRecords", [R.np("Type"), "Microsoft.Network/networkWatchers"], null)))) {
+            S["watcher"] = it22;
+            R.ln = F + 361;
+            R.pa(v21, R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+                R.ln = F + 361;
                 R.e(O, (S["_"] ?? null));
             })], R.pi(R.cmd(S, "Get-Child", [(S["watcher"] ?? null), "flowLogs"], null))));
         }
-        S["logs"] = R.u(v13);
-        R.ln = F + 307;
-        const had18 = Object.prototype.hasOwnProperty.call(S, '_'), prev17 = S['_'];
+        S["logs"] = R.u(v21);
+        R.ln = F + 362;
+        const had26 = Object.prototype.hasOwnProperty.call(S, '_'), prev25 = S['_'];
         try {
-            for (const sw15 of R.pi((S["kind"] ?? null))) {
-                S['_'] = sw15;
-                let hit16 = false;
-                if (R.t(R.eq(sw15, "Nsg", false))) {
-                    hit16 = true;
-                    R.ln = F + 308;
+            for (const sw23 of R.pi((S["kind"] ?? null))) {
+                S['_'] = sw23;
+                let hit24 = false;
+                if (R.t(R.eq(sw23, "Nsg", false))) {
+                    hit24 = true;
+                    R.ln = F + 363;
                     R.e(O, R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " ([string]$_.properties.targetResourceId) -match '(?i)/networkSecurityGroups/' " }, (S, O) => {
-                        R.ln = F + 308;
+                        R.ln = F + 363;
                         R.e(O, R.match(S, (R.c("string", R.m(R.m((S["_"] ?? null), "properties"), "targetResourceId"))), "(?i)/networkSecurityGroups/"));
                     })], R.pi((S["logs"] ?? null))));
                     return;
                 }
-                if (R.t(R.eq(sw15, "Vnet", false))) {
-                    hit16 = true;
-                    R.ln = F + 309;
+                if (R.t(R.eq(sw23, "Vnet", false))) {
+                    hit24 = true;
+                    R.ln = F + 364;
                     R.e(O, R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " ([string]$_.properties.targetResourceId) -match '(?i)/virtualNetworks/' " }, (S, O) => {
-                        R.ln = F + 309;
+                        R.ln = F + 364;
                         R.e(O, R.match(S, (R.c("string", R.m(R.m((S["_"] ?? null), "properties"), "targetResourceId"))), "(?i)/virtualNetworks/"));
                     })], R.pi((S["logs"] ?? null))));
                     return;
                 }
             }
-        } finally { if (had18) { S['_'] = prev17; } else { delete S['_']; } }
-        R.ln = F + 311;
+        } finally { if (had26) { S['_'] = prev25; } else { delete S['_']; } }
+        R.ln = F + 366;
         R.e(O, R.a((S["logs"] ?? null)));
         return;
     });
-    R.ln = F + 314;
+    R.ln = F + 369;
     R.def(S, "Test-FlowLogsCollected", { params: [], adv: 0, h: "9c7e640c6b49d00d" }, (S, O) => {
-        R.ln = F + 316;
+        R.ln = F + 371;
         S["watchers"] = R.cmd(S, "Get-AzResourceRecords", [R.np("Type"), "Microsoft.Network/networkWatchers"], null);
-        R.ln = F + 317;
+        R.ln = F + 372;
         if (!R.t((S["watchers"] ?? null))) {
-            R.ln = F + 317;
+            R.ln = F + 372;
             R.e(O, true);
             return;
         }
-        R.ln = F + 318;
+        R.ln = F + 373;
         R.e(O, R.c("bool", (R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " Test-ChildCollected $_ 'flowLogs' " }, (S, O) => {
-            R.ln = F + 318;
+            R.ln = F + 373;
             R.pa(O, R.cmd(S, "Test-ChildCollected", [(S["_"] ?? null), "flowLogs"], null));
         })], R.pi((S["watchers"] ?? null))), "Count"))));
         return;
     });
-    R.ln = F + 321;
+    R.ln = F + 376;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-LOG-018", "Version", 2, "Title", "Virtual network flow logs are enabled", "Category", "Logging and threat detection", "Service", "Network Watcher", "Severity", "Medium", "Description", "Checks that each virtual network is covered by an enabled virtual network flow log, or that all of its subnets have NSGs with enabled NSG flow logs (NSG flow logs retire on 30 September 2027 and can no longer be created).", "Rationale", "Flow logs record which IP addresses communicated over which ports. They are essential to detect lateral movement and data exfiltration and to scope incidents.", "Remediation", "Create virtual network flow logs (az network watcher flow-log create --vnet <id> ...) and migrate existing NSG flow logs to virtual network flow logs.", "References", R.a([R.v("https://learn.microsoft.com/azure/network-watcher/vnet-flow-logs-overview"), R.v("https://learn.microsoft.com/azure/network-watcher/nsg-flow-logs-migrate")]), "Policy", R.ht(["4c3c6c5f-0d47-4402-99b8-aa543dd8bcee", "Audit flow logs configuration for every virtual network", "27960feb-a23c-4577-8d36-ef8b5f35e0be", "All flow log resources should be in enabled state"], false), "ResourceTypes", R.a("Microsoft.Network/virtualNetworks"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not (Test-FlowLogsCollected)) { return New-Unknown 'Flow logs could not be read from Network Watcher' }\n        $flowLogs = @(Get-FlowLogs | Where-Object { $_.properties.enabled })\n        $targets = @{}\n        foreach ($flowLog in $flowLogs) { $targets[([string]$flowLog.properties.targetResourceId).ToLowerInvariant()] = $flowLog }\n        $vnetId = $Record.id.ToLowerInvariant()\n        if ($targets.ContainsKey($vnetId)) { return New-Pass 'Virtual network flow log enabled' ([ordered]@{ flowLog = $targets[$vnetId].name }) }\n        $subnets = @($Record.resource.properties.subnets | Where-Object { $_ })\n        if (-not $subnets) { return New-NotApplicable 'The virtual network has no subnets, so there is no traffic to log' ([ordered]@{ subnets = 0 }) }\n        $uncovered = @($subnets | Where-Object {\n                $subnetCovered = $targets.ContainsKey($_.id.ToLowerInvariant())\n                $nsg = $_.properties.networkSecurityGroup.id\n                -not ($subnetCovered -or ($nsg -and $targets.ContainsKey($nsg.ToLowerInvariant())))\n            } | ForEach-Object name)\n        $evidence = [ordered]@{ subnetsWithoutFlowLogs = $uncovered }\n        if (-not $uncovered) { return New-Pass 'All subnets are covered by subnet or NSG flow logs' $evidence }\n        New-Fail 'No virtual network flow log' $evidence\n    " }, (S, O) => {
-        R.ln = F + 336;
+        R.ln = F + 391;
         if (!R.t(R.u(R.cmd(S, "Test-FlowLogsCollected", [], null)))) {
-            R.ln = F + 336;
+            R.ln = F + 391;
             R.pa(O, R.cmd(S, "New-Unknown", ["Flow logs could not be read from Network Watcher"], null));
             return;
         }
-        R.ln = F + 337;
+        R.ln = F + 392;
         S["flowlogs"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.properties.enabled " }, (S, O) => {
-            R.ln = F + 337;
+            R.ln = F + 392;
             R.e(O, R.m(R.m((S["_"] ?? null), "properties"), "enabled"));
         })], R.cmd(S, "Get-FlowLogs", [], null));
-        R.ln = F + 338;
+        R.ln = F + 393;
         S["targets"] = R.ht([], false);
-        R.ln = F + 339;
-        for (const it19 of R.fi((S["flowlogs"] ?? null))) {
-            S["flowlog"] = it19;
-            R.ln = F + 339;
+        R.ln = F + 394;
+        for (const it27 of R.fi((S["flowlogs"] ?? null))) {
+            S["flowlog"] = it27;
+            R.ln = F + 394;
             R.si((S["targets"] ?? null), R.im((R.c("string", R.m(R.m((S["flowlog"] ?? null), "properties"), "targetResourceId"))), "ToLowerInvariant", []), (S["flowlog"] ?? null));
         }
-        R.ln = F + 340;
+        R.ln = F + 395;
         S["vnetid"] = R.im(R.m((S["record"] ?? null), "id"), "ToLowerInvariant", []);
-        R.ln = F + 341;
+        R.ln = F + 396;
         if (R.t(R.im((S["targets"] ?? null), "ContainsKey", [(S["vnetid"] ?? null)]))) {
-            R.ln = F + 341;
+            R.ln = F + 396;
             R.pa(O, R.cmd(S, "New-Pass", ["Virtual network flow log enabled", (R.ht(["flowLog", R.m(R.i((S["targets"] ?? null), (S["vnetid"] ?? null)), "name")], true))], null));
             return;
         }
-        R.ln = F + 342;
+        R.ln = F + 397;
         S["subnets"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 342;
+            R.ln = F + 397;
             R.e(O, (S["_"] ?? null));
         })], R.pi(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "subnets")));
-        R.ln = F + 343;
+        R.ln = F + 398;
         if (!R.t((S["subnets"] ?? null))) {
-            R.ln = F + 343;
+            R.ln = F + 398;
             R.pa(O, R.cmd(S, "New-NotApplicable", ["The virtual network has no subnets, so there is no traffic to log", (R.ht(["subnets", 0], true))], null));
             return;
         }
-        R.ln = F + 344;
+        R.ln = F + 399;
         S["uncovered"] = R.cmd(S, "ForEach-Object", ["name"], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: "\n                $subnetCovered = $targets.ContainsKey($_.id.ToLowerInvariant())\n                $nsg = $_.properties.networkSecurityGroup.id\n                -not ($subnetCovered -or ($nsg -and $targets.ContainsKey($nsg.ToLowerInvariant())))\n            " }, (S, O) => {
-            R.ln = F + 345;
+            R.ln = F + 400;
             S["subnetcovered"] = R.im((S["targets"] ?? null), "ContainsKey", [R.im(R.m((S["_"] ?? null), "id"), "ToLowerInvariant", [])]);
-            R.ln = F + 346;
+            R.ln = F + 401;
             S["nsg"] = R.m(R.m(R.m((S["_"] ?? null), "properties"), "networkSecurityGroup"), "id");
-            R.ln = F + 347;
+            R.ln = F + 402;
             R.e(O, !(R.t((S["subnetcovered"] ?? null)) || (R.t((S["nsg"] ?? null)) && R.t(R.im((S["targets"] ?? null), "ContainsKey", [R.im((S["nsg"] ?? null), "ToLowerInvariant", [])])))));
         })], R.pi((S["subnets"] ?? null))));
-        R.ln = F + 349;
+        R.ln = F + 404;
         S["evidence"] = R.ht(["subnetsWithoutFlowLogs", (S["uncovered"] ?? null)], true);
-        R.ln = F + 350;
+        R.ln = F + 405;
         if (!R.t((S["uncovered"] ?? null))) {
-            R.ln = F + 350;
+            R.ln = F + 405;
             R.pa(O, R.cmd(S, "New-Pass", ["All subnets are covered by subnet or NSG flow logs", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 351;
+        R.ln = F + 406;
         R.pa(O, R.cmd(S, "New-Fail", ["No virtual network flow log", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 357;
+    R.ln = F + 412;
     S["flowlogkinds"] = (() => {
-        const v20 = [];
-        R.ln = F + 358;
-        R.e(v20, R.ht(["Kind", "Vnet", "Label", "Virtual network", "RetentionId", "AZ-LOG-019", "AnalyticsId", "AZ-LOG-020"], false));
-        R.ln = F + 359;
-        R.e(v20, R.ht(["Kind", "Nsg", "Label", "Network security group", "RetentionId", "AZ-LOG-022", "AnalyticsId", "AZ-LOG-023"], false));
-        return v20;
+        const v28 = [];
+        R.ln = F + 413;
+        R.e(v28, R.ht(["Kind", "Vnet", "Label", "Virtual network", "RetentionId", "AZ-LOG-019", "AnalyticsId", "AZ-LOG-020"], false));
+        R.ln = F + 414;
+        R.e(v28, R.ht(["Kind", "Nsg", "Label", "Network security group", "RetentionId", "AZ-LOG-022", "AnalyticsId", "AZ-LOG-023"], false));
+        return v28;
     })();
-    R.ln = F + 362;
-    for (const it21 of R.fi((S["flowlogkinds"] ?? null))) {
-        S["flow"] = it21;
-        R.ln = F + 363;
+    R.ln = F + 417;
+    for (const it29 of R.fi((S["flowlogkinds"] ?? null))) {
+        S["flow"] = it29;
+        R.ln = F + 418;
         R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", R.m((S["flow"] ?? null), "RetentionId"), "Version", 2, "Title", ("" + R.str(R.u(R.pi(R.m((S["flow"] ?? null), "Label")))) + " flow logs are retained for at least 90 days"), "Category", "Logging and threat detection", "Service", "Network Watcher", "Severity", "Low", "Description", ("Checks the storage retention policy of " + R.str(R.u(R.pi(R.im(R.m((S["flow"] ?? null), "Label"), "ToLowerInvariant", [])))) + " flow logs (0 days means retained indefinitely)."), "Rationale", "Network evidence is needed for incidents that are detected long after the initial access.", "Remediation", "Set the flow log retention to 90 days or more (az network watcher flow-log update --retention 90 ...), or retain the data in Log Analytics through traffic analytics.", "References", R.a("https://learn.microsoft.com/azure/network-watcher/vnet-flow-logs-manage"), "Config", (S["flow"] ?? null), "Run", R.sb({ params: [{ n: "Test", t: null, pos: null }], adv: 0, text: "\n            param($Test)\n            if (-not (Test-FlowLogsCollected)) { return New-SubscriptionFinding (New-Unknown 'Flow logs could not be read from Network Watcher') }\n            $flowLogs = @(Get-FlowLogs -Kind $Test.Config.Kind)\n            if (-not $flowLogs) { return New-SubscriptionFinding (New-NotApplicable \"No $($Test.Config.Label.ToLowerInvariant()) flow logs\") }\n            foreach ($flowLog in $flowLogs) {\n                $policy = $flowLog.properties.retentionPolicy\n                $days = [int]$policy.days\n                $evidence = [ordered]@{ target = $flowLog.properties.targetResourceId; retentionEnabled = [bool]$policy.enabled; days = $days }\n                $result = if (-not $policy.enabled -or $days -eq 0 -or $days -ge 90) { New-Pass $(if (-not $policy.enabled -or $days -eq 0) { 'Retained indefinitely' } else { \"$days days retention\" }) $evidence } else { New-Fail \"$days days retention\" $evidence }\n                New-Finding -ResourceId $flowLog.id -ResourceType $flowLog.type -ResourceName $flowLog.name -Result $result\n            }\n        " }, (S, O) => {
-            R.ln = F + 377;
+            R.ln = F + 432;
             if (!R.t(R.u(R.cmd(S, "Test-FlowLogsCollected", [], null)))) {
-                R.ln = F + 377;
+                R.ln = F + 432;
                 R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Unknown", ["Flow logs could not be read from Network Watcher"], null))], null));
                 return;
             }
-            R.ln = F + 378;
+            R.ln = F + 433;
             S["flowlogs"] = R.cmd(S, "Get-FlowLogs", [R.np("Kind"), R.m(R.m((S["test"] ?? null), "Config"), "Kind")], null);
-            R.ln = F + 379;
+            R.ln = F + 434;
             if (!R.t((S["flowlogs"] ?? null))) {
-                R.ln = F + 379;
+                R.ln = F + 434;
                 R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-NotApplicable", [("No " + R.str(R.u(R.pi(R.im(R.m(R.m((S["test"] ?? null), "Config"), "Label"), "ToLowerInvariant", [])))) + " flow logs")], null))], null));
                 return;
             }
-            R.ln = F + 380;
-            for (const it22 of R.fi((S["flowlogs"] ?? null))) {
-                S["flowlog"] = it22;
-                R.ln = F + 381;
+            R.ln = F + 435;
+            for (const it30 of R.fi((S["flowlogs"] ?? null))) {
+                S["flowlog"] = it30;
+                R.ln = F + 436;
                 S["policy"] = R.m(R.m((S["flowlog"] ?? null), "properties"), "retentionPolicy");
-                R.ln = F + 382;
+                R.ln = F + 437;
                 S["days"] = R.c("int", R.m((S["policy"] ?? null), "days"));
-                R.ln = F + 383;
+                R.ln = F + 438;
                 S["evidence"] = R.ht(["target", R.m(R.m((S["flowlog"] ?? null), "properties"), "targetResourceId"), "retentionEnabled", R.c("bool", R.m((S["policy"] ?? null), "enabled")), "days", (S["days"] ?? null)], true);
-                R.ln = F + 384;
-                const v23 = [];
-                R.ln = F + 384;
+                R.ln = F + 439;
+                const v31 = [];
+                R.ln = F + 439;
                 if (((!R.t(R.m((S["policy"] ?? null), "enabled")) || R.t(R.eq((S["days"] ?? null), 0))) || R.t(R.ge((S["days"] ?? null), 90)))) {
-                    R.ln = F + 384;
-                    R.pa(v23, R.cmd(S, "New-Pass", [(() => {
-                        const v24 = [];
-                        R.ln = F + 384;
+                    R.ln = F + 439;
+                    R.pa(v31, R.cmd(S, "New-Pass", [(() => {
+                        const v32 = [];
+                        R.ln = F + 439;
                         if ((!R.t(R.m((S["policy"] ?? null), "enabled")) || R.t(R.eq((S["days"] ?? null), 0)))) {
-                            R.ln = F + 384;
-                            R.e(v24, "Retained indefinitely");
+                            R.ln = F + 439;
+                            R.e(v32, "Retained indefinitely");
                         } else {
-                            R.ln = F + 384;
-                            R.e(v24, ("" + R.str((S["days"] ?? null)) + " days retention"));
+                            R.ln = F + 439;
+                            R.e(v32, ("" + R.str((S["days"] ?? null)) + " days retention"));
                         }
-                        return R.u(v24);
+                        return R.u(v32);
                     })(), (S["evidence"] ?? null)], null));
                 } else {
-                    R.ln = F + 384;
-                    R.pa(v23, R.cmd(S, "New-Fail", [("" + R.str((S["days"] ?? null)) + " days retention"), (S["evidence"] ?? null)], null));
+                    R.ln = F + 439;
+                    R.pa(v31, R.cmd(S, "New-Fail", [("" + R.str((S["days"] ?? null)) + " days retention"), (S["evidence"] ?? null)], null));
                 }
-                S["result"] = R.u(v23);
-                R.ln = F + 385;
+                S["result"] = R.u(v31);
+                R.ln = F + 440;
                 R.pa(O, R.cmd(S, "New-Finding", [R.np("ResourceId"), R.m((S["flowlog"] ?? null), "id"), R.np("ResourceType"), R.m((S["flowlog"] ?? null), "type"), R.np("ResourceName"), R.m((S["flowlog"] ?? null), "name"), R.np("Result"), (S["result"] ?? null)], null));
             }
         })], false)], null));
-        R.ln = F + 390;
+        R.ln = F + 445;
         R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", R.m((S["flow"] ?? null), "AnalyticsId"), "Version", 2, "Title", ("" + R.str(R.u(R.pi(R.m((S["flow"] ?? null), "Label")))) + " flow logs are sent to Log Analytics with traffic analytics"), "Category", "Logging and threat detection", "Service", "Network Watcher", "Severity", "Low", "Description", ("Checks that " + R.str(R.u(R.pi(R.im(R.m((S["flow"] ?? null), "Label"), "ToLowerInvariant", [])))) + " flow logs have traffic analytics enabled, which sends processed flow data to a Log Analytics workspace."), "Rationale", "Flow logs in a storage account are hard to query during an incident. Traffic analytics makes flows searchable and highlights malicious and unusual traffic.", "Remediation", "Enable traffic analytics on each flow log with a Log Analytics workspace and a 10 minute processing interval.", "References", R.a("https://learn.microsoft.com/azure/network-watcher/traffic-analytics"), "Policy", R.ht(["2f080164-9f4d-497e-9db6-416dc9f7b48a", "Network Watcher flow logs should have traffic analytics enabled"], false), "Config", (S["flow"] ?? null), "Run", R.sb({ params: [{ n: "Test", t: null, pos: null }], adv: 0, text: "\n            param($Test)\n            if (-not (Test-FlowLogsCollected)) { return New-SubscriptionFinding (New-Unknown 'Flow logs could not be read from Network Watcher') }\n            $flowLogs = @(Get-FlowLogs -Kind $Test.Config.Kind)\n            if (-not $flowLogs) { return New-SubscriptionFinding (New-NotApplicable \"No $($Test.Config.Label.ToLowerInvariant()) flow logs\") }\n            foreach ($flowLog in $flowLogs) {\n                $analytics = $flowLog.properties.flowAnalyticsConfiguration.networkWatcherFlowAnalyticsConfiguration\n                $evidence = [ordered]@{ target = $flowLog.properties.targetResourceId; trafficAnalytics = [bool]$analytics.enabled; workspace = $analytics.workspaceResourceId }\n                $result = if ($analytics.enabled) { New-Pass 'Traffic analytics enabled' $evidence } else { New-Fail 'Traffic analytics is not enabled' $evidence }\n                New-Finding -ResourceId $flowLog.id -ResourceType $flowLog.type -ResourceName $flowLog.name -Result $result\n            }\n        " }, (S, O) => {
-            R.ln = F + 405;
+            R.ln = F + 460;
             if (!R.t(R.u(R.cmd(S, "Test-FlowLogsCollected", [], null)))) {
-                R.ln = F + 405;
+                R.ln = F + 460;
                 R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Unknown", ["Flow logs could not be read from Network Watcher"], null))], null));
                 return;
             }
-            R.ln = F + 406;
+            R.ln = F + 461;
             S["flowlogs"] = R.cmd(S, "Get-FlowLogs", [R.np("Kind"), R.m(R.m((S["test"] ?? null), "Config"), "Kind")], null);
-            R.ln = F + 407;
+            R.ln = F + 462;
             if (!R.t((S["flowlogs"] ?? null))) {
-                R.ln = F + 407;
+                R.ln = F + 462;
                 R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-NotApplicable", [("No " + R.str(R.u(R.pi(R.im(R.m(R.m((S["test"] ?? null), "Config"), "Label"), "ToLowerInvariant", [])))) + " flow logs")], null))], null));
                 return;
             }
-            R.ln = F + 408;
-            for (const it25 of R.fi((S["flowlogs"] ?? null))) {
-                S["flowlog"] = it25;
-                R.ln = F + 409;
+            R.ln = F + 463;
+            for (const it33 of R.fi((S["flowlogs"] ?? null))) {
+                S["flowlog"] = it33;
+                R.ln = F + 464;
                 S["analytics"] = R.m(R.m(R.m((S["flowlog"] ?? null), "properties"), "flowAnalyticsConfiguration"), "networkWatcherFlowAnalyticsConfiguration");
-                R.ln = F + 410;
+                R.ln = F + 465;
                 S["evidence"] = R.ht(["target", R.m(R.m((S["flowlog"] ?? null), "properties"), "targetResourceId"), "trafficAnalytics", R.c("bool", R.m((S["analytics"] ?? null), "enabled")), "workspace", R.m((S["analytics"] ?? null), "workspaceResourceId")], true);
-                R.ln = F + 411;
-                const v26 = [];
-                R.ln = F + 411;
+                R.ln = F + 466;
+                const v34 = [];
+                R.ln = F + 466;
                 if (R.t(R.m((S["analytics"] ?? null), "enabled"))) {
-                    R.ln = F + 411;
-                    R.pa(v26, R.cmd(S, "New-Pass", ["Traffic analytics enabled", (S["evidence"] ?? null)], null));
+                    R.ln = F + 466;
+                    R.pa(v34, R.cmd(S, "New-Pass", ["Traffic analytics enabled", (S["evidence"] ?? null)], null));
                 } else {
-                    R.ln = F + 411;
-                    R.pa(v26, R.cmd(S, "New-Fail", ["Traffic analytics is not enabled", (S["evidence"] ?? null)], null));
+                    R.ln = F + 466;
+                    R.pa(v34, R.cmd(S, "New-Fail", ["Traffic analytics is not enabled", (S["evidence"] ?? null)], null));
                 }
-                S["result"] = R.u(v26);
-                R.ln = F + 412;
+                S["result"] = R.u(v34);
+                R.ln = F + 467;
                 R.pa(O, R.cmd(S, "New-Finding", [R.np("ResourceId"), R.m((S["flowlog"] ?? null), "id"), R.np("ResourceType"), R.m((S["flowlog"] ?? null), "type"), R.np("ResourceName"), R.m((S["flowlog"] ?? null), "name"), R.np("Result"), (S["result"] ?? null)], null));
             }
         })], false)], null));
     }
-    R.ln = F + 418;
+    R.ln = F + 473;
     R.def(S, "Get-ActivityLogRetention", { params: [{ n: "Setting", t: null, pos: null }], adv: 0, h: "74a0e7bc885072f6" }, (S, O) => {
-        R.ln = F + 421;
+        R.ln = F + 476;
         S["p"] = R.m((S["setting"] ?? null), "properties");
-        R.ln = F + 422;
+        R.ln = F + 477;
         S["outcome"] = R.sb({ params: [{ n: "Status", t: "string", pos: null }, { n: "Detail", t: "string", pos: null }], adv: 0, text: " param([string]$Status, [string]$Detail) [pscustomobject]@{ Setting = $Setting.name; Status = $Status; Detail = $Detail } " }, (S, O) => {
-            R.ln = F + 422;
+            R.ln = F + 477;
             R.e(O, R.pso(["Setting", R.m((S["setting"] ?? null), "name"), "Status", (S["status"] ?? null), "Detail", (S["detail"] ?? null)]));
         });
-        R.ln = F + 423;
+        R.ln = F + 478;
         S["results"] = [];
-        R.ln = F + 424;
+        R.ln = F + 479;
         if (R.t(R.m((S["p"] ?? null), "workspaceId"))) {
-            R.ln = F + 425;
+            R.ln = F + 480;
             S["workspace"] = R.u(R.cmd(S, "Get-ReferencedResourceRecord", [R.np("Id"), R.m((S["p"] ?? null), "workspaceId")], null));
-            R.ln = F + 426;
+            R.ln = F + 481;
             S["name"] = R.u(R.cmd(S, "Get-ResourceName", [R.m((S["p"] ?? null), "workspaceId")], null));
-            R.ln = F + 427;
+            R.ln = F + 482;
             if (!R.t((S["workspace"] ?? null))) {
-                R.ln = F + 427;
+                R.ln = F + 482;
                 S["results"] = R.add(S["results"] ?? null, R.u(R.inv(S, (S["outcome"] ?? null), ["Unknown", ("workspace " + R.str((S["name"] ?? null)) + " could not be read")], null, false)));
             } else {
-                R.ln = F + 429;
+                R.ln = F + 484;
                 S["days"] = R.c("int", R.m(R.m(R.m((S["workspace"] ?? null), "resource"), "properties"), "retentionInDays"));
-                R.ln = F + 431;
+                R.ln = F + 486;
                 if (R.t(R.ge((S["days"] ?? null), 365))) {
-                    R.ln = F + 431;
+                    R.ln = F + 486;
                     S["results"] = R.add(S["results"] ?? null, R.u(R.inv(S, (S["outcome"] ?? null), ["Pass", ("workspace " + R.str((S["name"] ?? null)) + " keeps " + R.str((S["days"] ?? null)) + " days")], null, false)));
                 } else if ((R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["workspace"] ?? null), "tables"], null))) || R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["workspace"] ?? null), "tables/AzureActivity"], null))))) {
-                    R.ln = F + 433;
+                    R.ln = F + 488;
                     S["table"] = R.u(R.cmd(S, "Select-Object", [R.np("First"), 1], R.pi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.name -eq 'AzureActivity' " }, (S, O) => {
-                        R.ln = F + 433;
+                        R.ln = F + 488;
                         R.e(O, (R.t((S["_"] ?? null)) && R.t(R.eq(R.m((S["_"] ?? null), "name"), "AzureActivity"))));
                     })], R.pi(R.add(R.cmd(S, "Get-Child", [(S["workspace"] ?? null), "tables"], null), R.cmd(S, "Get-Child", [(S["workspace"] ?? null), "tables/AzureActivity"], null)))))));
-                    R.ln = F + 434;
-                    const v27 = [];
-                    R.ln = F + 434;
+                    R.ln = F + 489;
+                    const v35 = [];
+                    R.ln = F + 489;
                     if (R.t(R.m(R.m((S["table"] ?? null), "properties"), "totalRetentionInDays"))) {
-                        R.ln = F + 434;
-                        R.e(v27, R.c("int", R.m(R.m((S["table"] ?? null), "properties"), "totalRetentionInDays")));
+                        R.ln = F + 489;
+                        R.e(v35, R.c("int", R.m(R.m((S["table"] ?? null), "properties"), "totalRetentionInDays")));
                     } else {
-                        R.ln = F + 434;
-                        R.e(v27, (S["days"] ?? null));
+                        R.ln = F + 489;
+                        R.e(v35, (S["days"] ?? null));
                     }
-                    S["total"] = R.u(v27);
-                    R.ln = F + 435;
-                    const v28 = [];
-                    R.ln = F + 435;
+                    S["total"] = R.u(v35);
+                    R.ln = F + 490;
+                    const v36 = [];
+                    R.ln = F + 490;
                     if (R.t(R.ge((S["total"] ?? null), 365))) {
-                        R.ln = F + 435;
-                        R.e(v28, "Pass");
+                        R.ln = F + 490;
+                        R.e(v36, "Pass");
                     } else {
-                        R.ln = F + 435;
-                        R.e(v28, "Fail");
+                        R.ln = F + 490;
+                        R.e(v36, "Fail");
                     }
-                    S["status"] = R.u(v28);
-                    R.ln = F + 436;
+                    S["status"] = R.u(v36);
+                    R.ln = F + 491;
                     S["results"] = R.add(S["results"] ?? null, R.u(R.inv(S, (S["outcome"] ?? null), [(S["status"] ?? null), ("the AzureActivity table in workspace " + R.str((S["name"] ?? null)) + " keeps " + R.str((S["total"] ?? null)) + " days")], null, false)));
                 } else {
-                    R.ln = F + 437;
+                    R.ln = F + 492;
                     S["results"] = R.add(S["results"] ?? null, R.u(R.inv(S, (S["outcome"] ?? null), ["Unknown", ("workspace " + R.str((S["name"] ?? null)) + " keeps " + R.str((S["days"] ?? null)) + " days, and its table retention could not be read")], null, false)));
                 }
             }
         }
-        R.ln = F + 440;
+        R.ln = F + 495;
         if (R.t(R.m((S["p"] ?? null), "storageAccountId"))) {
-            R.ln = F + 441;
+            R.ln = F + 496;
             S["account"] = R.u(R.cmd(S, "Get-ReferencedResourceRecord", [R.np("Id"), R.m((S["p"] ?? null), "storageAccountId")], null));
-            R.ln = F + 442;
+            R.ln = F + 497;
             S["name"] = R.u(R.cmd(S, "Get-ResourceName", [R.m((S["p"] ?? null), "storageAccountId")], null));
-            R.ln = F + 443;
+            R.ln = F + 498;
             if (!R.t((S["account"] ?? null))) {
-                R.ln = F + 443;
+                R.ln = F + 498;
                 S["results"] = R.add(S["results"] ?? null, R.u(R.inv(S, (S["outcome"] ?? null), ["Unknown", ("storage account " + R.str((S["name"] ?? null)) + " could not be read")], null, false)));
             } else if (R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["account"] ?? null), "managementPolicies/default"], null)))) {
-                R.ln = F + 446;
+                R.ln = F + 501;
                 S["deleteafter"] = R.u(R.cmd(S, "Sort-Object", [], R.pi((() => {
-                    const v29 = [];
-                    R.ln = F + 446;
-                    for (const it30 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.enabled -ne $false " }, (S, O) => {
-                        R.ln = F + 446;
+                    const v37 = [];
+                    R.ln = F + 501;
+                    for (const it38 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.enabled -ne $false " }, (S, O) => {
+                        R.ln = F + 501;
                         R.e(O, (R.t((S["_"] ?? null)) && R.t(R.ne(R.m((S["_"] ?? null), "enabled"), false))));
                     })], R.pi(R.m(R.m(R.m(R.u(R.cmd(S, "Get-Child", [(S["account"] ?? null), "managementPolicies/default"], null)), "properties"), "policy"), "rules"))))) {
-                        S["rule"] = it30;
-                        R.ln = F + 447;
+                        S["rule"] = it38;
+                        R.ln = F + 502;
                         S["filters"] = R.m(R.m((S["rule"] ?? null), "definition"), "filters");
-                        R.ln = F + 448;
+                        R.ln = F + 503;
                         S["types"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                            R.ln = F + 448;
+                            R.ln = F + 503;
                             R.e(O, (S["_"] ?? null));
                         })], R.pi(R.m((S["filters"] ?? null), "blobTypes")));
-                        R.ln = F + 449;
+                        R.ln = F + 504;
                         if ((R.t((S["types"] ?? null)) && R.t(R.nin("appendBlob", (S["types"] ?? null))))) {
                             continue;
                         }
-                        R.ln = F + 450;
+                        R.ln = F + 505;
                         S["prefixes"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                            R.ln = F + 450;
+                            R.ln = F + 505;
                             R.e(O, (S["_"] ?? null));
                         })], R.pi(R.m((S["filters"] ?? null), "prefixMatch")));
-                        R.ln = F + 451;
+                        R.ln = F + 506;
                         if ((R.t((S["prefixes"] ?? null)) && !R.t(R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " 'insights-activity-logs/'.StartsWith($_, [System.StringComparison]::OrdinalIgnoreCase) -or $_.StartsWith('insights-activity-logs/', [System.StringComparison]::OrdinalIgnoreCase) " }, (S, O) => {
-                            R.ln = F + 451;
+                            R.ln = F + 506;
                             R.e(O, (R.t(R.im("insights-activity-logs/", "StartsWith", [(S["_"] ?? null), R.st("System.StringComparison", "OrdinalIgnoreCase")])) || R.t(R.im((S["_"] ?? null), "StartsWith", ["insights-activity-logs/", R.st("System.StringComparison", "OrdinalIgnoreCase")]))));
                         })], R.pi((S["prefixes"] ?? null))))))) {
                             continue;
                         }
-                        R.ln = F + 452;
+                        R.ln = F + 507;
                         S["delete"] = R.m(R.m(R.m(R.m((S["rule"] ?? null), "definition"), "actions"), "baseBlob"), "delete");
-                        R.ln = F + 453;
-                        for (const it31 of R.fi(R.a([R.v(R.m((S["delete"] ?? null), "daysAfterModificationGreaterThan")), R.v(R.m((S["delete"] ?? null), "daysAfterCreationGreaterThan"))]))) {
-                            S["value"] = it31;
-                            R.ln = F + 453;
+                        R.ln = F + 508;
+                        for (const it39 of R.fi(R.a([R.v(R.m((S["delete"] ?? null), "daysAfterModificationGreaterThan")), R.v(R.m((S["delete"] ?? null), "daysAfterCreationGreaterThan"))]))) {
+                            S["value"] = it39;
+                            R.ln = F + 508;
                             if (R.t(R.ne(null, (S["value"] ?? null)))) {
-                                R.ln = F + 453;
-                                R.e(v29, R.c("int", (S["value"] ?? null)));
+                                R.ln = F + 508;
+                                R.e(v37, R.c("int", (S["value"] ?? null)));
                             }
                         }
                     }
-                    return v29;
+                    return v37;
                 })())));
-                R.ln = F + 455;
+                R.ln = F + 510;
                 if ((R.t((S["deleteafter"] ?? null)) && R.t(R.lt(R.i((S["deleteafter"] ?? null), 0), 365)))) {
-                    R.ln = F + 455;
+                    R.ln = F + 510;
                     S["results"] = R.add(S["results"] ?? null, R.u(R.inv(S, (S["outcome"] ?? null), ["Fail", ("a lifecycle rule on storage account " + R.str((S["name"] ?? null)) + " deletes it after " + R.str(R.u(R.pi(R.i((S["deleteafter"] ?? null), 0)))) + " days")], null, false)));
                 } else {
-                    R.ln = F + 456;
+                    R.ln = F + 511;
                     S["results"] = R.add(S["results"] ?? null, R.u(R.inv(S, (S["outcome"] ?? null), ["Pass", ("storage account " + R.str((S["name"] ?? null)) + " keeps it (no lifecycle rule deletes it within a year)")], null, false)));
                 }
             } else if (R.t(R.eq(R.u(R.cmd(S, "Get-ChildFailure", [(S["account"] ?? null), "managementPolicies/default"], null)), 404))) {
-                R.ln = F + 457;
+                R.ln = F + 512;
                 S["results"] = R.add(S["results"] ?? null, R.u(R.inv(S, (S["outcome"] ?? null), ["Pass", ("storage account " + R.str((S["name"] ?? null)) + " keeps it (no lifecycle management policy)")], null, false)));
             } else {
-                R.ln = F + 458;
+                R.ln = F + 513;
                 S["results"] = R.add(S["results"] ?? null, R.u(R.inv(S, (S["outcome"] ?? null), ["Unknown", ("the lifecycle management policy of storage account " + R.str((S["name"] ?? null)) + " could not be read")], null, false)));
             }
         }
-        R.ln = F + 460;
+        R.ln = F + 515;
         if ((R.t(R.m((S["p"] ?? null), "eventHubAuthorizationRuleId")) || R.t(R.m((S["p"] ?? null), "marketplacePartnerId")))) {
-            R.ln = F + 460;
+            R.ln = F + 515;
             S["results"] = R.add(S["results"] ?? null, R.u(R.inv(S, (S["outcome"] ?? null), ["Unknown", "an event hub or partner solution receives it; retention is set in the receiving system"], null, false)));
         }
-        R.ln = F + 461;
+        R.ln = F + 516;
         R.e(O, (S["results"] ?? null));
         return;
     });
-    R.ln = F + 464;
+    R.ln = F + 519;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-LOG-024", "Version", 2, "Title", "The activity log is kept for at least a year", "Category", "Logging and threat detection", "Service", "Azure Monitor", "Severity", "Low", "Description", "Follows the activity log diagnostic settings to their destinations, also in other subscriptions, and checks that at least one keeps the log for 365 days or more: the Log Analytics workspace (or its AzureActivity table), or the storage account and its lifecycle rules.", "Rationale", "Azure keeps the activity log for 90 days. Investigating an incident found months later, and showing who changed what over a year, needs the control plane history kept longer.", "Remediation", "Keep the AzureActivity table for at least a year (workspace retention or table level total retention), or archive the activity log to a storage account without a lifecycle rule that deletes it earlier, ideally with an immutability policy.", "References", R.a([R.v("https://learn.microsoft.com/azure/azure-monitor/logs/data-retention-configure"), R.v("https://learn.microsoft.com/azure/azure-monitor/essentials/activity-log")]), "Requires", R.a("subscription/diagnosticSettings"), "Run", R.sb({ params: [], adv: 0, text: "\n        $settings = @(Get-ActivityLogSettings | Sort-Object name)\n        if (-not $settings) { return New-SubscriptionFinding (New-Fail 'The activity log is not exported, so Azure keeps it for 90 days only') }\n        $outcomes = @(foreach ($setting in $settings) { Get-ActivityLogRetention $setting })\n        $evidence = [ordered]@{ destinations = @($outcomes | ForEach-Object { \"$($_.Setting): $($_.Detail)\" }) }\n        $kept = @($outcomes | Where-Object Status -eq 'Pass') | Select-Object -First 1\n        if ($kept) { return New-SubscriptionFinding (New-Pass \"Kept for a year or more: $($kept.Detail)\" $evidence) }\n        $unknown = @($outcomes | Where-Object Status -eq 'Unknown') | Select-Object -First 1\n        if ($unknown) { return New-SubscriptionFinding (New-Unknown \"No destination is known to keep it for a year: $($unknown.Detail)\" $evidence) }\n        New-SubscriptionFinding (New-Fail \"No destination keeps it for a year: $(@($outcomes | ForEach-Object Detail) -join '; ')\" $evidence)\n    " }, (S, O) => {
-        R.ln = F + 477;
+        R.ln = F + 532;
         S["settings"] = R.cmd(S, "Sort-Object", ["name"], R.cmd(S, "Get-ActivityLogSettings", [], null));
-        R.ln = F + 478;
+        R.ln = F + 533;
         if (!R.t((S["settings"] ?? null))) {
-            R.ln = F + 478;
+            R.ln = F + 533;
             R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Fail", ["The activity log is not exported, so Azure keeps it for 90 days only"], null))], null));
             return;
         }
-        R.ln = F + 479;
+        R.ln = F + 534;
         S["outcomes"] = (() => {
-            const v32 = [];
-            R.ln = F + 479;
-            for (const it33 of R.fi((S["settings"] ?? null))) {
-                S["setting"] = it33;
-                R.ln = F + 479;
-                R.pa(v32, R.cmd(S, "Get-ActivityLogRetention", [(S["setting"] ?? null)], null));
+            const v40 = [];
+            R.ln = F + 534;
+            for (const it41 of R.fi((S["settings"] ?? null))) {
+                S["setting"] = it41;
+                R.ln = F + 534;
+                R.pa(v40, R.cmd(S, "Get-ActivityLogRetention", [(S["setting"] ?? null)], null));
             }
-            return v32;
+            return v40;
         })();
-        R.ln = F + 480;
+        R.ln = F + 535;
         S["evidence"] = R.ht(["destinations", R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " \"$($_.Setting): $($_.Detail)\" " }, (S, O) => {
-            R.ln = F + 480;
+            R.ln = F + 535;
             R.e(O, ("" + R.str(R.u(R.pi(R.m((S["_"] ?? null), "Setting")))) + ": " + R.str(R.u(R.pi(R.m((S["_"] ?? null), "Detail"))))));
         })], R.pi((S["outcomes"] ?? null)))], true);
-        R.ln = F + 481;
+        R.ln = F + 536;
         S["kept"] = R.u(R.cmd(S, "Select-Object", [R.np("First"), 1], R.pi(R.cmd(S, "Where-Object", ["Status", R.np("eq"), "Pass"], R.pi((S["outcomes"] ?? null))))));
-        R.ln = F + 482;
+        R.ln = F + 537;
         if (R.t((S["kept"] ?? null))) {
-            R.ln = F + 482;
+            R.ln = F + 537;
             R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Pass", [("Kept for a year or more: " + R.str(R.u(R.pi(R.m((S["kept"] ?? null), "Detail"))))), (S["evidence"] ?? null)], null))], null));
             return;
         }
-        R.ln = F + 483;
+        R.ln = F + 538;
         S["unknown"] = R.u(R.cmd(S, "Select-Object", [R.np("First"), 1], R.pi(R.cmd(S, "Where-Object", ["Status", R.np("eq"), "Unknown"], R.pi((S["outcomes"] ?? null))))));
-        R.ln = F + 484;
+        R.ln = F + 539;
         if (R.t((S["unknown"] ?? null))) {
-            R.ln = F + 484;
+            R.ln = F + 539;
             R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Unknown", [("No destination is known to keep it for a year: " + R.str(R.u(R.pi(R.m((S["unknown"] ?? null), "Detail"))))), (S["evidence"] ?? null)], null))], null));
             return;
         }
-        R.ln = F + 485;
+        R.ln = F + 540;
         R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Fail", [("No destination keeps it for a year: " + R.str(R.u(R.pi(R.join(R.cmd(S, "ForEach-Object", ["Detail"], R.pi((S["outcomes"] ?? null))), "; "))))), (S["evidence"] ?? null)], null))], null));
     })], false)], null));
-    R.ln = F + 489;
+    R.ln = F + 544;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-LOG-026", "Title", "Log Analytics workspaces have a delete lock", "Category", "Logging and threat detection", "Service", "Log Analytics", "Severity", "Medium", "Description", "Checks Log Analytics workspaces for a CanNotDelete or ReadOnly lock on the workspace, its resource group or the subscription.", "Rationale", "Deleting a workspace deletes the logs in it, which is the quickest way to erase the trail of an intrusion. A lock makes deletion a separate, privileged and logged step.", "Remediation", "Add a CanNotDelete lock to the workspace (az lock create --lock-type CanNotDelete --name DoNotDelete --resource <workspace id>) and restrict lock administration to a dedicated role.", "References", R.a("https://learn.microsoft.com/azure/azure-resource-manager/management/lock-resources"), "Requires", R.a("subscription/locks"), "ResourceTypes", R.a("Microsoft.OperationalInsights/workspaces"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $locks = @(Get-EffectiveLocks $Record.id)\n        $evidence = [ordered]@{ locks = @($locks | ForEach-Object { \"$($_.properties.level) @ $($_.id -replace '(?i)/providers/Microsoft\\.Authorization/locks/.*$', '')\" } | Sort-Object) }\n        if ($locks) { return New-Pass \"Locked ($($locks[0].properties.level))\" $evidence }\n        New-Fail 'No delete lock on the workspace, resource group or subscription' $evidence\n    " }, (S, O) => {
-        R.ln = F + 503;
+        R.ln = F + 558;
         S["locks"] = R.cmd(S, "Get-EffectiveLocks", [R.m((S["record"] ?? null), "id")], null);
-        R.ln = F + 504;
+        R.ln = F + 559;
         S["evidence"] = R.ht(["locks", R.cmd(S, "Sort-Object", [], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " \"$($_.properties.level) @ $($_.id -replace '(?i)/providers/Microsoft\\.Authorization/locks/.*$', '')\" " }, (S, O) => {
-            R.ln = F + 504;
+            R.ln = F + 559;
             R.e(O, ("" + R.str(R.u(R.pi(R.m(R.m((S["_"] ?? null), "properties"), "level")))) + " @ " + R.str(R.u(R.pi(R.rep(R.m((S["_"] ?? null), "id"), [R.v("(?i)/providers/Microsoft\\.Authorization/locks/.*$"), R.v("")]))))));
         })], R.pi((S["locks"] ?? null))))], true);
-        R.ln = F + 505;
+        R.ln = F + 560;
         if (R.t((S["locks"] ?? null))) {
-            R.ln = F + 505;
+            R.ln = F + 560;
             R.pa(O, R.cmd(S, "New-Pass", [("Locked (" + R.str(R.u(R.pi(R.m(R.m(R.i((S["locks"] ?? null), 0), "properties"), "level")))) + ")"), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 506;
+        R.ln = F + 561;
         R.pa(O, R.cmd(S, "New-Fail", ["No delete lock on the workspace, resource group or subscription", (S["evidence"] ?? null)], null));
     })], false)], null));
 });

@@ -6,10 +6,12 @@ $genericPublicExclusions = @(
     'Microsoft.DocumentDB/databaseAccounts', 'Microsoft.ContainerRegistry/registries', 'Microsoft.CognitiveServices/accounts',
     'Microsoft.MachineLearningServices/workspaces', 'Microsoft.Databricks/workspaces', 'Microsoft.Web/sites', 'Microsoft.Web/sites/slots',
     'Microsoft.Compute/disks', 'Microsoft.Compute/snapshots', 'Microsoft.ContainerService/managedClusters', 'Microsoft.BotService/botServices', 'Microsoft.Kusto/clusters',
-    'Microsoft.DesktopVirtualization/hostPools', 'Microsoft.DesktopVirtualization/workspaces'
+    'Microsoft.DesktopVirtualization/hostPools', 'Microsoft.DesktopVirtualization/workspaces', 'Microsoft.OperationalInsights/workspaces',
+    'Microsoft.DBforMySQL/flexibleServers', 'Microsoft.DBforPostgreSQL/flexibleServers', 'Microsoft.Cache/redis', 'Microsoft.RecoveryServices/vaults',
+    'Microsoft.FileShares/fileShares', 'Microsoft.ElasticSan/elasticSans', 'Microsoft.Batch/batchAccounts'
 )
-$genericLocalAuthExclusions = @('Microsoft.DocumentDB/databaseAccounts', 'Microsoft.CognitiveServices/accounts', 'Microsoft.MachineLearningServices/workspaces/computes', 'Microsoft.BotService/botServices')
-$genericTlsExclusions = @('Microsoft.Storage/storageAccounts', 'Microsoft.Sql/servers', 'Microsoft.Sql/managedInstances', 'Microsoft.Web/sites', 'Microsoft.Web/sites/slots', 'Microsoft.Network/applicationGateways')
+$genericLocalAuthExclusions = @('Microsoft.Batch/batchAccounts', 'Microsoft.DocumentDB/databaseAccounts', 'Microsoft.CognitiveServices/accounts', 'Microsoft.MachineLearningServices/workspaces/computes', 'Microsoft.BotService/botServices')
+$genericTlsExclusions = @('Microsoft.Cache/redis', 'Microsoft.Storage/storageAccounts', 'Microsoft.Sql/servers', 'Microsoft.Sql/managedInstances', 'Microsoft.Web/sites', 'Microsoft.Web/sites/slots', 'Microsoft.Network/applicationGateways')
 
 function Get-PropertyCaseInsensitive {
     #value of a property by name regardless of casing; returns [pscustomobject]@{ Found; Value }
@@ -27,11 +29,12 @@ function Test-TypeExcluded {
 
 Add-AzTest @{
     Id          = 'AZ-PAAS-001'
+    Version     = 2
     Title       = 'PaaS services disable public network access'
     Category    = 'Network security'
     Service     = 'Multiple'
     Severity    = 'Medium'
-    Description = 'For every other resource type that exposes a publicNetworkAccess setting (for example Service Bus, Event Hubs, Event Grid, Redis, PostgreSQL and MySQL flexible server, AI Search, App Configuration, SignalR, IoT Hub, Automation, Data Factory, Synapse, Recovery Services, API Management, Log Analytics and Application Insights), checks that public network access is disabled.'
+    Description = 'For every other resource type that exposes a publicNetworkAccess setting (for example Service Bus, Event Hubs, Event Grid, AI Search, App Configuration, SignalR, IoT Hub, Automation, Data Factory, Synapse, API Management and Application Insights), checks that public network access is disabled.'
     Rationale   = 'Publicly reachable PaaS endpoints depend on keys and tokens alone; private endpoints remove Internet exposure and data exfiltration paths.'
     Remediation = 'Create private endpoints (with private DNS zones) and set public network access to Disabled, or secure the resource with a network security perimeter.'
     References  = @('https://learn.microsoft.com/azure/private-link/private-endpoint-overview')
@@ -58,11 +61,12 @@ Add-AzTest @{
 
 Add-AzTest @{
     Id          = 'AZ-PAAS-002'
+    Version     = 2
     Title       = 'PaaS services disable local (key and SAS) authentication'
     Category    = 'Identity management'
     Service     = 'Multiple'
     Severity    = 'Medium'
-    Description = 'For every other resource type with a disableLocalAuth setting (for example Service Bus, Event Hubs, Relay, Event Grid, App Configuration, SignalR, Web PubSub, AI Search, IoT Hub, Automation, Application Insights, Log Analytics) and Batch accounts, checks that key or SAS based authentication is disabled.'
+    Description = 'For every other resource type with a disableLocalAuth setting (for example Service Bus, Event Hubs, Relay, Event Grid, App Configuration, SignalR, Web PubSub, AI Search, IoT Hub, Automation, Application Insights, Log Analytics), checks that key or SAS based authentication is disabled.'
     Rationale   = 'Access keys and SAS tokens are shared secrets that are not tied to an identity, bypass RBAC and Conditional Access and are hard to rotate or trace.'
     Remediation = 'Move clients to Microsoft Entra ID (managed identities with data plane RBAC roles), then disable local authentication on the resource.'
     References  = @('https://learn.microsoft.com/azure/service-bus-messaging/disable-local-authentication')
@@ -70,13 +74,6 @@ Add-AzTest @{
         foreach ($record in (Get-AzResourceRecords)) {
             if (Test-TypeExcluded $record $genericLocalAuthExclusions) { continue }
             $p = $record.resource.properties
-            if ($record.type -eq 'Microsoft.Batch/batchAccounts') {
-                $modes = @($p.allowedAuthenticationModes)
-                $evidence = [ordered]@{ allowedAuthenticationModes = $modes }
-                $result = if ($modes -contains 'SharedKey') { New-Fail 'Shared key authentication allowed' $evidence } else { New-Pass 'Shared key authentication disabled' $evidence }
-                New-Finding -Record $record -Result $result
-                continue
-            }
             $setting = Get-PropertyCaseInsensitive $p 'disableLocalAuth'
             if (-not $setting.Found) { $setting = Get-PropertyCaseInsensitive (Get-PropertyCaseInsensitive $p 'features').Value 'disableLocalAuth' }
             if (-not $setting.Found) { continue }
@@ -89,11 +86,12 @@ Add-AzTest @{
 
 Add-AzTest @{
     Id          = 'AZ-PAAS-003'
+    Version     = 2
     Title       = 'PaaS services require TLS 1.2 or higher'
     Category    = 'Data protection'
     Service     = 'Multiple'
     Severity    = 'Medium'
-    Description = 'For every other resource type with a minimum TLS setting (for example Service Bus, Event Hubs, Relay, Redis, Event Grid, IoT Hub, Cosmos DB), checks that the minimum is TLS 1.2 or higher.'
+    Description = 'For every other resource type with a minimum TLS setting (for example Service Bus, Event Hubs, Relay, Event Grid, IoT Hub, Cosmos DB), checks that the minimum is TLS 1.2 or higher.'
     Rationale   = 'TLS 1.0 and 1.1 have known weaknesses and are being retired across Azure; the minimum version should be enforced on every endpoint.'
     Remediation = 'Set the minimum TLS version of the resource to 1.2 (or 1.3 where supported).'
     References  = @('https://learn.microsoft.com/azure/security/fundamentals/encryption-overview')

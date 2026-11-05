@@ -166,6 +166,7 @@ $subscriptionEndpoints = @(
     ,@('subscription', 'logProfiles', 'providers/Microsoft.Insights/logProfiles', '2016-03-01')
     ,@('subscription', 'eventGridSubscriptions', 'providers/Microsoft.EventGrid/eventSubscriptions', '2025-02-15')
     ,@('subscription', 'networkManagerConnections', 'providers/Microsoft.Network/networkManagerConnections', '2026-03-01')
+    ,@('subscription', 'managementGroupSettings', '/providers/Microsoft.Management/managementGroups/{tenantId}/settings', '2023-04-01')
     ,@('web', 'functionAppStacks', '/providers/Microsoft.Web/functionAppStacks', '2024-04-01')
     ,@('web', 'webAppStacks', '/providers/Microsoft.Web/webAppStacks', '2024-04-01')
     ,@('rbac', 'roleAssignments', 'providers/Microsoft.Authorization/roleAssignments', '2022-04-01')
@@ -308,6 +309,7 @@ $childResourceMap = @{
         'backupPolicies@2023-04-01', 'backupProtectedItems@2023-04-01', 'backupResourceGuardProxies@2023-04-01', 'replicationProtectedItems@2025-01-01', 'privateEndpointConnections'
     )
     'microsoft.dataprotection/backupvaults'            = @('backupPolicies', 'backupInstances', 'backupResourceGuardProxies')
+    'microsoft.elasticsan/elasticsans'                 = @('volumegroups')
     'microsoft.operationalinsights/workspaces'         = @(
         'dataExports', 'linkedServices', 'linkedStorageAccounts', 'tables',
         'providers/Microsoft.SecurityInsights/onboardingStates@2024-03-01', 'providers/Microsoft.SecurityInsights/dataConnectors@2024-03-01',
@@ -1398,6 +1400,22 @@ function Export-EntraData {
     Write-JsonFile -Path (Join-Path $Folder 'users.json') -Value $users
     $sections.users = [ordered]@{ status = 'ok'; count = $users.Count; signInActivity = $signInActivity }
 
+    #per-user MFA state of these users (beta authentication/requirements); entries carry an error when it could not be read
+    $mfaRequests = [ordered]@{}
+    foreach ($id in $userIdList) { $mfaRequests[$id] = "/users/$id/authentication/requirements" }
+    $mfaStates = [System.Collections.Generic.List[object]]::new()
+    $mfaFailed = 0
+    if ($mfaRequests.Count) {
+        $mfaResults = Invoke-GraphBatch -Requests $mfaRequests -Version beta -ExpectedStatus 404
+        foreach ($id in $userIdList) {
+            $result = $mfaResults[$id]
+            if ($null -ne $result.Single) { $mfaStates.Add([ordered]@{ id = $id; perUserMfaState = Get-JsonProperty -Element $result.Single -Name 'perUserMfaState' }) }
+            else { $mfaFailed++; $mfaStates.Add([ordered]@{ id = $id; error = "$($result.StatusCode) $($result.ErrorCode)".Trim() }) }
+        }
+    }
+    Write-JsonFile -Path (Join-Path $Folder 'userMfaRequirements.json') -Value $mfaStates
+    $sections.userMfaRequirements = [ordered]@{ status = if ($mfaFailed -and $mfaFailed -eq $userIdList.Count) { 'failed' } else { 'ok' }; count = $mfaStates.Count; failed = $mfaFailed }
+
     #service principals: API permissions, delegated grants, owners, backing application with credentials and federated credentials
     Write-Log "Graph: $($servicePrincipalIds.Count) service principals"
     $tenant = (Get-TokenClaims -Token (Get-AccessToken -Resource Graph)).tid
@@ -1606,6 +1624,7 @@ try {
     Write-Log 'Subscription settings, RBAC, policy and Defender for Cloud'
     foreach ($endpoint in $subscriptionEndpoints) {
         $folder, $name, $path, $apiVersion, $method = $endpoint
+        $path = $path.Replace('{tenantId}', $TenantId)
         $separator = if ($path.Contains('?')) { '&' } else { '?' }
         $base = if ($path.StartsWith('/')) { $path } else { "/subscriptions/$SubscriptionId/$path" }
         $sections["$folder/$name"] = Export-Endpoint -Uri "$base$($separator)api-version=$apiVersion" -Method ($method ?? 'GET') -Path (Join-Path $runFolder "$folder/$name.json") -PrincipalTarget $principalIds

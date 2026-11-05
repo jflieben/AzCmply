@@ -3,234 +3,213 @@ import { R } from "../../../../js/runtime/index.js";
 const F = R.file("Analyze/tests/17-PaaSGeneric.ps1");
 export default R.script("/app/Analyze/tests/17-PaaSGeneric.ps1", { params: [], adv: 0 }, (S, O) => {
     R.ln = F + 4;
-    S["genericpublicexclusions"] = R.a([R.v("Microsoft.Storage/storageAccounts"), R.v("Microsoft.KeyVault/vaults"), R.v("Microsoft.KeyVault/managedHSMs"), R.v("Microsoft.Sql/servers"), R.v("Microsoft.Sql/managedInstances"), R.v("Microsoft.DocumentDB/databaseAccounts"), R.v("Microsoft.ContainerRegistry/registries"), R.v("Microsoft.CognitiveServices/accounts"), R.v("Microsoft.MachineLearningServices/workspaces"), R.v("Microsoft.Databricks/workspaces"), R.v("Microsoft.Web/sites"), R.v("Microsoft.Web/sites/slots"), R.v("Microsoft.Compute/disks"), R.v("Microsoft.Compute/snapshots"), R.v("Microsoft.ContainerService/managedClusters"), R.v("Microsoft.BotService/botServices"), R.v("Microsoft.Kusto/clusters"), R.v("Microsoft.DesktopVirtualization/hostPools"), R.v("Microsoft.DesktopVirtualization/workspaces")]);
-    R.ln = F + 11;
-    S["genericlocalauthexclusions"] = R.a([R.v("Microsoft.DocumentDB/databaseAccounts"), R.v("Microsoft.CognitiveServices/accounts"), R.v("Microsoft.MachineLearningServices/workspaces/computes"), R.v("Microsoft.BotService/botServices")]);
-    R.ln = F + 12;
-    S["generictlsexclusions"] = R.a([R.v("Microsoft.Storage/storageAccounts"), R.v("Microsoft.Sql/servers"), R.v("Microsoft.Sql/managedInstances"), R.v("Microsoft.Web/sites"), R.v("Microsoft.Web/sites/slots"), R.v("Microsoft.Network/applicationGateways")]);
+    S["genericpublicexclusions"] = R.a([R.v("Microsoft.Storage/storageAccounts"), R.v("Microsoft.KeyVault/vaults"), R.v("Microsoft.KeyVault/managedHSMs"), R.v("Microsoft.Sql/servers"), R.v("Microsoft.Sql/managedInstances"), R.v("Microsoft.DocumentDB/databaseAccounts"), R.v("Microsoft.ContainerRegistry/registries"), R.v("Microsoft.CognitiveServices/accounts"), R.v("Microsoft.MachineLearningServices/workspaces"), R.v("Microsoft.Databricks/workspaces"), R.v("Microsoft.Web/sites"), R.v("Microsoft.Web/sites/slots"), R.v("Microsoft.Compute/disks"), R.v("Microsoft.Compute/snapshots"), R.v("Microsoft.ContainerService/managedClusters"), R.v("Microsoft.BotService/botServices"), R.v("Microsoft.Kusto/clusters"), R.v("Microsoft.DesktopVirtualization/hostPools"), R.v("Microsoft.DesktopVirtualization/workspaces"), R.v("Microsoft.OperationalInsights/workspaces"), R.v("Microsoft.DBforMySQL/flexibleServers"), R.v("Microsoft.DBforPostgreSQL/flexibleServers"), R.v("Microsoft.Cache/redis"), R.v("Microsoft.RecoveryServices/vaults"), R.v("Microsoft.FileShares/fileShares"), R.v("Microsoft.ElasticSan/elasticSans"), R.v("Microsoft.Batch/batchAccounts")]);
+    R.ln = F + 13;
+    S["genericlocalauthexclusions"] = R.a([R.v("Microsoft.Batch/batchAccounts"), R.v("Microsoft.DocumentDB/databaseAccounts"), R.v("Microsoft.CognitiveServices/accounts"), R.v("Microsoft.MachineLearningServices/workspaces/computes"), R.v("Microsoft.BotService/botServices")]);
     R.ln = F + 14;
+    S["generictlsexclusions"] = R.a([R.v("Microsoft.Cache/redis"), R.v("Microsoft.Storage/storageAccounts"), R.v("Microsoft.Sql/servers"), R.v("Microsoft.Sql/managedInstances"), R.v("Microsoft.Web/sites"), R.v("Microsoft.Web/sites/slots"), R.v("Microsoft.Network/applicationGateways")]);
+    R.ln = F + 16;
     R.def(S, "Get-PropertyCaseInsensitive", { params: [{ n: "Object", t: null, pos: null }, { n: "Name", t: "string", pos: null }], adv: 0, h: "538a89585201da3a" }, (S, O) => {
-        R.ln = F + 17;
+        R.ln = F + 19;
         if (R.t(R.eq(null, (S["object"] ?? null)))) {
-            R.ln = F + 17;
+            R.ln = F + 19;
             R.e(O, R.pso(["Found", false, "Value", null]));
             return;
         }
-        R.ln = F + 18;
+        R.ln = F + 20;
         S["property"] = R.u(R.cmd(S, "Select-Object", [R.np("First"), 1], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.Name -eq $Name " }, (S, O) => {
-            R.ln = F + 18;
+            R.ln = F + 20;
             R.e(O, R.eq(R.m((S["_"] ?? null), "Name"), (S["name"] ?? null)));
         })], R.pi(R.m(R.m((S["object"] ?? null), "PSObject"), "Properties")))));
-        R.ln = F + 19;
+        R.ln = F + 21;
         if (R.t((S["property"] ?? null))) {
-            R.ln = F + 19;
+            R.ln = F + 21;
             R.e(O, R.pso(["Found", true, "Value", R.m((S["property"] ?? null), "Value")]));
             return;
         }
-        R.ln = F + 20;
+        R.ln = F + 22;
         R.e(O, R.pso(["Found", false, "Value", null]));
         return;
     });
-    R.ln = F + 23;
+    R.ln = F + 25;
     R.def(S, "Test-TypeExcluded", { params: [{ n: "Record", t: null, pos: null }, { n: "Exclusions", t: "string[]", pos: null }], adv: 0, h: "c0033e6ec5dec20d" }, (S, O) => {
-        R.ln = F + 25;
+        R.ln = F + 27;
         R.e(O, (R.in(R.im(R.m((S["record"] ?? null), "type"), "ToLowerInvariant", []), R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " $_.ToLowerInvariant() " }, (S, O) => {
-            R.ln = F + 25;
+            R.ln = F + 27;
             R.e(O, R.im((S["_"] ?? null), "ToLowerInvariant", []));
         })], R.pi((S["exclusions"] ?? null))))));
         return;
     });
-    R.ln = F + 28;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-PAAS-001", "Title", "PaaS services disable public network access", "Category", "Network security", "Service", "Multiple", "Severity", "Medium", "Description", "For every other resource type that exposes a publicNetworkAccess setting (for example Service Bus, Event Hubs, Event Grid, Redis, PostgreSQL and MySQL flexible server, AI Search, App Configuration, SignalR, IoT Hub, Automation, Data Factory, Synapse, Recovery Services, API Management, Log Analytics and Application Insights), checks that public network access is disabled.", "Rationale", "Publicly reachable PaaS endpoints depend on keys and tokens alone; private endpoints remove Internet exposure and data exfiltration paths.", "Remediation", "Create private endpoints (with private DNS zones) and set public network access to Disabled, or secure the resource with a network security perimeter.", "References", R.a("https://learn.microsoft.com/azure/private-link/private-endpoint-overview"), "Run", R.sb({ params: [], adv: 0, text: "\n        foreach ($record in (Get-AzResourceRecords)) {\n            if (Test-TypeExcluded $record $genericPublicExclusions) { continue }\n            $p = $record.resource.properties\n            $settings = [ordered]@{}\n            foreach ($name in 'publicNetworkAccess', 'publicNetworkAccessForIngestion', 'publicNetworkAccessForQuery') {\n                $value = Get-PropertyCaseInsensitive $p $name\n                if ($value.Found) { $settings[$name] = $value.Value }\n            }\n            $network = Get-PropertyCaseInsensitive (Get-PropertyCaseInsensitive $p 'network').Value 'publicNetworkAccess'\n            if ($network.Found) { $settings['network.publicNetworkAccess'] = $network.Value }\n            if (-not $settings.Count) { continue }\n            $open = @($settings.Keys | Where-Object { $settings[$_] -ne $false -and [string]$settings[$_] -notin 'Disabled', 'SecuredByPerimeter' })\n            $evidence = [ordered]@{}\n            foreach ($key in $settings.Keys) { $evidence[$key] = $settings[$key] }\n            $result = if ($open) { New-Fail \"Public network access enabled ($(($open | ForEach-Object { \"$_ = $(if ($null -eq $settings[$_]) { 'default' } else { $settings[$_] })\" }) -join ', '))\" $evidence } else { New-Pass 'Public network access disabled' $evidence }\n            New-Finding -Record $record -Result $result\n        }\n    " }, (S, O) => {
-        R.ln = F + 39;
+    R.ln = F + 30;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-PAAS-001", "Version", 2, "Title", "PaaS services disable public network access", "Category", "Network security", "Service", "Multiple", "Severity", "Medium", "Description", "For every other resource type that exposes a publicNetworkAccess setting (for example Service Bus, Event Hubs, Event Grid, AI Search, App Configuration, SignalR, IoT Hub, Automation, Data Factory, Synapse, API Management and Application Insights), checks that public network access is disabled.", "Rationale", "Publicly reachable PaaS endpoints depend on keys and tokens alone; private endpoints remove Internet exposure and data exfiltration paths.", "Remediation", "Create private endpoints (with private DNS zones) and set public network access to Disabled, or secure the resource with a network security perimeter.", "References", R.a("https://learn.microsoft.com/azure/private-link/private-endpoint-overview"), "Run", R.sb({ params: [], adv: 0, text: "\n        foreach ($record in (Get-AzResourceRecords)) {\n            if (Test-TypeExcluded $record $genericPublicExclusions) { continue }\n            $p = $record.resource.properties\n            $settings = [ordered]@{}\n            foreach ($name in 'publicNetworkAccess', 'publicNetworkAccessForIngestion', 'publicNetworkAccessForQuery') {\n                $value = Get-PropertyCaseInsensitive $p $name\n                if ($value.Found) { $settings[$name] = $value.Value }\n            }\n            $network = Get-PropertyCaseInsensitive (Get-PropertyCaseInsensitive $p 'network').Value 'publicNetworkAccess'\n            if ($network.Found) { $settings['network.publicNetworkAccess'] = $network.Value }\n            if (-not $settings.Count) { continue }\n            $open = @($settings.Keys | Where-Object { $settings[$_] -ne $false -and [string]$settings[$_] -notin 'Disabled', 'SecuredByPerimeter' })\n            $evidence = [ordered]@{}\n            foreach ($key in $settings.Keys) { $evidence[$key] = $settings[$key] }\n            $result = if ($open) { New-Fail \"Public network access enabled ($(($open | ForEach-Object { \"$_ = $(if ($null -eq $settings[$_]) { 'default' } else { $settings[$_] })\" }) -join ', '))\" $evidence } else { New-Pass 'Public network access disabled' $evidence }\n            New-Finding -Record $record -Result $result\n        }\n    " }, (S, O) => {
+        R.ln = F + 42;
         for (const it1 of R.fi(R.u(R.cmd(S, "Get-AzResourceRecords", [], null)))) {
             S["record"] = it1;
-            R.ln = F + 40;
+            R.ln = F + 43;
             if (R.t(R.u(R.cmd(S, "Test-TypeExcluded", [(S["record"] ?? null), (S["genericpublicexclusions"] ?? null)], null)))) {
                 continue;
             }
-            R.ln = F + 41;
+            R.ln = F + 44;
             S["p"] = R.m(R.m((S["record"] ?? null), "resource"), "properties");
-            R.ln = F + 42;
+            R.ln = F + 45;
             S["settings"] = R.ht([], true);
-            R.ln = F + 43;
+            R.ln = F + 46;
             for (const it2 of R.fi([R.v("publicNetworkAccess"), R.v("publicNetworkAccessForIngestion"), R.v("publicNetworkAccessForQuery")])) {
                 S["name"] = it2;
-                R.ln = F + 44;
+                R.ln = F + 47;
                 S["value"] = R.u(R.cmd(S, "Get-PropertyCaseInsensitive", [(S["p"] ?? null), (S["name"] ?? null)], null));
-                R.ln = F + 45;
+                R.ln = F + 48;
                 if (R.t(R.m((S["value"] ?? null), "Found"))) {
-                    R.ln = F + 45;
+                    R.ln = F + 48;
                     R.si((S["settings"] ?? null), (S["name"] ?? null), R.m((S["value"] ?? null), "Value"));
                 }
             }
-            R.ln = F + 47;
+            R.ln = F + 50;
             S["network"] = R.u(R.cmd(S, "Get-PropertyCaseInsensitive", [R.m(R.u(R.cmd(S, "Get-PropertyCaseInsensitive", [(S["p"] ?? null), "network"], null)), "Value"), "publicNetworkAccess"], null));
-            R.ln = F + 48;
+            R.ln = F + 51;
             if (R.t(R.m((S["network"] ?? null), "Found"))) {
-                R.ln = F + 48;
+                R.ln = F + 51;
                 R.si((S["settings"] ?? null), "network.publicNetworkAccess", R.m((S["network"] ?? null), "Value"));
             }
-            R.ln = F + 49;
+            R.ln = F + 52;
             if (!R.t(R.m((S["settings"] ?? null), "Count"))) {
                 continue;
             }
-            R.ln = F + 50;
+            R.ln = F + 53;
             S["open"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $settings[$_] -ne $false -and [string]$settings[$_] -notin 'Disabled', 'SecuredByPerimeter' " }, (S, O) => {
-                R.ln = F + 50;
+                R.ln = F + 53;
                 R.e(O, (R.t(R.ne(R.i((S["settings"] ?? null), (S["_"] ?? null)), false)) && R.t(R.nin(R.c("string", R.i((S["settings"] ?? null), (S["_"] ?? null))), [R.v("Disabled"), R.v("SecuredByPerimeter")]))));
             })], R.pi(R.m((S["settings"] ?? null), "Keys")));
-            R.ln = F + 51;
+            R.ln = F + 54;
             S["evidence"] = R.ht([], true);
-            R.ln = F + 52;
+            R.ln = F + 55;
             for (const it3 of R.fi(R.m((S["settings"] ?? null), "Keys"))) {
                 S["key"] = it3;
-                R.ln = F + 52;
+                R.ln = F + 55;
                 R.si((S["evidence"] ?? null), (S["key"] ?? null), R.i((S["settings"] ?? null), (S["key"] ?? null)));
             }
-            R.ln = F + 53;
+            R.ln = F + 56;
             const v4 = [];
-            R.ln = F + 53;
+            R.ln = F + 56;
             if (R.t((S["open"] ?? null))) {
-                R.ln = F + 53;
+                R.ln = F + 56;
                 R.pa(v4, R.cmd(S, "New-Fail", [("Public network access enabled (" + R.str(R.u(R.pi(R.join(R.u(R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " \"$_ = $(if ($null -eq $settings[$_]) { 'default' } else { $settings[$_] })\" " }, (S, O) => {
-                    R.ln = F + 53;
+                    R.ln = F + 56;
                     R.e(O, ("" + R.str((S["_"] ?? null)) + " = " + R.str((() => {
                         const v5 = [];
-                        R.ln = F + 53;
+                        R.ln = F + 56;
                         if (R.t(R.eq(null, R.i((S["settings"] ?? null), (S["_"] ?? null))))) {
-                            R.ln = F + 53;
+                            R.ln = F + 56;
                             R.e(v5, "default");
                         } else {
-                            R.ln = F + 53;
+                            R.ln = F + 56;
                             R.e(v5, R.i((S["settings"] ?? null), (S["_"] ?? null)));
                         }
                         return R.u(v5);
                     })())));
                 })], R.pi((S["open"] ?? null)))), ", ")))) + ")"), (S["evidence"] ?? null)], null));
             } else {
-                R.ln = F + 53;
+                R.ln = F + 56;
                 R.pa(v4, R.cmd(S, "New-Pass", ["Public network access disabled", (S["evidence"] ?? null)], null));
             }
             S["result"] = R.u(v4);
-            R.ln = F + 54;
+            R.ln = F + 57;
             R.pa(O, R.cmd(S, "New-Finding", [R.np("Record"), (S["record"] ?? null), R.np("Result"), (S["result"] ?? null)], null));
         }
     })], false)], null));
-    R.ln = F + 59;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-PAAS-002", "Title", "PaaS services disable local (key and SAS) authentication", "Category", "Identity management", "Service", "Multiple", "Severity", "Medium", "Description", "For every other resource type with a disableLocalAuth setting (for example Service Bus, Event Hubs, Relay, Event Grid, App Configuration, SignalR, Web PubSub, AI Search, IoT Hub, Automation, Application Insights, Log Analytics) and Batch accounts, checks that key or SAS based authentication is disabled.", "Rationale", "Access keys and SAS tokens are shared secrets that are not tied to an identity, bypass RBAC and Conditional Access and are hard to rotate or trace.", "Remediation", "Move clients to Microsoft Entra ID (managed identities with data plane RBAC roles), then disable local authentication on the resource.", "References", R.a("https://learn.microsoft.com/azure/service-bus-messaging/disable-local-authentication"), "Run", R.sb({ params: [], adv: 0, text: "\n        foreach ($record in (Get-AzResourceRecords)) {\n            if (Test-TypeExcluded $record $genericLocalAuthExclusions) { continue }\n            $p = $record.resource.properties\n            if ($record.type -eq 'Microsoft.Batch/batchAccounts') {\n                $modes = @($p.allowedAuthenticationModes)\n                $evidence = [ordered]@{ allowedAuthenticationModes = $modes }\n                $result = if ($modes -contains 'SharedKey') { New-Fail 'Shared key authentication allowed' $evidence } else { New-Pass 'Shared key authentication disabled' $evidence }\n                New-Finding -Record $record -Result $result\n                continue\n            }\n            $setting = Get-PropertyCaseInsensitive $p 'disableLocalAuth'\n            if (-not $setting.Found) { $setting = Get-PropertyCaseInsensitive (Get-PropertyCaseInsensitive $p 'features').Value 'disableLocalAuth' }\n            if (-not $setting.Found) { continue }\n            $evidence = [ordered]@{ disableLocalAuth = $setting.Value }\n            $result = if ($setting.Value -eq $true) { New-Pass 'Local authentication disabled' $evidence } else { New-Fail 'Local (key/SAS) authentication enabled' $evidence }\n            New-Finding -Record $record -Result $result\n        }\n    " }, (S, O) => {
-        R.ln = F + 70;
+    R.ln = F + 62;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-PAAS-002", "Version", 2, "Title", "PaaS services disable local (key and SAS) authentication", "Category", "Identity management", "Service", "Multiple", "Severity", "Medium", "Description", "For every other resource type with a disableLocalAuth setting (for example Service Bus, Event Hubs, Relay, Event Grid, App Configuration, SignalR, Web PubSub, AI Search, IoT Hub, Automation, Application Insights, Log Analytics), checks that key or SAS based authentication is disabled.", "Rationale", "Access keys and SAS tokens are shared secrets that are not tied to an identity, bypass RBAC and Conditional Access and are hard to rotate or trace.", "Remediation", "Move clients to Microsoft Entra ID (managed identities with data plane RBAC roles), then disable local authentication on the resource.", "References", R.a("https://learn.microsoft.com/azure/service-bus-messaging/disable-local-authentication"), "Run", R.sb({ params: [], adv: 0, text: "\n        foreach ($record in (Get-AzResourceRecords)) {\n            if (Test-TypeExcluded $record $genericLocalAuthExclusions) { continue }\n            $p = $record.resource.properties\n            $setting = Get-PropertyCaseInsensitive $p 'disableLocalAuth'\n            if (-not $setting.Found) { $setting = Get-PropertyCaseInsensitive (Get-PropertyCaseInsensitive $p 'features').Value 'disableLocalAuth' }\n            if (-not $setting.Found) { continue }\n            $evidence = [ordered]@{ disableLocalAuth = $setting.Value }\n            $result = if ($setting.Value -eq $true) { New-Pass 'Local authentication disabled' $evidence } else { New-Fail 'Local (key/SAS) authentication enabled' $evidence }\n            New-Finding -Record $record -Result $result\n        }\n    " }, (S, O) => {
+        R.ln = F + 74;
         for (const it6 of R.fi(R.u(R.cmd(S, "Get-AzResourceRecords", [], null)))) {
             S["record"] = it6;
-            R.ln = F + 71;
+            R.ln = F + 75;
             if (R.t(R.u(R.cmd(S, "Test-TypeExcluded", [(S["record"] ?? null), (S["genericlocalauthexclusions"] ?? null)], null)))) {
                 continue;
             }
-            R.ln = F + 72;
+            R.ln = F + 76;
             S["p"] = R.m(R.m((S["record"] ?? null), "resource"), "properties");
-            R.ln = F + 73;
-            if (R.t(R.eq(R.m((S["record"] ?? null), "type"), "Microsoft.Batch/batchAccounts"))) {
-                R.ln = F + 74;
-                S["modes"] = R.a(R.m((S["p"] ?? null), "allowedAuthenticationModes"));
-                R.ln = F + 75;
-                S["evidence"] = R.ht(["allowedAuthenticationModes", (S["modes"] ?? null)], true);
-                R.ln = F + 76;
-                const v7 = [];
-                R.ln = F + 76;
-                if (R.t(R.cont((S["modes"] ?? null), "SharedKey"))) {
-                    R.ln = F + 76;
-                    R.pa(v7, R.cmd(S, "New-Fail", ["Shared key authentication allowed", (S["evidence"] ?? null)], null));
-                } else {
-                    R.ln = F + 76;
-                    R.pa(v7, R.cmd(S, "New-Pass", ["Shared key authentication disabled", (S["evidence"] ?? null)], null));
-                }
-                S["result"] = R.u(v7);
-                R.ln = F + 77;
-                R.pa(O, R.cmd(S, "New-Finding", [R.np("Record"), (S["record"] ?? null), R.np("Result"), (S["result"] ?? null)], null));
+            R.ln = F + 77;
+            S["setting"] = R.u(R.cmd(S, "Get-PropertyCaseInsensitive", [(S["p"] ?? null), "disableLocalAuth"], null));
+            R.ln = F + 78;
+            if (!R.t(R.m((S["setting"] ?? null), "Found"))) {
+                R.ln = F + 78;
+                S["setting"] = R.u(R.cmd(S, "Get-PropertyCaseInsensitive", [R.m(R.u(R.cmd(S, "Get-PropertyCaseInsensitive", [(S["p"] ?? null), "features"], null)), "Value"), "disableLocalAuth"], null));
+            }
+            R.ln = F + 79;
+            if (!R.t(R.m((S["setting"] ?? null), "Found"))) {
                 continue;
             }
             R.ln = F + 80;
-            S["setting"] = R.u(R.cmd(S, "Get-PropertyCaseInsensitive", [(S["p"] ?? null), "disableLocalAuth"], null));
-            R.ln = F + 81;
-            if (!R.t(R.m((S["setting"] ?? null), "Found"))) {
-                R.ln = F + 81;
-                S["setting"] = R.u(R.cmd(S, "Get-PropertyCaseInsensitive", [R.m(R.u(R.cmd(S, "Get-PropertyCaseInsensitive", [(S["p"] ?? null), "features"], null)), "Value"), "disableLocalAuth"], null));
-            }
-            R.ln = F + 82;
-            if (!R.t(R.m((S["setting"] ?? null), "Found"))) {
-                continue;
-            }
-            R.ln = F + 83;
             S["evidence"] = R.ht(["disableLocalAuth", R.m((S["setting"] ?? null), "Value")], true);
-            R.ln = F + 84;
-            const v8 = [];
-            R.ln = F + 84;
+            R.ln = F + 81;
+            const v7 = [];
+            R.ln = F + 81;
             if (R.t(R.eq(R.m((S["setting"] ?? null), "Value"), true))) {
-                R.ln = F + 84;
-                R.pa(v8, R.cmd(S, "New-Pass", ["Local authentication disabled", (S["evidence"] ?? null)], null));
+                R.ln = F + 81;
+                R.pa(v7, R.cmd(S, "New-Pass", ["Local authentication disabled", (S["evidence"] ?? null)], null));
             } else {
-                R.ln = F + 84;
-                R.pa(v8, R.cmd(S, "New-Fail", ["Local (key/SAS) authentication enabled", (S["evidence"] ?? null)], null));
+                R.ln = F + 81;
+                R.pa(v7, R.cmd(S, "New-Fail", ["Local (key/SAS) authentication enabled", (S["evidence"] ?? null)], null));
             }
-            S["result"] = R.u(v8);
-            R.ln = F + 85;
+            S["result"] = R.u(v7);
+            R.ln = F + 82;
             R.pa(O, R.cmd(S, "New-Finding", [R.np("Record"), (S["record"] ?? null), R.np("Result"), (S["result"] ?? null)], null));
         }
     })], false)], null));
-    R.ln = F + 90;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-PAAS-003", "Title", "PaaS services require TLS 1.2 or higher", "Category", "Data protection", "Service", "Multiple", "Severity", "Medium", "Description", "For every other resource type with a minimum TLS setting (for example Service Bus, Event Hubs, Relay, Redis, Event Grid, IoT Hub, Cosmos DB), checks that the minimum is TLS 1.2 or higher.", "Rationale", "TLS 1.0 and 1.1 have known weaknesses and are being retired across Azure; the minimum version should be enforced on every endpoint.", "Remediation", "Set the minimum TLS version of the resource to 1.2 (or 1.3 where supported).", "References", R.a("https://learn.microsoft.com/azure/security/fundamentals/encryption-overview"), "Run", R.sb({ params: [], adv: 0, text: "\n        foreach ($record in (Get-AzResourceRecords)) {\n            if (Test-TypeExcluded $record $genericTlsExclusions) { continue }\n            $p = $record.resource.properties\n            $setting = $null\n            foreach ($name in 'minimumTlsVersion', 'minimalTlsVersion', 'minTlsVersion', 'minimumTlsVersionAllowed') {\n                $candidate = Get-PropertyCaseInsensitive $p $name\n                if ($candidate.Found) { $setting = [pscustomobject]@{ Name = $name; Value = $candidate.Value }; break }\n            }\n            if (-not $setting) { continue }\n            $evidence = [ordered]@{ $setting.Name = $setting.Value }\n            $result = if (Test-VersionAtLeast $setting.Value '1.2') { New-Pass \"Minimum TLS $($setting.Value)\" $evidence } else { New-Fail \"Minimum TLS $(if ($setting.Value) { $setting.Value } else { 'not set' })\" $evidence }\n            New-Finding -Record $record -Result $result\n        }\n    " }, (S, O) => {
-        R.ln = F + 101;
-        for (const it9 of R.fi(R.u(R.cmd(S, "Get-AzResourceRecords", [], null)))) {
-            S["record"] = it9;
-            R.ln = F + 102;
+    R.ln = F + 87;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-PAAS-003", "Version", 2, "Title", "PaaS services require TLS 1.2 or higher", "Category", "Data protection", "Service", "Multiple", "Severity", "Medium", "Description", "For every other resource type with a minimum TLS setting (for example Service Bus, Event Hubs, Relay, Event Grid, IoT Hub, Cosmos DB), checks that the minimum is TLS 1.2 or higher.", "Rationale", "TLS 1.0 and 1.1 have known weaknesses and are being retired across Azure; the minimum version should be enforced on every endpoint.", "Remediation", "Set the minimum TLS version of the resource to 1.2 (or 1.3 where supported).", "References", R.a("https://learn.microsoft.com/azure/security/fundamentals/encryption-overview"), "Run", R.sb({ params: [], adv: 0, text: "\n        foreach ($record in (Get-AzResourceRecords)) {\n            if (Test-TypeExcluded $record $genericTlsExclusions) { continue }\n            $p = $record.resource.properties\n            $setting = $null\n            foreach ($name in 'minimumTlsVersion', 'minimalTlsVersion', 'minTlsVersion', 'minimumTlsVersionAllowed') {\n                $candidate = Get-PropertyCaseInsensitive $p $name\n                if ($candidate.Found) { $setting = [pscustomobject]@{ Name = $name; Value = $candidate.Value }; break }\n            }\n            if (-not $setting) { continue }\n            $evidence = [ordered]@{ $setting.Name = $setting.Value }\n            $result = if (Test-VersionAtLeast $setting.Value '1.2') { New-Pass \"Minimum TLS $($setting.Value)\" $evidence } else { New-Fail \"Minimum TLS $(if ($setting.Value) { $setting.Value } else { 'not set' })\" $evidence }\n            New-Finding -Record $record -Result $result\n        }\n    " }, (S, O) => {
+        R.ln = F + 99;
+        for (const it8 of R.fi(R.u(R.cmd(S, "Get-AzResourceRecords", [], null)))) {
+            S["record"] = it8;
+            R.ln = F + 100;
             if (R.t(R.u(R.cmd(S, "Test-TypeExcluded", [(S["record"] ?? null), (S["generictlsexclusions"] ?? null)], null)))) {
                 continue;
             }
-            R.ln = F + 103;
+            R.ln = F + 101;
             S["p"] = R.m(R.m((S["record"] ?? null), "resource"), "properties");
-            R.ln = F + 104;
+            R.ln = F + 102;
             S["setting"] = null;
-            R.ln = F + 105;
-            for (const it10 of R.fi([R.v("minimumTlsVersion"), R.v("minimalTlsVersion"), R.v("minTlsVersion"), R.v("minimumTlsVersionAllowed")])) {
-                S["name"] = it10;
-                R.ln = F + 106;
+            R.ln = F + 103;
+            for (const it9 of R.fi([R.v("minimumTlsVersion"), R.v("minimalTlsVersion"), R.v("minTlsVersion"), R.v("minimumTlsVersionAllowed")])) {
+                S["name"] = it9;
+                R.ln = F + 104;
                 S["candidate"] = R.u(R.cmd(S, "Get-PropertyCaseInsensitive", [(S["p"] ?? null), (S["name"] ?? null)], null));
-                R.ln = F + 107;
+                R.ln = F + 105;
                 if (R.t(R.m((S["candidate"] ?? null), "Found"))) {
-                    R.ln = F + 107;
+                    R.ln = F + 105;
                     S["setting"] = R.pso(["Name", (S["name"] ?? null), "Value", R.m((S["candidate"] ?? null), "Value")]);
                     break;
                 }
             }
-            R.ln = F + 109;
+            R.ln = F + 107;
             if (!R.t((S["setting"] ?? null))) {
                 continue;
             }
-            R.ln = F + 110;
+            R.ln = F + 108;
             S["evidence"] = R.ht([R.m((S["setting"] ?? null), "Name"), R.m((S["setting"] ?? null), "Value")], true);
-            R.ln = F + 111;
-            const v11 = [];
-            R.ln = F + 111;
+            R.ln = F + 109;
+            const v10 = [];
+            R.ln = F + 109;
             if (R.t(R.u(R.cmd(S, "Test-VersionAtLeast", [R.m((S["setting"] ?? null), "Value"), "1.2"], null)))) {
-                R.ln = F + 111;
-                R.pa(v11, R.cmd(S, "New-Pass", [("Minimum TLS " + R.str(R.u(R.pi(R.m((S["setting"] ?? null), "Value"))))), (S["evidence"] ?? null)], null));
+                R.ln = F + 109;
+                R.pa(v10, R.cmd(S, "New-Pass", [("Minimum TLS " + R.str(R.u(R.pi(R.m((S["setting"] ?? null), "Value"))))), (S["evidence"] ?? null)], null));
             } else {
-                R.ln = F + 111;
-                R.pa(v11, R.cmd(S, "New-Fail", [("Minimum TLS " + R.str((() => {
-                    const v12 = [];
-                    R.ln = F + 111;
+                R.ln = F + 109;
+                R.pa(v10, R.cmd(S, "New-Fail", [("Minimum TLS " + R.str((() => {
+                    const v11 = [];
+                    R.ln = F + 109;
                     if (R.t(R.m((S["setting"] ?? null), "Value"))) {
-                        R.ln = F + 111;
-                        R.e(v12, R.m((S["setting"] ?? null), "Value"));
+                        R.ln = F + 109;
+                        R.e(v11, R.m((S["setting"] ?? null), "Value"));
                     } else {
-                        R.ln = F + 111;
-                        R.e(v12, "not set");
+                        R.ln = F + 109;
+                        R.e(v11, "not set");
                     }
-                    return R.u(v12);
+                    return R.u(v11);
                 })())), (S["evidence"] ?? null)], null));
             }
-            S["result"] = R.u(v11);
-            R.ln = F + 112;
+            S["result"] = R.u(v10);
+            R.ln = F + 110;
             R.pa(O, R.cmd(S, "New-Finding", [R.np("Record"), (S["record"] ?? null), R.np("Result"), (S["result"] ?? null)], null));
         }
     })], false)], null));

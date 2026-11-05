@@ -663,4 +663,57 @@ export default R.script("/app/Analyze/tests/02-Governance.ps1", { params: [], ad
         R.ln = F + 399;
         R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Fail", ["No cost budget on the subscription", (S["evidence"] ?? null)], null))], null));
     })], false)], null));
+    R.ln = F + 403;
+    R.def(S, "Get-HierarchySettings", { params: [], adv: 0, h: "dc3cb048852e3189" }, (S, O) => {
+        R.ln = F + 406;
+        S["tenantid"] = R.c("string", R.m(R.m(R.m((R.ss(S)["script:ingest"] ?? null), "Manifest"), "subscription"), "tenantId"));
+        R.ln = F + 407;
+        R.pa(O, R.cmd(S, "Select-Object", [R.np("First"), 1], R.pi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and [string]$_.id -match \"(?i)/managementGroups/$([regex]::Escape($tenantId))/settings/\" " }, (S, O) => {
+            R.ln = F + 407;
+            R.e(O, (R.t((S["_"] ?? null)) && R.t(R.match(S, R.c("string", R.m((S["_"] ?? null), "id")), ("(?i)/managementGroups/" + R.str(R.u(R.pi(R.sc("regex", "Escape", [(S["tenantid"] ?? null)])))) + "/settings/")))));
+        })], R.cmd(S, "Get-IngestData", ["subscription/managementGroupSettings"], null)))));
+        return;
+    });
+    R.ln = F + 410;
+    R.def(S, "New-HierarchySettingsFinding", { params: [{ n: "Result", t: null, pos: null }], adv: 0, h: "9e49350429286ff4" }, (S, O) => {
+        R.ln = F + 412;
+        S["id"] = ("/providers/Microsoft.Management/managementGroups/" + R.str(R.u(R.pi(R.m(R.m(R.m((R.ss(S)["script:ingest"] ?? null), "Manifest"), "subscription"), "tenantId")))) + "/settings/default");
+        R.ln = F + 413;
+        R.pa(O, R.cmd(S, "New-Finding", [R.np("ResourceId"), (S["id"] ?? null), R.np("ResourceType"), "Microsoft.Management/managementGroups/settings", R.np("ResourceName"), "Tenant Root Group hierarchy settings", R.np("Result"), (S["result"] ?? null)], null));
+        return;
+    });
+    R.ln = F + 416;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-GOV-015", "Title", "New subscriptions are not placed in the root management group", "Category", "Asset management", "Service", "Management groups", "Severity", "Medium", "Description", "Checks that the hierarchy settings of the root management group name a default management group for new subscriptions other than the root group itself. Reading them needs Reader (or Hierarchy Settings Administrator) on the root management group.", "Rationale", "A new subscription lands in the default management group and inherits only the policies and role assignments assigned there. In the root group it misses the guardrails of the landing zone hierarchy until someone moves it.", "Remediation", "Create a management group for new subscriptions (for example a sandbox group with restrictive policies) and select it as the default management group in the settings of the Tenant Root Group.", "References", R.a("https://learn.microsoft.com/azure/governance/management-groups/how-to/protect-resource-hierarchy#setting-define-the-default-management-group"), "Requires", R.a("subscription/managementGroupSettings"), "Run", R.sb({ params: [], adv: 0, text: "\n        $tenantId = [string]$script:Ingest.Manifest.subscription.tenantId\n        $settings = Get-HierarchySettings\n        $default = [string]$settings.properties.defaultManagementGroup\n        $evidence = [ordered]@{ defaultManagementGroup = $default; settingsSaved = [bool]$settings }\n        if ($default -and $default -notmatch \"(?i)/managementGroups/$([regex]::Escape($tenantId))$\" -and $default -ne $tenantId) { return New-HierarchySettingsFinding (New-Pass \"New subscriptions go to $(Get-ResourceName $default)\" $evidence) }\n        New-HierarchySettingsFinding (New-Fail 'New subscriptions go to the root management group' $evidence)\n    " }, (S, O) => {
+        R.ln = F + 428;
+        S["tenantid"] = R.c("string", R.m(R.m(R.m((R.ss(S)["script:ingest"] ?? null), "Manifest"), "subscription"), "tenantId"));
+        R.ln = F + 429;
+        S["settings"] = R.u(R.cmd(S, "Get-HierarchySettings", [], null));
+        R.ln = F + 430;
+        S["default"] = R.c("string", R.m(R.m((S["settings"] ?? null), "properties"), "defaultManagementGroup"));
+        R.ln = F + 431;
+        S["evidence"] = R.ht(["defaultManagementGroup", (S["default"] ?? null), "settingsSaved", R.c("bool", (S["settings"] ?? null))], true);
+        R.ln = F + 432;
+        if (((R.t((S["default"] ?? null)) && R.t(R.nmatch(S, (S["default"] ?? null), ("(?i)/managementGroups/" + R.str(R.u(R.pi(R.sc("regex", "Escape", [(S["tenantid"] ?? null)])))) + "$")))) && R.t(R.ne((S["default"] ?? null), (S["tenantid"] ?? null))))) {
+            R.ln = F + 432;
+            R.pa(O, R.cmd(S, "New-HierarchySettingsFinding", [R.u(R.cmd(S, "New-Pass", [("New subscriptions go to " + R.str(R.u(R.cmd(S, "Get-ResourceName", [(S["default"] ?? null)], null)))), (S["evidence"] ?? null)], null))], null));
+            return;
+        }
+        R.ln = F + 433;
+        R.pa(O, R.cmd(S, "New-HierarchySettingsFinding", [R.u(R.cmd(S, "New-Fail", ["New subscriptions go to the root management group", (S["evidence"] ?? null)], null))], null));
+    })], false)], null));
+    R.ln = F + 437;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-GOV-016", "Title", "Creating management groups requires write permission on the root management group", "Category", "Privileged access", "Service", "Management groups", "Severity", "Medium", "Description", "Checks that 'Require write permissions for creating new management groups' (requireAuthorizationForGroupCreation) is enabled in the hierarchy settings of the root management group. Reading them needs Reader (or Hierarchy Settings Administrator) on the root management group.", "Rationale", "Without it every user and service principal in the tenant can create management groups under the root group, and becomes Owner of them, which lets them build a hierarchy outside the governance of the platform team.", "Remediation", "Enable 'Require write permissions for creating new management groups' in the settings of the Tenant Root Group.", "References", R.a("https://learn.microsoft.com/azure/governance/management-groups/how-to/protect-resource-hierarchy#setting-require-authorization"), "Requires", R.a("subscription/managementGroupSettings"), "Run", R.sb({ params: [], adv: 0, text: "\n        $settings = Get-HierarchySettings\n        $evidence = [ordered]@{ requireAuthorizationForGroupCreation = $settings.properties.requireAuthorizationForGroupCreation; settingsSaved = [bool]$settings }\n        if ($settings.properties.requireAuthorizationForGroupCreation -eq $true) { return New-HierarchySettingsFinding (New-Pass 'Creating management groups requires write permission on the root group' $evidence) }\n        New-HierarchySettingsFinding (New-Fail 'Any principal in the tenant can create management groups' $evidence)\n    " }, (S, O) => {
+        R.ln = F + 449;
+        S["settings"] = R.u(R.cmd(S, "Get-HierarchySettings", [], null));
+        R.ln = F + 450;
+        S["evidence"] = R.ht(["requireAuthorizationForGroupCreation", R.m(R.m((S["settings"] ?? null), "properties"), "requireAuthorizationForGroupCreation"), "settingsSaved", R.c("bool", (S["settings"] ?? null))], true);
+        R.ln = F + 451;
+        if (R.t(R.eq(R.m(R.m((S["settings"] ?? null), "properties"), "requireAuthorizationForGroupCreation"), true))) {
+            R.ln = F + 451;
+            R.pa(O, R.cmd(S, "New-HierarchySettingsFinding", [R.u(R.cmd(S, "New-Pass", ["Creating management groups requires write permission on the root group", (S["evidence"] ?? null)], null))], null));
+            return;
+        }
+        R.ln = F + 452;
+        R.pa(O, R.cmd(S, "New-HierarchySettingsFinding", [R.u(R.cmd(S, "New-Fail", ["Any principal in the tenant can create management groups", (S["evidence"] ?? null)], null))], null));
+    })], false)], null));
 });

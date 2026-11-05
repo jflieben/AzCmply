@@ -22,9 +22,10 @@ import s17 from './scripts/Analyze/tests/15-Secrets.js';
 import s18 from './scripts/Analyze/tests/16-DataAnalytics.js';
 import s19 from './scripts/Analyze/tests/17-PaaSGeneric.js';
 import s20 from './scripts/Analyze/tests/18-DefenderFindings.js';
-import s21 from './scripts/Report/New-AzureSecurityReport.js';
+import s21 from './scripts/Analyze/tests/19-Batch.js';
+import s22 from './scripts/Report/New-AzureSecurityReport.js';
 
-export const version = "1.0.7";
+export const version = "1.0.8";
 export const scripts = {
     "/app/Analyze/Compare-AzureAnalysis.ps1": s0,
     "/app/Analyze/Invoke-AzureAnalyze.ps1": s1,
@@ -47,7 +48,8 @@ export const scripts = {
     "/app/Analyze/tests/16-DataAnalytics.ps1": s18,
     "/app/Analyze/tests/17-PaaSGeneric.ps1": s19,
     "/app/Analyze/tests/18-DefenderFindings.ps1": s20,
-    "/app/Report/New-AzureSecurityReport.ps1": s21,
+    "/app/Analyze/tests/19-Batch.ps1": s21,
+    "/app/Report/New-AzureSecurityReport.ps1": s22,
 };
 
 export function mount(vfs) {

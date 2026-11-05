@@ -25,11 +25,12 @@ Add-AzTest @{
 
 Add-AzTest @{
     Id          = 'AZ-LOG-002'
+    Version     = 2
     Title       = 'The activity log export includes the security relevant categories'
     Category    = 'Logging and threat detection'
     Service     = 'Azure Monitor'
     Severity    = 'Medium'
-    Description = 'Checks that a subscription diagnostic setting exports the Administrative, Alert, Policy and Security categories.'
+    Description = 'Checks that the Administrative, Alert, Policy and Security categories are each exported by at least one subscription diagnostic setting with a destination.'
     Rationale   = 'These categories record configuration changes, alerts, policy decisions and Defender for Cloud events, which investigations depend on.'
     Remediation = 'Edit the subscription diagnostic setting and select at least Administrative, Alert, Policy and Security (or all categories).'
     References  = @('https://learn.microsoft.com/azure/azure-monitor/essentials/activity-log-schema')
@@ -38,14 +39,17 @@ Add-AzTest @{
         $settings = @(Get-ActivityLogSettings)
         if (-not $settings) { return New-SubscriptionFinding (New-NotApplicable 'No activity log export (see AZ-LOG-001)') }
         $required = @('Administrative', 'Alert', 'Policy', 'Security')
-        $best = $null
-        foreach ($setting in $settings) {
+        $exportedBy = [ordered]@{}
+        foreach ($category in $required) { $exportedBy[$category] = [System.Collections.Generic.List[string]]::new() }
+        foreach ($setting in ($settings | Sort-Object name)) {
             $enabled = @($setting.properties.logs | Where-Object { $_.enabled } | ForEach-Object { if ($_.category) { $_.category } else { $_.categoryGroup } })
-            $missing = @($required | Where-Object { $_ -notin $enabled -and 'allLogs' -notin $enabled })
-            if (-not $best -or $missing.Count -lt $best.Missing.Count) { $best = [pscustomobject]@{ Name = $setting.name; Missing = $missing; Enabled = $enabled } }
+            foreach ($category in $required) { if ($category -in $enabled -or 'allLogs' -in $enabled) { $exportedBy[$category].Add([string]$setting.name) } }
         }
-        $evidence = [ordered]@{ setting = $best.Name; enabledCategories = @($best.Enabled | Sort-Object); missingCategories = @($best.Missing) }
-        if ($best.Missing) { return New-SubscriptionFinding (New-Fail "Missing categories: $($best.Missing -join ', ')" $evidence) }
+        $missing = @($required | Where-Object { -not $exportedBy[$_].Count })
+        $exported = [ordered]@{}
+        foreach ($category in $required) { $exported[$category] = @($exportedBy[$category]) }
+        $evidence = [ordered]@{ settings = @($settings | ForEach-Object name | Sort-Object); exportedBy = $exported; missingCategories = $missing }
+        if ($missing) { return New-SubscriptionFinding (New-Fail "Missing categories: $($missing -join ', ')" $evidence) }
         New-SubscriptionFinding (New-Pass 'All required categories are exported' $evidence)
     }
 }
@@ -79,12 +83,14 @@ $activityAlerts = @(
     @{ Id = 'AZ-LOG-010'; Operation = 'Microsoft.Sql/servers/firewallRules/delete'; Label = 'Delete SQL server firewall rule'; Category = 'Administrative'; Policy = @{ 'b954148f-4c11-4c38-8221-be76711e194a' = 'An activity log alert should exist for specific Administrative operations' } }
     @{ Id = 'AZ-LOG-011'; Operation = 'Microsoft.Network/publicIPAddresses/write'; Label = 'Create or update public IP address'; Category = 'Administrative'; Policy = @{ 'b954148f-4c11-4c38-8221-be76711e194a' = 'An activity log alert should exist for specific Administrative operations' } }
     @{ Id = 'AZ-LOG-012'; Operation = 'Microsoft.Network/publicIPAddresses/delete'; Label = 'Delete public IP address'; Category = 'Administrative'; Policy = @{ 'b954148f-4c11-4c38-8221-be76711e194a' = 'An activity log alert should exist for specific Administrative operations' } }
-    #not a CIS recommendation: deleting a diagnostic setting stops that audit log, so it is an audit logging failure to alert on
     @{ Id = 'AZ-LOG-025'; Operation = 'Microsoft.Insights/diagnosticSettings/delete'; Label = 'Delete diagnostic setting'; Category = 'Administrative' }
     #AzCmply: role assignments, removed locks and run command are how attackers take over, delete and move laterally in Azure
     @{ Id = 'AZ-LOG-027'; Operation = 'Microsoft.Authorization/roleAssignments/write'; Label = 'Create role assignment'; Category = 'Administrative' }
     @{ Id = 'AZ-LOG-028'; Operation = 'Microsoft.Authorization/locks/delete'; Label = 'Delete management lock'; Category = 'Administrative' }
     @{ Id = 'AZ-LOG-029'; Operation = 'Microsoft.Compute/virtualMachines/runCommand/action'; Label = 'Run command on a virtual machine'; Category = 'Administrative' }
+    @{ Id = 'AZ-LOG-030'; Version = 1; Operation = 'Microsoft.Authorization/roleAssignments/delete'; Label = 'Delete role assignment'; Category = 'Administrative' }
+    @{ Id = 'AZ-LOG-031'; Version = 1; Operation = 'Microsoft.Authorization/policyExemptions/write'; Label = 'Create or update policy exemption'; Category = 'Administrative' }
+    @{ Id = 'AZ-LOG-032'; Version = 1; Operation = 'Microsoft.KeyVault/vaults/accessPolicies/write'; Label = 'Update key vault access policy'; Category = 'Administrative' }
 )
 
 #an action group notifies someone when it is enabled and has one of these receivers
@@ -92,7 +98,9 @@ $actionGroupReceivers = @('emailReceivers', 'smsReceivers', 'webhookReceivers', 
 
 function Test-ActivityAlert {
     #matching enabled activity log alerts scoped to the subscription, with their action groups that notify someone and
-    #those that could not be read (also in other subscriptions); -Operation $null matches on category only
+    #those that could not be read (also in other subscriptions); -Operation $null matches on category only. Filters lists
+    #the condition fields beyond category and operation name (for ServiceHealth: beyond category and event type), with
+    #which a rule misses events
     param([string]$Category, [string]$Operation)
     $scope = (Get-SubscriptionScope).ToLowerInvariant()
     foreach ($record in (Get-AzResourceRecords -Type 'Microsoft.Insights/activityLogAlerts')) {
@@ -102,6 +110,8 @@ function Test-ActivityAlert {
         $values = Get-ConditionValues $p.condition
         if ($values['category'] -notcontains $Category.ToLowerInvariant()) { continue }
         if ($Operation -and $values['operationname'] -notcontains $Operation.ToLowerInvariant()) { continue }
+        $allowed = if ($Operation) { @('category', 'operationname') } else { @('category', 'properties.incidenttype') }
+        $filters = @($values.Keys | Where-Object { $_ -notin $allowed } | Sort-Object)
         $notifying = [System.Collections.Generic.List[string]]::new()
         $unread = [System.Collections.Generic.List[string]]::new()
         foreach ($group in @($p.actions.actionGroups | Where-Object { $_ -and $_.actionGroupId })) {
@@ -110,7 +120,7 @@ function Test-ActivityAlert {
             $g = $groupRecord.resource.properties
             if ($g.enabled -and @($actionGroupReceivers | Where-Object { @(Get-Prop $g $_ | Where-Object { $_ }).Count }).Count) { $notifying.Add([string]$groupRecord.resource.name) }
         }
-        [pscustomobject]@{ Record = $record; Notifying = @($notifying); Unread = @($unread) }
+        [pscustomobject]@{ Record = $record; Notifying = @($notifying); Unread = @($unread); Filters = $filters }
     }
 }
 
@@ -118,24 +128,28 @@ function Get-ActivityAlertResult {
     #the finding for a set of matching alert rules: pass when one notifies someone, unknown when an action group could
     #not be read, fail otherwise
     param([object[]]$AlertRules, [string]$Missing)
-    $notifying = @($AlertRules | Where-Object { $_.Notifying.Count })
-    $unread = @($AlertRules | ForEach-Object { $_.Unread } | Sort-Object -Unique)
+    $filtered = @($AlertRules | Where-Object { $_.Filters.Count })
+    $complete = @($AlertRules | Where-Object { -not $_.Filters.Count })
+    $notifying = @($complete | Where-Object { $_.Notifying.Count })
+    $unread = @($complete | ForEach-Object { $_.Unread } | Sort-Object -Unique)
     $evidence = [ordered]@{ alertRules = @($AlertRules | ForEach-Object { $_.Record.resource.name } | Sort-Object); notifyingActionGroups = @($notifying | ForEach-Object { $_.Notifying } | Sort-Object -Unique) }
+    if ($filtered) { $evidence.rulesWithFilters = @($filtered | ForEach-Object { "$($_.Record.resource.name): $($_.Filters -join ', ')" } | Sort-Object) }
     if ($notifying) { return New-SubscriptionFinding (New-Pass "Alert rule(s): $(@($notifying | ForEach-Object { $_.Record.resource.name } | Sort-Object) -join ', ')" $evidence) }
     if ($unread) { $evidence.unreadActionGroups = $unread; return New-SubscriptionFinding (New-Unknown "The action group(s) of the alert rule could not be read: $($unread -join ', ')" $evidence) }
-    if ($AlertRules) { return New-SubscriptionFinding (New-Fail 'An alert rule exists, but none of its action groups is enabled with a receiver' $evidence) }
+    if ($complete) { return New-SubscriptionFinding (New-Fail 'An alert rule exists, but none of its action groups is enabled with a receiver' $evidence) }
+    if ($filtered) { return New-SubscriptionFinding (New-Fail "Alert rule(s) also filter on $(@($filtered | ForEach-Object { $_.Filters } | Sort-Object -Unique) -join ', '), so they miss events" $evidence) }
     New-SubscriptionFinding (New-Fail $Missing $evidence)
 }
 
 foreach ($alert in $activityAlerts) {
     Add-AzTest @{
         Id          = $alert.Id
-        Version     = 2
+        Version     = $(if ($alert.Version) { $alert.Version } else { 3 })
         Title       = "An activity log alert exists for '$($alert.Label)'"
         Category    = 'Logging and threat detection'
         Service     = 'Azure Monitor'
         Severity    = 'Low'
-        Description = "Checks for an enabled activity log alert on the subscription for operation $($alert.Operation) that notifies an enabled action group with at least one receiver."
+        Description = "Checks for an enabled activity log alert on the subscription for operation $($alert.Operation), with no condition other than its category and operation name (a filter on level, status or caller misses events), that notifies an enabled action group with at least one receiver."
         Rationale   = 'Alerting on security relevant control plane changes shortens the time to detect unauthorized or accidental changes that weaken the security posture.'
         Remediation = "Create an activity log alert on the subscription with category $($alert.Category) and operation name $($alert.Operation), and attach an action group that reaches the security team."
         References  = @('https://learn.microsoft.com/azure/azure-monitor/alerts/alerts-create-activity-log-alert-rule')
@@ -150,12 +164,12 @@ foreach ($alert in $activityAlerts) {
 
 Add-AzTest @{
     Id          = 'AZ-LOG-013'
-    Version     = 2
+    Version     = 3
     Title       = 'An activity log alert exists for Service Health'
     Category    = 'Incident response'
     Service     = 'Azure Monitor'
     Severity    = 'Low'
-    Description = 'Checks for an enabled activity log alert on the subscription for the ServiceHealth category that notifies an enabled action group with at least one receiver.'
+    Description = 'Checks for an enabled activity log alert on the subscription for the ServiceHealth category, not limited to some services or regions (a limit on event types is allowed), that notifies an enabled action group with at least one receiver.'
     Rationale   = 'Service Health notifies about platform incidents, planned maintenance and security advisories (for example about compromised or deprecated components) affecting your resources.'
     Remediation = 'Create a Service Health alert for the subscription (Service Health > Health alerts) with an action group that reaches the operations and security teams.'
     References  = @('https://learn.microsoft.com/azure/service-health/alerts-activity-log-service-notifications-portal')
@@ -164,44 +178,85 @@ Add-AzTest @{
     }
 }
 
+$keyVaultAuditLog = {
+    param($Record)
+    if ($null -eq $Record.diagnosticSettings) { return New-Unknown 'Diagnostic settings could not be read' }
+    $evidence = [ordered]@{ diagnosticSettings = @($Record.diagnosticSettings | ForEach-Object name | Sort-Object) }
+    if (Test-DiagnosticLogsEnabled -Settings $Record.diagnosticSettings -RequiredCategories 'AuditEvent') { return New-Pass 'AuditEvent logs are exported' $evidence }
+    New-Fail 'AuditEvent logs are not exported' $evidence
+}
+
 Add-AzTest @{
     Id            = 'AZ-LOG-014'
+    Version       = 2
     Title         = 'Key Vault audit logging is enabled'
     Category      = 'Logging and threat detection'
     Service       = 'Key Vault'
     Severity      = 'High'
-    Description   = 'Checks that each key vault and managed HSM has a diagnostic setting that sends the AuditEvent category (or the audit/allLogs group) to a destination.'
+    Description   = 'Checks that each key vault has a diagnostic setting that sends the AuditEvent category (or the audit/allLogs group) to a destination. Managed HSMs are AZ-LOG-033.'
     Rationale     = 'Key Vault audit logs record every access to secrets, keys and certificates. Without them, theft of secrets cannot be detected or investigated.'
     Remediation   = 'Add a diagnostic setting with the audit category group to a Log Analytics workspace (az monitor diagnostic-settings create --resource <vault id> --workspace <id> --logs "[{categoryGroup:audit,enabled:true}]").'
     References    = @('https://learn.microsoft.com/azure/key-vault/general/logging')
-    Policy        = @{ 'cf820ca0-f99e-4f3e-84fb-66e913812d21' = 'Resource logs in Key Vault should be enabled'; 'a2a5b911-5617-447e-a49e-59dbe0e0434b' = 'Resource logs in Azure Key Vault Managed HSM should be enabled' }
-    ResourceTypes = @('Microsoft.KeyVault/vaults', 'Microsoft.KeyVault/managedHSMs')
+    Policy        = @{ 'cf820ca0-f99e-4f3e-84fb-66e913812d21' = 'Resource logs in Key Vault should be enabled' }
+    ResourceTypes = @('Microsoft.KeyVault/vaults')
+    Evaluate      = $keyVaultAuditLog
+}
+
+Add-AzTest @{
+    Id            = 'AZ-LOG-033'
+    Title         = 'Managed HSM audit logging is enabled'
+    Category      = 'Logging and threat detection'
+    Service       = 'Key Vault'
+    Severity      = 'High'
+    Description   = 'Checks that each Managed HSM has a diagnostic setting that sends the AuditEvent category (or the audit/allLogs group) to a destination.'
+    Rationale     = 'The AuditEvent log records key operations, local role assignment changes and security domain downloads. Without it, misuse of an HSM key leaves no record to detect or investigate.'
+    Remediation   = 'Add a diagnostic setting with the audit category group to a Log Analytics workspace (az monitor diagnostic-settings create --resource <hsm id> --workspace <id> --logs "[{categoryGroup:audit,enabled:true}]").'
+    References    = @('https://learn.microsoft.com/azure/key-vault/managed-hsm/logging')
+    Policy        = @{ 'a2a5b911-5617-447e-a49e-59dbe0e0434b' = 'Resource logs in Azure Key Vault Managed HSM should be enabled' }
+    ResourceTypes = @('Microsoft.KeyVault/managedHSMs')
+    Evaluate      = $keyVaultAuditLog
+}
+
+Add-AzTest @{
+    Id            = 'AZ-LOG-034'
+    Title         = 'Log Analytics workspaces block ingestion and queries from public networks'
+    Category      = 'Network security'
+    Service       = 'Log Analytics'
+    Severity      = 'Low'
+    Description   = 'Checks that publicNetworkAccessForIngestion and publicNetworkAccessForQuery are Disabled on each Log Analytics workspace, so it is only reached through an Azure Monitor Private Link Scope.'
+    Rationale     = 'A workspace open to public networks accepts forged or flooding log data from anywhere and lets stolen credentials query its logs from any network.'
+    Remediation   = 'Link the workspace to an Azure Monitor Private Link Scope with a private endpoint, then set public network access for ingestion and for queries to Disabled.'
+    References    = @('https://learn.microsoft.com/azure/azure-monitor/logs/private-link-security')
+    Policy        = @{ '6c53d030-cc64-46f0-906d-2bc061cd1334' = 'Log Analytics workspaces should block log ingestion and querying from public networks' }
+    ResourceTypes = @('Microsoft.OperationalInsights/workspaces')
     Evaluate      = {
         param($Record)
-        if ($null -eq $Record.diagnosticSettings) { return New-Unknown 'Diagnostic settings could not be read' }
-        $evidence = [ordered]@{ diagnosticSettings = @($Record.diagnosticSettings | ForEach-Object name | Sort-Object) }
-        if (Test-DiagnosticLogsEnabled -Settings $Record.diagnosticSettings -RequiredCategories 'AuditEvent') { return New-Pass 'AuditEvent logs are exported' $evidence }
-        New-Fail 'AuditEvent logs are not exported' $evidence
+        $p = $Record.resource.properties
+        $evidence = [ordered]@{ publicNetworkAccessForIngestion = $p.publicNetworkAccessForIngestion; publicNetworkAccessForQuery = $p.publicNetworkAccessForQuery }
+        $open = @(foreach ($name in 'publicNetworkAccessForIngestion', 'publicNetworkAccessForQuery') { if ($p.$name -ne 'Disabled') { "$name is $(if ($p.$name) { $p.$name } else { 'not set' })" } })
+        if ($open) { return New-Fail ($open -join '; ') $evidence }
+        New-Pass 'Public ingestion and queries disabled' $evidence
     }
 }
 
-#resource types with security relevant resource log categories; Key Vault (AZ-LOG-014) and Databricks (AZ-DBX-005) have their own tests
+#resource types with security relevant resource log categories; Key Vault (AZ-LOG-014), Managed HSM (AZ-LOG-033), Cosmos DB (AZ-COS-008), Batch (AZ-BATCH-005) and Databricks (AZ-DBX-005) have their own tests
 $resourceLogTypes = @(
     'Microsoft.Web/sites', 'Microsoft.Web/sites/slots', 'Microsoft.Sql/servers/databases', 'Microsoft.Sql/managedInstances', 'Microsoft.Network/networkSecurityGroups',
     'Microsoft.Network/applicationGateways', 'Microsoft.Network/azureFirewalls', 'Microsoft.Network/bastionHosts', 'Microsoft.Network/publicIPAddresses',
     'Microsoft.Network/virtualNetworkGateways', 'Microsoft.Network/frontDoors', 'Microsoft.Cdn/profiles', 'Microsoft.ContainerService/managedClusters',
-    'Microsoft.ContainerRegistry/registries', 'Microsoft.DocumentDB/databaseAccounts', 'Microsoft.DBforPostgreSQL/flexibleServers', 'Microsoft.DBforMySQL/flexibleServers',
+    'Microsoft.ContainerRegistry/registries', 'Microsoft.DBforPostgreSQL/flexibleServers', 'Microsoft.DBforMySQL/flexibleServers',
     'Microsoft.Cache/redis', 'Microsoft.ServiceBus/namespaces', 'Microsoft.EventHub/namespaces', 'Microsoft.EventGrid/topics', 'Microsoft.EventGrid/domains',
     'Microsoft.EventGrid/systemTopics', 'Microsoft.EventGrid/namespaces', 'Microsoft.Logic/workflows', 'Microsoft.ApiManagement/service',
     'Microsoft.Automation/automationAccounts', 'Microsoft.CognitiveServices/accounts', 'Microsoft.MachineLearningServices/workspaces', 'Microsoft.Search/searchServices',
     'Microsoft.DataFactory/factories', 'Microsoft.Synapse/workspaces', 'Microsoft.Kusto/clusters', 'Microsoft.RecoveryServices/vaults', 'Microsoft.DataProtection/backupVaults',
     'Microsoft.AppConfiguration/configurationStores', 'Microsoft.SignalRService/signalR', 'Microsoft.SignalRService/webPubSub', 'Microsoft.Devices/IotHubs',
-    'Microsoft.Batch/batchAccounts', 'Microsoft.OperationalInsights/workspaces', 'Microsoft.App/managedEnvironments', 'Microsoft.DesktopVirtualization/hostPools',
+    'Microsoft.OperationalInsights/workspaces', 'Microsoft.App/managedEnvironments', 'Microsoft.DesktopVirtualization/hostPools',
     'Microsoft.DesktopVirtualization/workspaces', 'Microsoft.DesktopVirtualization/applicationGroups', 'Microsoft.Storage/storageAccounts'
 )
 
 Add-AzTest @{
     Id            = 'AZ-LOG-015'
+    Version       = 2
     Title         = 'Resource logs are enabled for services that support them'
     Category      = 'Logging and threat detection'
     Service       = 'Azure Monitor'

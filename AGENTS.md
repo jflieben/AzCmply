@@ -34,7 +34,10 @@ These are not style preferences; breaking them makes the tool state something un
   it; tests carry no framework tags. No framework is reached through another one.
 - A control may only list a test that addresses what the control asks for. Where a benchmark numbers variants
   separately, split the test rather than listing one test under both, otherwise a control is reported as failing
-  because of resources it does not cover.
+  because of resources it does not cover. Where the variants only differ in the kind of resource (the same setting for
+  web apps, web app slots, function apps and function app slots), keep one test and give each control a `scope` (a
+  name from `$script:FindingScopes` in `Analyze\lib\AnalyzeCore.ps1`, or a resource type): the control is then judged
+  on the findings of that kind of resource only.
 - `coverage` is `full` only when the tests check everything about the control that Azure configuration can show;
   anything less is `partial`. A control without a test is `manual` when it concerns the Azure environment (or the
   Entra settings that affect it) and `notApplicable` when it does not (people, physical security, organization-wide

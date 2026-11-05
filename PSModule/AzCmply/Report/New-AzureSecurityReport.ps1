@@ -389,13 +389,15 @@ $categories = @($tests | ForEach-Object category | Sort-Object -Unique)
 $findingTotals = $results.summary.findings
 
 #frameworks with every control and its result
+#labels of the finding scopes of framework controls (Analyze\lib\AnalyzeCore.ps1)
+$scopeLabels = [ordered]@{ webApps = 'web apps'; webAppSlots = 'web app slots'; functionApps = 'function apps'; functionAppSlots = 'function app slots' }
 $frameworks = [ordered]@{}
 foreach ($key in @($results.frameworks.PSObject.Properties.Name)) {
     $fw = $results.frameworks.$key
     $controls = [System.Collections.Generic.List[object]]::new()
     foreach ($property in @($fw.controls.PSObject.Properties)) {
         $item = $property.Value
-        $controls.Add([pscustomobject]@{ Id = $property.Name; Title = $item.title; Status = $item.status; Applicability = $item.applicability; Coverage = $item.coverage; Tests = @($item.tests | Where-Object { $_ }); Url = $item.url; Assessment = $item.assessment })
+        $controls.Add([pscustomobject]@{ Id = $property.Name; Title = $item.title; Status = $item.status; Applicability = $item.applicability; Coverage = $item.coverage; Tests = @($item.tests | Where-Object { $_ }); Url = $item.url; Assessment = $item.assessment; Scope = $item.scope; TestStatus = $item.testStatus })
     }
     $automated = @($controls | Where-Object Applicability -eq 'automated')
     $buckets = Get-Buckets @($automated | ForEach-Object Status)
@@ -1207,14 +1209,16 @@ foreach ($fw in @($frameworks.Values)) {
         Add '<div class="fw-table scroll"><table><thead><tr><th>Control</th><th>Title</th><th>Result</th><th>Coverage</th><th>Tests</th></tr></thead><tbody>'
         foreach ($control in $automated) {
             #failing tests first, each with a dot for its result
-            $controlTests = @($control.Tests | ForEach-Object { [pscustomobject]@{ Id = [string]$_; Status = $(if ($testsById.ContainsKey($_)) { [string]$testsById[$_].status } else { 'NotAssessed' }) } } | Sort-Object { $statusOrder[$_.Status] }, Id)
+            #a control with a scope shows the result of each test for that kind of resource only
+            $controlTests = @($control.Tests | ForEach-Object { [pscustomobject]@{ Id = [string]$_; Status = $(if ($control.TestStatus -and $control.TestStatus.$_) { [string]$control.TestStatus.$_ } elseif ($testsById.ContainsKey($_)) { [string]$testsById[$_].status } else { 'NotAssessed' }) } } | Sort-Object { $statusOrder[$_.Status] }, Id)
+            $scopeNote = if ($control.Scope) { " <span class=""note"">($(Enc $(if ($scopeLabels.Contains([string]$control.Scope)) { $scopeLabels[[string]$control.Scope] } else { [string]$control.Scope })) only)</span>" } else { '' }
             $testLinks = @($controlTests | ForEach-Object { '<a href="#{0}" title="{1}" aria-label="{0}: {1}"><i class="tstat s-{2}" aria-hidden="true"></i>{0}</a>' -f (Enc $_.Id), (Enc $statusLabels[$_.Status]), $_.Status.ToLowerInvariant() })
             $links = ($testLinks | Select-Object -First 8) -join ', '
             if ($testLinks.Count -gt 8) {
                 $rest = ($testLinks | Select-Object -Skip 8) -join ', '
                 $links += "<details class=""more-links""><summary>$($testLinks.Count - 8) more</summary>$rest</details>"
             }
-            Add "<tr><td style=""white-space:nowrap"">$(Get-ControlLink -Id $control.Id -Url $control.Url)</td><td>$(Enc $control.Title)</td><td>$(New-StatusBadge $control.Status)</td><td>$(Enc $control.Coverage)</td><td class=""links"">$links</td></tr>"
+            Add "<tr><td style=""white-space:nowrap"">$(Get-ControlLink -Id $control.Id -Url $control.Url)</td><td>$(Enc $control.Title)$scopeNote</td><td>$(New-StatusBadge $control.Status)</td><td>$(Enc $control.Coverage)</td><td class=""links"">$links</td></tr>"
         }
         Add '</tbody></table></div>'
     }

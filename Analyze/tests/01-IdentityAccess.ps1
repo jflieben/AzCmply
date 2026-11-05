@@ -110,17 +110,18 @@ function Get-AssignmentServicePrincipals {
 
 Add-AzTest @{
     Id          = 'AZ-IAM-003'
-    Version     = 2
+    Version     = 3
     Title       = 'Workload identities do not hold privileged roles at subscription scope or above'
     Category    = 'Privileged access'
     Service     = 'Azure RBAC'
     Severity    = 'High'
-    Description = 'Finds service principals and managed identities with Owner, Contributor, User Access Administrator, Role Based Access Control Administrator or equivalent custom roles at tenant root, management group or subscription scope, directly or as members of an assigned group.'
+    Description = 'Finds service principals and managed identities with Owner, Contributor, User Access Administrator, Role Based Access Control Administrator or equivalent custom roles at tenant root, management group or subscription scope, directly or as members of an assigned group. The system assigned identity of a policy assignment passes: only Azure Policy uses it, for the deployIfNotExists and modify remediations of that assignment.'
     Rationale   = 'Workload identities cannot use MFA or PIM. A leaked credential, a compromised pipeline or a compromised resource with such an identity gives an attacker control over every resource in the subscription.'
     Remediation = 'Scope workload identity assignments to the resource groups or resources they manage and use the least privileged built-in role. Replace Owner/User Access Administrator with Role Based Access Control Administrator with conditions where the identity must assign roles.'
-    References  = @('https://learn.microsoft.com/azure/role-based-access-control/best-practices')
-    Requires    = @('rbac/roleAssignments')
+    References  = @('https://learn.microsoft.com/azure/role-based-access-control/best-practices', 'https://learn.microsoft.com/azure/governance/policy/how-to/remediate-resources')
+    Requires    = @('rbac/roleAssignments', 'policy/policyAssignments')
     Run         = {
+        $policyIdentities = Get-PolicyAssignmentIdentities
         $findings = @(foreach ($assignment in @(Get-ActiveRoleAssignments | Where-Object { $_.properties.principalType -in 'ServicePrincipal', 'Group' -and (Test-RolePrivileged $_.properties.roleDefinitionId) } | Sort-Object id)) {
                 $level = Get-ScopeLevel $assignment.properties.scope
                 $broad = $level -in 'root', 'managementGroup', 'subscription'
@@ -128,6 +129,12 @@ Add-AzTest @{
                     $evidence = Get-AssignmentEvidence $assignment
                     $evidence.scopeLevel = $level
                     if (-not $holder.Group) {
+                        $policy = $policyIdentities[([string]$holder.Id).ToLowerInvariant()]
+                        if ($broad -and $policy) {
+                            $evidence.policyAssignment = $policy.id
+                            New-Finding -ResourceId $assignment.id -ResourceType $assignment.type -ResourceName "$($evidence.role): $($evidence.principal)" -Result (New-Pass "$($evidence.role) at $level scope for the identity of policy assignment $($policy.properties.displayName), used only by Azure Policy" $evidence)
+                            continue
+                        }
                         $result = if ($broad) { New-Fail "$($evidence.principal) has $($evidence.role) at $level scope" $evidence } else { New-Pass "$($evidence.role) limited to $level scope" $evidence }
                         New-Finding -ResourceId $assignment.id -ResourceType $assignment.type -ResourceName "$($evidence.role): $($evidence.principal)" -Result $result
                         continue
@@ -1372,6 +1379,225 @@ Add-AzTest @{
             New-Finding -ResourceId $assignment.id -ResourceType $assignment.type -ResourceName "$($evidence.role): $($evidence.principal)" -Result (New-Fail "$($evidence.principal) has $($evidence.role) at $($evidence.scope), which runs code on every machine there" $evidence)
         }
         if (-not $findings) { return New-SubscriptionFinding (New-Pass 'No role that runs code on machines is assigned at subscription scope or above') }
+        $findings
+    }
+}
+
+function Test-ActionPatternsOverlap {
+    #true when two action patterns with * wildcards can match the same action
+    param([string]$First, [string]$Second)
+    if (-not $script:Ingest.Cache.ContainsKey('#actionOverlap')) { $script:Ingest.Cache['#actionOverlap'] = @{} }
+    $cache = $script:Ingest.Cache['#actionOverlap']
+    $a = $First.ToLowerInvariant()
+    $b = $Second.ToLowerInvariant()
+    $key = "$a|$b"
+    if ($cache.ContainsKey($key)) { return $cache[$key] }
+    #"i/j": the rest of $a from i and the rest of $b from j match a common action
+    $match = @{}
+    for ($i = $a.Length; $i -ge 0; $i--) {
+        for ($j = $b.Length; $j -ge 0; $j--) {
+            $x = if ($i -lt $a.Length) { $a.Substring($i, 1) } else { '' }
+            $y = if ($j -lt $b.Length) { $b.Substring($j, 1) } else { '' }
+            if ($x -eq '' -and $y -eq '') { $value = $true }
+            elseif ($x -eq '*') { $value = $match["$($i + 1)/$j"] -or ($y -ne '' -and $match["$i/$($j + 1)"]) }
+            elseif ($y -eq '*') { $value = $match["$i/$($j + 1)"] -or ($x -ne '' -and $match["$($i + 1)/$j"]) }
+            else { $value = $x -ne '' -and $x -eq $y -and $match["$($i + 1)/$($j + 1)"] }
+            $match["$i/$j"] = [bool]$value
+        }
+    }
+    $cache[$key] = $match['0/0']
+    return $cache[$key]
+}
+
+function Get-PermissionBlocks {
+    #allowed and excluded actions, or data actions, per permission block of a role definition
+    param($Definition, [bool]$Data)
+    foreach ($permission in @($Definition.properties.permissions | Where-Object { $_ })) {
+        if ($Data) {
+            [pscustomobject]@{ Allowed = @($permission.dataActions | Where-Object { $_ }); Excluded = @($permission.notDataActions | Where-Object { $_ }) }
+        } else {
+            [pscustomobject]@{ Allowed = @($permission.actions | Where-Object { $_ }); Excluded = @($permission.notActions | Where-Object { $_ }) }
+        }
+    }
+}
+
+function Test-PermissionsCover {
+    #true when every action (or data action) of the child role is granted by one block of the parent role: a parent pattern
+    #contains it and each parent exclusion it can reach is excluded by the child as well. False when that cannot be shown
+    param($Parent, $Child, [bool]$Data)
+    $parentBlocks = @(Get-PermissionBlocks $Parent $Data)
+    foreach ($childBlock in @(Get-PermissionBlocks $Child $Data)) {
+        foreach ($action in $childBlock.Allowed) {
+            $granted = $false
+            foreach ($parentBlock in $parentBlocks) {
+                if (-not @($parentBlock.Allowed | Where-Object { $action -like $_ }).Count) { continue }
+                $open = $false
+                foreach ($exclusion in $parentBlock.Excluded) {
+                    if (-not (Test-ActionPatternsOverlap $action $exclusion)) { continue }
+                    if (-not @($childBlock.Excluded | Where-Object { $exclusion -like $_ }).Count) { $open = $true; break }
+                }
+                if (-not $open) { $granted = $true; break }
+            }
+            if (-not $granted) { return $false }
+        }
+    }
+    return $true
+}
+
+function Test-RoleCovers {
+    #true when the parent role definition grants everything the child role definition grants, control and data plane
+    param($Parent, $Child)
+    if ($Parent.name -eq $Child.name) { return $true }
+    if (-not $script:Ingest.Cache.ContainsKey('#roleCovers')) { $script:Ingest.Cache['#roleCovers'] = @{} }
+    $cache = $script:Ingest.Cache['#roleCovers']
+    $key = "$($Parent.name)|$($Child.name)".ToLowerInvariant()
+    if (-not $cache.ContainsKey($key)) { $cache[$key] = (Test-PermissionsCover $Parent $Child $false) -and (Test-PermissionsCover $Parent $Child $true) }
+    return $cache[$key]
+}
+
+function Test-ScopeContains {
+    #true when a role assignment at $Parent applies at $Child; management group and root assignments in the ingestion are
+    #the ones this subscription inherits, so they contain every scope of the subscription
+    param([string]$Parent, [string]$Child)
+    $parentScope = $Parent.TrimEnd('/').ToLowerInvariant()
+    $childScope = $Child.TrimEnd('/').ToLowerInvariant()
+    if ($parentScope -eq $childScope -or $Parent -eq '/') { return $true }
+    $childLevel = Get-ScopeLevel $Child
+    if ((Get-ScopeLevel $Parent) -eq 'managementGroup') { return $childLevel -in 'subscription', 'resourceGroup', 'resource' }
+    if ($childLevel -in 'root', 'managementGroup') { return $false }
+    return $childScope.StartsWith("$parentScope/")
+}
+
+Add-AzTest @{
+    Id          = 'AZ-IAM-035'
+    Title       = 'Role assignments do not repeat access that a broader assignment already grants'
+    Category    = 'Privileged access'
+    Service     = 'Azure RBAC'
+    Severity    = 'Low'
+    Description = 'Finds active role assignments whose access the same principal already holds through another assignment on the same or a broader scope, for example Contributor on a resource group for an owner of the subscription. The broader assignment counts when it is permanent, has no condition and its role grants every action and data action of the other role. Owner and Contributor grant no data actions, so data roles stay needed beside them. Left out: activations and time-bound assignments, which end by themselves; roles with data actions on a resource, the scope Microsoft documents for services such as Azure Virtual Desktop, Azure Files, Managed Grafana and Microsoft Foundry; the identities of policy assignments and backup vaults, whose roles Azure Policy and Azure Backup set up; deleted principals (AZ-IAM-007). Group membership is not considered.'
+    Rationale   = 'Redundant assignments hide who needs which access. When the broader assignment is removed, for example when an administrator leaves the platform team, the narrower one keeps access that nobody reviews. They also count toward the limit of role assignments per subscription.'
+    Remediation = 'Remove the narrower assignment, or the broader one where the narrower scope is all the principal needs.'
+    References  = @('https://learn.microsoft.com/azure/role-based-access-control/troubleshoot-limits#solution-2---remove-redundant-role-assignments', 'https://learn.microsoft.com/azure/role-based-access-control/scope-overview', 'https://learn.microsoft.com/azure/role-based-access-control/best-practices')
+    Requires    = @('rbac/roleAssignments', 'rbac/roleDefinitions', 'rbac/roleAssignmentScheduleInstances', 'policy/policyAssignments')
+    Run         = {
+        $skipped = Get-PolicyAssignmentIdentities
+        $backupVaultTypes = @('Microsoft.DataProtection/backupVaults', 'Microsoft.RecoveryServices/vaults')
+        foreach ($vault in (Get-AzResourceRecords -Type $backupVaultTypes)) {
+            foreach ($principal in @(Get-ResourceIdentityPrincipals $vault)) { $skipped[$principal] = $vault }
+        }
+        $vaultsUnread = @(Get-FailedResourceIds -Type $backupVaultTypes).Count -gt 0
+        $instances = @{}
+        foreach ($instance in @(Get-IngestData 'rbac/roleAssignmentScheduleInstances' | Where-Object { $_ -and $_.properties.originRoleAssignmentId })) { $instances[([string]$instance.properties.originRoleAssignmentId).ToLowerInvariant()] = $instance }
+        $byPrincipal = @{}
+        foreach ($assignment in @(Get-ActiveRoleAssignments | Where-Object { $_.properties.principalId -and $_.properties.principalType -in 'User', 'Group', 'ServicePrincipal' } | Sort-Object id)) {
+            $key = ([string]$assignment.properties.principalId).ToLowerInvariant()
+            if ($skipped.ContainsKey($key) -or (Test-PrincipalDeleted $key)) { continue }
+            if (-not $byPrincipal.ContainsKey($key)) { $byPrincipal[$key] = [System.Collections.Generic.List[object]]::new() }
+            $byPrincipal[$key].Add($assignment)
+        }
+        $roles = Get-RoleDefinitionMap
+        $findings = foreach ($key in @($byPrincipal.Keys | Sort-Object)) {
+            $held = @($byPrincipal[$key])
+            if ($held.Count -lt 2) { continue }
+            for ($c = 0; $c -lt $held.Count; $c++) {
+                $child = $held[$c]
+                $instance = $instances[([string]$child.id).ToLowerInvariant()]
+                if ($instance -and ($instance.properties.assignmentType -eq 'Activated' -or $instance.properties.endDateTime)) { continue }
+                $childRole = $roles[(Get-RoleDefinitionGuid $child.properties.roleDefinitionId)]
+                if ($childRole -and (Get-ScopeLevel $child.properties.scope) -eq 'resource' -and @(Get-PermissionBlocks $childRole $true | ForEach-Object { $_.Allowed }).Count) { continue }
+                $evidence = Get-AssignmentEvidence $child
+                $coveredBy = $null
+                $notRead = [System.Collections.Generic.List[string]]::new()
+                for ($p = 0; $p -lt $held.Count; $p++) {
+                    $parent = $held[$p]
+                    if ($p -eq $c -or $parent.properties.condition -or -not (Test-ScopeContains $parent.properties.scope $child.properties.scope)) { continue }
+                    $parentLabel = "$(Get-RoleName $parent.properties.roleDefinitionId) on $($parent.properties.scope)"
+                    $parentRole = $roles[(Get-RoleDefinitionGuid $parent.properties.roleDefinitionId)]
+                    if (-not $childRole -or -not $parentRole) { $notRead.Add("role definitions of $parentLabel and $($evidence.role)"); continue }
+                    if (-not (Test-RoleCovers $parentRole $childRole)) { continue }
+                    #two assignments on one scope that grant each other's access: the first one stays
+                    $sameScope = ([string]$parent.properties.scope).TrimEnd('/').ToLowerInvariant() -eq ([string]$child.properties.scope).TrimEnd('/').ToLowerInvariant()
+                    if ($sameScope -and $p -gt $c -and (Test-RoleCovers $childRole $parentRole)) { continue }
+                    $parentInstance = $instances[([string]$parent.id).ToLowerInvariant()]
+                    if (-not $parentInstance) { $notRead.Add("assignment schedule of $parentLabel"); continue }
+                    if ($parentInstance.properties.assignmentType -ne 'Assigned' -or $parentInstance.properties.endDateTime) { continue }
+                    $coveredBy = $parent
+                    break
+                }
+                $name = "$($evidence.role): $($evidence.principal)"
+                if ($coveredBy) {
+                    $evidence.coveredByRole = Get-RoleName $coveredBy.properties.roleDefinitionId
+                    $evidence.coveredByScope = $coveredBy.properties.scope
+                    $evidence.coveredByAssignment = $coveredBy.id
+                    if ($child.properties.condition) { $evidence.condition = $child.properties.condition }
+                    $detail = "$($evidence.principal) has $($evidence.role) on $($evidence.scope), which $($evidence.coveredByRole) on $($evidence.coveredByScope) already grants"
+                    $result = if ($vaultsUnread -and $child.properties.principalType -eq 'ServicePrincipal') { New-Unknown "$detail; not established that this is not the identity of a backup vault, as not all backup vaults could be read" $evidence } else { New-Fail $detail $evidence }
+                    New-Finding -ResourceId $child.id -ResourceType $child.type -ResourceName $name -Result $result
+                } elseif ($notRead.Count) {
+                    $evidence.notRead = @($notRead | Sort-Object -Unique)
+                    New-Finding -ResourceId $child.id -ResourceType $child.type -ResourceName $name -Result (New-Unknown "Not established whether a broader assignment already grants this access; not read: $($evidence.notRead -join ', ')" $evidence)
+                }
+            }
+        }
+        if (-not $findings) { return New-SubscriptionFinding (New-Pass 'No role assignment repeats access that a broader assignment of the same principal grants') }
+        $findings
+    }
+}
+
+$userAccessAdministratorId = '18d7d88d-d35e-4fb5-a5c3-7773c20a72d9'
+$rbacAdministratorId = 'f58310d9-a9f6-439a-9e8d-f62e7b41a168'
+
+Add-AzTest @{
+    Id          = 'AZ-IAM-036'
+    Title       = 'Role assignment management is delegated with Role Based Access Control Administrator and a condition'
+    Category    = 'Privileged access'
+    Service     = 'Azure RBAC'
+    Severity    = 'Medium'
+    Description = 'Finds active User Access Administrator assignments, and Role Based Access Control Administrator assignments without a condition, at any scope that applies to this subscription except the tenant root (AZ-IAM-009).'
+    Rationale   = 'User Access Administrator, and Role Based Access Control Administrator without a condition, can assign any role, Owner included, to any principal, so the delegate controls the scope completely. A condition limits the roles and principals it may assign.'
+    Remediation = 'Replace User Access Administrator with Role Based Access Control Administrator, and add a condition that limits the roles (and where possible the principals) the delegate may assign, excluding Owner, User Access Administrator and Role Based Access Control Administrator.'
+    References  = @('https://learn.microsoft.com/azure/role-based-access-control/delegate-role-assignments-overview')
+    Requires    = @('rbac/roleAssignments')
+    Run         = {
+        $findings = foreach ($assignment in @(Get-ActiveRoleAssignments | Where-Object { $_.properties.scope -ne '/' } | Sort-Object id)) {
+            $guid = Get-RoleDefinitionGuid $assignment.properties.roleDefinitionId
+            $unconditional = $guid -eq $rbacAdministratorId -and -not $assignment.properties.condition
+            if ($guid -ne $userAccessAdministratorId -and -not $unconditional) { continue }
+            $evidence = Get-AssignmentEvidence $assignment
+            $detail = if ($guid -eq $userAccessAdministratorId) { "$($evidence.principal) has User Access Administrator on $($evidence.scope)" } else { "$($evidence.principal) has Role Based Access Control Administrator without a condition on $($evidence.scope)" }
+            New-Finding -ResourceId $assignment.id -ResourceType $assignment.type -ResourceName "$($evidence.role): $($evidence.principal)" -Result (New-Fail $detail $evidence)
+        }
+        if (-not $findings) { return New-SubscriptionFinding (New-Pass 'No User Access Administrator or unconditional Role Based Access Control Administrator assignments') }
+        $findings
+    }
+}
+
+Add-AzTest @{
+    Id          = 'AZ-IAM-037'
+    Title       = 'Users with Azure access have per-user MFA enabled when Conditional Access is not used'
+    Category    = 'Identity management'
+    Service     = 'Microsoft Entra ID'
+    Severity    = 'High'
+    Description = 'In a tenant without enabled Conditional Access policies, checks that every user with a role assignment in this subscription, directly or through a group, has the per-user MFA state Enabled or Enforced. Tenants that use Conditional Access are not applicable; AZ-IAM-024 and AZ-IAM-027 check their policies. Other users of the tenant are not read.'
+    Rationale   = 'Without Conditional Access, per-user MFA (with security defaults, AZ-IAM-026) is what requires a second factor at sign-in. A user with Azure access who signs in with a password alone is one phished or sprayed password away from the subscription.'
+    Remediation = 'Set per-user MFA to Enabled or Enforced for each of these users (Entra admin center > Users > Per-user MFA), or move to Conditional Access with Entra ID P1.'
+    References  = @('https://learn.microsoft.com/entra/identity/authentication/howto-mfa-userstates')
+    Requires    = @('rbac/roleAssignments', 'identity/users', 'identity/groups', 'identity/userMfaRequirements')
+    Run         = {
+        if (-not (Test-IngestSection 'identity/conditionalAccessPolicies')) { return New-TenantFinding -Result (New-Unknown 'Conditional Access policies could not be read, so it is not known whether per-user MFA applies') -Suffix '/perUserMfa' }
+        $policies = @(Get-IngestData 'identity/conditionalAccessPolicies' | Where-Object { $_ -and $_.state -eq 'enabled' })
+        if ($policies) { return New-TenantFinding -Result (New-NotApplicable "Conditional Access is used instead ($($policies.Count) enabled policies)" ([ordered]@{ enabledConditionalAccessPolicies = $policies.Count })) -Suffix '/perUserMfa' }
+        $states = @{}
+        foreach ($item in @(Get-IngestData 'identity/userMfaRequirements' | Where-Object { $_ -and $_.id })) { $states[([string]$item.id).ToLowerInvariant()] = $item }
+        $access = Get-PrincipalAccessMap
+        $findings = foreach ($user in @(Get-IngestData 'identity/users' | Where-Object { $_ -and $_.id -and $access.ContainsKey(([string]$_.id).ToLowerInvariant()) } | Sort-Object id)) {
+            $item = $states[([string]$user.id).ToLowerInvariant()]
+            $state = [string]$item.perUserMfaState
+            $evidence = [ordered]@{ userPrincipalName = $user.userPrincipalName; perUserMfaState = $state; roles = @($access[([string]$user.id).ToLowerInvariant()] | ForEach-Object { "$(Get-RoleName $_.properties.roleDefinitionId) @ $($_.properties.scope)" } | Sort-Object -Unique) }
+            $result = if (-not $item -or $item.error) { New-Unknown 'The per-user MFA state could not be read' $evidence } elseif ($state -in 'enabled', 'enforced') { New-Pass "Per-user MFA is $state" $evidence } else { New-Fail "Per-user MFA is $(if ($state) { $state } else { 'not set' })" $evidence }
+            New-Finding -ResourceId "/users/$($user.id)" -ResourceType 'Microsoft.Entra/users' -ResourceName "$($user.displayName) ($($user.userPrincipalName))" -Result $result
+        }
+        if (-not $findings) { return New-TenantFinding -Result (New-Pass 'No users with Azure access in this subscription') -Suffix '/perUserMfa' }
         $findings
     }
 }

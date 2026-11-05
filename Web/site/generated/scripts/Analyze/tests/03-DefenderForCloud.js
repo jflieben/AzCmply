@@ -284,244 +284,267 @@ export default R.script("/app/Analyze/tests/03-DefenderForCloud.ps1", { params: 
         })], false)], null));
     }
     R.ln = F + 192;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-DEF-017", "Version", 2, "Title", "Vulnerability assessment for machines is configured", "Category", "Posture and vulnerability management", "Service", "Microsoft Defender for Cloud", "Severity", "Medium", "Description", "Checks that Defender for Servers is on and that a vulnerability assessment provider (Microsoft Defender Vulnerability Management) covers machines. Both Plan 1 and Plan 2 include Defender Vulnerability Management.", "Rationale", "Unknown vulnerabilities cannot be prioritized or patched. Built-in vulnerability management continuously finds missing patches and vulnerable software on servers.", "Remediation", "Enable Defender for Servers and set 'Vulnerability assessment for machines' to Microsoft Defender Vulnerability Management.", "References", R.a("https://learn.microsoft.com/azure/defender-for-cloud/deploy-vulnerability-assessment-defender-vulnerability-management"), "Policy", R.ht(["501541f7-f7e7-4cd6-868c-4190fdad3ac9", "A vulnerability assessment solution should be enabled on your virtual machines"], false), "Requires", R.a("defender/pricings"), "Run", R.sb({ params: [], adv: 0, text: "\n        $servers = Get-DefenderPricing 'VirtualMachines'\n        $evidence = [ordered]@{ serversPlan = $servers.properties.pricingTier; serversSubPlan = $servers.properties.subPlan }\n        if ($servers.properties.pricingTier -ne 'Standard') { return New-SubscriptionFinding (New-Fail 'Defender for Servers is off, so no vulnerability assessment runs' $evidence) }\n        #both Defender for Servers plans include Defender Vulnerability Management, so the plan itself already satisfies this\n        if ($servers.properties.subPlan -in 'P1', 'P2') { return New-SubscriptionFinding (New-Pass \"Defender for Servers $($servers.properties.subPlan) includes Defender Vulnerability Management\" $evidence) }\n        if (-not (Test-IngestSection 'defender/serverVulnerabilityAssessmentsSettings')) { return New-SubscriptionFinding (New-Unknown 'The vulnerability assessment setting could not be read and the plan does not report a sub plan' $evidence) }\n        $setting = @(Get-IngestData 'defender/serverVulnerabilityAssessmentsSettings') | Where-Object { $_ } | Select-Object -First 1\n        $evidence.selectedProvider = $setting.properties.selectedProvider\n        if ($evidence.selectedProvider) { return New-SubscriptionFinding (New-Pass \"Vulnerability assessment provider $($evidence.selectedProvider)\" $evidence) }\n        New-SubscriptionFinding (New-Fail 'No vulnerability assessment provider is selected' $evidence)\n    " }, (S, O) => {
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-DEF-026", "Title", "Defender for AI services includes suspicious prompt evidence in alerts", "Category", "Logging and threat detection", "Service", "Microsoft Defender for Cloud", "Severity", "Low", "Description", "Checks that Defender for AI services is on and that its AIPromptEvidence extension (suspicious prompt evidence) is enabled, so alerts include the suspicious segments of prompts and responses, with sensitive data redacted.", "Rationale", "Without the evidence, an alert about prompt injection or data leakage only says that something happened. Analysts cannot judge the attack or its impact without asking the application owners for logs they may not keep.", "Remediation", "Enable 'Suspicious prompt evidence' under Defender plans > AI services > Settings.", "References", R.a("https://learn.microsoft.com/azure/defender-for-cloud/gain-end-user-context-ai"), "Requires", R.a("defender/pricings"), "Run", R.sb({ params: [], adv: 0, text: "\n        $pricing = Get-DefenderPricing 'AI'\n        $extension = Get-PricingExtension $pricing 'AIPromptEvidence'\n        $evidence = [ordered]@{ aiPlan = $pricing.properties.pricingTier; promptEvidence = $extension.isEnabled }\n        if ($pricing.properties.pricingTier -ne 'Standard') { return New-SubscriptionFinding (New-Fail 'Defender for AI services is off' $evidence) }\n        if ($extension -and $extension.isEnabled -eq 'True') { return New-SubscriptionFinding (New-Pass 'Suspicious prompt evidence is on' $evidence) }\n        New-SubscriptionFinding (New-Fail 'Suspicious prompt evidence is off' $evidence)\n    " }, (S, O) => {
+        R.ln = F + 204;
+        S["pricing"] = R.u(R.cmd(S, "Get-DefenderPricing", ["AI"], null));
+        R.ln = F + 205;
+        S["extension"] = R.u(R.cmd(S, "Get-PricingExtension", [(S["pricing"] ?? null), "AIPromptEvidence"], null));
         R.ln = F + 206;
-        S["servers"] = R.u(R.cmd(S, "Get-DefenderPricing", ["VirtualMachines"], null));
+        S["evidence"] = R.ht(["aiPlan", R.m(R.m((S["pricing"] ?? null), "properties"), "pricingTier"), "promptEvidence", R.m((S["extension"] ?? null), "isEnabled")], true);
         R.ln = F + 207;
-        S["evidence"] = R.ht(["serversPlan", R.m(R.m((S["servers"] ?? null), "properties"), "pricingTier"), "serversSubPlan", R.m(R.m((S["servers"] ?? null), "properties"), "subPlan")], true);
+        if (R.t(R.ne(R.m(R.m((S["pricing"] ?? null), "properties"), "pricingTier"), "Standard"))) {
+            R.ln = F + 207;
+            R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Fail", ["Defender for AI services is off", (S["evidence"] ?? null)], null))], null));
+            return;
+        }
         R.ln = F + 208;
-        if (R.t(R.ne(R.m(R.m((S["servers"] ?? null), "properties"), "pricingTier"), "Standard"))) {
+        if ((R.t((S["extension"] ?? null)) && R.t(R.eq(R.m((S["extension"] ?? null), "isEnabled"), "True")))) {
             R.ln = F + 208;
+            R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Pass", ["Suspicious prompt evidence is on", (S["evidence"] ?? null)], null))], null));
+            return;
+        }
+        R.ln = F + 209;
+        R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Fail", ["Suspicious prompt evidence is off", (S["evidence"] ?? null)], null))], null));
+    })], false)], null));
+    R.ln = F + 213;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-DEF-017", "Version", 2, "Title", "Vulnerability assessment for machines is configured", "Category", "Posture and vulnerability management", "Service", "Microsoft Defender for Cloud", "Severity", "Medium", "Description", "Checks that Defender for Servers is on and that a vulnerability assessment provider (Microsoft Defender Vulnerability Management) covers machines. Both Plan 1 and Plan 2 include Defender Vulnerability Management.", "Rationale", "Unknown vulnerabilities cannot be prioritized or patched. Built-in vulnerability management continuously finds missing patches and vulnerable software on servers.", "Remediation", "Enable Defender for Servers and set 'Vulnerability assessment for machines' to Microsoft Defender Vulnerability Management.", "References", R.a("https://learn.microsoft.com/azure/defender-for-cloud/deploy-vulnerability-assessment-defender-vulnerability-management"), "Policy", R.ht(["501541f7-f7e7-4cd6-868c-4190fdad3ac9", "A vulnerability assessment solution should be enabled on your virtual machines"], false), "Requires", R.a("defender/pricings"), "Run", R.sb({ params: [], adv: 0, text: "\n        $servers = Get-DefenderPricing 'VirtualMachines'\n        $evidence = [ordered]@{ serversPlan = $servers.properties.pricingTier; serversSubPlan = $servers.properties.subPlan }\n        if ($servers.properties.pricingTier -ne 'Standard') { return New-SubscriptionFinding (New-Fail 'Defender for Servers is off, so no vulnerability assessment runs' $evidence) }\n        #both Defender for Servers plans include Defender Vulnerability Management, so the plan itself already satisfies this\n        if ($servers.properties.subPlan -in 'P1', 'P2') { return New-SubscriptionFinding (New-Pass \"Defender for Servers $($servers.properties.subPlan) includes Defender Vulnerability Management\" $evidence) }\n        if (-not (Test-IngestSection 'defender/serverVulnerabilityAssessmentsSettings')) { return New-SubscriptionFinding (New-Unknown 'The vulnerability assessment setting could not be read and the plan does not report a sub plan' $evidence) }\n        $setting = @(Get-IngestData 'defender/serverVulnerabilityAssessmentsSettings') | Where-Object { $_ } | Select-Object -First 1\n        $evidence.selectedProvider = $setting.properties.selectedProvider\n        if ($evidence.selectedProvider) { return New-SubscriptionFinding (New-Pass \"Vulnerability assessment provider $($evidence.selectedProvider)\" $evidence) }\n        New-SubscriptionFinding (New-Fail 'No vulnerability assessment provider is selected' $evidence)\n    " }, (S, O) => {
+        R.ln = F + 227;
+        S["servers"] = R.u(R.cmd(S, "Get-DefenderPricing", ["VirtualMachines"], null));
+        R.ln = F + 228;
+        S["evidence"] = R.ht(["serversPlan", R.m(R.m((S["servers"] ?? null), "properties"), "pricingTier"), "serversSubPlan", R.m(R.m((S["servers"] ?? null), "properties"), "subPlan")], true);
+        R.ln = F + 229;
+        if (R.t(R.ne(R.m(R.m((S["servers"] ?? null), "properties"), "pricingTier"), "Standard"))) {
+            R.ln = F + 229;
             R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Fail", ["Defender for Servers is off, so no vulnerability assessment runs", (S["evidence"] ?? null)], null))], null));
             return;
         }
-        R.ln = F + 210;
+        R.ln = F + 231;
         if (R.t(R.in(R.m(R.m((S["servers"] ?? null), "properties"), "subPlan"), [R.v("P1"), R.v("P2")]))) {
-            R.ln = F + 210;
+            R.ln = F + 231;
             R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Pass", [("Defender for Servers " + R.str(R.u(R.pi(R.m(R.m((S["servers"] ?? null), "properties"), "subPlan")))) + " includes Defender Vulnerability Management"), (S["evidence"] ?? null)], null))], null));
             return;
         }
-        R.ln = F + 211;
+        R.ln = F + 232;
         if (!R.t(R.u(R.cmd(S, "Test-IngestSection", ["defender/serverVulnerabilityAssessmentsSettings"], null)))) {
-            R.ln = F + 211;
+            R.ln = F + 232;
             R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Unknown", ["The vulnerability assessment setting could not be read and the plan does not report a sub plan", (S["evidence"] ?? null)], null))], null));
             return;
         }
-        R.ln = F + 212;
+        R.ln = F + 233;
         S["setting"] = R.u(R.cmd(S, "Select-Object", [R.np("First"), 1], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 212;
+            R.ln = F + 233;
             R.e(O, (S["_"] ?? null));
         })], R.pi(R.cmd(S, "Get-IngestData", ["defender/serverVulnerabilityAssessmentsSettings"], null)))));
-        R.ln = F + 213;
+        R.ln = F + 234;
         R.sm((S["evidence"] ?? null), "selectedProvider", R.m(R.m((S["setting"] ?? null), "properties"), "selectedProvider"));
-        R.ln = F + 214;
+        R.ln = F + 235;
         if (R.t(R.m((S["evidence"] ?? null), "selectedProvider"))) {
-            R.ln = F + 214;
+            R.ln = F + 235;
             R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Pass", [("Vulnerability assessment provider " + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "selectedProvider"))))), (S["evidence"] ?? null)], null))], null));
             return;
         }
-        R.ln = F + 215;
+        R.ln = F + 236;
         R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Fail", ["No vulnerability assessment provider is selected", (S["evidence"] ?? null)], null))], null));
     })], false)], null));
-    R.ln = F + 219;
+    R.ln = F + 240;
     R.def(S, "Get-SecurityContact", { params: [], adv: 0, h: "0fe3a2e5e825dd46" }, (S, O) => {
-        R.ln = F + 220;
+        R.ln = F + 241;
         R.pa(O, R.cmd(S, "Select-Object", [R.np("First"), 1], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 220;
+            R.ln = F + 241;
             R.e(O, (S["_"] ?? null));
         })], R.pi(R.cmd(S, "Get-IngestData", ["defender/securityContacts"], null)))));
         return;
     });
-    R.ln = F + 223;
+    R.ln = F + 244;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-DEF-018", "Title", "A security contact email address is configured", "Category", "Incident response", "Service", "Microsoft Defender for Cloud", "Severity", "Medium", "Description", "Checks that Defender for Cloud email notifications have at least one additional email address.", "Rationale", "Microsoft and Defender for Cloud use the security contact to report compromised resources and high severity alerts. Without it, notifications may reach nobody who acts on them.", "Remediation", "Set 'Additional email addresses' (a monitored security team mailbox) under Defender for Cloud > Environment settings > Email notifications.", "References", R.a("https://learn.microsoft.com/azure/defender-for-cloud/configure-email-notifications"), "Requires", R.a("defender/securityContacts"), "Run", R.sb({ params: [], adv: 0, text: "\n        $contact = Get-SecurityContact\n        $emails = @(([string]$contact.properties.emails) -split '[;,]' | ForEach-Object { $_.Trim() } | Where-Object { $_ })\n        $evidence = [ordered]@{ emails = $emails; isEnabled = $contact.properties.isEnabled }\n        if ($emails) { return New-SubscriptionFinding (New-Pass \"$($emails.Count) security contact address(es)\" $evidence) }\n        New-SubscriptionFinding (New-Fail 'No security contact email address' $evidence)\n    " }, (S, O) => {
-        R.ln = F + 235;
+        R.ln = F + 256;
         S["contact"] = R.u(R.cmd(S, "Get-SecurityContact", [], null));
-        R.ln = F + 236;
+        R.ln = F + 257;
         S["emails"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 236;
+            R.ln = F + 257;
             R.e(O, (S["_"] ?? null));
         })], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " $_.Trim() " }, (S, O) => {
-            R.ln = F + 236;
+            R.ln = F + 257;
             R.e(O, R.im((S["_"] ?? null), "Trim", []));
         })], R.pi(R.split((R.c("string", R.m(R.m((S["contact"] ?? null), "properties"), "emails"))), "[;,]"))));
-        R.ln = F + 237;
+        R.ln = F + 258;
         S["evidence"] = R.ht(["emails", (S["emails"] ?? null), "isEnabled", R.m(R.m((S["contact"] ?? null), "properties"), "isEnabled")], true);
-        R.ln = F + 238;
+        R.ln = F + 259;
         if (R.t((S["emails"] ?? null))) {
-            R.ln = F + 238;
+            R.ln = F + 259;
             R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Pass", [("" + R.str(R.u(R.pi(R.m((S["emails"] ?? null), "Count")))) + " security contact address(es)"), (S["evidence"] ?? null)], null))], null));
             return;
         }
-        R.ln = F + 239;
+        R.ln = F + 260;
         R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Fail", ["No security contact email address", (S["evidence"] ?? null)], null))], null));
     })], false)], null));
-    R.ln = F + 243;
+    R.ln = F + 264;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-DEF-019", "Title", "Security alert notifications are sent to subscription owners", "Category", "Incident response", "Service", "Microsoft Defender for Cloud", "Severity", "Low", "Description", "Checks that Defender for Cloud notifies users with the Owner role about alerts.", "Rationale", "Owners are accountable for the subscription and must know when its resources are attacked, especially when no central SOC monitors the alerts.", "Remediation", "Under Email notifications, select 'Owner' in 'All users with the following roles'.", "References", R.a("https://learn.microsoft.com/azure/defender-for-cloud/configure-email-notifications"), "Policy", R.ht(["0b15565f-aa9e-48ba-8619-45960f2c314d", "Email notification to subscription owner for high severity alerts should be enabled"], false), "Requires", R.a("defender/securityContacts"), "Run", R.sb({ params: [], adv: 0, text: "\n        $byRole = (Get-SecurityContact).properties.notificationsByRole\n        $evidence = [ordered]@{ state = $byRole.state; roles = @($byRole.roles) }\n        if ($byRole.state -eq 'On' -and @($byRole.roles) -contains 'Owner') { return New-SubscriptionFinding (New-Pass 'Owners are notified' $evidence) }\n        New-SubscriptionFinding (New-Fail 'Owners are not notified about alerts' $evidence)\n    " }, (S, O) => {
-        R.ln = F + 256;
+        R.ln = F + 277;
         S["byrole"] = R.m(R.m(R.u(R.cmd(S, "Get-SecurityContact", [], null)), "properties"), "notificationsByRole");
-        R.ln = F + 257;
+        R.ln = F + 278;
         S["evidence"] = R.ht(["state", R.m((S["byrole"] ?? null), "state"), "roles", R.a(R.m((S["byrole"] ?? null), "roles"))], true);
-        R.ln = F + 258;
+        R.ln = F + 279;
         if ((R.t(R.eq(R.m((S["byrole"] ?? null), "state"), "On")) && R.t(R.cont(R.a(R.m((S["byrole"] ?? null), "roles")), "Owner")))) {
-            R.ln = F + 258;
+            R.ln = F + 279;
             R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Pass", ["Owners are notified", (S["evidence"] ?? null)], null))], null));
             return;
         }
-        R.ln = F + 259;
+        R.ln = F + 280;
         R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Fail", ["Owners are not notified about alerts", (S["evidence"] ?? null)], null))], null));
     })], false)], null));
-    R.ln = F + 263;
+    R.ln = F + 284;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-DEF-020", "Title", "Email notifications for security alerts are enabled", "Category", "Incident response", "Service", "Microsoft Defender for Cloud", "Severity", "Medium", "Description", "Checks that Defender for Cloud sends email notifications for alerts with a minimum severity of High or lower.", "Rationale", "Alert emails are the minimum notification path so that detected attacks are acted upon quickly.", "Remediation", "Under Email notifications, enable 'Notify about alerts with the following severity (or higher)' and select High (or Medium).", "References", R.a("https://learn.microsoft.com/azure/defender-for-cloud/configure-email-notifications"), "Policy", R.ht(["6e2593d9-add6-4083-9c9b-4b7d2188c899", "Email notification for high severity alerts should be enabled"], false), "Requires", R.a("defender/securityContacts"), "Run", R.sb({ params: [], adv: 0, text: "\n        $contact = Get-SecurityContact\n        $source = @($contact.properties.notificationsSources) | Where-Object { $_ -and $_.sourceType -eq 'Alert' } | Select-Object -First 1\n        $evidence = [ordered]@{ isEnabled = $contact.properties.isEnabled; minimalSeverity = $source.minimalSeverity }\n        if ($contact.properties.isEnabled -and $source.minimalSeverity -in 'High', 'Medium', 'Low') { return New-SubscriptionFinding (New-Pass \"Alert emails for severity $($source.minimalSeverity) and higher\" $evidence) }\n        New-SubscriptionFinding (New-Fail 'Alert email notifications are not enabled' $evidence)\n    " }, (S, O) => {
-        R.ln = F + 276;
+        R.ln = F + 297;
         S["contact"] = R.u(R.cmd(S, "Get-SecurityContact", [], null));
-        R.ln = F + 277;
+        R.ln = F + 298;
         S["source"] = R.u(R.cmd(S, "Select-Object", [R.np("First"), 1], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.sourceType -eq 'Alert' " }, (S, O) => {
-            R.ln = F + 277;
+            R.ln = F + 298;
             R.e(O, (R.t((S["_"] ?? null)) && R.t(R.eq(R.m((S["_"] ?? null), "sourceType"), "Alert"))));
         })], R.pi(R.a(R.m(R.m((S["contact"] ?? null), "properties"), "notificationsSources"))))));
-        R.ln = F + 278;
+        R.ln = F + 299;
         S["evidence"] = R.ht(["isEnabled", R.m(R.m((S["contact"] ?? null), "properties"), "isEnabled"), "minimalSeverity", R.m((S["source"] ?? null), "minimalSeverity")], true);
-        R.ln = F + 279;
+        R.ln = F + 300;
         if ((R.t(R.m(R.m((S["contact"] ?? null), "properties"), "isEnabled")) && R.t(R.in(R.m((S["source"] ?? null), "minimalSeverity"), [R.v("High"), R.v("Medium"), R.v("Low")])))) {
-            R.ln = F + 279;
+            R.ln = F + 300;
             R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Pass", [("Alert emails for severity " + R.str(R.u(R.pi(R.m((S["source"] ?? null), "minimalSeverity")))) + " and higher"), (S["evidence"] ?? null)], null))], null));
             return;
         }
-        R.ln = F + 280;
+        R.ln = F + 301;
         R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Fail", ["Alert email notifications are not enabled", (S["evidence"] ?? null)], null))], null));
     })], false)], null));
-    R.ln = F + 284;
+    R.ln = F + 305;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-DEF-021", "Title", "Email notifications for attack paths are enabled", "Category", "Incident response", "Service", "Microsoft Defender for Cloud", "Severity", "Low", "Description", "Checks that Defender for Cloud sends email notifications for attack paths with a minimum risk level.", "Rationale", "Attack paths show exploitable chains from the internet to critical resources. Notifications make sure new high risk paths are handled promptly.", "Remediation", "Under Email notifications, enable 'Notify about attack paths with the following risk level (or higher)' (requires Defender CSPM).", "References", R.a("https://learn.microsoft.com/azure/defender-for-cloud/configure-email-notifications"), "Requires", R.a("defender/securityContacts"), "Run", R.sb({ params: [], adv: 0, text: "\n        $contact = Get-SecurityContact\n        $source = @($contact.properties.notificationsSources) | Where-Object { $_ -and $_.sourceType -eq 'AttackPath' } | Select-Object -First 1\n        $evidence = [ordered]@{ isEnabled = $contact.properties.isEnabled; minimalRiskLevel = $source.minimalRiskLevel }\n        if ($contact.properties.isEnabled -and $source.minimalRiskLevel) { return New-SubscriptionFinding (New-Pass \"Attack path emails for risk level $($source.minimalRiskLevel) and higher\" $evidence) }\n        New-SubscriptionFinding (New-Fail 'Attack path notifications are not enabled' $evidence)\n    " }, (S, O) => {
-        R.ln = F + 296;
+        R.ln = F + 317;
         S["contact"] = R.u(R.cmd(S, "Get-SecurityContact", [], null));
-        R.ln = F + 297;
+        R.ln = F + 318;
         S["source"] = R.u(R.cmd(S, "Select-Object", [R.np("First"), 1], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.sourceType -eq 'AttackPath' " }, (S, O) => {
-            R.ln = F + 297;
+            R.ln = F + 318;
             R.e(O, (R.t((S["_"] ?? null)) && R.t(R.eq(R.m((S["_"] ?? null), "sourceType"), "AttackPath"))));
         })], R.pi(R.a(R.m(R.m((S["contact"] ?? null), "properties"), "notificationsSources"))))));
-        R.ln = F + 298;
+        R.ln = F + 319;
         S["evidence"] = R.ht(["isEnabled", R.m(R.m((S["contact"] ?? null), "properties"), "isEnabled"), "minimalRiskLevel", R.m((S["source"] ?? null), "minimalRiskLevel")], true);
-        R.ln = F + 299;
+        R.ln = F + 320;
         if ((R.t(R.m(R.m((S["contact"] ?? null), "properties"), "isEnabled")) && R.t(R.m((S["source"] ?? null), "minimalRiskLevel")))) {
-            R.ln = F + 299;
+            R.ln = F + 320;
             R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Pass", [("Attack path emails for risk level " + R.str(R.u(R.pi(R.m((S["source"] ?? null), "minimalRiskLevel")))) + " and higher"), (S["evidence"] ?? null)], null))], null));
             return;
         }
-        R.ln = F + 300;
+        R.ln = F + 321;
         R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Fail", ["Attack path notifications are not enabled", (S["evidence"] ?? null)], null))], null));
     })], false)], null));
-    R.ln = F + 304;
+    R.ln = F + 325;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-DEF-022", "Title", "No active high severity security alerts", "Category", "Incident response", "Service", "Microsoft Defender for Cloud", "Severity", "High", "Description", "Lists Defender for Cloud alerts with severity High that are still active (not resolved or dismissed).", "Rationale", "An active high severity alert may be an ongoing compromise. Alerts must be triaged, investigated and closed.", "Remediation", "Investigate each alert (Defender for Cloud > Security alerts, or the Defender portal incidents), contain and remediate, then resolve or dismiss it with a reason.", "References", R.a("https://learn.microsoft.com/azure/defender-for-cloud/managing-and-responding-alerts"), "Requires", R.a("defender/alerts"), "Run", R.sb({ params: [], adv: 0, text: "\n        $alerts = @(Get-IngestData 'defender/alerts' | Where-Object { $_ -and $_.properties.severity -eq 'High' -and $_.properties.status -eq 'Active' })\n        if (-not $alerts) { return New-SubscriptionFinding (New-Pass 'No active high severity alerts') }\n        foreach ($alert in $alerts) {\n            $p = $alert.properties\n            $evidence = [ordered]@{ alert = $p.alertDisplayName; startTime = Format-UtcDate $p.startTimeUtc; compromisedEntity = $p.compromisedEntity; resource = @($p.resourceIdentifiers | ForEach-Object { $_.azureResourceId } | Where-Object { $_ }) }\n            New-Finding -ResourceId $alert.id -ResourceType $alert.type -ResourceName $p.alertDisplayName -Result (New-Fail \"$($p.alertDisplayName) on $($p.compromisedEntity) since $($evidence.startTime)\" $evidence)\n        }\n    " }, (S, O) => {
-        R.ln = F + 316;
+        R.ln = F + 337;
         S["alerts"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.properties.severity -eq 'High' -and $_.properties.status -eq 'Active' " }, (S, O) => {
-            R.ln = F + 316;
+            R.ln = F + 337;
             R.e(O, ((R.t((S["_"] ?? null)) && R.t(R.eq(R.m(R.m((S["_"] ?? null), "properties"), "severity"), "High"))) && R.t(R.eq(R.m(R.m((S["_"] ?? null), "properties"), "status"), "Active"))));
         })], R.cmd(S, "Get-IngestData", ["defender/alerts"], null));
-        R.ln = F + 317;
+        R.ln = F + 338;
         if (!R.t((S["alerts"] ?? null))) {
-            R.ln = F + 317;
+            R.ln = F + 338;
             R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Pass", ["No active high severity alerts"], null))], null));
             return;
         }
-        R.ln = F + 318;
+        R.ln = F + 339;
         for (const it9 of R.fi((S["alerts"] ?? null))) {
             S["alert"] = it9;
-            R.ln = F + 319;
+            R.ln = F + 340;
             S["p"] = R.m((S["alert"] ?? null), "properties");
-            R.ln = F + 320;
+            R.ln = F + 341;
             S["evidence"] = R.ht(["alert", R.m((S["p"] ?? null), "alertDisplayName"), "startTime", R.u(R.cmd(S, "Format-UtcDate", [R.m((S["p"] ?? null), "startTimeUtc")], null)), "compromisedEntity", R.m((S["p"] ?? null), "compromisedEntity"), "resource", R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-                R.ln = F + 320;
+                R.ln = F + 341;
                 R.e(O, (S["_"] ?? null));
             })], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " $_.azureResourceId " }, (S, O) => {
-                R.ln = F + 320;
+                R.ln = F + 341;
                 R.e(O, R.m((S["_"] ?? null), "azureResourceId"));
             })], R.pi(R.m((S["p"] ?? null), "resourceIdentifiers"))))], true);
-            R.ln = F + 321;
+            R.ln = F + 342;
             R.pa(O, R.cmd(S, "New-Finding", [R.np("ResourceId"), R.m((S["alert"] ?? null), "id"), R.np("ResourceType"), R.m((S["alert"] ?? null), "type"), R.np("ResourceName"), R.m((S["p"] ?? null), "alertDisplayName"), R.np("Result"), R.u(R.cmd(S, "New-Fail", [("" + R.str(R.u(R.pi(R.m((S["p"] ?? null), "alertDisplayName")))) + " on " + R.str(R.u(R.pi(R.m((S["p"] ?? null), "compromisedEntity")))) + " since " + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "startTime"))))), (S["evidence"] ?? null)], null))], null));
         }
     })], false)], null));
-    R.ln = F + 326;
+    R.ln = F + 347;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-DEF-024", "Title", "Sensitive data discovery is enabled", "Category", "Data protection", "Service", "Microsoft Defender for Cloud", "Severity", "Medium", "Description", "Checks the sensitive data discovery extension of Defender CSPM or Defender for Storage.", "Rationale", "Knowing where sensitive data lives drives the prioritization of attack paths, alerts and protection; sensitive data discovery classifies data in storage and databases automatically.", "Remediation", "Enable 'Sensitive data discovery' in the Defender CSPM or Defender for Storage plan settings.", "References", R.a("https://learn.microsoft.com/azure/defender-for-cloud/concept-data-security-posture"), "Requires", R.a("defender/pricings"), "Run", R.sb({ params: [], adv: 0, text: "\n        $enabledIn = @('CloudPosture', 'StorageAccounts' | Where-Object {\n                $pricing = Get-DefenderPricing $_\n                $extension = Get-PricingExtension $pricing 'SensitiveDataDiscovery'\n                $pricing.properties.pricingTier -eq 'Standard' -and $extension.isEnabled -eq 'True'\n            })\n        $evidence = [ordered]@{ enabledIn = $enabledIn }\n        if ($enabledIn) { return New-SubscriptionFinding (New-Pass \"Sensitive data discovery on ($($enabledIn -join ', '))\" $evidence) }\n        New-SubscriptionFinding (New-Fail 'Sensitive data discovery is off' $evidence)\n    " }, (S, O) => {
-        R.ln = F + 338;
+        R.ln = F + 359;
         S["enabledin"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: "\n                $pricing = Get-DefenderPricing $_\n                $extension = Get-PricingExtension $pricing 'SensitiveDataDiscovery'\n                $pricing.properties.pricingTier -eq 'Standard' -and $extension.isEnabled -eq 'True'\n            " }, (S, O) => {
-            R.ln = F + 339;
+            R.ln = F + 360;
             S["pricing"] = R.u(R.cmd(S, "Get-DefenderPricing", [(S["_"] ?? null)], null));
-            R.ln = F + 340;
+            R.ln = F + 361;
             S["extension"] = R.u(R.cmd(S, "Get-PricingExtension", [(S["pricing"] ?? null), "SensitiveDataDiscovery"], null));
-            R.ln = F + 341;
+            R.ln = F + 362;
             R.e(O, (R.t(R.eq(R.m(R.m((S["pricing"] ?? null), "properties"), "pricingTier"), "Standard")) && R.t(R.eq(R.m((S["extension"] ?? null), "isEnabled"), "True"))));
         })], R.pi([R.v("CloudPosture"), R.v("StorageAccounts")]));
-        R.ln = F + 343;
+        R.ln = F + 364;
         S["evidence"] = R.ht(["enabledIn", (S["enabledin"] ?? null)], true);
-        R.ln = F + 344;
+        R.ln = F + 365;
         if (R.t((S["enabledin"] ?? null))) {
-            R.ln = F + 344;
+            R.ln = F + 365;
             R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Pass", [("Sensitive data discovery on (" + R.str(R.u(R.pi(R.join((S["enabledin"] ?? null), ", ")))) + ")"), (S["evidence"] ?? null)], null))], null));
             return;
         }
-        R.ln = F + 345;
+        R.ln = F + 366;
         R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Fail", ["Sensitive data discovery is off", (S["evidence"] ?? null)], null))], null));
     })], false)], null));
-    R.ln = F + 349;
+    R.ln = F + 370;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-DEF-025", "Version", 2, "Title", "Defender for Storage malware scanning is enabled", "Category", "Data protection", "Service", "Microsoft Defender for Cloud", "Severity", "Medium", "Description", "Checks that on-upload malware scanning of Defender for Storage applies to each storage account (plan extension or account level override).", "Rationale", "Storage accounts that receive files from users or partners are a malware distribution path; scanning on upload detects malicious content before it is consumed.", "Remediation", "Enable 'Malware scanning' in the Defender for Storage plan settings (with a monthly cap per account), or on the individual storage account.", "References", R.a("https://learn.microsoft.com/azure/defender-for-cloud/on-upload-malware-scanning"), "Requires", R.a("defender/pricings"), "ResourceTypes", R.a("Microsoft.Storage/storageAccounts"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        if (-not (Test-ChildCollected $Record 'providers/Microsoft.Security/defenderForStorageSettings/current')) { return New-Unknown 'The Defender for Storage setting of the account could not be read' }\n        $setting = (Get-Child $Record 'providers/Microsoft.Security/defenderForStorageSettings/current').properties\n        $pricing = Get-DefenderPricing 'StorageAccounts'\n        $planScanning = $pricing.properties.pricingTier -eq 'Standard' -and (Get-PricingExtension $pricing 'OnUploadMalwareScanning').isEnabled -eq 'True'\n        $evidence = [ordered]@{ planMalwareScanning = $planScanning; accountOverride = [bool]$setting.overrideSubscriptionLevelSettings; accountMalwareScanning = $setting.malwareScanning.onUpload.isEnabled }\n        $enabled = if ($setting.overrideSubscriptionLevelSettings) { $setting.isEnabled -and $setting.malwareScanning.onUpload.isEnabled } else { $planScanning }\n        if ($enabled) { return New-Pass 'Malware scanning on upload enabled' $evidence }\n        New-Fail 'No malware scanning on upload' $evidence\n    " }, (S, O) => {
-        R.ln = F + 364;
+        R.ln = F + 385;
         if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["record"] ?? null), "providers/Microsoft.Security/defenderForStorageSettings/current"], null)))) {
-            R.ln = F + 364;
+            R.ln = F + 385;
             R.pa(O, R.cmd(S, "New-Unknown", ["The Defender for Storage setting of the account could not be read"], null));
             return;
         }
-        R.ln = F + 365;
+        R.ln = F + 386;
         S["setting"] = R.m(R.u(R.cmd(S, "Get-Child", [(S["record"] ?? null), "providers/Microsoft.Security/defenderForStorageSettings/current"], null)), "properties");
-        R.ln = F + 366;
+        R.ln = F + 387;
         S["pricing"] = R.u(R.cmd(S, "Get-DefenderPricing", ["StorageAccounts"], null));
-        R.ln = F + 367;
+        R.ln = F + 388;
         S["planscanning"] = (R.t(R.eq(R.m(R.m((S["pricing"] ?? null), "properties"), "pricingTier"), "Standard")) && R.t(R.eq(R.m(R.u(R.cmd(S, "Get-PricingExtension", [(S["pricing"] ?? null), "OnUploadMalwareScanning"], null)), "isEnabled"), "True")));
-        R.ln = F + 368;
+        R.ln = F + 389;
         S["evidence"] = R.ht(["planMalwareScanning", (S["planscanning"] ?? null), "accountOverride", R.c("bool", R.m((S["setting"] ?? null), "overrideSubscriptionLevelSettings")), "accountMalwareScanning", R.m(R.m(R.m((S["setting"] ?? null), "malwareScanning"), "onUpload"), "isEnabled")], true);
-        R.ln = F + 369;
+        R.ln = F + 390;
         const v10 = [];
-        R.ln = F + 369;
+        R.ln = F + 390;
         if (R.t(R.m((S["setting"] ?? null), "overrideSubscriptionLevelSettings"))) {
-            R.ln = F + 369;
+            R.ln = F + 390;
             R.e(v10, (R.t(R.m((S["setting"] ?? null), "isEnabled")) && R.t(R.m(R.m(R.m((S["setting"] ?? null), "malwareScanning"), "onUpload"), "isEnabled"))));
         } else {
-            R.ln = F + 369;
+            R.ln = F + 390;
             R.e(v10, (S["planscanning"] ?? null));
         }
         S["enabled"] = R.u(v10);
-        R.ln = F + 370;
+        R.ln = F + 391;
         if (R.t((S["enabled"] ?? null))) {
-            R.ln = F + 370;
+            R.ln = F + 391;
             R.pa(O, R.cmd(S, "New-Pass", ["Malware scanning on upload enabled", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 371;
+        R.ln = F + 392;
         R.pa(O, R.cmd(S, "New-Fail", ["No malware scanning on upload", (S["evidence"] ?? null)], null));
     })], false)], null));
-    R.ln = F + 375;
+    R.ln = F + 396;
     R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-DEF-023", "Version", 2, "Title", "Security alerts are forwarded to a SIEM or automation", "Category", "Incident response", "Service", "Microsoft Defender for Cloud", "Severity", "Low", "Description", "Checks for a Defender for Cloud workflow automation or continuous export that handles security alerts, or the Microsoft Sentinel alert synchronization setting.", "Rationale", "Alerts that stay in the portal depend on someone looking. Forwarding them to a SIEM, SOAR or ticketing flow makes sure every alert is triaged.", "Remediation", "Connect Defender for Cloud to Microsoft Sentinel (or your SIEM) through the Defender XDR connector or continuous export, or create a workflow automation for alerts.", "References", R.a("https://learn.microsoft.com/azure/defender-for-cloud/continuous-export"), "Requires", R.a([R.v("defender/automations"), R.v("defender/settings")]), "Run", R.sb({ params: [], adv: 0, text: "\n        $automations = @(Get-IngestData 'defender/automations' | Where-Object { $_ -and $_.properties.isEnabled -and (@($_.properties.sources) | Where-Object { $_.eventSource -eq 'Alerts' }) })\n        $sentinel = @(Get-IngestData 'defender/settings') | Where-Object { $_ -and $_.name -eq 'Sentinel' -and $_.properties.enabled }\n        $evidence = [ordered]@{ alertAutomations = @($automations | ForEach-Object name | Sort-Object); sentinelAlertSync = [bool]$sentinel }\n        if ($automations -or $sentinel) { return New-SubscriptionFinding (New-Pass 'Alerts are forwarded' $evidence) }\n        New-SubscriptionFinding (New-Fail 'No alert export, automation or Sentinel synchronization configured for this subscription' $evidence)\n    " }, (S, O) => {
-        R.ln = F + 388;
+        R.ln = F + 409;
         S["automations"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.properties.isEnabled -and (@($_.properties.sources) | Where-Object { $_.eventSource -eq 'Alerts' }) " }, (S, O) => {
-            R.ln = F + 388;
+            R.ln = F + 409;
             R.e(O, ((R.t((S["_"] ?? null)) && R.t(R.m(R.m((S["_"] ?? null), "properties"), "isEnabled"))) && R.t(R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.eventSource -eq 'Alerts' " }, (S, O) => {
-                R.ln = F + 388;
+                R.ln = F + 409;
                 R.e(O, R.eq(R.m((S["_"] ?? null), "eventSource"), "Alerts"));
             })], R.pi(R.a(R.m(R.m((S["_"] ?? null), "properties"), "sources"))))))));
         })], R.cmd(S, "Get-IngestData", ["defender/automations"], null));
-        R.ln = F + 389;
+        R.ln = F + 410;
         S["sentinel"] = R.u(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.name -eq 'Sentinel' -and $_.properties.enabled " }, (S, O) => {
-            R.ln = F + 389;
+            R.ln = F + 410;
             R.e(O, ((R.t((S["_"] ?? null)) && R.t(R.eq(R.m((S["_"] ?? null), "name"), "Sentinel"))) && R.t(R.m(R.m((S["_"] ?? null), "properties"), "enabled"))));
         })], R.pi(R.cmd(S, "Get-IngestData", ["defender/settings"], null))));
-        R.ln = F + 390;
+        R.ln = F + 411;
         S["evidence"] = R.ht(["alertAutomations", R.cmd(S, "Sort-Object", [], R.cmd(S, "ForEach-Object", ["name"], R.pi((S["automations"] ?? null)))), "sentinelAlertSync", R.c("bool", (S["sentinel"] ?? null))], true);
-        R.ln = F + 391;
+        R.ln = F + 412;
         if ((R.t((S["automations"] ?? null)) || R.t((S["sentinel"] ?? null)))) {
-            R.ln = F + 391;
+            R.ln = F + 412;
             R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Pass", ["Alerts are forwarded", (S["evidence"] ?? null)], null))], null));
             return;
         }
-        R.ln = F + 392;
+        R.ln = F + 413;
         R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Fail", ["No alert export, automation or Sentinel synchronization configured for this subscription", (S["evidence"] ?? null)], null))], null));
     })], false)], null));
 });

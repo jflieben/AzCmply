@@ -29,8 +29,8 @@ The script returns `{ Path, Resources, FailedRequests }`.
 
 ## Permissions
 
-- Azure: **Reader** on the subscription. Optionally Reader on the shared resources in other subscriptions that `subscription/referencedResources` reads.
-- Graph application permissions: **Directory.Read.All** and **PrivilegedAccess.Read.AzureADGroup** (eligible members of PIM for Groups; without it, the tests of role assignments to groups report Unknown). Optional: **RoleManagement.Read.Directory** (eligible directory roles), **AuditLog.Read.All** (user sign-in activity), **Policy.Read.All** (Conditional Access policies and security defaults).
+- Azure: **Reader** on the subscription. Optionally Reader on the shared resources in other subscriptions that `subscription/referencedResources` reads, and Reader on the root management group for its hierarchy settings (`subscription/managementGroupSettings`).
+- Graph application permissions: **Directory.Read.All** and **PrivilegedAccess.Read.AzureADGroup** (eligible members of PIM for Groups; without it, the tests of role assignments to groups report Unknown). Optional: **RoleManagement.Read.Directory** (eligible directory roles), **AuditLog.Read.All** (user sign-in activity), **Policy.Read.All** (Conditional Access policies, security defaults and, through Microsoft Graph beta, the per-user MFA state of users with Azure access in `identity/userMfaRequirements`).
 
 Missing permissions do not stop the run. Each failed call is listed in `failures.json` and the affected section is marked in `manifest.json`.
 
