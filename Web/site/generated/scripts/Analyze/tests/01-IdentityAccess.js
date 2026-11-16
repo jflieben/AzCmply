@@ -3386,4 +3386,447 @@ export default R.script("/app/Analyze/tests/01-IdentityAccess.ps1", { params: []
         R.ln = F + 1601;
         R.e(O, (S["findings"] ?? null));
     })], false)], null));
+    R.ln = F + 1605;
+    R.def(S, "Get-PrivilegedGrants", { params: [{ n: "PrincipalId", t: "string", pos: null }], adv: 0, h: "04238ea1ca49b9b6" }, (S, O) => {
+        R.ln = F + 1608;
+        S["key"] = R.im((S["principalid"] ?? null), "ToLowerInvariant", []);
+        R.ln = F + 1609;
+        R.e(O, R.cmd(S, "Sort-Object", ["id"], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " ([string]$_.properties.principalId).ToLowerInvariant() -eq $key -and (Test-RolePrivileged $_.properties.roleDefinitionId) " }, (S, O) => {
+            R.ln = F + 1609;
+            R.e(O, (R.t(R.eq(R.im((R.c("string", R.m(R.m((S["_"] ?? null), "properties"), "principalId"))), "ToLowerInvariant", []), (S["key"] ?? null))) && R.t(R.u(R.cmd(S, "Test-RolePrivileged", [R.m(R.m((S["_"] ?? null), "properties"), "roleDefinitionId")], null)))));
+        })], R.cmd(S, "Get-ActiveRoleAssignments", [], null))));
+    });
+    R.ln = F + 1612;
+    R.def(S, "Test-HoldsPrivilegeOver", { params: [{ n: "PrincipalId", t: "string", pos: null }, { n: "Scopes", t: "string[]", pos: null }], adv: 0, h: "bbf5234e40ce723c" }, (S, O) => {
+        R.ln = F + 1615;
+        S["held"] = R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " [string]$_.properties.scope " }, (S, O) => {
+            R.ln = F + 1615;
+            R.e(O, R.c("string", R.m(R.m((S["_"] ?? null), "properties"), "scope")));
+        })], R.cmd(S, "Get-PrivilegedGrants", [(S["principalid"] ?? null)], null));
+        R.ln = F + 1616;
+        for (const it151 of R.fi((S["scopes"] ?? null))) {
+            S["scope"] = it151;
+            R.ln = F + 1616;
+            if (!R.t(R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " Test-ScopeContains $_ $scope " }, (S, O) => {
+                R.ln = F + 1616;
+                R.pa(O, R.cmd(S, "Test-ScopeContains", [(S["_"] ?? null), (S["scope"] ?? null)], null));
+            })], R.pi((S["held"] ?? null))), "Count"))) {
+                R.ln = F + 1616;
+                R.e(O, false);
+                return;
+            }
+        }
+        R.ln = F + 1617;
+        R.e(O, true);
+        return;
+    });
+    R.ln = F + 1620;
+    R.def(S, "Get-ActionHolders", { params: [{ n: "Actions", t: "string[]", pos: null }, { n: "Scope", t: "string", pos: null }], adv: 0, h: "d01314923c8b4f3f" }, (S, O) => {
+        R.ln = F + 1624;
+        S["holders"] = R.sc("System.Collections.Generic.List[object]", "new", []);
+        R.ln = F + 1625;
+        S["unread"] = R.sc("System.Collections.Generic.List[string]", "new", []);
+        R.ln = F + 1626;
+        for (const it152 of R.fi(R.cmd(S, "Sort-Object", ["id"], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.properties.principalId -and (Test-ScopeContains ([string]$_.properties.scope) $Scope) " }, (S, O) => {
+            R.ln = F + 1626;
+            R.e(O, (R.t(R.m(R.m((S["_"] ?? null), "properties"), "principalId")) && R.t(R.u(R.cmd(S, "Test-ScopeContains", [(R.c("string", R.m(R.m((S["_"] ?? null), "properties"), "scope"))), (S["scope"] ?? null)], null)))));
+        })], R.cmd(S, "Get-ActiveRoleAssignments", [], null))))) {
+            S["assignment"] = it152;
+            R.ln = F + 1627;
+            S["definition"] = R.i(R.u(R.cmd(S, "Get-RoleDefinitionMap", [], null)), R.u(R.cmd(S, "Get-RoleDefinitionGuid", [R.m(R.m((S["assignment"] ?? null), "properties"), "roleDefinitionId")], null)));
+            R.ln = F + 1628;
+            if (!R.t((S["definition"] ?? null))) {
+                R.ln = F + 1628;
+                R.e(O, R.im((S["unread"] ?? null), "Add", [R.u(R.cmd(S, "Get-RoleName", [R.m(R.m((S["assignment"] ?? null), "properties"), "roleDefinitionId")], null))]));
+                continue;
+            }
+            R.ln = F + 1629;
+            if (R.t(R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " Test-RoleGrantsAction $definition $_ " }, (S, O) => {
+                R.ln = F + 1629;
+                R.pa(O, R.cmd(S, "Test-RoleGrantsAction", [(S["definition"] ?? null), (S["_"] ?? null)], null));
+            })], R.pi((S["actions"] ?? null))), "Count"))) {
+                R.ln = F + 1629;
+                R.e(O, R.im((S["holders"] ?? null), "Add", [(S["assignment"] ?? null)]));
+            }
+        }
+        R.ln = F + 1631;
+        R.e(O, R.pso(["Holders", R.a((S["holders"] ?? null)), "Unread", R.cmd(S, "Sort-Object", [R.np("Unique")], R.pi((S["unread"] ?? null)))]));
+        return;
+    });
+    R.ln = F + 1634;
+    R.def(S, "Get-EscalationFinding", { params: [{ n: "Holders", t: null, pos: null }, { n: "Excluded", t: "string[]", pos: null }, { n: "Grants", t: null, pos: null }, { n: "ResourceId", t: "string", pos: null }, { n: "ResourceType", t: "string", pos: null }, { n: "ResourceName", t: "string", pos: null }, { n: "Means", t: "string", pos: null }, { n: "Evidence", t: null, pos: null }], adv: 0, h: "dda40d0b419c0b2a" }, (S, O) => {
+        R.ln = F + 1637;
+        S["identityscopes"] = R.cmd(S, "Sort-Object", [R.np("Unique")], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " [string]$_.properties.scope " }, (S, O) => {
+            R.ln = F + 1637;
+            R.e(O, R.c("string", R.m(R.m((S["_"] ?? null), "properties"), "scope")));
+        })], R.pi((S["grants"] ?? null))));
+        R.ln = F + 1638;
+        R.sm((S["evidence"] ?? null), "identityRoles", R.cmd(S, "Sort-Object", [R.np("Unique")], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " \"$(Get-RoleName $_.properties.roleDefinitionId) @ $($_.properties.scope)\" " }, (S, O) => {
+            R.ln = F + 1638;
+            R.e(O, ("" + R.str(R.u(R.cmd(S, "Get-RoleName", [R.m(R.m((S["_"] ?? null), "properties"), "roleDefinitionId")], null))) + " @ " + R.str(R.u(R.pi(R.m(R.m((S["_"] ?? null), "properties"), "scope"))))));
+        })], R.pi((S["grants"] ?? null)))));
+        R.ln = F + 1639;
+        S["escalating"] = R.sc("System.Collections.Generic.List[string]", "new", []);
+        R.ln = F + 1640;
+        for (const it153 of R.fi((S["holders"] ?? null))) {
+            S["holder"] = it153;
+            R.ln = F + 1641;
+            S["principalid"] = R.c("string", R.m(R.m((S["holder"] ?? null), "properties"), "principalId"));
+            R.ln = F + 1642;
+            if ((R.t(R.in(R.im((S["principalid"] ?? null), "ToLowerInvariant", []), (S["excluded"] ?? null))) || R.t(R.u(R.cmd(S, "Test-PrincipalDeleted", [(S["principalid"] ?? null)], null))))) {
+                continue;
+            }
+            R.ln = F + 1643;
+            if (R.t(R.u(R.cmd(S, "Test-HoldsPrivilegeOver", [(S["principalid"] ?? null), (S["identityscopes"] ?? null)], null)))) {
+                continue;
+            }
+            R.ln = F + 1644;
+            R.e(O, R.im((S["escalating"] ?? null), "Add", [("" + R.str(R.u(R.cmd(S, "Get-PrincipalLabel", [(S["principalid"] ?? null)], null))) + " (" + R.str(R.u(R.cmd(S, "Get-RoleName", [R.m(R.m((S["holder"] ?? null), "properties"), "roleDefinitionId")], null))) + " on " + R.str(R.u(R.pi(R.m(R.m((S["holder"] ?? null), "properties"), "scope")))) + ")")]));
+        }
+        R.ln = F + 1646;
+        R.sm((S["evidence"] ?? null), "principalsWithoutTheseRights", R.cmd(S, "Sort-Object", [R.np("Unique")], R.pi((S["escalating"] ?? null))));
+        R.ln = F + 1647;
+        const v154 = [];
+        R.ln = F + 1647;
+        if (R.t(R.m((S["escalating"] ?? null), "Count"))) {
+            R.ln = F + 1648;
+            R.pa(v154, R.cmd(S, "New-Fail", [("" + R.str(R.u(R.pi(R.m((S["escalating"] ?? null), "Count")))) + " principal(s) can " + R.str((S["means"] ?? null)) + " without holding its roles (" + R.str(R.u(R.pi(R.join(R.m((S["evidence"] ?? null), "identityRoles"), ", ")))) + "): " + R.str(R.u(R.pi(R.join(R.cmd(S, "Select-Object", [R.np("First"), 3], R.cmd(S, "Sort-Object", [R.np("Unique")], R.pi((S["escalating"] ?? null)))), "; ")))) + R.str((() => {
+                const v155 = [];
+                R.ln = F + 1648;
+                if (R.t(R.gt(R.m((S["escalating"] ?? null), "Count"), 3))) {
+                    R.ln = F + 1648;
+                    R.e(v155, "; ...");
+                }
+                return R.u(v155);
+            })())), (S["evidence"] ?? null)], null));
+        } else {
+            R.ln = F + 1650;
+            R.pa(v154, R.cmd(S, "New-Pass", [("Only principals that hold the same rights can " + R.str((S["means"] ?? null))), (S["evidence"] ?? null)], null));
+        }
+        S["result"] = R.u(v154);
+        R.ln = F + 1652;
+        R.pa(O, R.cmd(S, "New-Finding", [R.np("ResourceId"), (S["resourceid"] ?? null), R.np("ResourceType"), (S["resourcetype"] ?? null), R.np("ResourceName"), (S["resourcename"] ?? null), R.np("Result"), (S["result"] ?? null)], null));
+    });
+    R.ln = F + 1656;
+    S["policydefinitionwriteactions"] = R.a([R.v("Microsoft.Authorization/policyDefinitions/write"), R.v("Microsoft.Authorization/policySetDefinitions/write")]);
+    R.ln = F + 1658;
+    R.def(S, "Get-PolicyDefinitionScope", { params: [{ n: "Id", t: "string", pos: null }], adv: 0, h: "f89d9c2b2e64162d" }, (S, O) => {
+        R.ln = F + 1661;
+        if (R.t(R.nmatch(S, (S["id"] ?? null), "(?i)^(?<scope>/.+?)/providers/Microsoft\\.Authorization/policy(Set)?Definitions/"))) {
+            R.ln = F + 1661;
+            R.e(O, null);
+            return;
+        }
+        R.ln = F + 1662;
+        R.e(O, R.m((S["matches"] ?? null), "scope"));
+        return;
+    });
+    R.ln = F + 1665;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-IAM-038", "Title", "Only principals with the same rights can change the custom policies that privileged policy identities run", "Category", "Privileged access", "Service", "Azure Policy", "Severity", "High", "Description", "For every policy assignment whose managed identity holds a privileged role (Owner, Contributor, User Access Administrator, Role Based Access Control Administrator or a custom equivalent), lists the principals that can change the custom policy definitions or initiatives the assignment uses (policyDefinitions/write or policySetDefinitions/write on their scope), for example Resource Policy Contributor or Security Admin, and do not hold a privileged role on the scopes of the identity themselves. Built-in definitions cannot be changed.", "Rationale", "A deployIfNotExists or modify policy deploys whatever its definition says, as the identity of the assignment. Whoever can edit that definition can make the identity deploy a role assignment, a run command or anything else, and so has the rights of the identity: Resource Policy Contributor becomes Owner.", "Remediation", "Give the right to change these definitions only to principals that hold the rights of the identity anyway, keep the definitions on a scope that only platform administrators control (the management group of the platform team), or limit the roles of the identity to what its remediation needs.", "References", R.a([R.v("https://learn.microsoft.com/azure/governance/policy/how-to/remediate-resources#configure-the-managed-identity"), R.v("https://learn.microsoft.com/azure/role-based-access-control/built-in-roles/management-and-governance#resource-policy-contributor")]), "Requires", R.a([R.v("rbac/roleAssignments"), R.v("rbac/roleDefinitions"), R.v("policy/policyAssignments"), R.v("policy/policySetDefinitions")]), "Run", R.sb({ params: [], adv: 0, text: "\n        $sets = @{}\n        foreach ($set in @(Get-IngestData 'policy/policySetDefinitions' | Where-Object { $_ -and $_.id })) { $sets[([string]$set.id).ToLowerInvariant()] = $set }\n        $findings = foreach ($policy in @(Get-PolicyAssignments | Sort-Object id)) {\n            $principals = @(@($policy.identity.principalId) + @(foreach ($assigned in @($policy.identity.userAssignedIdentities.PSObject.Properties)) { $assigned.Value.principalId }) | Where-Object { $_ } | ForEach-Object { ([string]$_).ToLowerInvariant() } | Sort-Object -Unique)\n            $grants = @(foreach ($principal in $principals) { Get-PrivilegedGrants $principal })\n            if (-not $grants) { continue }\n            #the custom definitions the assignment runs: its own definition or initiative and the custom members of an initiative\n            $definitionId = [string]$policy.properties.policyDefinitionId\n            $custom = [System.Collections.Generic.List[string]]::new()\n            if (Get-PolicyDefinitionScope $definitionId) { $custom.Add($definitionId) }\n            $set = $sets[$definitionId.ToLowerInvariant()]\n            foreach ($member in @($set.properties.policyDefinitions | Where-Object { $_ -and $_.policyDefinitionId })) { if (Get-PolicyDefinitionScope ([string]$member.policyDefinitionId)) { $custom.Add([string]$member.policyDefinitionId) } }\n            $customIds = @($custom | Sort-Object -Unique)\n            $label = if ($policy.properties.displayName) { [string]$policy.properties.displayName } else { [string]$policy.name }\n            $evidence = [ordered]@{ policyDefinition = $definitionId; customDefinitions = $customIds }\n            if (-not $customIds) {\n                $evidence.identityRoles = @($grants | ForEach-Object { \"$(Get-RoleName $_.properties.roleDefinitionId) @ $($_.properties.scope)\" } | Sort-Object -Unique)\n                New-Finding -ResourceId $policy.id -ResourceType 'Microsoft.Authorization/policyAssignments' -ResourceName $label -Result (New-Pass 'The assignment only runs built-in definitions, which nobody can change' $evidence)\n                continue\n            }\n            $holders = [System.Collections.Generic.List[object]]::new()\n            $unread = [System.Collections.Generic.List[string]]::new()\n            foreach ($scope in @($customIds | ForEach-Object { Get-PolicyDefinitionScope $_ } | Sort-Object -Unique)) {\n                $found = Get-ActionHolders $policyDefinitionWriteActions $scope\n                foreach ($holder in $found.Holders) { $holders.Add($holder) }\n                foreach ($item in $found.Unread) { $unread.Add($item) }\n            }\n            if ($unread.Count) { $evidence.unreadRoleDefinitions = @($unread | Sort-Object -Unique) }\n            Get-EscalationFinding -Holders $holders -Excluded $principals -Grants $grants -ResourceId $policy.id -ResourceType 'Microsoft.Authorization/policyAssignments' -ResourceName $label -Means 'change what this policy identity deploys' -Evidence $evidence\n        }\n        if (-not $findings) { return New-SubscriptionFinding (New-Pass 'No policy assignment has an identity with a privileged role') }\n        $findings\n    " }, (S, O) => {
+        R.ln = F + 1677;
+        S["sets"] = R.ht([], false);
+        R.ln = F + 1678;
+        for (const it156 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.id " }, (S, O) => {
+            R.ln = F + 1678;
+            R.e(O, (R.t((S["_"] ?? null)) && R.t(R.m((S["_"] ?? null), "id"))));
+        })], R.cmd(S, "Get-IngestData", ["policy/policySetDefinitions"], null)))) {
+            S["set"] = it156;
+            R.ln = F + 1678;
+            R.si((S["sets"] ?? null), R.im((R.c("string", R.m((S["set"] ?? null), "id"))), "ToLowerInvariant", []), (S["set"] ?? null));
+        }
+        R.ln = F + 1679;
+        const v157 = [];
+        R.ln = F + 1679;
+        for (const it158 of R.fi(R.cmd(S, "Sort-Object", ["id"], R.cmd(S, "Get-PolicyAssignments", [], null)))) {
+            S["policy"] = it158;
+            R.ln = F + 1680;
+            S["principals"] = R.cmd(S, "Sort-Object", [R.np("Unique")], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " ([string]$_).ToLowerInvariant() " }, (S, O) => {
+                R.ln = F + 1680;
+                R.e(O, R.im((R.c("string", (S["_"] ?? null))), "ToLowerInvariant", []));
+            })], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+                R.ln = F + 1680;
+                R.e(O, (S["_"] ?? null));
+            })], R.pi(R.add(R.a(R.m(R.m((S["policy"] ?? null), "identity"), "principalId")), (() => {
+                const v159 = [];
+                R.ln = F + 1680;
+                for (const it160 of R.fi(R.a(R.m(R.m(R.m(R.m((S["policy"] ?? null), "identity"), "userAssignedIdentities"), "PSObject"), "Properties")))) {
+                    S["assigned"] = it160;
+                    R.ln = F + 1680;
+                    R.e(v159, R.m(R.m((S["assigned"] ?? null), "Value"), "principalId"));
+                }
+                return v159;
+            })())))));
+            R.ln = F + 1681;
+            S["grants"] = (() => {
+                const v161 = [];
+                R.ln = F + 1681;
+                for (const it162 of R.fi((S["principals"] ?? null))) {
+                    S["principal"] = it162;
+                    R.ln = F + 1681;
+                    R.pa(v161, R.cmd(S, "Get-PrivilegedGrants", [(S["principal"] ?? null)], null));
+                }
+                return v161;
+            })();
+            R.ln = F + 1682;
+            if (!R.t((S["grants"] ?? null))) {
+                continue;
+            }
+            R.ln = F + 1684;
+            S["definitionid"] = R.c("string", R.m(R.m((S["policy"] ?? null), "properties"), "policyDefinitionId"));
+            R.ln = F + 1685;
+            S["custom"] = R.sc("System.Collections.Generic.List[string]", "new", []);
+            R.ln = F + 1686;
+            if (R.t(R.u(R.cmd(S, "Get-PolicyDefinitionScope", [(S["definitionid"] ?? null)], null)))) {
+                R.ln = F + 1686;
+                R.e(v157, R.im((S["custom"] ?? null), "Add", [(S["definitionid"] ?? null)]));
+            }
+            R.ln = F + 1687;
+            S["set"] = R.i((S["sets"] ?? null), R.im((S["definitionid"] ?? null), "ToLowerInvariant", []));
+            R.ln = F + 1688;
+            for (const it163 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.policyDefinitionId " }, (S, O) => {
+                R.ln = F + 1688;
+                R.e(O, (R.t((S["_"] ?? null)) && R.t(R.m((S["_"] ?? null), "policyDefinitionId"))));
+            })], R.pi(R.m(R.m((S["set"] ?? null), "properties"), "policyDefinitions"))))) {
+                S["member"] = it163;
+                R.ln = F + 1688;
+                if (R.t(R.u(R.cmd(S, "Get-PolicyDefinitionScope", [(R.c("string", R.m((S["member"] ?? null), "policyDefinitionId")))], null)))) {
+                    R.ln = F + 1688;
+                    R.e(v157, R.im((S["custom"] ?? null), "Add", [R.c("string", R.m((S["member"] ?? null), "policyDefinitionId"))]));
+                }
+            }
+            R.ln = F + 1689;
+            S["customids"] = R.cmd(S, "Sort-Object", [R.np("Unique")], R.pi((S["custom"] ?? null)));
+            R.ln = F + 1690;
+            const v164 = [];
+            R.ln = F + 1690;
+            if (R.t(R.m(R.m((S["policy"] ?? null), "properties"), "displayName"))) {
+                R.ln = F + 1690;
+                R.e(v164, R.c("string", R.m(R.m((S["policy"] ?? null), "properties"), "displayName")));
+            } else {
+                R.ln = F + 1690;
+                R.e(v164, R.c("string", R.m((S["policy"] ?? null), "name")));
+            }
+            S["label"] = R.u(v164);
+            R.ln = F + 1691;
+            S["evidence"] = R.ht(["policyDefinition", (S["definitionid"] ?? null), "customDefinitions", (S["customids"] ?? null)], true);
+            R.ln = F + 1692;
+            if (!R.t((S["customids"] ?? null))) {
+                R.ln = F + 1693;
+                R.sm((S["evidence"] ?? null), "identityRoles", R.cmd(S, "Sort-Object", [R.np("Unique")], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " \"$(Get-RoleName $_.properties.roleDefinitionId) @ $($_.properties.scope)\" " }, (S, O) => {
+                    R.ln = F + 1693;
+                    R.e(O, ("" + R.str(R.u(R.cmd(S, "Get-RoleName", [R.m(R.m((S["_"] ?? null), "properties"), "roleDefinitionId")], null))) + " @ " + R.str(R.u(R.pi(R.m(R.m((S["_"] ?? null), "properties"), "scope"))))));
+                })], R.pi((S["grants"] ?? null)))));
+                R.ln = F + 1694;
+                R.pa(v157, R.cmd(S, "New-Finding", [R.np("ResourceId"), R.m((S["policy"] ?? null), "id"), R.np("ResourceType"), "Microsoft.Authorization/policyAssignments", R.np("ResourceName"), (S["label"] ?? null), R.np("Result"), R.u(R.cmd(S, "New-Pass", ["The assignment only runs built-in definitions, which nobody can change", (S["evidence"] ?? null)], null))], null));
+                continue;
+            }
+            R.ln = F + 1697;
+            S["holders"] = R.sc("System.Collections.Generic.List[object]", "new", []);
+            R.ln = F + 1698;
+            S["unread"] = R.sc("System.Collections.Generic.List[string]", "new", []);
+            R.ln = F + 1699;
+            for (const it165 of R.fi(R.cmd(S, "Sort-Object", [R.np("Unique")], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " Get-PolicyDefinitionScope $_ " }, (S, O) => {
+                R.ln = F + 1699;
+                R.pa(O, R.cmd(S, "Get-PolicyDefinitionScope", [(S["_"] ?? null)], null));
+            })], R.pi((S["customids"] ?? null)))))) {
+                S["scope"] = it165;
+                R.ln = F + 1700;
+                S["found"] = R.u(R.cmd(S, "Get-ActionHolders", [(S["policydefinitionwriteactions"] ?? null), (S["scope"] ?? null)], null));
+                R.ln = F + 1701;
+                for (const it166 of R.fi(R.m((S["found"] ?? null), "Holders"))) {
+                    S["holder"] = it166;
+                    R.ln = F + 1701;
+                    R.e(v157, R.im((S["holders"] ?? null), "Add", [(S["holder"] ?? null)]));
+                }
+                R.ln = F + 1702;
+                for (const it167 of R.fi(R.m((S["found"] ?? null), "Unread"))) {
+                    S["item"] = it167;
+                    R.ln = F + 1702;
+                    R.e(v157, R.im((S["unread"] ?? null), "Add", [(S["item"] ?? null)]));
+                }
+            }
+            R.ln = F + 1704;
+            if (R.t(R.m((S["unread"] ?? null), "Count"))) {
+                R.ln = F + 1704;
+                R.sm((S["evidence"] ?? null), "unreadRoleDefinitions", R.cmd(S, "Sort-Object", [R.np("Unique")], R.pi((S["unread"] ?? null))));
+            }
+            R.ln = F + 1705;
+            R.pa(v157, R.cmd(S, "Get-EscalationFinding", [R.np("Holders"), (S["holders"] ?? null), R.np("Excluded"), (S["principals"] ?? null), R.np("Grants"), (S["grants"] ?? null), R.np("ResourceId"), R.m((S["policy"] ?? null), "id"), R.np("ResourceType"), "Microsoft.Authorization/policyAssignments", R.np("ResourceName"), (S["label"] ?? null), R.np("Means"), "change what this policy identity deploys", R.np("Evidence"), (S["evidence"] ?? null)], null));
+        }
+        S["findings"] = R.u(v157);
+        R.ln = F + 1707;
+        if (!R.t((S["findings"] ?? null))) {
+            R.ln = F + 1707;
+            R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Pass", ["No policy assignment has an identity with a privileged role"], null))], null));
+            return;
+        }
+        R.ln = F + 1708;
+        R.e(O, (S["findings"] ?? null));
+    })], false)], null));
+    R.ln = F + 1714;
+    S["identityassignactions"] = R.a([R.v("Microsoft.ManagedIdentity/userAssignedIdentities/assign/action"), R.v("Microsoft.ManagedIdentity/userAssignedIdentities/identity/assign/action")]);
+    R.ln = F + 1716;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-IAM-040", "Title", "Only principals with the same rights can attach privileged user-assigned identities", "Category", "Privileged access", "Service", "Managed identities", "Severity", "High", "Description", "For every user-assigned managed identity that holds a privileged role (Owner, Contributor, User Access Administrator, Role Based Access Control Administrator or a custom equivalent), lists the principals that can assign the identity to a resource (userAssignedIdentities/assign/action, for example Managed Identity Operator or Contributor on its resource group), hold write access somewhere to attach it to, and do not hold a privileged role on the scopes of the identity themselves.", "Rationale", "Anyone who can attach the identity to a virtual machine, function app or container they control can request its tokens and act with its roles. Managed Identity Operator on a resource group, granted to let a team deploy, then hands out Owner of the subscription.", "Remediation", "Keep privileged user-assigned identities in a resource group that only principals with the same rights control, remove Managed Identity Operator and Contributor from others there, or reduce the roles of the identity.", "References", R.a([R.v("https://learn.microsoft.com/entra/identity/managed-identities-azure-resources/managed-identity-best-practice-recommendations#consider-the-effect-of-assigning-managed-identities-to-azure-resources-andor-granting-assign-permissions-to-a-user"), R.v("https://learn.microsoft.com/azure/role-based-access-control/built-in-roles/identity#managed-identity-operator")]), "Requires", R.a([R.v("rbac/roleAssignments"), R.v("rbac/roleDefinitions")]), "Run", R.sb({ params: [], adv: 0, text: "\n        $findings = foreach ($identity in @(Get-AzResourceRecords -Type 'Microsoft.ManagedIdentity/userAssignedIdentities' | Sort-Object id)) {\n            $principal = [string]$identity.resource.properties.principalId\n            if (-not $principal) { continue }\n            $grants = @(Get-PrivilegedGrants $principal)\n            if (-not $grants) { continue }\n            $found = Get-ActionHolders $identityAssignActions ([string]$identity.id)\n            #attaching needs a resource to attach it to: a role that can write anywhere\n            $holders = @($found.Holders | Where-Object {\n                    $holderId = ([string]$_.properties.principalId).ToLowerInvariant()\n                    @(Get-ActiveRoleAssignments | Where-Object { ([string]$_.properties.principalId).ToLowerInvariant() -eq $holderId -and (Test-RoleCanWrite $_.properties.roleDefinitionId) }).Count\n                })\n            $evidence = [ordered]@{ clientId = $identity.resource.properties.clientId }\n            if ($found.Unread.Count) { $evidence.unreadRoleDefinitions = $found.Unread }\n            Get-EscalationFinding -Holders $holders -Excluded @($principal.ToLowerInvariant()) -Grants $grants -ResourceId $identity.id -ResourceType $identity.type -ResourceName $identity.resource.name -Means 'attach this identity to a resource they control' -Evidence $evidence\n        }\n        if (-not $findings) { return New-SubscriptionFinding (New-Pass 'No user-assigned identity has a privileged role') }\n        $findings\n    " }, (S, O) => {
+        R.ln = F + 1728;
+        const v168 = [];
+        R.ln = F + 1728;
+        for (const it169 of R.fi(R.cmd(S, "Sort-Object", ["id"], R.cmd(S, "Get-AzResourceRecords", [R.np("Type"), "Microsoft.ManagedIdentity/userAssignedIdentities"], null)))) {
+            S["identity"] = it169;
+            R.ln = F + 1729;
+            S["principal"] = R.c("string", R.m(R.m(R.m((S["identity"] ?? null), "resource"), "properties"), "principalId"));
+            R.ln = F + 1730;
+            if (!R.t((S["principal"] ?? null))) {
+                continue;
+            }
+            R.ln = F + 1731;
+            S["grants"] = R.cmd(S, "Get-PrivilegedGrants", [(S["principal"] ?? null)], null);
+            R.ln = F + 1732;
+            if (!R.t((S["grants"] ?? null))) {
+                continue;
+            }
+            R.ln = F + 1733;
+            S["found"] = R.u(R.cmd(S, "Get-ActionHolders", [(S["identityassignactions"] ?? null), (R.c("string", R.m((S["identity"] ?? null), "id")))], null));
+            R.ln = F + 1735;
+            S["holders"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: "\n                    $holderId = ([string]$_.properties.principalId).ToLowerInvariant()\n                    @(Get-ActiveRoleAssignments | Where-Object { ([string]$_.properties.principalId).ToLowerInvariant() -eq $holderId -and (Test-RoleCanWrite $_.properties.roleDefinitionId) }).Count\n                " }, (S, O) => {
+                R.ln = F + 1736;
+                S["holderid"] = R.im((R.c("string", R.m(R.m((S["_"] ?? null), "properties"), "principalId"))), "ToLowerInvariant", []);
+                R.ln = F + 1737;
+                R.e(O, R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " ([string]$_.properties.principalId).ToLowerInvariant() -eq $holderId -and (Test-RoleCanWrite $_.properties.roleDefinitionId) " }, (S, O) => {
+                    R.ln = F + 1737;
+                    R.e(O, (R.t(R.eq(R.im((R.c("string", R.m(R.m((S["_"] ?? null), "properties"), "principalId"))), "ToLowerInvariant", []), (S["holderid"] ?? null))) && R.t(R.u(R.cmd(S, "Test-RoleCanWrite", [R.m(R.m((S["_"] ?? null), "properties"), "roleDefinitionId")], null)))));
+                })], R.cmd(S, "Get-ActiveRoleAssignments", [], null)), "Count"));
+            })], R.pi(R.m((S["found"] ?? null), "Holders")));
+            R.ln = F + 1739;
+            S["evidence"] = R.ht(["clientId", R.m(R.m(R.m((S["identity"] ?? null), "resource"), "properties"), "clientId")], true);
+            R.ln = F + 1740;
+            if (R.t(R.m(R.m((S["found"] ?? null), "Unread"), "Count"))) {
+                R.ln = F + 1740;
+                R.sm((S["evidence"] ?? null), "unreadRoleDefinitions", R.m((S["found"] ?? null), "Unread"));
+            }
+            R.ln = F + 1741;
+            R.pa(v168, R.cmd(S, "Get-EscalationFinding", [R.np("Holders"), (S["holders"] ?? null), R.np("Excluded"), R.a(R.im((S["principal"] ?? null), "ToLowerInvariant", [])), R.np("Grants"), (S["grants"] ?? null), R.np("ResourceId"), R.m((S["identity"] ?? null), "id"), R.np("ResourceType"), R.m((S["identity"] ?? null), "type"), R.np("ResourceName"), R.m(R.m((S["identity"] ?? null), "resource"), "name"), R.np("Means"), "attach this identity to a resource they control", R.np("Evidence"), (S["evidence"] ?? null)], null));
+        }
+        S["findings"] = R.u(v168);
+        R.ln = F + 1743;
+        if (!R.t((S["findings"] ?? null))) {
+            R.ln = F + 1743;
+            R.pa(O, R.cmd(S, "New-SubscriptionFinding", [R.u(R.cmd(S, "New-Pass", ["No user-assigned identity has a privileged role"], null))], null));
+            return;
+        }
+        R.ln = F + 1744;
+        R.e(O, (S["findings"] ?? null));
+    })], false)], null));
+    R.ln = F + 1749;
+    S["phishingresistantstrengthid"] = "00000000-0000-0000-0000-000000000004";
+    R.ln = F + 1750;
+    S["phishingresistantmethods"] = R.a([R.v("windowsHelloForBusiness"), R.v("fido2"), R.v("x509CertificateMultiFactor")]);
+    R.ln = F + 1752;
+    R.def(S, "Test-PhishingResistantStrength", { params: [{ n: "Strength", t: null, pos: null }], adv: 0, h: "eabbdf1dcaafe2aa" }, (S, O) => {
+        R.ln = F + 1755;
+        if (!R.t((S["strength"] ?? null))) {
+            R.ln = F + 1755;
+            R.e(O, false);
+            return;
+        }
+        R.ln = F + 1756;
+        if (R.t(R.eq(R.c("string", R.m((S["strength"] ?? null), "id")), (S["phishingresistantstrengthid"] ?? null)))) {
+            R.ln = F + 1756;
+            R.e(O, true);
+            return;
+        }
+        R.ln = F + 1757;
+        S["combinations"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+            R.ln = F + 1757;
+            R.e(O, (S["_"] ?? null));
+        })], R.pi(R.m((S["strength"] ?? null), "allowedCombinations")));
+        R.ln = F + 1758;
+        if (!R.t((S["combinations"] ?? null))) {
+            R.ln = F + 1758;
+            R.e(O, null);
+            return;
+        }
+        R.ln = F + 1759;
+        R.e(O, (!R.t(R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -notin $phishingResistantMethods " }, (S, O) => {
+            R.ln = F + 1759;
+            R.e(O, R.nin((S["_"] ?? null), (S["phishingresistantmethods"] ?? null)));
+        })], R.pi((S["combinations"] ?? null))), "Count"))));
+        return;
+    });
+    R.ln = F + 1762;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-IAM-039", "Title", "Conditional Access requires phishing-resistant authentication for Azure management", "Category", "Identity management", "Service", "Microsoft Entra ID", "Severity", "High", "Description", "Looks for an enabled Conditional Access policy for all users that requires the phishing-resistant MFA authentication strength, or a custom strength that only allows Windows Hello for Business, FIDO2 security keys and passkeys or certificate-based multifactor authentication, for Azure management (the Windows Azure Service Management API, or all resources), without conditions that limit it to some sign-ins. Like AZ-IAM-024, exclusions of users (emergency access accounts) are allowed.", "Rationale", "Adversary-in-the-middle phishing kits relay the password and the MFA approval and steal the session cookie, so push notifications, codes and phone calls do not stop them. Phishing-resistant methods are bound to the real sign-in page and cannot be relayed. Azure management is where a stolen session does the most damage.", "Remediation", "Register Windows Hello for Business, passkeys or FIDO2 security keys for everyone who manages Azure, then create a Conditional Access policy for all users that targets 'Windows Azure Service Management API' (or all resources) with 'Require authentication strength: Phishing-resistant MFA'. Check it in report-only mode first.", "References", R.a([R.v("https://learn.microsoft.com/entra/identity/conditional-access/policy-admin-phish-resistant-mfa"), R.v("https://learn.microsoft.com/entra/identity/authentication/concept-authentication-strengths")]), "Requires", R.a("identity/conditionalAccessPolicies"), "Run", R.sb({ params: [], adv: 0, text: "\n        $policies = @(Get-IngestData 'identity/conditionalAccessPolicies' | Where-Object { $_ } | Sort-Object displayName, id)\n        $qualifying = [System.Collections.Generic.List[string]]::new()\n        $weaker = [System.Collections.Generic.List[string]]::new()\n        $unknown = [System.Collections.Generic.List[string]]::new()\n        foreach ($policy in $policies) {\n            if ($null -ne (Get-MfaPolicyGap $policy 'azure')) { continue }\n            $strength = $policy.grantControls.authenticationStrength\n            $resistant = Test-PhishingResistantStrength $strength\n            if ($resistant -eq $true) { $qualifying.Add([string]$policy.displayName) }\n            elseif ($null -eq $resistant) { $unknown.Add(\"$($policy.displayName) (authentication strength $($strength.displayName))\") }\n            else { $weaker.Add(\"$($policy.displayName) ($(if ($strength) { \"authentication strength $($strength.displayName)\" } else { 'any multifactor authentication' }))\") }\n        }\n        $evidence = [ordered]@{ qualifyingPolicies = @($qualifying); policiesThatAllowPhishableMethods = @($weaker) }\n        if ($qualifying.Count) { return New-TenantFinding -Result (New-Pass \"Policy '$($qualifying[0])' requires phishing-resistant authentication for Azure management\" $evidence) -Suffix '/conditionalAccess/phishingResistant' }\n        if ($unknown.Count) { $evidence.strengthsNotRead = @($unknown); return New-TenantFinding -Result (New-Unknown \"The methods of the authentication strength of $($unknown -join ', ') were not returned\" $evidence) -Suffix '/conditionalAccess/phishingResistant' }\n        $detail = if ($weaker.Count) { \"Azure management requires MFA that can be phished: $($weaker -join '; ')\" } else { 'No enabled Conditional Access policy requires phishing-resistant authentication for Azure management for all users' }\n        New-TenantFinding -Result (New-Fail $detail $evidence) -Suffix '/conditionalAccess/phishingResistant'\n    " }, (S, O) => {
+        R.ln = F + 1774;
+        S["policies"] = R.cmd(S, "Sort-Object", [[R.v("displayName"), R.v("id")]], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+            R.ln = F + 1774;
+            R.e(O, (S["_"] ?? null));
+        })], R.cmd(S, "Get-IngestData", ["identity/conditionalAccessPolicies"], null)));
+        R.ln = F + 1775;
+        S["qualifying"] = R.sc("System.Collections.Generic.List[string]", "new", []);
+        R.ln = F + 1776;
+        S["weaker"] = R.sc("System.Collections.Generic.List[string]", "new", []);
+        R.ln = F + 1777;
+        S["unknown"] = R.sc("System.Collections.Generic.List[string]", "new", []);
+        R.ln = F + 1778;
+        for (const it170 of R.fi((S["policies"] ?? null))) {
+            S["policy"] = it170;
+            R.ln = F + 1779;
+            if (R.t(R.ne(null, R.u(R.cmd(S, "Get-MfaPolicyGap", [(S["policy"] ?? null), "azure"], null))))) {
+                continue;
+            }
+            R.ln = F + 1780;
+            S["strength"] = R.m(R.m((S["policy"] ?? null), "grantControls"), "authenticationStrength");
+            R.ln = F + 1781;
+            S["resistant"] = R.u(R.cmd(S, "Test-PhishingResistantStrength", [(S["strength"] ?? null)], null));
+            R.ln = F + 1782;
+            if (R.t(R.eq((S["resistant"] ?? null), true))) {
+                R.ln = F + 1782;
+                R.e(O, R.im((S["qualifying"] ?? null), "Add", [R.c("string", R.m((S["policy"] ?? null), "displayName"))]));
+            } else if (R.t(R.eq(null, (S["resistant"] ?? null)))) {
+                R.ln = F + 1783;
+                R.e(O, R.im((S["unknown"] ?? null), "Add", [("" + R.str(R.u(R.pi(R.m((S["policy"] ?? null), "displayName")))) + " (authentication strength " + R.str(R.u(R.pi(R.m((S["strength"] ?? null), "displayName")))) + ")")]));
+            } else {
+                R.ln = F + 1784;
+                R.e(O, R.im((S["weaker"] ?? null), "Add", [("" + R.str(R.u(R.pi(R.m((S["policy"] ?? null), "displayName")))) + " (" + R.str((() => {
+                    const v171 = [];
+                    R.ln = F + 1784;
+                    if (R.t((S["strength"] ?? null))) {
+                        R.ln = F + 1784;
+                        R.e(v171, ("authentication strength " + R.str(R.u(R.pi(R.m((S["strength"] ?? null), "displayName"))))));
+                    } else {
+                        R.ln = F + 1784;
+                        R.e(v171, "any multifactor authentication");
+                    }
+                    return R.u(v171);
+                })()) + ")")]));
+            }
+        }
+        R.ln = F + 1786;
+        S["evidence"] = R.ht(["qualifyingPolicies", R.a((S["qualifying"] ?? null)), "policiesThatAllowPhishableMethods", R.a((S["weaker"] ?? null))], true);
+        R.ln = F + 1787;
+        if (R.t(R.m((S["qualifying"] ?? null), "Count"))) {
+            R.ln = F + 1787;
+            R.pa(O, R.cmd(S, "New-TenantFinding", [R.np("Result"), R.u(R.cmd(S, "New-Pass", [("Policy '" + R.str(R.u(R.pi(R.i((S["qualifying"] ?? null), 0)))) + "' requires phishing-resistant authentication for Azure management"), (S["evidence"] ?? null)], null)), R.np("Suffix"), "/conditionalAccess/phishingResistant"], null));
+            return;
+        }
+        R.ln = F + 1788;
+        if (R.t(R.m((S["unknown"] ?? null), "Count"))) {
+            R.ln = F + 1788;
+            R.sm((S["evidence"] ?? null), "strengthsNotRead", R.a((S["unknown"] ?? null)));
+            R.ln = F + 1788;
+            R.pa(O, R.cmd(S, "New-TenantFinding", [R.np("Result"), R.u(R.cmd(S, "New-Unknown", [("The methods of the authentication strength of " + R.str(R.u(R.pi(R.join((S["unknown"] ?? null), ", ")))) + " were not returned"), (S["evidence"] ?? null)], null)), R.np("Suffix"), "/conditionalAccess/phishingResistant"], null));
+            return;
+        }
+        R.ln = F + 1789;
+        const v172 = [];
+        R.ln = F + 1789;
+        if (R.t(R.m((S["weaker"] ?? null), "Count"))) {
+            R.ln = F + 1789;
+            R.e(v172, ("Azure management requires MFA that can be phished: " + R.str(R.u(R.pi(R.join((S["weaker"] ?? null), "; "))))));
+        } else {
+            R.ln = F + 1789;
+            R.e(v172, "No enabled Conditional Access policy requires phishing-resistant authentication for Azure management for all users");
+        }
+        S["detail"] = R.u(v172);
+        R.ln = F + 1790;
+        R.pa(O, R.cmd(S, "New-TenantFinding", [R.np("Result"), R.u(R.cmd(S, "New-Fail", [(S["detail"] ?? null), (S["evidence"] ?? null)], null)), R.np("Suffix"), "/conditionalAccess/phishingResistant"], null));
+    })], false)], null));
 });

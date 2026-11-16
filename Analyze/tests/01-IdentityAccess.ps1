@@ -1601,3 +1601,192 @@ Add-AzTest @{
         $findings
     }
 }
+
+function Get-PrivilegedGrants {
+    #privileged role assignments (Owner, Contributor, administrators and their custom equivalents) of a principal
+    param([string]$PrincipalId)
+    $key = $PrincipalId.ToLowerInvariant()
+    @(Get-ActiveRoleAssignments | Where-Object { ([string]$_.properties.principalId).ToLowerInvariant() -eq $key -and (Test-RolePrivileged $_.properties.roleDefinitionId) } | Sort-Object id)
+}
+
+function Test-HoldsPrivilegeOver {
+    #true when a principal itself holds a privileged role on every one of the scopes, so acting as another identity there gains it nothing
+    param([string]$PrincipalId, [string[]]$Scopes)
+    $held = @(Get-PrivilegedGrants $PrincipalId | ForEach-Object { [string]$_.properties.scope })
+    foreach ($scope in $Scopes) { if (-not @($held | Where-Object { Test-ScopeContains $_ $scope }).Count) { return $false } }
+    return $true
+}
+
+function Get-ActionHolders {
+    #active role assignments on a scope that contains $Scope whose role grants one of the actions; Unread lists role
+    #definitions that could not be read
+    param([string[]]$Actions, [string]$Scope)
+    $holders = [System.Collections.Generic.List[object]]::new()
+    $unread = [System.Collections.Generic.List[string]]::new()
+    foreach ($assignment in @(Get-ActiveRoleAssignments | Where-Object { $_.properties.principalId -and (Test-ScopeContains ([string]$_.properties.scope) $Scope) } | Sort-Object id)) {
+        $definition = (Get-RoleDefinitionMap)[(Get-RoleDefinitionGuid $assignment.properties.roleDefinitionId)]
+        if (-not $definition) { $unread.Add((Get-RoleName $assignment.properties.roleDefinitionId)); continue }
+        if (@($Actions | Where-Object { Test-RoleGrantsAction $definition $_ }).Count) { $holders.Add($assignment) }
+    }
+    return [pscustomobject]@{ Holders = @($holders); Unread = @($unread | Sort-Object -Unique) }
+}
+
+function Get-EscalationFinding {
+    #the finding of AZ-IAM-038 and AZ-IAM-040: principals that can act as an identity with privileged roles without holding them
+    param($Holders, [string[]]$Excluded, $Grants, [string]$ResourceId, [string]$ResourceType, [string]$ResourceName, [string]$Means, $Evidence)
+    $identityScopes = @($Grants | ForEach-Object { [string]$_.properties.scope } | Sort-Object -Unique)
+    $Evidence.identityRoles = @($Grants | ForEach-Object { "$(Get-RoleName $_.properties.roleDefinitionId) @ $($_.properties.scope)" } | Sort-Object -Unique)
+    $escalating = [System.Collections.Generic.List[string]]::new()
+    foreach ($holder in $Holders) {
+        $principalId = [string]$holder.properties.principalId
+        if ($principalId.ToLowerInvariant() -in $Excluded -or (Test-PrincipalDeleted $principalId)) { continue }
+        if (Test-HoldsPrivilegeOver $principalId $identityScopes) { continue }
+        $escalating.Add("$(Get-PrincipalLabel $principalId) ($(Get-RoleName $holder.properties.roleDefinitionId) on $($holder.properties.scope))")
+    }
+    $Evidence.principalsWithoutTheseRights = @($escalating | Sort-Object -Unique)
+    $result = if ($escalating.Count) {
+        New-Fail "$($escalating.Count) principal(s) can $Means without holding its roles ($($Evidence.identityRoles -join ', ')): $(@($escalating | Sort-Object -Unique | Select-Object -First 3) -join '; ')$(if ($escalating.Count -gt 3) { '; ...' })" $Evidence
+    } else {
+        New-Pass "Only principals that hold the same rights can $Means" $Evidence
+    }
+    New-Finding -ResourceId $ResourceId -ResourceType $ResourceType -ResourceName $ResourceName -Result $result
+}
+
+#actions that change what a custom policy definition or initiative deploys
+$policyDefinitionWriteActions = @('Microsoft.Authorization/policyDefinitions/write', 'Microsoft.Authorization/policySetDefinitions/write')
+
+function Get-PolicyDefinitionScope {
+    #scope of a custom policy definition or initiative; $null for built-in ones
+    param([string]$Id)
+    if ($Id -notmatch '(?i)^(?<scope>/.+?)/providers/Microsoft\.Authorization/policy(Set)?Definitions/') { return $null }
+    return $Matches.scope
+}
+
+Add-AzTest @{
+    Id          = 'AZ-IAM-038'
+    Title       = 'Only principals with the same rights can change the custom policies that privileged policy identities run'
+    Category    = 'Privileged access'
+    Service     = 'Azure Policy'
+    Severity    = 'High'
+    Description = 'For every policy assignment whose managed identity holds a privileged role (Owner, Contributor, User Access Administrator, Role Based Access Control Administrator or a custom equivalent), lists the principals that can change the custom policy definitions or initiatives the assignment uses (policyDefinitions/write or policySetDefinitions/write on their scope), for example Resource Policy Contributor or Security Admin, and do not hold a privileged role on the scopes of the identity themselves. Built-in definitions cannot be changed.'
+    Rationale   = 'A deployIfNotExists or modify policy deploys whatever its definition says, as the identity of the assignment. Whoever can edit that definition can make the identity deploy a role assignment, a run command or anything else, and so has the rights of the identity: Resource Policy Contributor becomes Owner.'
+    Remediation = 'Give the right to change these definitions only to principals that hold the rights of the identity anyway, keep the definitions on a scope that only platform administrators control (the management group of the platform team), or limit the roles of the identity to what its remediation needs.'
+    References  = @('https://learn.microsoft.com/azure/governance/policy/how-to/remediate-resources#configure-the-managed-identity', 'https://learn.microsoft.com/azure/role-based-access-control/built-in-roles/management-and-governance#resource-policy-contributor')
+    Requires    = @('rbac/roleAssignments', 'rbac/roleDefinitions', 'policy/policyAssignments', 'policy/policySetDefinitions')
+    Run         = {
+        $sets = @{}
+        foreach ($set in @(Get-IngestData 'policy/policySetDefinitions' | Where-Object { $_ -and $_.id })) { $sets[([string]$set.id).ToLowerInvariant()] = $set }
+        $findings = foreach ($policy in @(Get-PolicyAssignments | Sort-Object id)) {
+            $principals = @(@($policy.identity.principalId) + @(foreach ($assigned in @($policy.identity.userAssignedIdentities.PSObject.Properties)) { $assigned.Value.principalId }) | Where-Object { $_ } | ForEach-Object { ([string]$_).ToLowerInvariant() } | Sort-Object -Unique)
+            $grants = @(foreach ($principal in $principals) { Get-PrivilegedGrants $principal })
+            if (-not $grants) { continue }
+            #the custom definitions the assignment runs: its own definition or initiative and the custom members of an initiative
+            $definitionId = [string]$policy.properties.policyDefinitionId
+            $custom = [System.Collections.Generic.List[string]]::new()
+            if (Get-PolicyDefinitionScope $definitionId) { $custom.Add($definitionId) }
+            $set = $sets[$definitionId.ToLowerInvariant()]
+            foreach ($member in @($set.properties.policyDefinitions | Where-Object { $_ -and $_.policyDefinitionId })) { if (Get-PolicyDefinitionScope ([string]$member.policyDefinitionId)) { $custom.Add([string]$member.policyDefinitionId) } }
+            $customIds = @($custom | Sort-Object -Unique)
+            $label = if ($policy.properties.displayName) { [string]$policy.properties.displayName } else { [string]$policy.name }
+            $evidence = [ordered]@{ policyDefinition = $definitionId; customDefinitions = $customIds }
+            if (-not $customIds) {
+                $evidence.identityRoles = @($grants | ForEach-Object { "$(Get-RoleName $_.properties.roleDefinitionId) @ $($_.properties.scope)" } | Sort-Object -Unique)
+                New-Finding -ResourceId $policy.id -ResourceType 'Microsoft.Authorization/policyAssignments' -ResourceName $label -Result (New-Pass 'The assignment only runs built-in definitions, which nobody can change' $evidence)
+                continue
+            }
+            $holders = [System.Collections.Generic.List[object]]::new()
+            $unread = [System.Collections.Generic.List[string]]::new()
+            foreach ($scope in @($customIds | ForEach-Object { Get-PolicyDefinitionScope $_ } | Sort-Object -Unique)) {
+                $found = Get-ActionHolders $policyDefinitionWriteActions $scope
+                foreach ($holder in $found.Holders) { $holders.Add($holder) }
+                foreach ($item in $found.Unread) { $unread.Add($item) }
+            }
+            if ($unread.Count) { $evidence.unreadRoleDefinitions = @($unread | Sort-Object -Unique) }
+            Get-EscalationFinding -Holders $holders -Excluded $principals -Grants $grants -ResourceId $policy.id -ResourceType 'Microsoft.Authorization/policyAssignments' -ResourceName $label -Means 'change what this policy identity deploys' -Evidence $evidence
+        }
+        if (-not $findings) { return New-SubscriptionFinding (New-Pass 'No policy assignment has an identity with a privileged role') }
+        $findings
+    }
+}
+
+#the operation that attaches a user-assigned identity to a resource; Managed Identity Operator grants it as
+#userAssignedIdentities/*/assign/action, so both forms are checked
+$identityAssignActions = @('Microsoft.ManagedIdentity/userAssignedIdentities/assign/action', 'Microsoft.ManagedIdentity/userAssignedIdentities/identity/assign/action')
+
+Add-AzTest @{
+    Id          = 'AZ-IAM-040'
+    Title       = 'Only principals with the same rights can attach privileged user-assigned identities'
+    Category    = 'Privileged access'
+    Service     = 'Managed identities'
+    Severity    = 'High'
+    Description = 'For every user-assigned managed identity that holds a privileged role (Owner, Contributor, User Access Administrator, Role Based Access Control Administrator or a custom equivalent), lists the principals that can assign the identity to a resource (userAssignedIdentities/assign/action, for example Managed Identity Operator or Contributor on its resource group), hold write access somewhere to attach it to, and do not hold a privileged role on the scopes of the identity themselves.'
+    Rationale   = 'Anyone who can attach the identity to a virtual machine, function app or container they control can request its tokens and act with its roles. Managed Identity Operator on a resource group, granted to let a team deploy, then hands out Owner of the subscription.'
+    Remediation = 'Keep privileged user-assigned identities in a resource group that only principals with the same rights control, remove Managed Identity Operator and Contributor from others there, or reduce the roles of the identity.'
+    References  = @('https://learn.microsoft.com/entra/identity/managed-identities-azure-resources/managed-identity-best-practice-recommendations#consider-the-effect-of-assigning-managed-identities-to-azure-resources-andor-granting-assign-permissions-to-a-user', 'https://learn.microsoft.com/azure/role-based-access-control/built-in-roles/identity#managed-identity-operator')
+    Requires    = @('rbac/roleAssignments', 'rbac/roleDefinitions')
+    Run         = {
+        $findings = foreach ($identity in @(Get-AzResourceRecords -Type 'Microsoft.ManagedIdentity/userAssignedIdentities' | Sort-Object id)) {
+            $principal = [string]$identity.resource.properties.principalId
+            if (-not $principal) { continue }
+            $grants = @(Get-PrivilegedGrants $principal)
+            if (-not $grants) { continue }
+            $found = Get-ActionHolders $identityAssignActions ([string]$identity.id)
+            #attaching needs a resource to attach it to: a role that can write anywhere
+            $holders = @($found.Holders | Where-Object {
+                    $holderId = ([string]$_.properties.principalId).ToLowerInvariant()
+                    @(Get-ActiveRoleAssignments | Where-Object { ([string]$_.properties.principalId).ToLowerInvariant() -eq $holderId -and (Test-RoleCanWrite $_.properties.roleDefinitionId) }).Count
+                })
+            $evidence = [ordered]@{ clientId = $identity.resource.properties.clientId }
+            if ($found.Unread.Count) { $evidence.unreadRoleDefinitions = $found.Unread }
+            Get-EscalationFinding -Holders $holders -Excluded @($principal.ToLowerInvariant()) -Grants $grants -ResourceId $identity.id -ResourceType $identity.type -ResourceName $identity.resource.name -Means 'attach this identity to a resource they control' -Evidence $evidence
+        }
+        if (-not $findings) { return New-SubscriptionFinding (New-Pass 'No user-assigned identity has a privileged role') }
+        $findings
+    }
+}
+
+#the built-in phishing-resistant MFA strength, and the methods a custom strength may combine to be phishing resistant
+$phishingResistantStrengthId = '00000000-0000-0000-0000-000000000004'
+$phishingResistantMethods = @('windowsHelloForBusiness', 'fido2', 'x509CertificateMultiFactor')
+
+function Test-PhishingResistantStrength {
+    #true when an authentication strength only allows phishing-resistant methods, $null when its methods are not known
+    param($Strength)
+    if (-not $Strength) { return $false }
+    if ([string]$Strength.id -eq $phishingResistantStrengthId) { return $true }
+    $combinations = @($Strength.allowedCombinations | Where-Object { $_ })
+    if (-not $combinations) { return $null }
+    return (-not @($combinations | Where-Object { $_ -notin $phishingResistantMethods }).Count)
+}
+
+Add-AzTest @{
+    Id          = 'AZ-IAM-039'
+    Title       = 'Conditional Access requires phishing-resistant authentication for Azure management'
+    Category    = 'Identity management'
+    Service     = 'Microsoft Entra ID'
+    Severity    = 'High'
+    Description = 'Looks for an enabled Conditional Access policy for all users that requires the phishing-resistant MFA authentication strength, or a custom strength that only allows Windows Hello for Business, FIDO2 security keys and passkeys or certificate-based multifactor authentication, for Azure management (the Windows Azure Service Management API, or all resources), without conditions that limit it to some sign-ins. Like AZ-IAM-024, exclusions of users (emergency access accounts) are allowed.'
+    Rationale   = 'Adversary-in-the-middle phishing kits relay the password and the MFA approval and steal the session cookie, so push notifications, codes and phone calls do not stop them. Phishing-resistant methods are bound to the real sign-in page and cannot be relayed. Azure management is where a stolen session does the most damage.'
+    Remediation = "Register Windows Hello for Business, passkeys or FIDO2 security keys for everyone who manages Azure, then create a Conditional Access policy for all users that targets 'Windows Azure Service Management API' (or all resources) with 'Require authentication strength: Phishing-resistant MFA'. Check it in report-only mode first."
+    References  = @('https://learn.microsoft.com/entra/identity/conditional-access/policy-admin-phish-resistant-mfa', 'https://learn.microsoft.com/entra/identity/authentication/concept-authentication-strengths')
+    Requires    = @('identity/conditionalAccessPolicies')
+    Run         = {
+        $policies = @(Get-IngestData 'identity/conditionalAccessPolicies' | Where-Object { $_ } | Sort-Object displayName, id)
+        $qualifying = [System.Collections.Generic.List[string]]::new()
+        $weaker = [System.Collections.Generic.List[string]]::new()
+        $unknown = [System.Collections.Generic.List[string]]::new()
+        foreach ($policy in $policies) {
+            if ($null -ne (Get-MfaPolicyGap $policy 'azure')) { continue }
+            $strength = $policy.grantControls.authenticationStrength
+            $resistant = Test-PhishingResistantStrength $strength
+            if ($resistant -eq $true) { $qualifying.Add([string]$policy.displayName) }
+            elseif ($null -eq $resistant) { $unknown.Add("$($policy.displayName) (authentication strength $($strength.displayName))") }
+            else { $weaker.Add("$($policy.displayName) ($(if ($strength) { "authentication strength $($strength.displayName)" } else { 'any multifactor authentication' }))") }
+        }
+        $evidence = [ordered]@{ qualifyingPolicies = @($qualifying); policiesThatAllowPhishableMethods = @($weaker) }
+        if ($qualifying.Count) { return New-TenantFinding -Result (New-Pass "Policy '$($qualifying[0])' requires phishing-resistant authentication for Azure management" $evidence) -Suffix '/conditionalAccess/phishingResistant' }
+        if ($unknown.Count) { $evidence.strengthsNotRead = @($unknown); return New-TenantFinding -Result (New-Unknown "The methods of the authentication strength of $($unknown -join ', ') were not returned" $evidence) -Suffix '/conditionalAccess/phishingResistant' }
+        $detail = if ($weaker.Count) { "Azure management requires MFA that can be phished: $($weaker -join '; ')" } else { 'No enabled Conditional Access policy requires phishing-resistant authentication for Azure management for all users' }
+        New-TenantFinding -Result (New-Fail $detail $evidence) -Suffix '/conditionalAccess/phishingResistant'
+    }
+}

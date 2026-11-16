@@ -1584,4 +1584,79 @@ export default R.script("/app/Analyze/tests/05-Network.ps1", { params: [], adv: 
         R.ln = F + 948;
         R.pa(O, R.cmd(S, "New-Pass", ["IKEv2 with a custom policy of strong algorithms and perfect forward secrecy", (S["evidence"] ?? null)], null));
     })], false)], null));
+    R.ln = F + 952;
+    R.def(S, "Get-WafBlanketExclusions", { params: [{ n: "Policy", t: null, pos: null }], adv: 0, h: "5d7cf7e1a7be603a" }, (S, O) => {
+        R.ln = F + 956;
+        S["rules"] = R.m(R.m((S["policy"] ?? null), "properties"), "managedRules");
+        R.ln = F + 957;
+        S["found"] = R.sc("System.Collections.Generic.List[string]", "new", []);
+        R.ln = F + 959;
+        for (const it57 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+            R.ln = F + 959;
+            R.e(O, (S["_"] ?? null));
+        })], R.pi(R.m((S["rules"] ?? null), "exclusions"))))) {
+            S["exclusion"] = it57;
+            R.ln = F + 960;
+            if (R.t(R.ne(R.c("string", R.m((S["exclusion"] ?? null), "selectorMatchOperator")), "EqualsAny"))) {
+                continue;
+            }
+            R.ln = F + 961;
+            S["sets"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+                R.ln = F + 961;
+                R.e(O, (S["_"] ?? null));
+            })], R.pi(R.m((S["exclusion"] ?? null), "exclusionManagedRuleSets")));
+            R.ln = F + 962;
+            if (!R.t((S["sets"] ?? null))) {
+                R.ln = F + 962;
+                R.e(O, R.im((S["found"] ?? null), "Add", [("" + R.str(R.u(R.pi(R.m((S["exclusion"] ?? null), "matchVariable")))) + " for all rules")]));
+                continue;
+            }
+            R.ln = F + 963;
+            for (const it58 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " -not @($_.ruleGroups | Where-Object { $_ }).Count " }, (S, O) => {
+                R.ln = F + 963;
+                R.e(O, !R.t(R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+                    R.ln = F + 963;
+                    R.e(O, (S["_"] ?? null));
+                })], R.pi(R.m((S["_"] ?? null), "ruleGroups"))), "Count")));
+            })], R.pi((S["sets"] ?? null))))) {
+                S["set"] = it58;
+                R.ln = F + 963;
+                R.e(O, R.im((S["found"] ?? null), "Add", [("" + R.str(R.u(R.pi(R.m((S["exclusion"] ?? null), "matchVariable")))) + " for rule set " + R.str(R.u(R.pi(R.m((S["set"] ?? null), "ruleSetType")))) + " " + R.str(R.u(R.pi(R.m((S["set"] ?? null), "ruleSetVersion")))))]));
+            }
+        }
+        R.ln = F + 966;
+        for (const it59 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+            R.ln = F + 966;
+            R.e(O, (S["_"] ?? null));
+        })], R.pi(R.m((S["rules"] ?? null), "managedRuleSets"))))) {
+            S["set"] = it59;
+            R.ln = F + 967;
+            for (const it60 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and [string]$_.selectorMatchOperator -eq 'EqualsAny' " }, (S, O) => {
+                R.ln = F + 967;
+                R.e(O, (R.t((S["_"] ?? null)) && R.t(R.eq(R.c("string", R.m((S["_"] ?? null), "selectorMatchOperator")), "EqualsAny"))));
+            })], R.pi(R.m((S["set"] ?? null), "exclusions"))))) {
+                S["exclusion"] = it60;
+                R.ln = F + 967;
+                R.e(O, R.im((S["found"] ?? null), "Add", [("" + R.str(R.u(R.pi(R.m((S["exclusion"] ?? null), "matchVariable")))) + " for rule set " + R.str(R.u(R.pi(R.m((S["set"] ?? null), "ruleSetType")))) + " " + R.str(R.u(R.pi(R.m((S["set"] ?? null), "ruleSetVersion")))))]));
+            }
+        }
+        R.ln = F + 969;
+        R.e(O, R.cmd(S, "Sort-Object", [R.np("Unique")], R.pi((S["found"] ?? null))));
+        return;
+    });
+    R.ln = F + 972;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-NET-034", "Title", "WAF policies do not exclude whole request parts from inspection", "Category", "Network security", "Service", "Web Application Firewall", "Severity", "Medium", "Description", "Checks Application Gateway, Front Door and CDN WAF policies for exclusions with selector operator 'Equals any' that apply to every rule (or a whole managed rule set), which take all request headers, cookies, arguments or body fields of that kind out of inspection.", "Rationale", "Exclusions are meant to stop false positives on one field. An Equals any exclusion makes the WAF ignore every header, cookie or parameter of that kind, so an attacker only has to put the payload there; the policy still shows Prevention mode.", "Remediation", "Replace the exclusion with one that names the specific field (Equals, Starts with) and limit it to the rule or rule group that produced the false positive.", "References", R.a([R.v("https://learn.microsoft.com/azure/web-application-firewall/ag/application-gateway-waf-configuration"), R.v("https://learn.microsoft.com/azure/web-application-firewall/afds/waf-front-door-exclusion")]), "ResourceTypes", (S["wafpolicytypes"] ?? null), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $blanket = @(Get-WafBlanketExclusions $Record.resource)\n        $evidence = [ordered]@{ blanketExclusions = $blanket }\n        if ($blanket) { return New-Fail \"Excluded from inspection: $($blanket -join '; ')\" $evidence }\n        New-Pass 'No exclusion covers a whole request part' $evidence\n    " }, (S, O) => {
+        R.ln = F + 985;
+        S["blanket"] = R.cmd(S, "Get-WafBlanketExclusions", [R.m((S["record"] ?? null), "resource")], null);
+        R.ln = F + 986;
+        S["evidence"] = R.ht(["blanketExclusions", (S["blanket"] ?? null)], true);
+        R.ln = F + 987;
+        if (R.t((S["blanket"] ?? null))) {
+            R.ln = F + 987;
+            R.pa(O, R.cmd(S, "New-Fail", [("Excluded from inspection: " + R.str(R.u(R.pi(R.join((S["blanket"] ?? null), "; "))))), (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 988;
+        R.pa(O, R.cmd(S, "New-Pass", ["No exclusion covers a whole request part", (S["evidence"] ?? null)], null));
+    })], false)], null));
 });

@@ -134,7 +134,7 @@ $coreApiVersions = [ordered]@{
 $resourceListExpand = 'createdTime,changedTime,provisioningState'
 
 #Microsoft Graph properties read per kind of object, and the tenant wide exports (file name, path): directory roles,
-#Conditional Access policies and security defaults
+#Conditional Access policies, security defaults and the authorization policy
 $graphSelect = [ordered]@{
     member = 'id,displayName,userPrincipalName,userType,accountEnabled,onPremisesSyncEnabled,appId,servicePrincipalType,appOwnerOrganizationId'
     user   = 'id,displayName,userPrincipalName,mail,userType,accountEnabled,creationType,externalUserState,onPremisesSyncEnabled,onPremisesSamAccountName,createdDateTime,lastPasswordChangeDateTime'
@@ -148,6 +148,7 @@ $graphDirectoryExports = @(
     ,@('directoryRoleEligibilitySchedules', '/v1.0/roleManagement/directory/roleEligibilitySchedules?$expand=principal')
     ,@('conditionalAccessPolicies', '/v1.0/identity/conditionalAccess/policies')
     ,@('securityDefaults', '/v1.0/policies/identitySecurityDefaultsEnforcementPolicy')
+    ,@('authorizationPolicy', '/v1.0/policies/authorizationPolicy')
 )
 
 #subscription scoped endpoints: output folder, file name, path below /subscriptions/{id}/ (from the root when it starts

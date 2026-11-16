@@ -362,3 +362,26 @@ Add-AzTest @{
         New-Pass 'No full or purge permissions in access policies' $evidence
     }
 }
+
+Add-AzTest @{
+    Id            = 'AZ-KV-017'
+    Title         = 'Key vault access policies only name existing principals'
+    Category      = 'Privileged access'
+    Service       = 'Key Vault'
+    Severity      = 'Low'
+    Description   = 'Finds access policies of key vaults whose object id no longer exists in the directory. Access policies stay on the vault when the vault uses Azure RBAC, and apply again when it switches back.'
+    Rationale     = 'Orphaned access policies hide who had access to the secrets, and a principal restored from the recycle bin within 30 days gets its access back. Unlike role assignments, they do not show in the Access control view of the subscription.'
+    Remediation   = 'Remove the access policies of deleted principals (az keyvault delete-policy --object-id ...), or move the vault to Azure RBAC and clear its access policies.'
+    References    = @('https://learn.microsoft.com/azure/key-vault/general/assign-access-policy')
+    Requires      = @('identity/directoryObjects', 'identity/unresolvedPrincipalIds')
+    ResourceTypes = @('Microsoft.KeyVault/vaults')
+    Filter        = { param($Record) @($Record.resource.properties.accessPolicies | Where-Object { $_ }).Count }
+    Evaluate      = {
+        param($Record)
+        $policies = @($Record.resource.properties.accessPolicies | Where-Object { $_ -and $_.objectId })
+        $orphaned = @($policies | Where-Object { Test-PrincipalDeleted ([string]$_.objectId) } | ForEach-Object { [string]$_.objectId } | Sort-Object -Unique)
+        $evidence = [ordered]@{ accessPolicies = $policies.Count; deletedPrincipals = $orphaned; permissionModel = $(if ($Record.resource.properties.enableRbacAuthorization) { 'Azure RBAC (access policies dormant)' } else { 'access policies' }) }
+        if ($orphaned) { return New-Fail "Access policies for $($orphaned.Count) principal(s) that no longer exist: $($orphaned -join ', ')" $evidence }
+        New-Pass 'Every access policy names an existing principal' $evidence
+    }
+}

@@ -1167,3 +1167,31 @@ Add-AzTest @{
 }
 
 #endregion
+
+Add-AzTest @{
+    Id          = 'AZ-AUTO-005'
+    Title       = 'Automation webhooks expire within a year'
+    Category    = 'Identity management'
+    Service     = 'Automation'
+    Severity    = 'Medium'
+    Description = 'Checks the enabled webhooks of Automation accounts for a validity (creation to expiry) of at most one year. The webhook URL is the only credential needed to start its runbook.'
+    Rationale   = 'Anyone who has the URL starts the runbook with the managed identity or credentials of the Automation account, on a hybrid worker if the webhook runs there, without signing in. URLs end up in scripts, monitoring tools and tickets; a validity of years keeps a leaked one usable.'
+    Remediation = 'Recreate the webhook with an expiry within a year and rotate it before it expires, or start the runbook through an authenticated call (a Logic App or function with a managed identity).'
+    References  = @('https://learn.microsoft.com/azure/automation/automation-webhooks')
+    Run         = {
+        foreach ($account in @(Get-AzResourceRecords -Type 'Microsoft.Automation/automationAccounts' | Sort-Object id)) {
+            if (-not (Test-ChildCollected $account 'webhooks')) { New-Finding -Record $account -Result (New-Unknown 'Webhooks could not be listed'); continue }
+            foreach ($webhook in @(Get-Child $account 'webhooks' | Where-Object { $_ -and $_.properties.isEnabled -ne $false } | Sort-Object name)) {
+                $created = ConvertTo-UtcDate $webhook.properties.creationTime
+                $expires = ConvertTo-UtcDate $webhook.properties.expiryTime
+                $evidence = [ordered]@{ automationAccount = $account.resource.name; runbook = $webhook.properties.runbook.name; runOn = $webhook.properties.runOn; created = Format-UtcDate $created; expires = Format-UtcDate $expires }
+                $id = if ($webhook.id) { [string]$webhook.id } else { "$($account.id)/webhooks/$($webhook.name)" }
+                if (-not $expires -or -not $created) { $result = New-Unknown 'The creation or expiry date was not returned' $evidence }
+                elseif ($expires -le $script:Ingest.ReferenceTime) { $result = New-Pass 'Expired' $evidence }
+                elseif (($expires - $created).TotalDays -gt 366) { $result = New-Fail "Valid for $([int]($expires - $created).TotalDays) days, until $($evidence.expires)" $evidence }
+                else { $result = New-Pass "Expires $($evidence.expires)" $evidence }
+                New-Finding -ResourceId $id -ResourceType 'Microsoft.Automation/automationAccounts/webhooks' -ResourceName "$($account.resource.name)/$($webhook.name)" -Result $result
+            }
+        }
+    }
+}

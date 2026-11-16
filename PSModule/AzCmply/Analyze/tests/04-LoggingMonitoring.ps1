@@ -561,3 +561,28 @@ Add-AzTest @{
         New-Fail 'No delete lock on the workspace, resource group or subscription' $evidence
     }
 }
+
+Add-AzTest @{
+    Id            = 'AZ-LOG-035'
+    Title         = 'Alert processing rules do not silence all alerts permanently'
+    Category      = 'Logging and threat detection'
+    Service       = 'Azure Monitor'
+    Severity      = 'Medium'
+    Description   = 'Finds enabled alert processing rules that remove all action groups (suppression) without a condition that limits them to some alerts and without a schedule, so no alert in their scope reaches anyone. Rules for a maintenance window or for selected alerts pass.'
+    Rationale     = 'One suppression rule on the subscription silences every alert, including the security alerts for role assignments, deleted locks and run command, while the alert rules themselves still look fine. It is a quiet way to blind the defenders before an attack, and a forgotten maintenance rule does the same.'
+    Remediation   = 'Give suppression rules a schedule (the maintenance window) and conditions (alert rule, severity or resource), remove rules that are no longer needed, and alert on changes to alert processing rules (Microsoft.AlertsManagement/actionRules/write).'
+    References    = @('https://learn.microsoft.com/azure/azure-monitor/alerts/alerts-processing-rules')
+    ResourceTypes = @('Microsoft.AlertsManagement/actionRules')
+    Filter        = { param($Record) @($Record.resource.properties.actions | Where-Object { $_.actionType -eq 'RemoveAllActionGroups' }).Count }
+    Evaluate      = {
+        param($Record)
+        $p = $Record.resource.properties
+        $schedule = $p.schedule
+        $evidence = [ordered]@{ enabled = $p.enabled; scopes = @($p.scopes | Where-Object { $_ }); conditions = @($p.conditions | Where-Object { $_ } | ForEach-Object { "$($_.field) $($_.operator) $(@($_.values) -join ',')" }); effectiveUntil = $schedule.effectiveUntil; recurrences = @($schedule.recurrences | Where-Object { $_ }).Count }
+        if ($p.enabled -eq $false) { return New-Pass 'The suppression rule is disabled' $evidence }
+        $permanent = -not $schedule -or (-not $schedule.effectiveUntil -and -not @($schedule.recurrences | Where-Object { $_ }).Count)
+        if (-not $permanent) { return New-Pass 'The suppression only applies on a schedule' $evidence }
+        if ($evidence.conditions.Count) { return New-Pass "The suppression only applies to alerts that match: $($evidence.conditions -join '; ')" $evidence }
+        New-Fail "Every alert on $(@($evidence.scopes | ForEach-Object { Get-ScopeLabel $_ }) -join ', ') is suppressed, at all times" $evidence
+    }
+}

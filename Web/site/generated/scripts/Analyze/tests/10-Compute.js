@@ -1735,92 +1735,292 @@ export default R.script("/app/Analyze/tests/10-Compute.ps1", { params: [], adv: 
             return;
         }
     })], false)], null));
-    R.ln = F + 913;
-    S["arcscriptextensions"] = R.a([R.v("Microsoft.Cplat.Core/RunCommandHandlerWindows"), R.v("Microsoft.Cplat.Core/RunCommandHandlerLinux"), R.v("Microsoft.Compute/CustomScriptExtension"), R.v("Microsoft.Azure.Extensions/CustomScript"), R.v("Microsoft.Azure.Automation.HybridWorker/HybridWorkerForWindows"), R.v("Microsoft.Azure.Automation/HybridWorkerForLinux"), R.v("Microsoft.EnterpriseCloud.Monitoring/MicrosoftMonitoringAgent"), R.v("Microsoft.EnterpriseCloud.Monitoring/OMSAgentForLinux")]);
+    R.ln = F + 912;
+    R.def(S, "Get-ArcExtensionNames", { params: [{ n: "Entries", t: null, pos: null }], adv: 0, h: "a3cc4705bf7570ba" }, (S, O) => {
+        R.ln = F + 915;
+        R.e(O, R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " if ($_.publisher) { \"$($_.publisher)/$($_.type)\" } else { [string]$_ } " }, (S, O) => {
+            R.ln = F + 915;
+            if (R.t(R.m((S["_"] ?? null), "publisher"))) {
+                R.ln = F + 915;
+                R.e(O, ("" + R.str(R.u(R.pi(R.m((S["_"] ?? null), "publisher")))) + "/" + R.str(R.u(R.pi(R.m((S["_"] ?? null), "type"))))));
+            } else {
+                R.ln = F + 915;
+                R.e(O, R.c("string", (S["_"] ?? null)));
+            }
+        })], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+            R.ln = F + 915;
+            R.e(O, (S["_"] ?? null));
+        })], R.pi((S["entries"] ?? null)))));
+    });
     R.ln = F + 919;
-    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-VM-017", "Title", "Arc-enabled domain controllers do not accept scripts or machine configuration from Azure", "Category", "Privileged access", "Service", "Azure Arc", "Severity", "High", "Description", ("For Windows servers connected with Azure Arc that report being a domain controller (serverType), checks the local security controls of the Connected Machine agent: monitor mode, the extension manager disabled, or an allow list without the extensions Microsoft names as able to run scripts (" + R.str(R.u(R.pi(R.join((S["arcscriptextensions"] ?? null), ", ")))) + "), and machine configuration (guest configuration) disabled. A server whose agent does not report its server type is reported as unknown when its name is that of a domain controller."), "Rationale", "Scripts that Azure sends through Run Command or the Custom Script Extension run as Local System, and a machine configuration assignment applies DSC as Local System too. Without the local controls, everyone who can install an extension or assign a configuration on the Arc resource (Contributor, Virtual Machine Contributor, Log Analytics Contributor, Azure Connected Machine Resource Administrator on any scope above it) controls the domain. Only the server itself can set these controls, not even a Global Administrator in Azure, which is why Microsoft intends them for domain controllers.", "Remediation", "On the domain controller run 'azcmagent config set config.mode monitor', or set an allow list of the monitoring and security extensions it needs ('azcmagent config set extensions.allowlist ...') and 'azcmagent config set guestconfiguration.enabled false'. Remove extensions that are no longer allowed from Azure.", "References", R.a([R.v("https://learn.microsoft.com/azure/azure-arc/servers/security-extensions"), R.v("https://learn.microsoft.com/azure/azure-arc/servers/security-overview")]), "ResourceTypes", R.a((S["arctype"] ?? null)), "Filter", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) (Get-MachineOsType $Record) -eq 'Windows' " }, (S, O) => {
-        R.ln = F + 930;
+    S["arcscriptextensions"] = R.a([R.v("Microsoft.Cplat.Core/RunCommandHandlerWindows"), R.v("Microsoft.Cplat.Core/RunCommandHandlerLinux"), R.v("Microsoft.Compute/CustomScriptExtension"), R.v("Microsoft.Azure.Extensions/CustomScript"), R.v("Microsoft.Azure.Automation.HybridWorker/HybridWorkerForWindows"), R.v("Microsoft.Azure.Automation/HybridWorkerForLinux"), R.v("Microsoft.EnterpriseCloud.Monitoring/MicrosoftMonitoringAgent"), R.v("Microsoft.EnterpriseCloud.Monitoring/OMSAgentForLinux")]);
+    R.ln = F + 925;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-VM-017", "Version", 2, "Title", "Arc-enabled domain controllers do not accept scripts or machine configuration from Azure", "Category", "Privileged access", "Service", "Azure Arc", "Severity", "High", "Description", ("For Windows servers connected with Azure Arc that report being a domain controller (serverType), checks the local security controls of the Connected Machine agent: monitor mode, the extension manager disabled, or an allow list without the extensions Microsoft names as able to run scripts (" + R.str(R.u(R.pi(R.join((S["arcscriptextensions"] ?? null), ", ")))) + "), and machine configuration (guest configuration) disabled. A server whose agent does not report its server type is reported as unknown when its name is that of a domain controller."), "Rationale", "Scripts that Azure sends through Run Command or the Custom Script Extension run as Local System, and a machine configuration assignment applies DSC as Local System too. Without the local controls, everyone who can install an extension or assign a configuration on the Arc resource (Contributor, Virtual Machine Contributor, Log Analytics Contributor, Azure Connected Machine Resource Administrator on any scope above it) controls the domain. Only the server itself can set these controls, not even a Global Administrator in Azure, which is why Microsoft intends them for domain controllers.", "Remediation", "On the domain controller run 'azcmagent config set config.mode monitor', or set an allow list of the monitoring and security extensions it needs ('azcmagent config set extensions.allowlist ...') and 'azcmagent config set guestconfiguration.enabled false'. Remove extensions that are no longer allowed from Azure.", "References", R.a([R.v("https://learn.microsoft.com/azure/azure-arc/servers/security-extensions"), R.v("https://learn.microsoft.com/azure/azure-arc/servers/security-overview")]), "ResourceTypes", R.a((S["arctype"] ?? null)), "Filter", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) (Get-MachineOsType $Record) -eq 'Windows' " }, (S, O) => {
+        R.ln = F + 937;
         R.e(O, R.eq(R.u(R.cmd(S, "Get-MachineOsType", [(S["record"] ?? null)], null)), "Windows"));
-    }), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $p = $Record.resource.properties\n        $serverType = [string]$p.detectedProperties.serverType\n        if (-not $serverType) {\n            if ([string]$Record.resource.name -match $dcNamePattern) { return New-Unknown 'The agent does not report its server type, and the name is that of a domain controller' }\n            return New-NotApplicable 'The agent does not report its server type, and the name is not that of a domain controller'\n        }\n        if (@($serverType -split ';' | Where-Object { $_.Trim() -eq 'Domain Controller' }).Count -eq 0) { return New-NotApplicable \"Not a domain controller ($serverType)\" }\n        $configuration = $p.agentConfiguration\n        if (-not $configuration) { return New-Unknown 'The domain controller does not report the configuration of its agent' }\n        $allowList = @($configuration.extensionsAllowList | Where-Object { $_ })\n        $evidence = [ordered]@{\n            serverType                = $serverType\n            agentStatus               = $p.status\n            agentVersion              = $p.agentVersion\n            configMode                = $configuration.configMode\n            extensionsEnabled         = $configuration.extensionsEnabled\n            extensionsAllowList       = $allowList\n            extensionsBlockList       = @($configuration.extensionsBlockList | Where-Object { $_ })\n            guestConfigurationEnabled = $configuration.guestConfigurationEnabled\n        }\n        if ([string]$configuration.configMode -eq 'monitor') { return New-Pass 'The agent runs in monitor mode: only monitoring and security extensions, no machine configuration' $evidence }\n        $issues = [System.Collections.Generic.List[string]]::new()\n        if ([string]$configuration.extensionsEnabled -ne 'false') {\n            $scripts = @($allowList | Where-Object { $_ -in $arcScriptExtensions })\n            if (-not $allowList.Count) { $issues.Add('extensions are allowed without an allow list') }\n            elseif ($scripts.Count) { $issues.Add(\"the allow list includes $($scripts -join ', ')\") }\n        }\n        if ([string]$configuration.guestConfigurationEnabled -ne 'false') { $issues.Add('machine configuration is enabled') }\n        if ($issues.Count) { return New-Fail \"The domain controller accepts code from Azure: $($issues -join '; ')\" $evidence }\n        New-Pass 'The agent accepts no script extensions and no machine configuration' $evidence\n    " }, (S, O) => {
-        R.ln = F + 933;
+    }), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $p = $Record.resource.properties\n        $serverType = [string]$p.detectedProperties.serverType\n        if (-not $serverType) {\n            if ([string]$Record.resource.name -match $dcNamePattern) { return New-Unknown 'The agent does not report its server type, and the name is that of a domain controller' }\n            return New-NotApplicable 'The agent does not report its server type, and the name is not that of a domain controller'\n        }\n        if (@($serverType -split ';' | Where-Object { $_.Trim() -eq 'Domain Controller' }).Count -eq 0) { return New-NotApplicable \"Not a domain controller ($serverType)\" }\n        $configuration = $p.agentConfiguration\n        if (-not $configuration) { return New-Unknown 'The domain controller does not report the configuration of its agent' }\n        $allowList = @(Get-ArcExtensionNames $configuration.extensionsAllowList)\n        $evidence = [ordered]@{\n            serverType                = $serverType\n            agentStatus               = $p.status\n            agentVersion              = $p.agentVersion\n            configMode                = $configuration.configMode\n            extensionsEnabled         = $configuration.extensionsEnabled\n            extensionsAllowList       = $allowList\n            extensionsBlockList       = @($configuration.extensionsBlockList | Where-Object { $_ })\n            guestConfigurationEnabled = $configuration.guestConfigurationEnabled\n        }\n        if ([string]$configuration.configMode -eq 'monitor') { return New-Pass 'The agent runs in monitor mode: only monitoring and security extensions, no machine configuration' $evidence }\n        $issues = [System.Collections.Generic.List[string]]::new()\n        if ([string]$configuration.extensionsEnabled -ne 'false') {\n            $scripts = @($allowList | Where-Object { $_ -in $arcScriptExtensions })\n            if (-not $allowList.Count) { $issues.Add('extensions are allowed without an allow list') }\n            elseif ($scripts.Count) { $issues.Add(\"the allow list includes $($scripts -join ', ')\") }\n        }\n        if ([string]$configuration.guestConfigurationEnabled -ne 'false') { $issues.Add('machine configuration is enabled') }\n        if ($issues.Count) { return New-Fail \"The domain controller accepts code from Azure: $($issues -join '; ')\" $evidence }\n        New-Pass 'The agent accepts no script extensions and no machine configuration' $evidence\n    " }, (S, O) => {
+        R.ln = F + 940;
         S["p"] = R.m(R.m((S["record"] ?? null), "resource"), "properties");
-        R.ln = F + 934;
+        R.ln = F + 941;
         S["servertype"] = R.c("string", R.m(R.m((S["p"] ?? null), "detectedProperties"), "serverType"));
-        R.ln = F + 935;
+        R.ln = F + 942;
         if (!R.t((S["servertype"] ?? null))) {
-            R.ln = F + 936;
+            R.ln = F + 943;
             if (R.t(R.match(S, R.c("string", R.m(R.m((S["record"] ?? null), "resource"), "name")), (S["dcnamepattern"] ?? null)))) {
-                R.ln = F + 936;
+                R.ln = F + 943;
                 R.pa(O, R.cmd(S, "New-Unknown", ["The agent does not report its server type, and the name is that of a domain controller"], null));
                 return;
             }
-            R.ln = F + 937;
+            R.ln = F + 944;
             R.pa(O, R.cmd(S, "New-NotApplicable", ["The agent does not report its server type, and the name is not that of a domain controller"], null));
             return;
         }
-        R.ln = F + 939;
+        R.ln = F + 946;
         if (R.t(R.eq(R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.Trim() -eq 'Domain Controller' " }, (S, O) => {
-            R.ln = F + 939;
+            R.ln = F + 946;
             R.e(O, R.eq(R.im((S["_"] ?? null), "Trim", []), "Domain Controller"));
         })], R.pi(R.split((S["servertype"] ?? null), ";"))), "Count"), 0))) {
-            R.ln = F + 939;
+            R.ln = F + 946;
             R.pa(O, R.cmd(S, "New-NotApplicable", [("Not a domain controller (" + R.str((S["servertype"] ?? null)) + ")")], null));
             return;
         }
-        R.ln = F + 940;
+        R.ln = F + 947;
         S["configuration"] = R.m((S["p"] ?? null), "agentConfiguration");
-        R.ln = F + 941;
+        R.ln = F + 948;
         if (!R.t((S["configuration"] ?? null))) {
-            R.ln = F + 941;
+            R.ln = F + 948;
             R.pa(O, R.cmd(S, "New-Unknown", ["The domain controller does not report the configuration of its agent"], null));
             return;
         }
-        R.ln = F + 942;
-        S["allowlist"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 942;
-            R.e(O, (S["_"] ?? null));
-        })], R.pi(R.m((S["configuration"] ?? null), "extensionsAllowList")));
-        R.ln = F + 943;
+        R.ln = F + 949;
+        S["allowlist"] = R.cmd(S, "Get-ArcExtensionNames", [R.m((S["configuration"] ?? null), "extensionsAllowList")], null);
+        R.ln = F + 950;
         S["evidence"] = R.ht(["serverType", (S["servertype"] ?? null), "agentStatus", R.m((S["p"] ?? null), "status"), "agentVersion", R.m((S["p"] ?? null), "agentVersion"), "configMode", R.m((S["configuration"] ?? null), "configMode"), "extensionsEnabled", R.m((S["configuration"] ?? null), "extensionsEnabled"), "extensionsAllowList", (S["allowlist"] ?? null), "extensionsBlockList", R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
-            R.ln = F + 950;
+            R.ln = F + 957;
             R.e(O, (S["_"] ?? null));
         })], R.pi(R.m((S["configuration"] ?? null), "extensionsBlockList"))), "guestConfigurationEnabled", R.m((S["configuration"] ?? null), "guestConfigurationEnabled")], true);
-        R.ln = F + 953;
+        R.ln = F + 960;
         if (R.t(R.eq(R.c("string", R.m((S["configuration"] ?? null), "configMode")), "monitor"))) {
-            R.ln = F + 953;
+            R.ln = F + 960;
             R.pa(O, R.cmd(S, "New-Pass", ["The agent runs in monitor mode: only monitoring and security extensions, no machine configuration", (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 954;
+        R.ln = F + 961;
         S["issues"] = R.sc("System.Collections.Generic.List[string]", "new", []);
-        R.ln = F + 955;
+        R.ln = F + 962;
         if (R.t(R.ne(R.c("string", R.m((S["configuration"] ?? null), "extensionsEnabled")), "false"))) {
-            R.ln = F + 956;
+            R.ln = F + 963;
             S["scripts"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -in $arcScriptExtensions " }, (S, O) => {
-                R.ln = F + 956;
+                R.ln = F + 963;
                 R.e(O, R.in((S["_"] ?? null), (S["arcscriptextensions"] ?? null)));
             })], R.pi((S["allowlist"] ?? null)));
-            R.ln = F + 957;
+            R.ln = F + 964;
             if (!R.t(R.m((S["allowlist"] ?? null), "Count"))) {
-                R.ln = F + 957;
+                R.ln = F + 964;
                 R.e(O, R.im((S["issues"] ?? null), "Add", ["extensions are allowed without an allow list"]));
             } else if (R.t(R.m((S["scripts"] ?? null), "Count"))) {
-                R.ln = F + 958;
+                R.ln = F + 965;
                 R.e(O, R.im((S["issues"] ?? null), "Add", [("the allow list includes " + R.str(R.u(R.pi(R.join((S["scripts"] ?? null), ", ")))))]));
             }
         }
-        R.ln = F + 960;
+        R.ln = F + 967;
         if (R.t(R.ne(R.c("string", R.m((S["configuration"] ?? null), "guestConfigurationEnabled")), "false"))) {
-            R.ln = F + 960;
+            R.ln = F + 967;
             R.e(O, R.im((S["issues"] ?? null), "Add", ["machine configuration is enabled"]));
         }
-        R.ln = F + 961;
+        R.ln = F + 968;
         if (R.t(R.m((S["issues"] ?? null), "Count"))) {
-            R.ln = F + 961;
+            R.ln = F + 968;
             R.pa(O, R.cmd(S, "New-Fail", [("The domain controller accepts code from Azure: " + R.str(R.u(R.pi(R.join((S["issues"] ?? null), "; "))))), (S["evidence"] ?? null)], null));
             return;
         }
-        R.ln = F + 962;
+        R.ln = F + 969;
         R.pa(O, R.cmd(S, "New-Pass", ["The agent accepts no script extensions and no machine configuration", (S["evidence"] ?? null)], null));
+    })], false)], null));
+    R.ln = F + 973;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-VM-021", "Title", "Compute galleries are not shared with the public or other tenants", "Category", "Data protection", "Service", "Compute galleries", "Severity", "Medium", "Description", "Checks the sharing profile of Azure Compute Galleries: community sharing makes every image public, and direct sharing with tenants other than this one gives them the images. Direct sharing with subscriptions is reported as unknown when they are not this subscription, as their tenant cannot be read.", "Rationale", "Machine images carry what was on the template machine: software, configuration, sometimes credentials, keys and data. A shared gallery hands all of it to whoever the gallery is shared with, without any copy or download showing in this tenant.", "Remediation", "Set the gallery to private (az sig share reset) and share images with specific subscriptions of the organization, or through Azure RBAC, only where needed.", "References", R.a([R.v("https://learn.microsoft.com/azure/virtual-machines/share-gallery-community"), R.v("https://learn.microsoft.com/azure/virtual-machines/share-gallery-direct")]), "ResourceTypes", R.a("Microsoft.Compute/galleries"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $sharing = $Record.resource.properties.sharingProfile\n        $permission = [string]$sharing.permissions\n        $tenantId = [string]$script:Ingest.Manifest.subscription.tenantId\n        $groups = @($sharing.groups | Where-Object { $_ })\n        $evidence = [ordered]@{ permissions = $(if ($permission) { $permission } else { 'Private' }); groups = @($groups | ForEach-Object { \"$($_.type): $(@($_.ids) -join ', ')\" }); publicNames = @($sharing.communityGalleryInfo.publicNames | Where-Object { $_ }) }\n        if ($permission -eq 'Community') { return New-Fail 'Shared with the community: every image is public' $evidence }\n        if ($permission -ne 'Groups') { return New-Pass 'Private gallery' $evidence }\n        if (-not $groups) { return New-Unknown 'Shared directly, but the groups it is shared with were not returned' $evidence }\n        $tenants = @($groups | Where-Object { $_.type -eq 'AADTenants' } | ForEach-Object { @($_.ids) } | Where-Object { $_ -and ([string]$_) -ne $tenantId })\n        if ($tenants) { return New-Fail \"Shared directly with other tenant(s): $($tenants -join ', ')\" $evidence }\n        $subscriptions = @($groups | Where-Object { $_.type -eq 'Subscriptions' } | ForEach-Object { @($_.ids) } | Where-Object { $_ -and ([string]$_) -ne [string]$script:Ingest.SubscriptionId })\n        if ($subscriptions) { return New-Unknown \"Shared directly with subscription(s) $($subscriptions -join ', '), whose tenant cannot be read\" $evidence }\n        New-Pass 'Shared directly within this tenant only' $evidence\n    " }, (S, O) => {
+        R.ln = F + 986;
+        S["sharing"] = R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "sharingProfile");
+        R.ln = F + 987;
+        S["permission"] = R.c("string", R.m((S["sharing"] ?? null), "permissions"));
+        R.ln = F + 988;
+        S["tenantid"] = R.c("string", R.m(R.m(R.m((R.ss(S)["script:ingest"] ?? null), "Manifest"), "subscription"), "tenantId"));
+        R.ln = F + 989;
+        S["groups"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+            R.ln = F + 989;
+            R.e(O, (S["_"] ?? null));
+        })], R.pi(R.m((S["sharing"] ?? null), "groups")));
+        R.ln = F + 990;
+        S["evidence"] = R.ht(["permissions", (() => {
+            const v63 = [];
+            R.ln = F + 990;
+            if (R.t((S["permission"] ?? null))) {
+                R.ln = F + 990;
+                R.e(v63, (S["permission"] ?? null));
+            } else {
+                R.ln = F + 990;
+                R.e(v63, "Private");
+            }
+            return R.u(v63);
+        })(), "groups", R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " \"$($_.type): $(@($_.ids) -join ', ')\" " }, (S, O) => {
+            R.ln = F + 990;
+            R.e(O, ("" + R.str(R.u(R.pi(R.m((S["_"] ?? null), "type")))) + ": " + R.str(R.u(R.pi(R.join(R.a(R.m((S["_"] ?? null), "ids")), ", "))))));
+        })], R.pi((S["groups"] ?? null))), "publicNames", R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+            R.ln = F + 990;
+            R.e(O, (S["_"] ?? null));
+        })], R.pi(R.m(R.m((S["sharing"] ?? null), "communityGalleryInfo"), "publicNames")))], true);
+        R.ln = F + 991;
+        if (R.t(R.eq((S["permission"] ?? null), "Community"))) {
+            R.ln = F + 991;
+            R.pa(O, R.cmd(S, "New-Fail", ["Shared with the community: every image is public", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 992;
+        if (R.t(R.ne((S["permission"] ?? null), "Groups"))) {
+            R.ln = F + 992;
+            R.pa(O, R.cmd(S, "New-Pass", ["Private gallery", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 993;
+        if (!R.t((S["groups"] ?? null))) {
+            R.ln = F + 993;
+            R.pa(O, R.cmd(S, "New-Unknown", ["Shared directly, but the groups it is shared with were not returned", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 994;
+        S["tenants"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and ([string]$_) -ne $tenantId " }, (S, O) => {
+            R.ln = F + 994;
+            R.e(O, (R.t((S["_"] ?? null)) && R.t(R.ne((R.c("string", (S["_"] ?? null))), (S["tenantid"] ?? null)))));
+        })], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " @($_.ids) " }, (S, O) => {
+            R.ln = F + 994;
+            R.e(O, R.a(R.m((S["_"] ?? null), "ids")));
+        })], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.type -eq 'AADTenants' " }, (S, O) => {
+            R.ln = F + 994;
+            R.e(O, R.eq(R.m((S["_"] ?? null), "type"), "AADTenants"));
+        })], R.pi((S["groups"] ?? null)))));
+        R.ln = F + 995;
+        if (R.t((S["tenants"] ?? null))) {
+            R.ln = F + 995;
+            R.pa(O, R.cmd(S, "New-Fail", [("Shared directly with other tenant(s): " + R.str(R.u(R.pi(R.join((S["tenants"] ?? null), ", "))))), (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 996;
+        S["subscriptions"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and ([string]$_) -ne [string]$script:Ingest.SubscriptionId " }, (S, O) => {
+            R.ln = F + 996;
+            R.e(O, (R.t((S["_"] ?? null)) && R.t(R.ne((R.c("string", (S["_"] ?? null))), R.c("string", R.m((R.ss(S)["script:ingest"] ?? null), "SubscriptionId"))))));
+        })], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " @($_.ids) " }, (S, O) => {
+            R.ln = F + 996;
+            R.e(O, R.a(R.m((S["_"] ?? null), "ids")));
+        })], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.type -eq 'Subscriptions' " }, (S, O) => {
+            R.ln = F + 996;
+            R.e(O, R.eq(R.m((S["_"] ?? null), "type"), "Subscriptions"));
+        })], R.pi((S["groups"] ?? null)))));
+        R.ln = F + 997;
+        if (R.t((S["subscriptions"] ?? null))) {
+            R.ln = F + 997;
+            R.pa(O, R.cmd(S, "New-Unknown", [("Shared directly with subscription(s) " + R.str(R.u(R.pi(R.join((S["subscriptions"] ?? null), ", ")))) + ", whose tenant cannot be read"), (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 998;
+        R.pa(O, R.cmd(S, "New-Pass", ["Shared directly within this tenant only", (S["evidence"] ?? null)], null));
+    })], false)], null));
+    R.ln = F + 1002;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-VM-022", "Title", "Arc-enabled servers only accept extensions on an allow list", "Category", "Privileged access", "Service", "Azure Arc", "Severity", "Medium", "Description", "Checks the local security controls of the Connected Machine agent on every Arc-enabled server: monitor mode, the extension manager disabled, or an extension allow list. A block list alone does not count, as any extension that is not on it is accepted. Domain controllers have the stricter AZ-VM-017.", "Rationale", "Every extension runs as Local System or root, and the Custom Script Extension or Run Command runs any script Azure sends. Without an allow list, everyone with an Azure role that can install extensions on the machine (Azure Connected Machine Resource Administrator, Contributor) controls an on-premises server, beyond the reach of the network controls around it.", "Remediation", "On each server set an allow list of the extensions it needs ('azcmagent config set extensions.allowlist ...'), or 'azcmagent config set config.mode monitor' for servers that only need monitoring and security extensions.", "References", R.a("https://learn.microsoft.com/azure/azure-arc/servers/security-extensions"), "ResourceTypes", R.a((S["arctype"] ?? null)), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $configuration = $Record.resource.properties.agentConfiguration\n        if (-not $configuration) { return New-Unknown 'The server does not report the configuration of its agent' }\n        $allowList = @(Get-ArcExtensionNames $configuration.extensionsAllowList)\n        $evidence = [ordered]@{ agentVersion = $Record.resource.properties.agentVersion; configMode = $configuration.configMode; extensionsEnabled = $configuration.extensionsEnabled; extensionsAllowList = $allowList; extensionsBlockList = @(Get-ArcExtensionNames $configuration.extensionsBlockList) }\n        if ([string]$configuration.configMode -eq 'monitor') { return New-Pass 'The agent runs in monitor mode' $evidence }\n        if ([string]$configuration.extensionsEnabled -eq 'false') { return New-Pass 'The extension manager is disabled' $evidence }\n        if ($allowList) { return New-Pass \"Only allow-listed extensions: $($allowList -join ', ')\" $evidence }\n        New-Fail 'The server accepts every extension Azure sends' $evidence\n    " }, (S, O) => {
+        R.ln = F + 1015;
+        S["configuration"] = R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "agentConfiguration");
+        R.ln = F + 1016;
+        if (!R.t((S["configuration"] ?? null))) {
+            R.ln = F + 1016;
+            R.pa(O, R.cmd(S, "New-Unknown", ["The server does not report the configuration of its agent"], null));
+            return;
+        }
+        R.ln = F + 1017;
+        S["allowlist"] = R.cmd(S, "Get-ArcExtensionNames", [R.m((S["configuration"] ?? null), "extensionsAllowList")], null);
+        R.ln = F + 1018;
+        S["evidence"] = R.ht(["agentVersion", R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "agentVersion"), "configMode", R.m((S["configuration"] ?? null), "configMode"), "extensionsEnabled", R.m((S["configuration"] ?? null), "extensionsEnabled"), "extensionsAllowList", (S["allowlist"] ?? null), "extensionsBlockList", R.cmd(S, "Get-ArcExtensionNames", [R.m((S["configuration"] ?? null), "extensionsBlockList")], null)], true);
+        R.ln = F + 1019;
+        if (R.t(R.eq(R.c("string", R.m((S["configuration"] ?? null), "configMode")), "monitor"))) {
+            R.ln = F + 1019;
+            R.pa(O, R.cmd(S, "New-Pass", ["The agent runs in monitor mode", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 1020;
+        if (R.t(R.eq(R.c("string", R.m((S["configuration"] ?? null), "extensionsEnabled")), "false"))) {
+            R.ln = F + 1020;
+            R.pa(O, R.cmd(S, "New-Pass", ["The extension manager is disabled", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 1021;
+        if (R.t((S["allowlist"] ?? null))) {
+            R.ln = F + 1021;
+            R.pa(O, R.cmd(S, "New-Pass", [("Only allow-listed extensions: " + R.str(R.u(R.pi(R.join((S["allowlist"] ?? null), ", "))))), (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 1022;
+        R.pa(O, R.cmd(S, "New-Fail", ["The server accepts every extension Azure sends", (S["evidence"] ?? null)], null));
+    })], false)], null));
+    R.ln = F + 1028;
+    S["avddataredirections"] = R.ht(["drivestoredirect", "drives", "redirectclipboard", "clipboard", "usbdevicestoredirect", "USB devices"], true);
+    R.ln = F + 1030;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-AVD-002", "Title", "Azure Virtual Desktop host pools do not redirect drives, clipboard or USB devices", "Category", "Data protection", "Service", "Azure Virtual Desktop", "Severity", "Low", "Description", "Checks the RDP properties of host pools for drive (drivestoredirect), clipboard (redirectclipboard) and USB (usbdevicestoredirect) redirection. All three are off when not set. Settings on the session hosts (Group Policy, Intune) can block redirection further; AzCmply only reads the host pool.", "Rationale", "Virtual desktops often exist to keep data inside the environment. With drive, clipboard or USB redirection, every user can copy files and text to and from an unmanaged device, and malware on that device can reach the session.", "Remediation", "Set 'drivestoredirect:s:;redirectclipboard:i:0;usbdevicestoredirect:s:;' in the RDP properties of the host pool, or allow clipboard in one direction only with the session host policies where users need it.", "References", R.a([R.v("https://learn.microsoft.com/azure/virtual-desktop/rdp-properties"), R.v("https://learn.microsoft.com/azure/virtual-desktop/redirection-configure-clipboard")]), "ResourceTypes", R.a("Microsoft.DesktopVirtualization/hostPools"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $values = @{}\n        foreach ($entry in @(([string]$Record.resource.properties.customRdpProperty) -split ';' | Where-Object { $_.Trim() })) {\n            if ($entry -match '^\\s*([^:]+):[a-z]:(.*)$') { $values[$Matches[1].Trim().ToLowerInvariant()] = $Matches[2].Trim() }\n        }\n        $evidence = [ordered]@{}\n        $enabled = [System.Collections.Generic.List[string]]::new()\n        foreach ($name in $avdDataRedirections.Keys) {\n            $value = if ($values.ContainsKey($name)) { [string]$values[$name] } else { '' }\n            $evidence[$name] = $(if ($values.ContainsKey($name)) { $value } else { 'not set' })\n            if ($value -and $value -ne '0') { $enabled.Add($avdDataRedirections[$name]) }\n        }\n        if ($enabled.Count) { return New-Fail \"Redirects $($enabled -join ', ') to the local device\" $evidence }\n        New-Pass 'No drive, clipboard or USB redirection' $evidence\n    " }, (S, O) => {
+        R.ln = F + 1043;
+        S["values"] = R.ht([], false);
+        R.ln = F + 1044;
+        for (const it64 of R.fi(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.Trim() " }, (S, O) => {
+            R.ln = F + 1044;
+            R.e(O, R.im((S["_"] ?? null), "Trim", []));
+        })], R.pi(R.split((R.c("string", R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "customRdpProperty"))), ";"))))) {
+            S["entry"] = it64;
+            R.ln = F + 1045;
+            if (R.t(R.match(S, (S["entry"] ?? null), "^\\s*([^:]+):[a-z]:(.*)$"))) {
+                R.ln = F + 1045;
+                R.si((S["values"] ?? null), R.im(R.im(R.i((S["matches"] ?? null), 1), "Trim", []), "ToLowerInvariant", []), R.im(R.i((S["matches"] ?? null), 2), "Trim", []));
+            }
+        }
+        R.ln = F + 1047;
+        S["evidence"] = R.ht([], true);
+        R.ln = F + 1048;
+        S["enabled"] = R.sc("System.Collections.Generic.List[string]", "new", []);
+        R.ln = F + 1049;
+        for (const it65 of R.fi(R.m((S["avddataredirections"] ?? null), "Keys"))) {
+            S["name"] = it65;
+            R.ln = F + 1050;
+            const v66 = [];
+            R.ln = F + 1050;
+            if (R.t(R.im((S["values"] ?? null), "ContainsKey", [(S["name"] ?? null)]))) {
+                R.ln = F + 1050;
+                R.e(v66, R.c("string", R.i((S["values"] ?? null), (S["name"] ?? null))));
+            } else {
+                R.ln = F + 1050;
+                R.e(v66, "");
+            }
+            S["value"] = R.u(v66);
+            R.ln = F + 1051;
+            R.si((S["evidence"] ?? null), (S["name"] ?? null), (() => {
+                const v67 = [];
+                R.ln = F + 1051;
+                if (R.t(R.im((S["values"] ?? null), "ContainsKey", [(S["name"] ?? null)]))) {
+                    R.ln = F + 1051;
+                    R.e(v67, (S["value"] ?? null));
+                } else {
+                    R.ln = F + 1051;
+                    R.e(v67, "not set");
+                }
+                return R.u(v67);
+            })());
+            R.ln = F + 1052;
+            if ((R.t((S["value"] ?? null)) && R.t(R.ne((S["value"] ?? null), "0")))) {
+                R.ln = F + 1052;
+                R.e(O, R.im((S["enabled"] ?? null), "Add", [R.i((S["avddataredirections"] ?? null), (S["name"] ?? null))]));
+            }
+        }
+        R.ln = F + 1054;
+        if (R.t(R.m((S["enabled"] ?? null), "Count"))) {
+            R.ln = F + 1054;
+            R.pa(O, R.cmd(S, "New-Fail", [("Redirects " + R.str(R.u(R.pi(R.join((S["enabled"] ?? null), ", ")))) + " to the local device"), (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 1055;
+        R.pa(O, R.cmd(S, "New-Pass", ["No drive, clipboard or USB redirection", (S["evidence"] ?? null)], null));
     })], false)], null));
 });

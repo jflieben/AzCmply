@@ -909,6 +909,12 @@ Add-AzTest @{
         if ($signals.Confidence -eq 'Possible') { return Get-DomainControllerProtection $Record $signals }
     }
 }
+function Get-ArcExtensionNames {
+    #extension list entries of the Connected Machine agent as 'publisher/type', whether ARM returns strings or objects
+    param($Entries)
+    @($Entries | Where-Object { $_ } | ForEach-Object { if ($_.publisher) { "$($_.publisher)/$($_.type)" } else { [string]$_ } })
+}
+
 #extensions that Microsoft names as able to run arbitrary scripts on an Azure Arc-enabled server
 $arcScriptExtensions = @(
     'Microsoft.Cplat.Core/RunCommandHandlerWindows', 'Microsoft.Cplat.Core/RunCommandHandlerLinux', 'Microsoft.Compute/CustomScriptExtension',
@@ -918,6 +924,7 @@ $arcScriptExtensions = @(
 
 Add-AzTest @{
     Id            = 'AZ-VM-017'
+    Version       = 2
     Title         = 'Arc-enabled domain controllers do not accept scripts or machine configuration from Azure'
     Category      = 'Privileged access'
     Service       = 'Azure Arc'
@@ -939,7 +946,7 @@ Add-AzTest @{
         if (@($serverType -split ';' | Where-Object { $_.Trim() -eq 'Domain Controller' }).Count -eq 0) { return New-NotApplicable "Not a domain controller ($serverType)" }
         $configuration = $p.agentConfiguration
         if (-not $configuration) { return New-Unknown 'The domain controller does not report the configuration of its agent' }
-        $allowList = @($configuration.extensionsAllowList | Where-Object { $_ })
+        $allowList = @(Get-ArcExtensionNames $configuration.extensionsAllowList)
         $evidence = [ordered]@{
             serverType                = $serverType
             agentStatus               = $p.status
@@ -960,5 +967,91 @@ Add-AzTest @{
         if ([string]$configuration.guestConfigurationEnabled -ne 'false') { $issues.Add('machine configuration is enabled') }
         if ($issues.Count) { return New-Fail "The domain controller accepts code from Azure: $($issues -join '; ')" $evidence }
         New-Pass 'The agent accepts no script extensions and no machine configuration' $evidence
+    }
+}
+
+Add-AzTest @{
+    Id            = 'AZ-VM-021'
+    Title         = 'Compute galleries are not shared with the public or other tenants'
+    Category      = 'Data protection'
+    Service       = 'Compute galleries'
+    Severity      = 'Medium'
+    Description   = 'Checks the sharing profile of Azure Compute Galleries: community sharing makes every image public, and direct sharing with tenants other than this one gives them the images. Direct sharing with subscriptions is reported as unknown when they are not this subscription, as their tenant cannot be read.'
+    Rationale     = 'Machine images carry what was on the template machine: software, configuration, sometimes credentials, keys and data. A shared gallery hands all of it to whoever the gallery is shared with, without any copy or download showing in this tenant.'
+    Remediation   = 'Set the gallery to private (az sig share reset) and share images with specific subscriptions of the organization, or through Azure RBAC, only where needed.'
+    References    = @('https://learn.microsoft.com/azure/virtual-machines/share-gallery-community', 'https://learn.microsoft.com/azure/virtual-machines/share-gallery-direct')
+    ResourceTypes = @('Microsoft.Compute/galleries')
+    Evaluate      = {
+        param($Record)
+        $sharing = $Record.resource.properties.sharingProfile
+        $permission = [string]$sharing.permissions
+        $tenantId = [string]$script:Ingest.Manifest.subscription.tenantId
+        $groups = @($sharing.groups | Where-Object { $_ })
+        $evidence = [ordered]@{ permissions = $(if ($permission) { $permission } else { 'Private' }); groups = @($groups | ForEach-Object { "$($_.type): $(@($_.ids) -join ', ')" }); publicNames = @($sharing.communityGalleryInfo.publicNames | Where-Object { $_ }) }
+        if ($permission -eq 'Community') { return New-Fail 'Shared with the community: every image is public' $evidence }
+        if ($permission -ne 'Groups') { return New-Pass 'Private gallery' $evidence }
+        if (-not $groups) { return New-Unknown 'Shared directly, but the groups it is shared with were not returned' $evidence }
+        $tenants = @($groups | Where-Object { $_.type -eq 'AADTenants' } | ForEach-Object { @($_.ids) } | Where-Object { $_ -and ([string]$_) -ne $tenantId })
+        if ($tenants) { return New-Fail "Shared directly with other tenant(s): $($tenants -join ', ')" $evidence }
+        $subscriptions = @($groups | Where-Object { $_.type -eq 'Subscriptions' } | ForEach-Object { @($_.ids) } | Where-Object { $_ -and ([string]$_) -ne [string]$script:Ingest.SubscriptionId })
+        if ($subscriptions) { return New-Unknown "Shared directly with subscription(s) $($subscriptions -join ', '), whose tenant cannot be read" $evidence }
+        New-Pass 'Shared directly within this tenant only' $evidence
+    }
+}
+
+Add-AzTest @{
+    Id            = 'AZ-VM-022'
+    Title         = 'Arc-enabled servers only accept extensions on an allow list'
+    Category      = 'Privileged access'
+    Service       = 'Azure Arc'
+    Severity      = 'Medium'
+    Description   = 'Checks the local security controls of the Connected Machine agent on every Arc-enabled server: monitor mode, the extension manager disabled, or an extension allow list. A block list alone does not count, as any extension that is not on it is accepted. Domain controllers have the stricter AZ-VM-017.'
+    Rationale     = 'Every extension runs as Local System or root, and the Custom Script Extension or Run Command runs any script Azure sends. Without an allow list, everyone with an Azure role that can install extensions on the machine (Azure Connected Machine Resource Administrator, Contributor) controls an on-premises server, beyond the reach of the network controls around it.'
+    Remediation   = "On each server set an allow list of the extensions it needs ('azcmagent config set extensions.allowlist ...'), or 'azcmagent config set config.mode monitor' for servers that only need monitoring and security extensions."
+    References    = @('https://learn.microsoft.com/azure/azure-arc/servers/security-extensions')
+    ResourceTypes = @($arcType)
+    Evaluate      = {
+        param($Record)
+        $configuration = $Record.resource.properties.agentConfiguration
+        if (-not $configuration) { return New-Unknown 'The server does not report the configuration of its agent' }
+        $allowList = @(Get-ArcExtensionNames $configuration.extensionsAllowList)
+        $evidence = [ordered]@{ agentVersion = $Record.resource.properties.agentVersion; configMode = $configuration.configMode; extensionsEnabled = $configuration.extensionsEnabled; extensionsAllowList = $allowList; extensionsBlockList = @(Get-ArcExtensionNames $configuration.extensionsBlockList) }
+        if ([string]$configuration.configMode -eq 'monitor') { return New-Pass 'The agent runs in monitor mode' $evidence }
+        if ([string]$configuration.extensionsEnabled -eq 'false') { return New-Pass 'The extension manager is disabled' $evidence }
+        if ($allowList) { return New-Pass "Only allow-listed extensions: $($allowList -join ', ')" $evidence }
+        New-Fail 'The server accepts every extension Azure sends' $evidence
+    }
+}
+
+#RDP properties of a host pool that move data between the local device and the session; empty or 0 means off, which is
+#also the default when the property is not set
+$avdDataRedirections = [ordered]@{ drivestoredirect = 'drives'; redirectclipboard = 'clipboard'; usbdevicestoredirect = 'USB devices' }
+
+Add-AzTest @{
+    Id            = 'AZ-AVD-002'
+    Title         = 'Azure Virtual Desktop host pools do not redirect drives, clipboard or USB devices'
+    Category      = 'Data protection'
+    Service       = 'Azure Virtual Desktop'
+    Severity      = 'Low'
+    Description   = 'Checks the RDP properties of host pools for drive (drivestoredirect), clipboard (redirectclipboard) and USB (usbdevicestoredirect) redirection. All three are off when not set. Settings on the session hosts (Group Policy, Intune) can block redirection further; AzCmply only reads the host pool.'
+    Rationale     = 'Virtual desktops often exist to keep data inside the environment. With drive, clipboard or USB redirection, every user can copy files and text to and from an unmanaged device, and malware on that device can reach the session.'
+    Remediation   = "Set 'drivestoredirect:s:;redirectclipboard:i:0;usbdevicestoredirect:s:;' in the RDP properties of the host pool, or allow clipboard in one direction only with the session host policies where users need it."
+    References    = @('https://learn.microsoft.com/azure/virtual-desktop/rdp-properties', 'https://learn.microsoft.com/azure/virtual-desktop/redirection-configure-clipboard')
+    ResourceTypes = @('Microsoft.DesktopVirtualization/hostPools')
+    Evaluate      = {
+        param($Record)
+        $values = @{}
+        foreach ($entry in @(([string]$Record.resource.properties.customRdpProperty) -split ';' | Where-Object { $_.Trim() })) {
+            if ($entry -match '^\s*([^:]+):[a-z]:(.*)$') { $values[$Matches[1].Trim().ToLowerInvariant()] = $Matches[2].Trim() }
+        }
+        $evidence = [ordered]@{}
+        $enabled = [System.Collections.Generic.List[string]]::new()
+        foreach ($name in $avdDataRedirections.Keys) {
+            $value = if ($values.ContainsKey($name)) { [string]$values[$name] } else { '' }
+            $evidence[$name] = $(if ($values.ContainsKey($name)) { $value } else { 'not set' })
+            if ($value -and $value -ne '0') { $enabled.Add($avdDataRedirections[$name]) }
+        }
+        if ($enabled.Count) { return New-Fail "Redirects $($enabled -join ', ') to the local device" $evidence }
+        New-Pass 'No drive, clipboard or USB redirection' $evidence
     }
 }

@@ -333,4 +333,36 @@ export default R.script("/app/Analyze/tests/11-Containers.ps1", { params: [], ad
             return R.u(v2);
         })(), (S["evidence"] ?? null)], null));
     })], false)], null));
+    R.ln = F + 364;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-ACR-006", "Title", "Premium container registries disable artifact export", "Category", "Data protection", "Service", "Container Registry", "Severity", "Low", "Description", "Checks that the export policy of Premium container registries is disabled, so images and other artifacts cannot be imported into, or transferred to, another registry. The export policy needs public network access disabled first. Basic and Standard registries cannot disable export and are not applicable.", "Rationale", "Images carry application code, configuration and sometimes secrets. With export enabled, anyone with pull rights can copy the whole registry to a registry in another subscription or tenant with az acr import, which no network rule of this registry stops.", "Remediation", "Disable public network access, reach the registry through private endpoints, then disable the export policy (az acr update --name <registry> --allow-exports false).", "References", R.a("https://learn.microsoft.com/azure/container-registry/data-loss-prevention"), "Policy", R.ht(["524b0254-c285-4903-bee6-bb8126cde579", "Container registries should have exports disabled"], false), "ResourceTypes", R.a("Microsoft.ContainerRegistry/registries"), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $status = [string]$Record.resource.properties.policies.exportPolicy.status\n        $evidence = [ordered]@{ sku = $Record.resource.sku.name; exportPolicy = $(if ($status) { $status } else { 'enabled (default)' }); publicNetworkAccess = $Record.resource.properties.publicNetworkAccess }\n        if ([string]$Record.resource.sku.name -ne 'Premium') { return New-NotApplicable \"The $($Record.resource.sku.name) tier cannot disable export\" $evidence }\n        if ($status -eq 'disabled') { return New-Pass 'Export is disabled' $evidence }\n        New-Fail 'Artifacts can be exported to other registries' $evidence\n    " }, (S, O) => {
+        R.ln = F + 378;
+        S["status"] = R.c("string", R.m(R.m(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "policies"), "exportPolicy"), "status"));
+        R.ln = F + 379;
+        S["evidence"] = R.ht(["sku", R.m(R.m(R.m((S["record"] ?? null), "resource"), "sku"), "name"), "exportPolicy", (() => {
+            const v3 = [];
+            R.ln = F + 379;
+            if (R.t((S["status"] ?? null))) {
+                R.ln = F + 379;
+                R.e(v3, (S["status"] ?? null));
+            } else {
+                R.ln = F + 379;
+                R.e(v3, "enabled (default)");
+            }
+            return R.u(v3);
+        })(), "publicNetworkAccess", R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "publicNetworkAccess")], true);
+        R.ln = F + 380;
+        if (R.t(R.ne(R.c("string", R.m(R.m(R.m((S["record"] ?? null), "resource"), "sku"), "name")), "Premium"))) {
+            R.ln = F + 380;
+            R.pa(O, R.cmd(S, "New-NotApplicable", [("The " + R.str(R.u(R.pi(R.m(R.m(R.m((S["record"] ?? null), "resource"), "sku"), "name")))) + " tier cannot disable export"), (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 381;
+        if (R.t(R.eq((S["status"] ?? null), "disabled"))) {
+            R.ln = F + 381;
+            R.pa(O, R.cmd(S, "New-Pass", ["Export is disabled", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 382;
+        R.pa(O, R.cmd(S, "New-Fail", ["Artifacts can be exported to other registries", (S["evidence"] ?? null)], null));
+    })], false)], null));
 });

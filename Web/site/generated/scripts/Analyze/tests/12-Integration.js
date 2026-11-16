@@ -2403,4 +2403,57 @@ export default R.script("/app/Analyze/tests/12-Integration.ps1", { params: [], a
             R.e(O, (S["findings"] ?? null));
         }
     })], false)], null));
+    R.ln = F + 1171;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-AUTO-005", "Title", "Automation webhooks expire within a year", "Category", "Identity management", "Service", "Automation", "Severity", "Medium", "Description", "Checks the enabled webhooks of Automation accounts for a validity (creation to expiry) of at most one year. The webhook URL is the only credential needed to start its runbook.", "Rationale", "Anyone who has the URL starts the runbook with the managed identity or credentials of the Automation account, on a hybrid worker if the webhook runs there, without signing in. URLs end up in scripts, monitoring tools and tickets; a validity of years keeps a leaked one usable.", "Remediation", "Recreate the webhook with an expiry within a year and rotate it before it expires, or start the runbook through an authenticated call (a Logic App or function with a managed identity).", "References", R.a("https://learn.microsoft.com/azure/automation/automation-webhooks"), "Run", R.sb({ params: [], adv: 0, text: "\n        foreach ($account in @(Get-AzResourceRecords -Type 'Microsoft.Automation/automationAccounts' | Sort-Object id)) {\n            if (-not (Test-ChildCollected $account 'webhooks')) { New-Finding -Record $account -Result (New-Unknown 'Webhooks could not be listed'); continue }\n            foreach ($webhook in @(Get-Child $account 'webhooks' | Where-Object { $_ -and $_.properties.isEnabled -ne $false } | Sort-Object name)) {\n                $created = ConvertTo-UtcDate $webhook.properties.creationTime\n                $expires = ConvertTo-UtcDate $webhook.properties.expiryTime\n                $evidence = [ordered]@{ automationAccount = $account.resource.name; runbook = $webhook.properties.runbook.name; runOn = $webhook.properties.runOn; created = Format-UtcDate $created; expires = Format-UtcDate $expires }\n                $id = if ($webhook.id) { [string]$webhook.id } else { \"$($account.id)/webhooks/$($webhook.name)\" }\n                if (-not $expires -or -not $created) { $result = New-Unknown 'The creation or expiry date was not returned' $evidence }\n                elseif ($expires -le $script:Ingest.ReferenceTime) { $result = New-Pass 'Expired' $evidence }\n                elseif (($expires - $created).TotalDays -gt 366) { $result = New-Fail \"Valid for $([int]($expires - $created).TotalDays) days, until $($evidence.expires)\" $evidence }\n                else { $result = New-Pass \"Expires $($evidence.expires)\" $evidence }\n                New-Finding -ResourceId $id -ResourceType 'Microsoft.Automation/automationAccounts/webhooks' -ResourceName \"$($account.resource.name)/$($webhook.name)\" -Result $result\n            }\n        }\n    " }, (S, O) => {
+        R.ln = F + 1182;
+        for (const it69 of R.fi(R.cmd(S, "Sort-Object", ["id"], R.cmd(S, "Get-AzResourceRecords", [R.np("Type"), "Microsoft.Automation/automationAccounts"], null)))) {
+            S["account"] = it69;
+            R.ln = F + 1183;
+            if (!R.t(R.u(R.cmd(S, "Test-ChildCollected", [(S["account"] ?? null), "webhooks"], null)))) {
+                R.ln = F + 1183;
+                R.pa(O, R.cmd(S, "New-Finding", [R.np("Record"), (S["account"] ?? null), R.np("Result"), R.u(R.cmd(S, "New-Unknown", ["Webhooks could not be listed"], null))], null));
+                continue;
+            }
+            R.ln = F + 1184;
+            for (const it70 of R.fi(R.cmd(S, "Sort-Object", ["name"], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.properties.isEnabled -ne $false " }, (S, O) => {
+                R.ln = F + 1184;
+                R.e(O, (R.t((S["_"] ?? null)) && R.t(R.ne(R.m(R.m((S["_"] ?? null), "properties"), "isEnabled"), false))));
+            })], R.cmd(S, "Get-Child", [(S["account"] ?? null), "webhooks"], null))))) {
+                S["webhook"] = it70;
+                R.ln = F + 1185;
+                S["created"] = R.u(R.cmd(S, "ConvertTo-UtcDate", [R.m(R.m((S["webhook"] ?? null), "properties"), "creationTime")], null));
+                R.ln = F + 1186;
+                S["expires"] = R.u(R.cmd(S, "ConvertTo-UtcDate", [R.m(R.m((S["webhook"] ?? null), "properties"), "expiryTime")], null));
+                R.ln = F + 1187;
+                S["evidence"] = R.ht(["automationAccount", R.m(R.m((S["account"] ?? null), "resource"), "name"), "runbook", R.m(R.m(R.m((S["webhook"] ?? null), "properties"), "runbook"), "name"), "runOn", R.m(R.m((S["webhook"] ?? null), "properties"), "runOn"), "created", R.u(R.cmd(S, "Format-UtcDate", [(S["created"] ?? null)], null)), "expires", R.u(R.cmd(S, "Format-UtcDate", [(S["expires"] ?? null)], null))], true);
+                R.ln = F + 1188;
+                const v71 = [];
+                R.ln = F + 1188;
+                if (R.t(R.m((S["webhook"] ?? null), "id"))) {
+                    R.ln = F + 1188;
+                    R.e(v71, R.c("string", R.m((S["webhook"] ?? null), "id")));
+                } else {
+                    R.ln = F + 1188;
+                    R.e(v71, ("" + R.str(R.u(R.pi(R.m((S["account"] ?? null), "id")))) + "/webhooks/" + R.str(R.u(R.pi(R.m((S["webhook"] ?? null), "name"))))));
+                }
+                S["id"] = R.u(v71);
+                R.ln = F + 1189;
+                if ((!R.t((S["expires"] ?? null)) || !R.t((S["created"] ?? null)))) {
+                    R.ln = F + 1189;
+                    S["result"] = R.u(R.cmd(S, "New-Unknown", ["The creation or expiry date was not returned", (S["evidence"] ?? null)], null));
+                } else if (R.t(R.le((S["expires"] ?? null), R.m((R.ss(S)["script:ingest"] ?? null), "ReferenceTime")))) {
+                    R.ln = F + 1190;
+                    S["result"] = R.u(R.cmd(S, "New-Pass", ["Expired", (S["evidence"] ?? null)], null));
+                } else if (R.t(R.gt(R.m((R.sub((S["expires"] ?? null), (S["created"] ?? null))), "TotalDays"), 366))) {
+                    R.ln = F + 1191;
+                    S["result"] = R.u(R.cmd(S, "New-Fail", [("Valid for " + R.str(R.u(R.pi(R.c("int", R.m((R.sub((S["expires"] ?? null), (S["created"] ?? null))), "TotalDays"))))) + " days, until " + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "expires"))))), (S["evidence"] ?? null)], null));
+                } else {
+                    R.ln = F + 1192;
+                    S["result"] = R.u(R.cmd(S, "New-Pass", [("Expires " + R.str(R.u(R.pi(R.m((S["evidence"] ?? null), "expires"))))), (S["evidence"] ?? null)], null));
+                }
+                R.ln = F + 1193;
+                R.pa(O, R.cmd(S, "New-Finding", [R.np("ResourceId"), (S["id"] ?? null), R.np("ResourceType"), "Microsoft.Automation/automationAccounts/webhooks", R.np("ResourceName"), ("" + R.str(R.u(R.pi(R.m(R.m((S["account"] ?? null), "resource"), "name")))) + "/" + R.str(R.u(R.pi(R.m((S["webhook"] ?? null), "name"))))), R.np("Result"), (S["result"] ?? null)], null));
+            }
+        }
+    })], false)], null));
 });

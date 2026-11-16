@@ -1030,4 +1030,59 @@ export default R.script("/app/Analyze/tests/04-LoggingMonitoring.ps1", { params:
         R.ln = F + 561;
         R.pa(O, R.cmd(S, "New-Fail", ["No delete lock on the workspace, resource group or subscription", (S["evidence"] ?? null)], null));
     })], false)], null));
+    R.ln = F + 565;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-LOG-035", "Title", "Alert processing rules do not silence all alerts permanently", "Category", "Logging and threat detection", "Service", "Azure Monitor", "Severity", "Medium", "Description", "Finds enabled alert processing rules that remove all action groups (suppression) without a condition that limits them to some alerts and without a schedule, so no alert in their scope reaches anyone. Rules for a maintenance window or for selected alerts pass.", "Rationale", "One suppression rule on the subscription silences every alert, including the security alerts for role assignments, deleted locks and run command, while the alert rules themselves still look fine. It is a quiet way to blind the defenders before an attack, and a forgotten maintenance rule does the same.", "Remediation", "Give suppression rules a schedule (the maintenance window) and conditions (alert rule, severity or resource), remove rules that are no longer needed, and alert on changes to alert processing rules (Microsoft.AlertsManagement/actionRules/write).", "References", R.a("https://learn.microsoft.com/azure/azure-monitor/alerts/alerts-processing-rules"), "ResourceTypes", R.a("Microsoft.AlertsManagement/actionRules"), "Filter", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) @($Record.resource.properties.actions | Where-Object { $_.actionType -eq 'RemoveAllActionGroups' }).Count " }, (S, O) => {
+        R.ln = F + 576;
+        R.e(O, R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_.actionType -eq 'RemoveAllActionGroups' " }, (S, O) => {
+            R.ln = F + 576;
+            R.e(O, R.eq(R.m((S["_"] ?? null), "actionType"), "RemoveAllActionGroups"));
+        })], R.pi(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "actions"))), "Count"));
+    }), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $p = $Record.resource.properties\n        $schedule = $p.schedule\n        $evidence = [ordered]@{ enabled = $p.enabled; scopes = @($p.scopes | Where-Object { $_ }); conditions = @($p.conditions | Where-Object { $_ } | ForEach-Object { \"$($_.field) $($_.operator) $(@($_.values) -join ',')\" }); effectiveUntil = $schedule.effectiveUntil; recurrences = @($schedule.recurrences | Where-Object { $_ }).Count }\n        if ($p.enabled -eq $false) { return New-Pass 'The suppression rule is disabled' $evidence }\n        $permanent = -not $schedule -or (-not $schedule.effectiveUntil -and -not @($schedule.recurrences | Where-Object { $_ }).Count)\n        if (-not $permanent) { return New-Pass 'The suppression only applies on a schedule' $evidence }\n        if ($evidence.conditions.Count) { return New-Pass \"The suppression only applies to alerts that match: $($evidence.conditions -join '; ')\" $evidence }\n        New-Fail \"Every alert on $(@($evidence.scopes | ForEach-Object { Get-ScopeLabel $_ }) -join ', ') is suppressed, at all times\" $evidence\n    " }, (S, O) => {
+        R.ln = F + 579;
+        S["p"] = R.m(R.m((S["record"] ?? null), "resource"), "properties");
+        R.ln = F + 580;
+        S["schedule"] = R.m((S["p"] ?? null), "schedule");
+        R.ln = F + 581;
+        S["evidence"] = R.ht(["enabled", R.m((S["p"] ?? null), "enabled"), "scopes", R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+            R.ln = F + 581;
+            R.e(O, (S["_"] ?? null));
+        })], R.pi(R.m((S["p"] ?? null), "scopes"))), "conditions", R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " \"$($_.field) $($_.operator) $(@($_.values) -join ',')\" " }, (S, O) => {
+            R.ln = F + 581;
+            R.e(O, ("" + R.str(R.u(R.pi(R.m((S["_"] ?? null), "field")))) + " " + R.str(R.u(R.pi(R.m((S["_"] ?? null), "operator")))) + " " + R.str(R.u(R.pi(R.join(R.a(R.m((S["_"] ?? null), "values")), ","))))));
+        })], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+            R.ln = F + 581;
+            R.e(O, (S["_"] ?? null));
+        })], R.pi(R.m((S["p"] ?? null), "conditions")))), "effectiveUntil", R.m((S["schedule"] ?? null), "effectiveUntil"), "recurrences", R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+            R.ln = F + 581;
+            R.e(O, (S["_"] ?? null));
+        })], R.pi(R.m((S["schedule"] ?? null), "recurrences"))), "Count")], true);
+        R.ln = F + 582;
+        if (R.t(R.eq(R.m((S["p"] ?? null), "enabled"), false))) {
+            R.ln = F + 582;
+            R.pa(O, R.cmd(S, "New-Pass", ["The suppression rule is disabled", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 583;
+        S["permanent"] = (!R.t((S["schedule"] ?? null)) || (!R.t(R.m((S["schedule"] ?? null), "effectiveUntil")) && !R.t(R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+            R.ln = F + 583;
+            R.e(O, (S["_"] ?? null));
+        })], R.pi(R.m((S["schedule"] ?? null), "recurrences"))), "Count"))));
+        R.ln = F + 584;
+        if (!R.t((S["permanent"] ?? null))) {
+            R.ln = F + 584;
+            R.pa(O, R.cmd(S, "New-Pass", ["The suppression only applies on a schedule", (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 585;
+        if (R.t(R.m(R.m((S["evidence"] ?? null), "conditions"), "Count"))) {
+            R.ln = F + 585;
+            R.pa(O, R.cmd(S, "New-Pass", [("The suppression only applies to alerts that match: " + R.str(R.u(R.pi(R.join(R.m((S["evidence"] ?? null), "conditions"), "; "))))), (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 586;
+        R.pa(O, R.cmd(S, "New-Fail", [("Every alert on " + R.str(R.u(R.pi(R.join(R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " Get-ScopeLabel $_ " }, (S, O) => {
+            R.ln = F + 586;
+            R.pa(O, R.cmd(S, "Get-ScopeLabel", [(S["_"] ?? null)], null));
+        })], R.pi(R.m((S["evidence"] ?? null), "scopes"))), ", ")))) + " is suppressed, at all times"), (S["evidence"] ?? null)], null));
+    })], false)], null));
 });

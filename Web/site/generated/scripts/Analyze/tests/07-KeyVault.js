@@ -510,4 +510,47 @@ export default R.script("/app/Analyze/tests/07-KeyVault.ps1", { params: [], adv:
         R.ln = F + 362;
         R.pa(O, R.cmd(S, "New-Pass", ["No full or purge permissions in access policies", (S["evidence"] ?? null)], null));
     })], false)], null));
+    R.ln = F + 366;
+    R.pa(O, R.cmd(S, "Add-AzTest", [R.ht(["Id", "AZ-KV-017", "Title", "Key vault access policies only name existing principals", "Category", "Privileged access", "Service", "Key Vault", "Severity", "Low", "Description", "Finds access policies of key vaults whose object id no longer exists in the directory. Access policies stay on the vault when the vault uses Azure RBAC, and apply again when it switches back.", "Rationale", "Orphaned access policies hide who had access to the secrets, and a principal restored from the recycle bin within 30 days gets its access back. Unlike role assignments, they do not show in the Access control view of the subscription.", "Remediation", "Remove the access policies of deleted principals (az keyvault delete-policy --object-id ...), or move the vault to Azure RBAC and clear its access policies.", "References", R.a("https://learn.microsoft.com/azure/key-vault/general/assign-access-policy"), "Requires", R.a([R.v("identity/directoryObjects"), R.v("identity/unresolvedPrincipalIds")]), "ResourceTypes", R.a("Microsoft.KeyVault/vaults"), "Filter", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: " param($Record) @($Record.resource.properties.accessPolicies | Where-Object { $_ }).Count " }, (S, O) => {
+        R.ln = F + 378;
+        R.e(O, R.m(R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ " }, (S, O) => {
+            R.ln = F + 378;
+            R.e(O, (S["_"] ?? null));
+        })], R.pi(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "accessPolicies"))), "Count"));
+    }), "Evaluate", R.sb({ params: [{ n: "Record", t: null, pos: null }], adv: 0, text: "\n        param($Record)\n        $policies = @($Record.resource.properties.accessPolicies | Where-Object { $_ -and $_.objectId })\n        $orphaned = @($policies | Where-Object { Test-PrincipalDeleted ([string]$_.objectId) } | ForEach-Object { [string]$_.objectId } | Sort-Object -Unique)\n        $evidence = [ordered]@{ accessPolicies = $policies.Count; deletedPrincipals = $orphaned; permissionModel = $(if ($Record.resource.properties.enableRbacAuthorization) { 'Azure RBAC (access policies dormant)' } else { 'access policies' }) }\n        if ($orphaned) { return New-Fail \"Access policies for $($orphaned.Count) principal(s) that no longer exist: $($orphaned -join ', ')\" $evidence }\n        New-Pass 'Every access policy names an existing principal' $evidence\n    " }, (S, O) => {
+        R.ln = F + 381;
+        S["policies"] = R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " $_ -and $_.objectId " }, (S, O) => {
+            R.ln = F + 381;
+            R.e(O, (R.t((S["_"] ?? null)) && R.t(R.m((S["_"] ?? null), "objectId"))));
+        })], R.pi(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "accessPolicies")));
+        R.ln = F + 382;
+        S["orphaned"] = R.cmd(S, "Sort-Object", [R.np("Unique")], R.cmd(S, "ForEach-Object", [R.sb({ params: [], adv: 0, text: " [string]$_.objectId " }, (S, O) => {
+            R.ln = F + 382;
+            R.e(O, R.c("string", R.m((S["_"] ?? null), "objectId")));
+        })], R.cmd(S, "Where-Object", [R.sb({ params: [], adv: 0, text: " Test-PrincipalDeleted ([string]$_.objectId) " }, (S, O) => {
+            R.ln = F + 382;
+            R.pa(O, R.cmd(S, "Test-PrincipalDeleted", [(R.c("string", R.m((S["_"] ?? null), "objectId")))], null));
+        })], R.pi((S["policies"] ?? null)))));
+        R.ln = F + 383;
+        S["evidence"] = R.ht(["accessPolicies", R.m((S["policies"] ?? null), "Count"), "deletedPrincipals", (S["orphaned"] ?? null), "permissionModel", (() => {
+            const v26 = [];
+            R.ln = F + 383;
+            if (R.t(R.m(R.m(R.m((S["record"] ?? null), "resource"), "properties"), "enableRbacAuthorization"))) {
+                R.ln = F + 383;
+                R.e(v26, "Azure RBAC (access policies dormant)");
+            } else {
+                R.ln = F + 383;
+                R.e(v26, "access policies");
+            }
+            return R.u(v26);
+        })()], true);
+        R.ln = F + 384;
+        if (R.t((S["orphaned"] ?? null))) {
+            R.ln = F + 384;
+            R.pa(O, R.cmd(S, "New-Fail", [("Access policies for " + R.str(R.u(R.pi(R.m((S["orphaned"] ?? null), "Count")))) + " principal(s) that no longer exist: " + R.str(R.u(R.pi(R.join((S["orphaned"] ?? null), ", "))))), (S["evidence"] ?? null)], null));
+            return;
+        }
+        R.ln = F + 385;
+        R.pa(O, R.cmd(S, "New-Pass", ["Every access policy names an existing principal", (S["evidence"] ?? null)], null));
+    })], false)], null));
 });

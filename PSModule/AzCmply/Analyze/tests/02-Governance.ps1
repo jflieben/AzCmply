@@ -122,13 +122,17 @@ Add-AzTest @{
     Category      = 'Asset management'
     Service       = 'Compute'
     Severity      = 'Low'
-    Description   = 'Finds managed disks that are not attached to any virtual machine.'
-    Rationale     = 'Orphaned disks keep copies of data (often including credentials and system state) outside of any lifecycle, monitoring or backup process.'
+    Version       = 2
+    Description   = 'Finds managed disks that are not attached to any virtual machine. Replica and seed disks of Azure Site Recovery are unattached by design and not evaluated.'
+    Rationale     = 'Orphaned disks keep copies of data (often including credentials and system state) outside of any lifecycle, monitoring or backup process, and are billed for their full size.'
     Remediation   = 'Delete disks that are no longer needed, after checking whether they must be retained; snapshot them to a governed location if retention is required.'
     ResourceTypes = @('Microsoft.Compute/disks')
     Evaluate      = {
         param($Record)
-        $evidence = [ordered]@{ diskState = $Record.resource.properties.diskState; managedBy = $Record.resource.managedBy }
+        $evidence = [ordered]@{ diskState = $Record.resource.properties.diskState; managedBy = $Record.resource.managedBy; diskSizeGB = $Record.resource.properties.diskSizeGB }
+        #the names Azure Site Recovery gives its disks, as in the landing zone policy for unused disks
+        $name = [string]$Record.resource.name
+        if ($name -like '*-ASRReplica' -or $name -like 'ms-asr-*' -or $name -like 'asrseeddisk-*') { return New-NotApplicable 'Azure Site Recovery replica disk' $evidence }
         if ($Record.resource.properties.diskState -eq 'Unattached') { return New-Fail 'Disk is not attached to a virtual machine' $evidence }
         New-Pass "Disk state $($Record.resource.properties.diskState)" $evidence
     }
@@ -450,5 +454,26 @@ Add-AzTest @{
         $evidence = [ordered]@{ requireAuthorizationForGroupCreation = $settings.properties.requireAuthorizationForGroupCreation; settingsSaved = [bool]$settings }
         if ($settings.properties.requireAuthorizationForGroupCreation -eq $true) { return New-HierarchySettingsFinding (New-Pass 'Creating management groups requires write permission on the root group' $evidence) }
         New-HierarchySettingsFinding (New-Fail 'Any principal in the tenant can create management groups' $evidence)
+    }
+}
+
+Add-AzTest @{
+    Id          = 'AZ-GOV-017'
+    Title       = 'Only designated users can create Microsoft Entra tenants'
+    Category    = 'Asset management'
+    Service     = 'Microsoft Entra ID'
+    Severity    = 'Medium'
+    Description = "Checks the authorization policy of the tenant: 'Restrict non-admin users from creating tenants' must be on (defaultUserRolePermissions.allowedToCreateTenants false), so only Global Administrators and holders of the Tenant Creator role can create tenants."
+    Rationale   = 'A user who creates a tenant becomes its Global Administrator and can attach Azure subscriptions and billing to it. Such tenants and their subscriptions sit outside the policies, logging, Conditional Access and reviews of the organization, and are a ready place to copy data to or to host phishing applications under a convincing name.'
+    Remediation = "In the Entra admin center, set Users > User settings > 'Restrict non-admin users from creating tenants' to Yes, and give the Tenant Creator role to the few people who need it."
+    References  = @('https://learn.microsoft.com/entra/fundamentals/users-default-permissions#restrict-member-users-default-permissions')
+    Requires    = @('identity/authorizationPolicy')
+    Run         = {
+        $policy = @(Get-IngestData 'identity/authorizationPolicy') | Where-Object { $_ } | Select-Object -First 1
+        $allowed = $policy.defaultUserRolePermissions.allowedToCreateTenants
+        $evidence = [ordered]@{ allowedToCreateTenants = $allowed }
+        if ($allowed -eq $false) { return New-TenantFinding -Result (New-Pass 'Non-admin users cannot create tenants' $evidence) -Suffix '/authorizationPolicy' }
+        if ($null -eq $allowed) { return New-TenantFinding -Result (New-Unknown 'The authorization policy does not report whether users can create tenants' $evidence) -Suffix '/authorizationPolicy' }
+        New-TenantFinding -Result (New-Fail 'Every user can create a tenant and becomes its Global Administrator' $evidence) -Suffix '/authorizationPolicy'
     }
 }

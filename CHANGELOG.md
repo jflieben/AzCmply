@@ -1,5 +1,52 @@
 # Changelog
 
+## 1.0.9
+
+### Added
+
+42 NEW tests! 462 in total.
+
+Orphaned resources: 30 tests find what was left behind when the thing that used it was deleted. They cost money and
+keep data, access or reachable endpoints outside every lifecycle. Resources that a service manages (AKS node resource
+groups, managed applications) are not evaluated.
+
+- AZ-GOV-018 to AZ-GOV-028: network interfaces, network security groups, route tables, paid App Service plans, load
+  balancers, Application Gateways, NAT gateways, VPN and ExpressRoute gateways, local network gateways, DDoS protection
+  plans and public IP prefixes that nothing uses.
+- AZ-GOV-029 to AZ-GOV-031: private DNS zones without a link to an existing network, disconnected private endpoints and
+  disconnected virtual network peerings.
+- AZ-GOV-032 to AZ-GOV-045: empty availability sets, snapshots of deleted disks, empty resource groups, unused
+  user-assigned identities, SQL elastic pools without databases, Service Bus and Event Hubs namespaces without
+  entities, host pools without session hosts, Front Door and CDN profiles without endpoints, Traffic Manager profiles
+  without enabled endpoints, unused application security groups, firewall and WAF policies that protect nothing,
+  unbound App Service certificates and ExpressRoute circuits that nothing uses.
+- AZ-LOG-036: diagnostic settings that send to a workspace, storage account or event hub that no longer exists.
+- AZ-LOG-037: alert rules whose monitored resources no longer exist.
+
+Other new tests:
+
+- AZ-IAM-038: principals that can change the custom policy definitions or initiatives run by a policy identity with a
+  privileged role (Resource Policy Contributor, Security Admin) without holding that role themselves (AZC-17).
+- AZ-IAM-040: principals that can attach a privileged user-assigned identity to a resource they control (Managed
+  Identity Operator, Contributor on its resource group) without holding its roles (AZC-17).
+- AZ-IAM-039: Conditional Access requires phishing-resistant authentication (Windows Hello for Business, FIDO2 and
+  passkeys, certificate-based MFA) for Azure management.
+- AZ-GOV-017: only designated users can create Microsoft Entra tenants (AZC-22).
+- AZ-LOG-035: no alert processing rule suppresses every alert of a scope at all times (AZC-09).
+- AZ-NET-034: WAF policies have no Equals any exclusion that takes a whole request part out of inspection.
+- AZ-KV-017: key vault access policies only name principals that still exist.
+- AZ-VM-021: compute galleries are not shared with the community or with other tenants (AZC-18).
+- AZ-VM-022: Arc-enabled servers only accept extensions on an allow list, or run in monitor mode (AZC-19).
+- AZ-AVD-002: host pools do not redirect drives, clipboard or USB devices (AZC-20).
+- AZ-ACR-006: Premium container registries disable artifact export (AZC-18).
+- AZ-AUTO-005: Automation webhooks are valid for at most a year (AZC-21).
+
+### Fixed
+
+- AZ-VM-017 (version 2) also reads the extension allow list when Azure Resource Manager returns its entries as objects.
+- AZ-GOV-006 (version 2) no longer reports the replica and seed disks of Azure Site Recovery, which are unattached by
+  design.
+
 ## 1.0.8
 
 ### Frameworks

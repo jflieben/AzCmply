@@ -360,3 +360,25 @@ Add-AzTest @{
         New-Pass $(if ($address) { 'Private IP address' } else { 'No IP address' }) $evidence
     }
 }
+
+Add-AzTest @{
+    Id            = 'AZ-ACR-006'
+    Title         = 'Premium container registries disable artifact export'
+    Category      = 'Data protection'
+    Service       = 'Container Registry'
+    Severity      = 'Low'
+    Description   = 'Checks that the export policy of Premium container registries is disabled, so images and other artifacts cannot be imported into, or transferred to, another registry. The export policy needs public network access disabled first. Basic and Standard registries cannot disable export and are not applicable.'
+    Rationale     = 'Images carry application code, configuration and sometimes secrets. With export enabled, anyone with pull rights can copy the whole registry to a registry in another subscription or tenant with az acr import, which no network rule of this registry stops.'
+    Remediation   = 'Disable public network access, reach the registry through private endpoints, then disable the export policy (az acr update --name <registry> --allow-exports false).'
+    References    = @('https://learn.microsoft.com/azure/container-registry/data-loss-prevention')
+    Policy        = @{ '524b0254-c285-4903-bee6-bb8126cde579' = 'Container registries should have exports disabled' }
+    ResourceTypes = @('Microsoft.ContainerRegistry/registries')
+    Evaluate      = {
+        param($Record)
+        $status = [string]$Record.resource.properties.policies.exportPolicy.status
+        $evidence = [ordered]@{ sku = $Record.resource.sku.name; exportPolicy = $(if ($status) { $status } else { 'enabled (default)' }); publicNetworkAccess = $Record.resource.properties.publicNetworkAccess }
+        if ([string]$Record.resource.sku.name -ne 'Premium') { return New-NotApplicable "The $($Record.resource.sku.name) tier cannot disable export" $evidence }
+        if ($status -eq 'disabled') { return New-Pass 'Export is disabled' $evidence }
+        New-Fail 'Artifacts can be exported to other registries' $evidence
+    }
+}

@@ -3,11 +3,11 @@
   "order": 16,
   "name": "AzCmply custom controls",
   "shortName": "AzCmply Custom",
-  "version": "2026.11.1",
+  "version": "2026.11.2",
   "publisher": "JSolve B.V.",
   "type": "custom",
   "url": "https://jsolve.nl",
-  "retrieved": "2026-09-28",
+  "retrieved": "2026-11-15",
   "mapping": "native",
   "note": "Controls by JSolve B.V. for Azure attack paths and risks that none of the other frameworks covers, based on published attack research and breaches. Each control is checked by the tests listed with it.",
   "controls": {
@@ -19,13 +19,19 @@
     "AZC-06": {"title":"Storage firewalls only admit resources of the own tenant","coverage":"full","tests":["AZ-STG-027"]},
     "AZC-07": {"title":"Published APIs authenticate every caller with a subscription key or a validated token","coverage":"full","tests":["AZ-APIM-008"]},
     "AZC-08": {"title":"Unexpected cost reaches the owners of a subscription","coverage":"full","tests":["AZ-GOV-014"]},
-    "AZC-09": {"title":"Takeover actions raise an alert (role assignments, removed locks, run command)","coverage":"full","tests":["AZ-LOG-027","AZ-LOG-028","AZ-LOG-029"]},
+    "AZC-09": {"title":"Takeover actions raise an alert that nothing silences (role assignments, removed locks, run command)","coverage":"full","tests":["AZ-LOG-027","AZ-LOG-028","AZ-LOG-029","AZ-LOG-035"]},
     "AZC-10": {"title":"Only Tier 0 administrators can take over domain controllers through Azure (virtual machines and Arc-enabled servers)","coverage":"partial","tests":["AZ-VM-015","AZ-VM-016","AZ-VM-017"]},
     "AZC-11": {"title":"Workloads that anyone can call have no write access in Azure","coverage":"partial","tests":["AZ-FUNC-003","AZ-LOGIC-002"]},
     "AZC-12": {"title":"Workflows do not keep failing unnoticed","coverage":"partial","tests":["AZ-LOGIC-009"]},
     "AZC-13": {"title":"Only those who can change a function app can change the storage it runs from","coverage":"partial","tests":["AZ-FUNC-001"]},
     "AZC-14": {"title":"Only the administrators of a machine can change the code that Automation runs on it","coverage":"partial","tests":["AZ-AUTO-004"]},
     "AZC-15": {"title":"Roles that run code on machines are granted on the machines, not on subscriptions or above","coverage":"full","tests":["AZ-IAM-034"]},
-    "AZC-16": {"title":"Role assignments do not repeat access that a broader assignment of the same principal already grants","coverage":"partial","tests":["AZ-IAM-035"]}
+    "AZC-16": {"title":"Role assignments do not repeat access that a broader assignment of the same principal already grants","coverage":"partial","tests":["AZ-IAM-035"]},
+    "AZC-17": {"title":"Nobody can act through a managed identity with more rights than their own (custom policy definitions, user-assigned identities)","coverage":"partial","tests":["AZ-IAM-038","AZ-IAM-040"]},
+    "AZC-18": {"title":"Machine images and registry artifacts cannot be shared or exported out of the tenant","coverage":"partial","tests":["AZ-ACR-006","AZ-VM-021"]},
+    "AZC-19": {"title":"Servers connected with Azure Arc only run approved extensions","coverage":"full","tests":["AZ-VM-022"]},
+    "AZC-20": {"title":"Virtual desktops do not move files or clipboard contents to the local device","coverage":"partial","tests":["AZ-AVD-002"]},
+    "AZC-21": {"title":"URLs that start runbooks without signing in expire within a year","coverage":"full","tests":["AZ-AUTO-005"]},
+    "AZC-22": {"title":"Only designated users can create Microsoft Entra tenants","coverage":"full","tests":["AZ-GOV-017"]}
   }
 }

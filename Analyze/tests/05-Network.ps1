@@ -948,3 +948,43 @@ Add-AzTest @{
         New-Pass 'IKEv2 with a custom policy of strong algorithms and perfect forward secrecy' $evidence
     }
 }
+
+function Get-WafBlanketExclusions {
+    #exclusions of a WAF policy that take every selector of a request part out of inspection for a whole rule set (or all
+    #rule sets): EqualsAny without rule groups or rules
+    param($Policy)
+    $rules = $Policy.properties.managedRules
+    $found = [System.Collections.Generic.List[string]]::new()
+    #Application Gateway: exclusions apply to all rule sets unless exclusionManagedRuleSets names some
+    foreach ($exclusion in @($rules.exclusions | Where-Object { $_ })) {
+        if ([string]$exclusion.selectorMatchOperator -ne 'EqualsAny') { continue }
+        $sets = @($exclusion.exclusionManagedRuleSets | Where-Object { $_ })
+        if (-not $sets) { $found.Add("$($exclusion.matchVariable) for all rules"); continue }
+        foreach ($set in @($sets | Where-Object { -not @($_.ruleGroups | Where-Object { $_ }).Count })) { $found.Add("$($exclusion.matchVariable) for rule set $($set.ruleSetType) $($set.ruleSetVersion)") }
+    }
+    #Front Door: exclusions on a managed rule set apply to every rule in it
+    foreach ($set in @($rules.managedRuleSets | Where-Object { $_ })) {
+        foreach ($exclusion in @($set.exclusions | Where-Object { $_ -and [string]$_.selectorMatchOperator -eq 'EqualsAny' })) { $found.Add("$($exclusion.matchVariable) for rule set $($set.ruleSetType) $($set.ruleSetVersion)") }
+    }
+    return @($found | Sort-Object -Unique)
+}
+
+Add-AzTest @{
+    Id            = 'AZ-NET-034'
+    Title         = 'WAF policies do not exclude whole request parts from inspection'
+    Category      = 'Network security'
+    Service       = 'Web Application Firewall'
+    Severity      = 'Medium'
+    Description   = "Checks Application Gateway, Front Door and CDN WAF policies for exclusions with selector operator 'Equals any' that apply to every rule (or a whole managed rule set), which take all request headers, cookies, arguments or body fields of that kind out of inspection."
+    Rationale     = 'Exclusions are meant to stop false positives on one field. An Equals any exclusion makes the WAF ignore every header, cookie or parameter of that kind, so an attacker only has to put the payload there; the policy still shows Prevention mode.'
+    Remediation   = 'Replace the exclusion with one that names the specific field (Equals, Starts with) and limit it to the rule or rule group that produced the false positive.'
+    References    = @('https://learn.microsoft.com/azure/web-application-firewall/ag/application-gateway-waf-configuration', 'https://learn.microsoft.com/azure/web-application-firewall/afds/waf-front-door-exclusion')
+    ResourceTypes = $wafPolicyTypes
+    Evaluate      = {
+        param($Record)
+        $blanket = @(Get-WafBlanketExclusions $Record.resource)
+        $evidence = [ordered]@{ blanketExclusions = $blanket }
+        if ($blanket) { return New-Fail "Excluded from inspection: $($blanket -join '; ')" $evidence }
+        New-Pass 'No exclusion covers a whole request part' $evidence
+    }
+}
